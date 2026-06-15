@@ -5,6 +5,16 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 WORKDIR /src
 
+ARG GH_PACKAGE_TOKEN
+ARG GH_USER
+
+# GitHub Packages
+RUN dotnet nuget add source "https://nuget.pkg.github.com/alpac-organization/index.json" \
+    --name "GitHub" \
+    --username "$GH_USER" \
+    --password "$GH_PACKAGE_TOKEN" \
+    --store-password-in-clear-text
+
 # Copiar archivos de proyecto
 COPY ["src/Application/Application.csproj", "src/Application/"]
 COPY ["src/Domain/Domain.csproj", "src/Domain/"]
