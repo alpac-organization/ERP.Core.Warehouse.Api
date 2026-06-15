@@ -22,7 +22,7 @@ RUN dotnet build "ERP.Core.Werehouse.Api.csproj" -c Release -o /app/build
 # 2. PUBLISH STAGE
 # =========================
 FROM build AS publish
-RUN dotnet publish "ERP.Core.Manager.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "ERP.Core.Werehouse.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 
 # =========================
@@ -46,4 +46,4 @@ EXPOSE 8080
 # =========================
 # START APP
 # =========================
-ENTRYPOINT ["dotnet", "ERP.Core.Manager.Api.dll"]
+ENTRYPOINT ["dotnet", "ERP.Core.Werehouse.Api.dll"]
