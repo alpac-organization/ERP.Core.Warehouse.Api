@@ -1,18 +1,9 @@
 # =========================
-# 1. BUILD STAGE
+# 1. BUILD + PUBLISH STAGE
 # =========================
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+
 WORKDIR /src
-
-ARG GH_PACKAGE_TOKEN
-ARG GH_USER
-
-# GitHub Packages
-RUN dotnet nuget add source "https://nuget.pkg.github.com/alpac-organization/index.json" \
-    --name "GitHub" \
-    --username "$GH_USER" \
-    --password "$GH_PACKAGE_TOKEN" \
-    --store-password-in-clear-text
 
 # Copiar archivos de proyecto
 COPY ["src/Application/Application.csproj", "src/Application/"]
@@ -23,42 +14,29 @@ COPY ["src/ERP.Core.Warehouse.Api/ERP.Core.Warehouse.Api.csproj", "src/ERP.Core.
 # Restaurar dependencias
 RUN dotnet restore "src/ERP.Core.Warehouse.Api/ERP.Core.Warehouse.Api.csproj"
 
-# Copiar el resto del código fuente
+# Copiar el código fuente
 COPY src/ ./src/
 
-# Ir al proyecto API
+# Ir al proyecto principal
 WORKDIR "/src/src/ERP.Core.Warehouse.Api"
 
-# Compilar la aplicación
-RUN dotnet build "ERP.Core.Warehouse.Api.csproj" \
-    -c Release \
-    -o /app/build \
-    --no-restore
-
-# =========================
-# 2. PUBLISH STAGE
-# =========================
-FROM build AS publish
-
+# Publicar la aplicación (compila automáticamente)
 RUN dotnet publish "ERP.Core.Warehouse.Api.csproj" \
     -c Release \
     -o /app/publish \
-    --no-build \
     /p:UseAppHost=false
 
 # =========================
-# 3. RUNTIME STAGE
+# 2. RUNTIME STAGE
 # =========================
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 
 WORKDIR /app
 
-COPY --from=publish /app/publish .
+COPY --from=build /app/publish .
 
-# Configuración de ASP.NET Core
 ENV ASPNETCORE_URLS=http://+:8080
 
 EXPOSE 8080
 
-# Iniciar la aplicación
 ENTRYPOINT ["dotnet", "ERP.Core.Warehouse.Api.dll"]
