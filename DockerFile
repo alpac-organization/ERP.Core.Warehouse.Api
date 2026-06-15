@@ -1,0 +1,49 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY ["src/Application/Application.csproj", "src/Application/"]
+COPY ["src/Domain/Domain.csproj", "src/Domain/"]
+COPY ["src/Infrastructure/Infrastructure.csproj", "src/Infrastructure/"]
+COPY ["src/ERP.Core.Werehouse.Api/ERP.Core.Werehouse.Api.csproj", "src/ERP.Core.Werehouse.Api/"]
+
+
+# Restore
+RUN dotnet restore "src/ERP.Core.Werehouse.Api/ERP.Core.Werehouse.Api.csproj"
+
+# Copiar todo el código
+COPY src/ ./src/
+
+WORKDIR "/src/src/ERP.Core.Werehouse.Api"
+
+# Build
+RUN dotnet build "ERP.Core.Werehouse.Api.csproj" -c Release -o /app/build
+
+# =========================
+# 2. PUBLISH STAGE
+# =========================
+FROM build AS publish
+RUN dotnet publish "ERP.Core.Manager.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+
+# =========================
+# 3. RUNTIME STAGE
+# =========================
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+WORKDIR /app
+
+USER root
+
+COPY --from=publish /app/publish .
+
+# =========================
+# ENV CONFIG
+# =========================
+ENV ASPNETCORE_URLS=http://+:8080
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
+EXPOSE 8080
+
+# =========================
+# START APP
+# =========================
+ENTRYPOINT ["dotnet", "ERP.Core.Manager.Api.dll"]
