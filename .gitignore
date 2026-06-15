@@ -14,3 +14,4 @@
 ## Paquetes NuGet
 *.nupkg
 **/packages/
+nuget.config
