@@ -1,17 +1,5 @@
-## Opciones de compilación de .NET
-[Dd]ebug/
-[Rr]elease/
+.env
+nuget.config
+
 **/bin/
 **/obj/
-
-## VS Code y herramientas
-.vscode/
-*.user
-*.suo
-*.userosscache
-*.sln.docstates
-
-## Paquetes NuGet
-*.nupkg
-**/packages/
-nuget.config

@@ -4,6 +4,9 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <RootNamespace>ERP.Core.Warehouse.Api.Domain</RootNamespace>
+
   </PropertyGroup>
 
 </Project>

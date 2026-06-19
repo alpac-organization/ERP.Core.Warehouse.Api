@@ -18,6 +18,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <RootNamespace>ERP.Core.Warehouse.Api.Application</RootNamespace>
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
   </PropertyGroup>
 
 </Project>
