@@ -13,22 +13,16 @@ namespace ERP.Core.Warehouse.Api.Application
         {
             var currentAssembly = Assembly.GetExecutingAssembly();
 
-            // services.AddAutoMapper(typeof(ConfigureServices).Assembly); //<-- version antigua y maliciosa
+            services.AddValidatorsFromAssembly(currentAssembly);
+             
+            services.AddMediatR(cfg => {
+                cfg.RegisterServicesFromAssembly(currentAssembly); //<-- Y aqui
+                cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+            });
             
-
-            //Se usa ecpresion lambda para buscar los perfiles de mapeo
             services.AddAutoMapper(cfg =>
             {
                 cfg.AddMaps(currentAssembly);
-            });
-
-            // services.AddValidatorsFromAssembly(typeof(ConfigureServices).Assembly);
-            services.AddValidatorsFromAssembly(currentAssembly); //<-- Se aprovecha la misma variable
-             
-            services.AddMediatR(cfg => {
-//                cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
-                cfg.RegisterServicesFromAssembly(currentAssembly); //<-- Y aqui
-                cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
             });
 
             return services;

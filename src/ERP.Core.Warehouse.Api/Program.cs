@@ -1,11 +1,11 @@
 using System.Text.Json;
 using Microsoft.OpenApi;
-using ERP.Core.Warehouse.Api.Application;
-using ERP.Core.Manager.Api.Infrastructure;
 using System.Text.Json.Serialization;
-using ERP.Core.Manager.Api.Infrastructure.Middlewares;
-using ERP.Core.Infrastructure.Middlewares;
 
+using ERP.Core.Warehouse.Api.Application;
+using ERP.Core.Warehouse.Api.Infrastructure;
+
+using ERP.Core.Infrastructure.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,15 +16,17 @@ if (File.Exists(envPath)) DotNetEnv.Env.Load(envPath);
 else DotNetEnv.Env.Load();
 
 builder.Configuration.AddEnvironmentVariables();
+
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
+
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 
 var allowedOrigins = builder.Configuration
-    .GetSection("Cors:AllowedOrigins")  
+    .GetSection("Cors:AllowedOrigins")
     .Get<string[]>();
 
 builder.Services.AddCors(Options =>
@@ -76,9 +78,7 @@ app.UseRouting();
 app.UseCors("ViteLocalPolicy");
 
 app.UseMiddleware<ApiKeyMiddleware>();
-
 app.UseMiddleware<AuthMiddleware>();
-
 
 if (app.Environment.IsDevelopment())
 {
