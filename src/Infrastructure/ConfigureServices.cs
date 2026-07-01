@@ -3,6 +3,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ERP.Core.Warehouse.Api.Infrastructure.Services;
 using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
+using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Infrastructure.Services;
 namespace ERP.Core.Manager.Api.Infrastructure
 {
     public static class ConfigureServices
@@ -12,6 +14,8 @@ namespace ERP.Core.Manager.Api.Infrastructure
             // services.AddJobScheduling();
             services.AddErpDatabaseServices(configuration);
 
+
+            services.AddScoped<IErrorManager, ErrorManager>();
             services.AddHttpClient<IScaleServices, ScaleServices>();
 
             return services;
