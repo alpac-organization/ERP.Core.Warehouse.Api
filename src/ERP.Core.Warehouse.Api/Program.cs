@@ -59,16 +59,16 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-app.UseStaticFiles(new StaticFileOptions
-{
-    OnPrepareResponse = ctx =>
-    {
-        ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
-        ctx.Context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, OPTIONS");
-        ctx.Context.Response.Headers.Append("Access-Control-Allow-Headers", "Content-Type");
+// app.UseStaticFiles(new StaticFileOptions
+// {
+//     OnPrepareResponse = ctx =>
+//     {
+//         ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+//         ctx.Context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, OPTIONS");
+//         ctx.Context.Response.Headers.Append("Access-Control-Allow-Headers", "Content-Type");
 
-    }
-});
+//     }
+// });
 
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseRouting();
