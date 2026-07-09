@@ -1,9 +1,9 @@
 using System.Text.Json;
 using Microsoft.OpenApi;
 using ERP.Core.Warehouse.Api.Application;
-using ERP.Core.Manager.Api.Infrastructure;
 using System.Text.Json.Serialization;
 using ERP.Core.Infrastructure.Middlewares;
+using ERP.Core.Warehouse.Api.Infrastructure;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,7 +28,7 @@ var allowedOrigins = builder.Configuration
 
 builder.Services.AddCors(Options =>
 {
-    Options.AddPolicy("VitelocalPolicy", policy =>
+    Options.AddPolicy("ViteLocalPolicy", policy =>
     {
         policy.WithOrigins(allowedOrigins ?? [])
             .AllowAnyMethod()

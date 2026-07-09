@@ -16,3 +16,4 @@
 **/packages/
 nuget.config
 .env
+repomix.config.json
