@@ -21,7 +21,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 ParkingSpacesCount  = command.WarehouseInformation.ParkingSpacesCount,
             };
         }
-        public static ZonesManagua ToZoneEntity(this Commands.ZonesInformation command, Guid warehouseId)
+
+        public static Sections ToZoneEntity(this Commands.SectionInformation command, Guid warehouseId)
         {
             return new()
             {
@@ -35,12 +36,12 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             };
         }
 
-        public static RacksManagua ToRackEntity(this Commands.RackInformation command, Guid zoneId)
+        public static Racks ToRackEntity(this Commands.RackInformation command, Guid zoneId)
         {
             return new()
             {
                 IsAvailable     = true,
-                ZoneId          = zoneId,
+                SectionId       = zoneId,
                 RowNumber       = command.RowNumber,
                 LevelNumber     = command.LevelNumber,
                 CostPerPosition = command.CostPerPosition,
@@ -53,7 +54,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             return new()
             {
-                
+                // your another mappers
             };
         }
     }

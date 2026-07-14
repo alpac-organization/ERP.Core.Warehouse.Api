@@ -7,7 +7,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.Warehouses
 {
     [ApiVersion("1.0")]
     [Route("api/v1/")]
-    public class WarehouseController(IMediator _mediator) : ApiControllerBase
+    public class WarehouseController(/*IMediator _mediator*/) : ApiControllerBase
     {
         [Tags("Almacenes")] 
         [HttpPost("companies/{company_id}/modules/{module_code}/warehouse")]      

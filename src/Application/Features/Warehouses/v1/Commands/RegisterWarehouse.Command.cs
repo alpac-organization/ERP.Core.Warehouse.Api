@@ -10,7 +10,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands
         public bool IsOwner { get; set; } = true;
         public string WarehouseName { get; set; } = null!;
 
-        public List<ZonesInformation> AssignedZones { get; set; } = [];
+        public List<SectionInformation> AssignedZones { get; set; } = [];
         public List<WarehouseInformation> Galleons { get; set; } = [];
         public required WarehouseInformation WarehouseInformation { get; set; }
     }
@@ -28,7 +28,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands
         public decimal ParkingSpacesCount { get; set; }
     }
 
-    public class ZonesInformation
+    public class SectionInformation
     {
         public string ZoneName { get; set; } = null!;
         public decimal WidthMetres { get; set; }
@@ -36,7 +36,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands
         public decimal HeightMetres { get; set; }
         public decimal MaxWeightCapacityKg { get; set; }
         public decimal TotalVolumeCapacityM3 { get; set; }
-
 
         public List<RackInformation> AssignedRacks { get; set; } = [];
     }
