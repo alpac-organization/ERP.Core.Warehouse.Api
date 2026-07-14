@@ -1,18 +1,18 @@
 using Microsoft.EntityFrameworkCore;
-using ERP.Core.Application.Commons.Interfaces;
-using ERP.Core.Manager.Api.Application.Commons.Bases;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
+
+using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Dtos;
 
 // Alias explícito hacia la entidad en el Core
 using ServiceOrderEntity = ERP.Core.Database.Domain.Entities.Warehouse.ServiceOrder;
+using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 
-namespace ERP.Core.Warehouse.Api.Application.Features.CreateServiceOrder.v1.Handlers
+namespace ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Handlers
 {
-    public class CreateServiceOrderHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
-        : AlpacBaseHandler<CreateServiceOrderCommand, CreateServiceOrderResponse>(unitOfWork, errorManager)
+    public class CreateServiceOrderHandler(IUnitOfWork unitOfWork, IErrorManager errorManager): BaseValidatorHandler<CreateServiceOrderCommand, CreateServiceOrderResponse>(unitOfWork, errorManager)
     {
         public override async Task<CreateServiceOrderResponse> Handle(CreateServiceOrderCommand request, CancellationToken cancellationToken)
         {
@@ -41,9 +41,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.CreateServiceOrder.v1.Hand
             {
                 Id = Guid.NewGuid(),
                 Code = serviceOrderCode,          // Autogenerado
-                BranchId = request.BranchId,      // Recibido
-                Status = OSStatus.Pendding,       // Predeterminado
-                IsCreatedFromPortal = false,      // Fijo en false según requerimiento
+                Status = OSStatus.Pending,       // Predeterminado
                 Observations = request.Observations,
             };
 
