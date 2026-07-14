@@ -18,6 +18,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.Warehouses
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
+            //Your Code here
 
             return Created();
         }
@@ -30,7 +31,8 @@ namespace ERP.Core.Warehouse.Api.Controllers.Warehouses
         public async Task<List<object>> GetWarehouseAsync([FromRoute] Guid company_id, [FromRoute] string module_code)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
-            
+
+            //Your Code here
 
             return [];
         }

@@ -10,18 +10,46 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             return new()
             {
-                IsActive = true,
-                Name = command.WarehouseName,
-                BranchId = command.BranchId,
-                MaxHeight = command.WarehouseInformation.MaxHeight,
-                MinHeight = command.WarehouseInformation.MinHeight,
-                RampasCount = command.WarehouseInformation.RampasCount,
-                WarehouseType = command.WarehouseInformation.WarehouseType,
-                ParkingSpacesCount = command.WarehouseInformation.ParkingSpacesCount,
+                IsActive            = true,
+                Id                  = Guid.NewGuid(),
+                Name                = command.WarehouseName,
+                BranchId            = command.BranchId,
+                MaxHeight           = command.WarehouseInformation.MaxHeight,
+                MinHeight           = command.WarehouseInformation.MinHeight,
+                RampasCount         = command.WarehouseInformation.RampasCount,
+                WarehouseType       = command.WarehouseInformation.WarehouseType,
+                ParkingSpacesCount  = command.WarehouseInformation.ParkingSpacesCount,
+            };
+        }
+        public static ZonesManagua ToZoneEntity(this Commands.ZonesInformation command, Guid warehouseId)
+        {
+            return new()
+            {
+                IsActive              = true,
+                Id                    = Guid.NewGuid(),
+                Name                  = command.ZoneName,
+                WarehouseId           = warehouseId,
+                HeightMetres          = command.HeightMetres,
+                MaxWeightCapacityKg   = command.MaxWeightCapacityKg,
+                TotalVolumeCapacityM3 = command.TotalVolumeCapacityM3,
             };
         }
 
-        public static RacksManagua ToRackEntity(this Commands.RackInformation command)
+        public static RacksManagua ToRackEntity(this Commands.RackInformation command, Guid zoneId)
+        {
+            return new()
+            {
+                IsAvailable     = true,
+                ZoneId          = zoneId,
+                RowNumber       = command.RowNumber,
+                LevelNumber     = command.LevelNumber,
+                CostPerPosition = command.CostPerPosition,
+                MaxWeightKg     = command.MaxWeightKg,
+                MaxHeightMetres = command.MaxHeightMetres  
+            };
+        }
+
+        public static Warehouses ToGalleysEntity(this Commands.WarehouseInformation command, Guid parentId)
         {
             return new()
             {

@@ -30,7 +30,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands
 
     public class ZonesInformation
     {
-        public string? Name { get; set; }
+        public string ZoneName { get; set; } = null!;
         public decimal WidthMetres { get; set; }
         public decimal LengthMetres { get; set; }
         public decimal HeightMetres { get; set; }
