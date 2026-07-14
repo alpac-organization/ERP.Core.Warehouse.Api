@@ -10,7 +10,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.Scales
     [Route("api/v1/")]
     public class VacationsController(IMediator _mediator) : ApiControllerBase
     {
-        [Tags("Vacaciones")] 
+        [Tags("Bascula")] 
         [HttpGet("companies/{company_id}/scales")]      
         [ProducesResponseType(typeof(decimal), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
