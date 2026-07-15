@@ -33,6 +33,9 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 RampasCount         = command.WarehouseInformation.RampasCount,
                 WarehouseType       = command.WarehouseInformation.WarehouseType,
                 ParkingSpacesCount  = command.WarehouseInformation.ParkingSpacesCount,
+                TotalArea           = command.WarehouseInformation.TotalArea,
+                TotalCubicCapacity  = command.WarehouseInformation.TotalCubicCapacity,
+                UnusableArea        = command.WarehouseInformation.UnusableArea
             };
         }
 
