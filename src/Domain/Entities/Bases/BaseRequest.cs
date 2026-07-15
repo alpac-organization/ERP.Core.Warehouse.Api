@@ -12,7 +12,4 @@ public class BaseRequest
 
     [JsonIgnore]
     public string ModuleCode { get; set; } = string.Empty;
-
-    [JsonIgnore]
-    public Guid WarehouseId { get; set; }
 }

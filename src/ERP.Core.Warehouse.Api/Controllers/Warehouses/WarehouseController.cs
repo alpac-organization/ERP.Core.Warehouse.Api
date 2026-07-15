@@ -4,6 +4,8 @@ using ERP.Core.Domain.Entities.Errors;
 using ERP.Core.Infrastructure.Attributes;
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
+using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Controllers.Warehouses
 {
@@ -32,16 +34,19 @@ namespace ERP.Core.Warehouse.Api.Controllers.Warehouses
 
         [Tags("Almacenes")] 
         [HttpGet("companies/{company_id}/modules/{module_code}/warehouse")]      
-        [ProducesResponseType(typeof(decimal), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(List<WarehouseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
-        public async Task<List<object>> GetWarehouseAsync([FromRoute] Guid company_id, [FromRoute] string module_code)
+        public async Task<List<WarehouseDto>> GetWarehouseAsync([FromRoute] Guid company_id, [FromRoute] string module_code)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
-            //Your Code here
-
-            return [];
+            return await _mediator.Send(new GetWarehousesQuery()
+            {
+               CompanyId = company_id,
+               ModuleCode = module_code,
+               UserId = Guid.Parse(userIdStr ?? "")
+            });
         }
     }
 }
