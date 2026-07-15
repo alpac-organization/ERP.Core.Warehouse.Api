@@ -1,17 +1,17 @@
-using ERP.Core.Domain.Entities.Errors;
-using ERP.Core.Infrastructure.Attributes;
-using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
-using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
-using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using ERP.Core.Domain.Entities.Errors;
+using ERP.Core.Infrastructure.Attributes;
+using ERP.Core.Warehouse.Api.Controllers.ApiBase;
+using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Controllers.Reception;
 
 [HasToken]
 [ApiVersion("1.0")]
 [Route("api/v1/")]
-public class ReceptionDetailsManaguaController(IMediator _mediator) : ApiControllerBase
+public class ReceptionEntranceManaguaController(IMediator _mediator) : ApiControllerBase
 {
     [Tags("Control de Acceso")]
     [HttpPost("")]
@@ -19,7 +19,7 @@ public class ReceptionDetailsManaguaController(IMediator _mediator) : ApiControl
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<CreateReceptionEntranceResponse>> CreateReceptionEntranceAsync(
-        [FromRoute] ,
+        // [FromRoute] ,
         [FromBody] CreateReceptionEntrancecommand command)
     {
         var result = await _mediator.Send(command);
