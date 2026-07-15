@@ -1,9 +1,10 @@
 using MediatR;
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
+
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
-using Microsoft.EntityFrameworkCore;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 {
@@ -11,9 +12,20 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
     {
         public async Task<List<WarehouseDto>> Handle(GetWarehousesQuery request, CancellationToken cancellationToken)
         {
-            var warehouses = await _unitOfWork.Warehouses.Entities
+            var warehousesQuery = _unitOfWork.Warehouses.Entities
                 .Where(ware => ware.IsActive)
-                .ToListAsync(cancellationToken);
+                .Include(ware => ware.Branch)
+                .AsNoTracking();
+
+
+            if (!string.IsNullOrEmpty(request.BranchCode))
+            {
+                warehousesQuery = warehousesQuery
+                    .Where(ware => ware.Branch.BranchCode == request.BranchCode);
+            }
+
+            var warehouses = await warehousesQuery
+                .FirstOrDefaultAsync(cancellationToken);
                 
             return _mapper.Map<List<WarehouseDto>>(warehouses);
         }

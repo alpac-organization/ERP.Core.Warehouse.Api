@@ -37,7 +37,9 @@ namespace ERP.Core.Warehouse.Api.Controllers.Warehouses
         [ProducesResponseType(typeof(List<WarehouseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
-        public async Task<List<WarehouseDto>> GetWarehouseAsync([FromRoute] Guid company_id, [FromRoute] string module_code)
+        public async Task<List<WarehouseDto>> GetWarehouseAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
+            [FromQuery] string? branch_code
+        )
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
@@ -45,7 +47,8 @@ namespace ERP.Core.Warehouse.Api.Controllers.Warehouses
             {
                CompanyId = company_id,
                ModuleCode = module_code,
-               UserId = Guid.Parse(userIdStr ?? "")
+               UserId = Guid.Parse(userIdStr ?? ""),
+               BranchCode = branch_code
             });
         }
     }
