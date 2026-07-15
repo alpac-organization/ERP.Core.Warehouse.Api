@@ -12,7 +12,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             {
                 IsActive            = true,
                 Id                  = Guid.NewGuid(),
-                Name                = command.WarehouseName,
+                WarehouseName       = command.WarehouseName,
                 BranchId            = command.BranchId,
                 MaxHeight           = command.WarehouseInformation.MaxHeight,
                 MinHeight           = command.WarehouseInformation.MinHeight,
@@ -22,14 +22,16 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             };
         }
 
-        public static Sections ToZoneEntity(this Commands.SectionInformation command, Guid warehouseId)
+        public static Sections ToSectionEntity(this Commands.SectionInformation command, Guid warehouseId, string sectionCode)
         {
             return new()
             {
                 IsActive              = true,
+                Code                  = sectionCode,
                 Id                    = Guid.NewGuid(),
                 Name                  = command.ZoneName,
                 WarehouseId           = warehouseId,
+                LengthMetres          = command.LengthMetres,
                 HeightMetres          = command.HeightMetres,
                 MaxWeightCapacityKg   = command.MaxWeightCapacityKg,
                 TotalVolumeCapacityM3 = command.TotalVolumeCapacityM3,
@@ -47,14 +49,6 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 CostPerPosition = command.CostPerPosition,
                 MaxWeightKg     = command.MaxWeightKg,
                 MaxHeightMetres = command.MaxHeightMetres  
-            };
-        }
-
-        public static Warehouses ToGalleysEntity(this Commands.WarehouseInformation command, Guid parentId)
-        {
-            return new()
-            {
-                // your another mappers
             };
         }
     }

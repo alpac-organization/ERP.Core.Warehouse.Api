@@ -14,7 +14,6 @@ namespace ERP.Core.Warehouse.Api.Infrastructure
         {
             // services.AddJobScheduling();
             services.AddErpDatabaseServices(configuration);
-
             
             services.AddScoped<IErrorManager, ErrorManager>();
             services.AddHttpClient<IScaleServices, ScaleServices>();
