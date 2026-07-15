@@ -26,6 +26,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands
         public decimal MinHeight { get; set; }
         public decimal RampasCount { get; set; }
         public decimal ParkingSpacesCount { get; set; }
+        public decimal TotalCubicCapacity { get; set; }
     }
 
     public class SectionInformation
