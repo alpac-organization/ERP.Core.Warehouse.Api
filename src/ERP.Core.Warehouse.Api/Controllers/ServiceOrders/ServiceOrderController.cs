@@ -1,10 +1,10 @@
-using ERP.Core.Domain.Entities.Errors;
-using ERP.Core.Infrastructure.Attributes;
-using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Commands;
-using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Dtos;
-using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using ERP.Core.Domain.Entities.Errors;
+using ERP.Core.Infrastructure.Attributes;
+using ERP.Core.Warehouse.Api.Controllers.ApiBase;
+using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Controllers.ServiceOrders;
 
@@ -14,13 +14,11 @@ namespace ERP.Core.Warehouse.Api.Controllers.ServiceOrders;
 public class ServiceOrderController(IMediator _mediator) : ApiControllerBase
 {
     [Tags("Service Orders")]
-    [HttpPost("companies/{company_id}/service-orders")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/service-orders")]
     [ProducesResponseType(typeof(CreateServiceOrderResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<CreateServiceOrderResponse>> CreateServiceOrderAsync(
-        [FromRoute] Guid company_id,
-        [FromBody] CreateServiceOrderCommand command)
+    public async Task<ActionResult<CreateServiceOrderResponse>> CreateServiceOrderAsync([FromRoute] Guid company_id, [FromBody] CreateServiceOrderCommand command)
     {
         command.CompanyId = company_id;
         var result = await _mediator.Send(command);
