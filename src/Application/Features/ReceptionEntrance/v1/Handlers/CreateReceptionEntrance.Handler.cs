@@ -1,0 +1,104 @@
+
+using MediatR;
+using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
+using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using Microsoft.EntityFrameworkCore;
+using System.Net.Http.Headers;
+
+namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
+
+public class CreateReceptionEntranceHandler(
+    IUnitOfWork _unitOfWork,
+    IErrorManager _errorManager) 
+    : IRequestHandler<CreateReceptionEntrancecommand, bool>
+{
+   public async Task<bool> Handle(CreateReceptionEntrancecommand request, CancellationToken cancellationToken)
+    {
+        #region 1. Validación DUCA duplicados en la misma peticion
+        var duplicatesInRequest = request.DucatNumbers
+            .GroupBy(d => d.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+
+        if (duplicatesInRequest.Any())
+        {
+            return _errorManager.ThrowBadRequest<bool>(
+                $"La lista de DUCA's contiene números duplicados en la misma solicitud: {string.Join(", ", duplicatesInRequest)}",
+                "ERP:REQUEST_DUPLICATED_DUCA");
+        }
+        #endregion
+
+        #region 2. validacion DUCA unicidad global
+        var normalizedRequestDucas = request.DucatNumbers
+            .Select(d => d.Trim().ToLower())
+            .ToList();
+
+        var duplicateGlobalDucas = await _unitOfWork.EntranceDucats.Entities
+            .Where(d => normalizedRequestDucas.Contains(d.DucatNumber.Trim().ToLower()))
+            .Select(d => d.DucatNumber)
+            .ToListAsync(cancellationToken);
+
+        if (duplicateGlobalDucas.Any())
+        {
+            return _errorManager.ThrowBadRequest<bool>(
+                $"Los siguientes números de DUCA ya están registrados en el sistema: {string.Join(", ", duplicateGlobalDucas)}. Cada DUCA debe ser único globalente.",
+                "ERP:GLOBAL_DUPLICATED_DUCA_ERROR");
+        }
+        #endregion
+
+        #region 3. Validacion de Datos
+        var startOfToday = DateTime.UtcNow.Date;
+        var endOfToday = startOfToday.AddDays(1);
+
+        var physicalDuplicateToday = await _unitOfWork.ReceptionEntrance.Entities
+            .AnyAsync(r =>
+                r.CreatedAt >= startOfToday && r.CreatedAt < endOfToday &&
+                r.CountryOfOrigin.Trim().ToLower() == request.CountryOfOrigin.Trim().ToLower() &&
+                r.Aduana.Trim().ToLower() == request.Aduana.Trim().ToLower() &&
+                r.PlateNumber.Trim().ToLower() == request.PlateNumber.Trim().ToLower() &&
+                r.TrailerChassis.Trim().ToLower() == request.TrailerChassis.Trim().ToLower() &&
+                r.DriverLicense.Trim().ToLower() == request.DriverLicense.Trim().ToLower() &&
+                r.Transportista.Trim().ToLower() == request.Transportista.Trim().ToLower() &&
+                r.Medio.Trim().ToLower() == request.Medio.Trim().ToLower() &&
+                r.DriverName.Trim().ToLower() == request.DriverName.Trim().ToLower() &&
+                r.Consignee.Trim().ToLower() == request.Consignee.Trim().ToLower() &&
+                r.SealNumber.Trim().ToLower() == request.SealNumber.Trim().ToLower(),
+                cancellationToken);
+
+        if (physicalDuplicateToday)
+        {
+            return _errorManager.ThrowBadRequest<bool>(
+                "Ya se encuentra registrado un ingreso fisico idéntico para el día de hoy con los mismos datos.",
+                "ERP:SAME_DAY_PHYSICAL_DUPLICATED");
+        }
+        #endregion
+
+        #region 4. Registro de datos en db
+        var recordEntranceId = Guid.NewGuid();
+        var systemEndTime = DateTime.UtcNow;
+
+        bool isConsolidated = request.DucatNumbers.Count > 1;
+
+        var recordEntrance = request.ToRecordEntranceEntity(recordEntranceId, isConsolidated);
+        var receptionEntrance = request.ToReceptionEntranceEntity(recordEntranceId);
+        var executionLog = request.ToStepExecutionLogEntity(recordEntranceId, systemEndTime);
+
+        await _unitOfWork.RecordEntrance.InsertRecordEntrance(recordEntrance);
+        await _unitOfWork.ReceptionEntrance.InsertReceptionEntrance(receptionEntrance);
+        await _unitOfWork.StepExecutionLogs.InsertExecutionLog(executionLog);
+
+        var ducatEntities = request.DucatNumbers
+            .Select(ducatNumber => ducatNumber.ToEntranceDucaEntity(recordEntranceId))
+            .ToList();
+
+        await _unitOfWork.EntranceDucats.InsertEntranceDucatsRange(ducatEntities);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        #endregion
+        
+        return true;
+    }
+}
