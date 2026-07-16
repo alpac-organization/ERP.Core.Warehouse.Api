@@ -7,7 +7,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 
 public static class ReceptionEntranceMapper     
 {
-    public static CreateReceptionEntrancecommand ToCommand(
+    public static CreateReceptionEntranceCommand ToCommand(
         this CreateReceptionEntranceDto dto,
         Guid userId,
         Guid companyId,
@@ -19,9 +19,6 @@ public static class ReceptionEntranceMapper
             CompanyId                   = companyId,
             ModuleCode                  = moduleCode,
 
-            WarehouseId                 = dto.WarehouseId,
-            ServiceOrderId              = dto.ServiceOrderId,
-            WorkflowStepDefinitionId    = dto.WorkflowStepDefinitionId,
             DucatNumbers                = dto.DucatNumbers,
             CountryOfOrigin             = dto.CountryOfOrigin,
             Aduana                      = dto.Aduana,
@@ -34,25 +31,28 @@ public static class ReceptionEntranceMapper
             DriverName                  = dto.DriverName,
             Consignee                   = dto.Consignee,
             SealNumber                  = dto.SealNumber,
-            StarTime                    = dto.StartTime
+            StartTime                    = dto.StartTime
         };
     }
 
-    public static RecordEntrance ToRecordEntranceEntity(this CreateReceptionEntrancecommand command, Guid recordEntranceId, bool isConsolidated)
+    public static RecordEntrance ToRecordEntranceEntity(
+        this CreateReceptionEntranceCommand command,
+         Guid recordEntranceId,
+          bool isConsolidated,
+          string stepCode)
     {
         return new()
         {
             Id              = recordEntranceId,
-            ServiceOrderId  = command.ServiceOrderId,
-            WarehouseId     = command.WarehouseId,
-            CurrentStepId   = command.WorkflowStepDefinitionId,
+            ServiceOrderId  = null,
+            CurrentStepCode = stepCode,
             Status          = RecordEntranceStatus.InTail,
             ClosedAt        = null,
             IsConsolidated  = isConsolidated
         };
     }
 
-    public static ReceptionEntrance ToReceptionEntranceEntity(this CreateReceptionEntrancecommand command, Guid recordEntranceId)
+    public static ReceptionEntrance ToReceptionEntranceEntity(this CreateReceptionEntranceCommand command, Guid recordEntranceId)
     {
         return new()
         {
@@ -82,14 +82,18 @@ public static class ReceptionEntranceMapper
         };
     }
 
-    public static StepExecutionLogs ToStepExecutionLogEntity(this CreateReceptionEntrancecommand command, Guid recordEntranceId, DateTime endTime)
+    public static StepExecutionLogs ToStepExecutionLogEntity(
+        this CreateReceptionEntranceCommand command,
+        Guid recordEntranceId,
+        DateTime endTime,
+        string stepCode)
     {
         return new()
         {
             Id                          = Guid.NewGuid(),
             RecordEntranceId            = recordEntranceId,
-            WorkflowStepDefinitionId    = command.WorkflowStepDefinitionId,
-            StartTime                   = command.StarTime,
+            WorkflowStepDefinitionCode  = stepCode,
+            StartTime                   = command.StartTime,
             EndTime                     = endTime,
             ProcessedByUserId           = command.UserId.ToString()
         };

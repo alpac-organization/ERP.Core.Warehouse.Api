@@ -35,10 +35,11 @@ builder.Services.AddCors(Options =>
             .AllowAnyHeader();
     });
 });
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseUpper;
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
         options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());        
     });
@@ -58,16 +59,15 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// app.UseStaticFiles(new StaticFileOptions
-// {
-//     OnPrepareResponse = ctx =>
-//     {
-//         ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
-//         ctx.Context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, OPTIONS");
-//         ctx.Context.Response.Headers.Append("Access-Control-Allow-Headers", "Content-Type");
-
-//     }
-// });
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, OPTIONS");
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Headers", "Content-Type");
+    }
+});
 
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseRouting();

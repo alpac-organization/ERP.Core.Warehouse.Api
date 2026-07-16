@@ -12,5 +12,4 @@ public class BaseRequest
 
     [JsonIgnore]
     public string ModuleCode { get; set; } = string.Empty;
-
 }

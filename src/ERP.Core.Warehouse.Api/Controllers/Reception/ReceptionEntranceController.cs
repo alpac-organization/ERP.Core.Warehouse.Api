@@ -6,6 +6,7 @@ using ERP.Core.Infrastructure.Attributes;
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
+using Superpower;
 
 namespace ERP.Core.Warehouse.Api.Controllers.Reception;
 
@@ -15,25 +16,22 @@ namespace ERP.Core.Warehouse.Api.Controllers.Reception;
 public class ReceptionEntranceController(IMediator _mediator) : ApiControllerBase
 {
     [Tags("Control de Acceso")]
-    [HttpPost("companies/{companie_id}/modules/{module_code}/reception-entrances")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/reception-entrances")]
     [ProducesResponseType(typeof(CreatedResult), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<CreatedResult> CreateReceptionEntranceAsync(
-        [FromRoute] Guid companie_id,
+        [FromRoute] Guid company_id,
         [FromRoute] string module_code,
         [FromBody] CreateReceptionEntranceDto dto,
         CancellationToken cancellationToken)
     {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (!Guid.TryParse(userIdClaim, out Guid userId))
-        {
-            userId = Guid.Empty;
-        }
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        Guid.TryParse(userIdStr, out var userId);
 
         var command = dto.ToCommand(
             userId: userId,
-            companyId: companie_id,
+            companyId: company_id,
             moduleCode: module_code
         );
 

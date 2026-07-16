@@ -1,21 +1,33 @@
 
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
-using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
-using Microsoft.EntityFrameworkCore;
-using System.Net.Http.Headers;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
 
 public class CreateReceptionEntranceHandler(
     IUnitOfWork _unitOfWork,
     IErrorManager _errorManager) 
-    : IRequestHandler<CreateReceptionEntrancecommand, bool>
+    : IRequestHandler<CreateReceptionEntranceCommand, bool>
 {
-   public async Task<bool> Handle(CreateReceptionEntrancecommand request, CancellationToken cancellationToken)
+   public async Task<bool> Handle(CreateReceptionEntranceCommand request, CancellationToken cancellationToken)
     {
+        var firstStep = await _unitOfWork.WorkflowStepDefinitions.Entities
+            .OrderBy(x => x.ExecutionOrder)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if ( firstStep == null)
+        {
+            return _errorManager.ThrowInternalError<bool>(
+                "No se encontró una configuración para el flujo de trabajo (WorkflowStepDefinition). Contacte al administrador.",
+                "ERP:WORKFLOW_NOT_CONFIGURED");
+        }
+
+        var currentStepCode = firstStep.Code;
+
         #region 1. Validación DUCA duplicados en la misma peticion
         var duplicatesInRequest = request.DucatNumbers
             .GroupBy(d => d.Trim(), StringComparer.OrdinalIgnoreCase)
@@ -44,7 +56,7 @@ public class CreateReceptionEntranceHandler(
         if (duplicateGlobalDucas.Any())
         {
             return _errorManager.ThrowBadRequest<bool>(
-                $"Los siguientes números de DUCA ya están registrados en el sistema: {string.Join(", ", duplicateGlobalDucas)}. Cada DUCA debe ser único globalente.",
+                $"Los siguientes números de DUCA ya están registrados en el sistema: {string.Join(", ", duplicateGlobalDucas)}. Cada DUCA debe ser único globalmente.",
                 "ERP:GLOBAL_DUPLICATED_DUCA_ERROR");
         }
         #endregion
@@ -82,9 +94,9 @@ public class CreateReceptionEntranceHandler(
 
         bool isConsolidated = request.DucatNumbers.Count > 1;
 
-        var recordEntrance = request.ToRecordEntranceEntity(recordEntranceId, isConsolidated);
+        var recordEntrance = request.ToRecordEntranceEntity(recordEntranceId, isConsolidated, currentStepCode);
         var receptionEntrance = request.ToReceptionEntranceEntity(recordEntranceId);
-        var executionLog = request.ToStepExecutionLogEntity(recordEntranceId, systemEndTime);
+        var executionLog = request.ToStepExecutionLogEntity(recordEntranceId, systemEndTime, currentStepCode);
 
         await _unitOfWork.RecordEntrance.InsertRecordEntrance(recordEntrance);
         await _unitOfWork.ReceptionEntrance.InsertReceptionEntrance(receptionEntrance);

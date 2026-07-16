@@ -4,10 +4,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 
 public record CreateReceptionEntranceDto
 {
-    public Guid WarehouseId { get; set; }
-    public Guid? ServiceOrderId { get; set; }
-    public int WorkflowStepDefinitionId { get; set; }
-
     public List<string> DucatNumbers { get; set; } = [];
 
     public string CountryOfOrigin { get; set; } = string.Empty;
