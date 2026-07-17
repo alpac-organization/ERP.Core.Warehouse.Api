@@ -5,13 +5,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="16.2.0" />
     <PackageReference Include="DotNetEnv" Version="3.2.0" />
-    <PackageReference Include="ERP.Core.Database.Infrastructure" Version="1.40.1" />
-    <PackageReference Include="ERP.Core.Infrastructure" Version="1.40.1" />
+    <PackageReference Include="ERP.Core.Database.Infrastructure" Version="1.44.0" />
+    <PackageReference Include="ERP.Core.Infrastructure" Version="1.44.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.9" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
   </ItemGroup>
 
   <PropertyGroup>
