@@ -37,6 +37,6 @@ public class ReceptionEntranceController(IMediator _mediator) : ApiControllerBas
 
         var response = await _mediator.Send(command, cancellationToken);
 
-        return Created(string.Empty, response);
+        return Created(string.Empty, null);
     }
 }
