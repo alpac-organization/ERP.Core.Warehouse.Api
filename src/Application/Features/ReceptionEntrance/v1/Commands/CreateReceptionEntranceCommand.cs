@@ -12,7 +12,6 @@ public class CreateReceptionEntranceCommand : BaseRequest, IRequest<bool>
 
     public string CountryOfOrigin { get; set; } = string.Empty;
     public string Aduana { get; set; } = string.Empty;
-    public DateTime GateEntranceTime { get; set; }
     public string PlateNumber { get; set; } = string.Empty;
     public string TrailerChassis { get; set; } = string.Empty;
     public string DriverLicense { get; set; } = string.Empty;
@@ -22,5 +21,6 @@ public class CreateReceptionEntranceCommand : BaseRequest, IRequest<bool>
     public string Consignee { get; set; } = string.Empty;
     public string SealNumber { get; set; } = string.Empty;
 
-    public DateTime StartTime { get; set; }
+    public DateOnly StartDate { get; set; }
+    public TimeOnly StartTime { get; set; }
 }

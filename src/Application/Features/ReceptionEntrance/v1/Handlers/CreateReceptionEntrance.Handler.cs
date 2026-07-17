@@ -5,6 +5,7 @@ using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
 
@@ -90,13 +91,16 @@ public class CreateReceptionEntranceHandler(
 
         #region 4. Registro de datos en db
         var recordEntranceId = Guid.NewGuid();
-        var systemEndTime = DateTime.UtcNow;
+
+        var nowNica = NicaraguaClock.Now;
+        var systemEndDate = DateOnly.FromDateTime(nowNica);
+        var systemEndTime = TimeOnly.FromDateTime(nowNica);
 
         bool isConsolidated = request.DucatNumbers.Count > 1;
 
         var recordEntrance = request.ToRecordEntranceEntity(recordEntranceId, isConsolidated, currentStepCode);
         var receptionEntrance = request.ToReceptionEntranceEntity(recordEntranceId);
-        var executionLog = request.ToStepExecutionLogEntity(recordEntranceId, systemEndTime, currentStepCode);
+        var executionLog = request.ToStepExecutionLogEntity(recordEntranceId, systemEndDate, systemEndTime, currentStepCode);
 
         await _unitOfWork.RecordEntrance.InsertRecordEntrance(recordEntrance);
         await _unitOfWork.ReceptionEntrance.InsertReceptionEntrance(receptionEntrance);
