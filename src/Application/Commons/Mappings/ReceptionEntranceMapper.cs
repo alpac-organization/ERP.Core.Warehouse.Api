@@ -22,7 +22,6 @@ public static class ReceptionEntranceMapper
             DucatNumbers                = dto.DucatNumbers,
             CountryOfOrigin             = dto.CountryOfOrigin,
             Aduana                      = dto.Aduana,
-            GateEntranceTime            = dto.GateEntranceTime,
             PlateNumber                 = dto.PlateNumber,
             TrailerChassis              = dto.TrailerChassis,
             DriverLicense               = dto.DriverLicense,
@@ -31,7 +30,8 @@ public static class ReceptionEntranceMapper
             DriverName                  = dto.DriverName,
             Consignee                   = dto.Consignee,
             SealNumber                  = dto.SealNumber,
-            StartTime                    = dto.StartTime
+            StartDate                   = dto.StartDate,
+            StartTime                   = dto.StartTime
         };
     }
 
@@ -47,7 +47,8 @@ public static class ReceptionEntranceMapper
             ServiceOrderId  = null,
             CurrentStepCode = stepCode,
             Status          = RecordEntranceStatus.InTail,
-            ClosedAt        = null,
+            ClosedAtDate    = null,
+            ClosedAtTime    = null,
             IsConsolidated  = isConsolidated
         };
     }
@@ -60,7 +61,6 @@ public static class ReceptionEntranceMapper
             RecordEntranceId    = recordEntranceId,
             CountryOfOrigin     = command.CountryOfOrigin,
             Aduana              = command.Aduana,
-            GateEntranceTime    = command.GateEntranceTime,
             PlateNumber         = command.PlateNumber,
             TrailerChassis      = command.TrailerChassis,
             DriverLicense       = command.DriverLicense,
@@ -77,7 +77,7 @@ public static class ReceptionEntranceMapper
         return new()
         {
             Id                  = Guid.NewGuid(),
-            DucatNumber         = ducatNumber.Trim(),
+            DucatNumber         = ducatNumber.Trim().Replace(" ", ""),
             RecordEntranceId    = recordEntranceId
         };
     }
@@ -85,7 +85,8 @@ public static class ReceptionEntranceMapper
     public static StepExecutionLogs ToStepExecutionLogEntity(
         this CreateReceptionEntranceCommand command,
         Guid recordEntranceId,
-        DateTime endTime,
+        DateOnly endDate,
+        TimeOnly endTime,
         string stepCode)
     {
         return new()
@@ -93,7 +94,9 @@ public static class ReceptionEntranceMapper
             Id                          = Guid.NewGuid(),
             RecordEntranceId            = recordEntranceId,
             WorkflowStepDefinitionCode  = stepCode,
+            StartDate                   = command.StartDate,
             StartTime                   = command.StartTime,
+            EndDate                     = endDate,
             EndTime                     = endTime,
             ProcessedByUserId           = command.UserId.ToString()
         };

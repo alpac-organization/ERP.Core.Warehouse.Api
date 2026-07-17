@@ -2,9 +2,9 @@ using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 using FluentValidation;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Validators;
-public class CreateREceptionentranceValidator : AbstractValidator<CreateReceptionEntranceCommand>
+public class CreateReceptionEntranceValidator : AbstractValidator<CreateReceptionEntranceCommand>
 {
-    public CreateREceptionentranceValidator()
+    public CreateReceptionEntranceValidator()
     {
         RuleFor(x => x.UserId)
             .NotEqual(Guid.Empty).WithMessage("No se pudo identificar al ususario autenticado.");
@@ -12,6 +12,9 @@ public class CreateREceptionentranceValidator : AbstractValidator<CreateReceptio
         RuleFor(x => x.DucatNumbers)
             .NotEmpty().WithMessage("El número de Duca es un dato obligatorio.");
 
+        RuleFor(x => x.StartDate)
+            .NotEmpty().WithMessage("La fecha de inicio es obligatoria.");
+     
         RuleFor(x => x.StartTime)
             .NotEmpty().WithMessage("La hora de inicio es obligatoria.");
         
