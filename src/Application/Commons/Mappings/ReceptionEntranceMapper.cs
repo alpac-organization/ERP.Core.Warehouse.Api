@@ -2,6 +2,8 @@ using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
+using ERP.Core.Database.Domain.Entities.Auth;
+using System.Xml;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 
@@ -32,6 +34,34 @@ public static class ReceptionEntranceMapper
             SealNumber                  = dto.SealNumber,
             StartDate                   = dto.StartDate,
             StartTime                   = dto.StartTime
+        };
+    }
+
+    public static UpdateReceptionEntranceCommand ToUpdateCommand(
+        this UpdateReceptionEntranceDto dto,
+        Guid receptionId,
+        Guid userId,
+        Guid companyId,
+        string moduleCode)
+    {
+        return new()
+        {
+            ReceptionId     = receptionId,
+            UserId          = userId,
+            CompanyId       = companyId,
+            ModuleCode      = moduleCode,
+
+            DucatNumbers    = dto.DucatNumbers,
+            CountryOfOrigin = dto.CountryOfOrigin,
+            Aduana          = dto.Aduana,
+            PlateNumber     = dto.PlateNumber,
+            TrailerChassis  = dto.TrailerChassis,
+            DriverLicense   = dto.DriverLicense,
+            Transportista   = dto.Transportista,
+            Medio           = dto.Medio,
+            DriverName      = dto.DriverName,
+            Consignee       = dto.Consignee,
+            SealNumber      = dto.SealNumber,
         };
     }
 
