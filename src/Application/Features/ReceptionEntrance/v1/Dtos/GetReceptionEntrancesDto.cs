@@ -1,52 +1,68 @@
+using ERP.Core.Database.Domain.Entities.Warehouse;
+using ERP.Core.Database.Domain.Enums;
+
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 
 public class ReceptionEntranceStatsDto
 {
-    public int InTail { get; set; }
-    public int InUnloading { get; set; }
-    public int Completed { get; set; }
+    public int TotalIngresos { get; set; }
+    public int TotalEnPlanta { get; set; }
+    public int TotalDespachados { get; set; }
 }
 
 public class EntranceDucatItemDto
 {
-    public Guid EntranceDucatId { get; set; }
+    public Guid Id { get; set; }
     public string DucatNumber { get; set; } = string.Empty;
 }
 
-public class ReceptionEntranceListItemDto
+public class StepExecutionLogItemDto
 {
-    public Guid RecordEntranceId { get; set; }
-    public Guid ReceptionEntranceId { get; set; }
-    public string Status { get; set; } = string.Empty;
-    public string CurrentStepCode { get; set; } = string.Empty;
-    public bool IsConsolidated { get; set; }
-    public DateTime CreatedAt { get; set; }
-
-    public DateOnly ReceptionStartDate { get; set; }
-    public TimeOnly ReceptionStartTime { get; set; }
-    public DateOnly? ReceptionEndDate { get; set; }
-    public TimeOnly? ReceptionEndTime { get; set; }
+    public DateOnly StartDate { get; set; }
+    public TimeOnly StartTime { get; set; }
+    public DateOnly? EndDate { get; set; }
+    public TimeOnly? EndTime { get; set; }
+    public string ProcessedByUserName { get; set; } = string.Empty;
 
     public int? DurationTotalSeconds { get; set; }
-    public string? durationFormatted { get; set; }
+    public string? DurationFormatted { get; set; }
+}
 
+public class ReceptionEntranceItemDto
+{
+    public Guid Id { get; set; }
     public string CountryOfOrigin { get; set; } = string.Empty;
     public string Aduana { get; set; } = string.Empty;
     public string DriverName { get; set; } = string.Empty;
     public string PlateNumber { get; set; } = string.Empty;
     public string TrailerChassis { get; set; } = string.Empty;
-    public string DirverLicense { get; set; } = string.Empty;
+    public string DriverLicense { get; set; } = string.Empty;
     public string Transportista { get; set; } = string.Empty;
     public string Medio { get; set; } = string.Empty;
     public string Consignee { get; set; } = string.Empty;
     public string SealNumber { get; set; } = string.Empty;
+    public string? UpdatedByUserName { get; set; }
+    public DateOnly? UpdatedDate { get; set; }
+    public TimeOnly? UpdatedTime { get; set; }
 
-    public List<EntranceDucatItemDto> Ducats { get; set; } = [];
+    public DateOnly? MedioExitDate { get; set; }
+    public TimeOnly? MedioExitTime   { get; set; }
+
 }
 
+public class RecordEntranceItemDto
+{
+    public RecordEntranceStatus Status { get; set; }
+    public bool IsConsolidated { get; set; }
+    
+
+    public ReceptionEntranceItemDto? ReceptionEntrance {get;set;}
+    public StepExecutionLogItemDto? ExecutionLog {get;set;}
+    public List<EntranceDucatItemDto> Ducats { get; set; } = [];
+}
 public class GetReceptionEntrancesDto
 {
-    public List<ReceptionEntranceListItemDto> Data { get; set; } = [];
+    public List<RecordEntranceItemDto> Data { get; set; } = [];
     public int TotalCount { get; set; }
     public int PageNumber { get; set; }
     public int PageSize { get; set; }

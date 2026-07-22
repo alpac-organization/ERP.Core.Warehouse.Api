@@ -14,11 +14,11 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
 {
     public async Task<GetReceptionEntrancesDto> Handle(GetReceptionEntrancesQuery request, CancellationToken cancellationToken)
     {
-        #region Busqueda de Code
+        #region 1. Busqueda de Code
         var receptionStep = await _unitOfWork.WorkflowStepDefinitions.Entities
             .OrderBy(x => x.ExecutionOrder)
             .FirstOrDefaultAsync(cancellationToken);
-        
+
         if (receptionStep == null)
         {
             return _errorManager.ThrowInternalError<GetReceptionEntrancesDto>(
@@ -33,25 +33,32 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
             ? DateOnly.FromDateTime(request.Date.Value)
             : NicaraguaClock.Today;
 
-        #region Stats del dia (Filtro de busqueda)
-        var statsRaw = await _unitOfWork.RecordEntrance.Entities
+        #region 2. Stats del dia (Filtro de busqueda)
+        var totalIngresos = await _unitOfWork.RecordEntrance.Entities
             .AsNoTracking()
-            .Where(r => r.ExecutionLogs.Any(l => 
+            .Where(r => r.ExecutionLogs.Any(l =>
                 l.WorkflowStepDefinitionCode == receptionStepCode &&
                 l.StartDate == targetDate))
-            .GroupBy(r => r.Status)
-            .Select(g => new { Status = g.Key, Count = g.Count() })
-            .ToListAsync(cancellationToken);
+            .CountAsync(cancellationToken);
 
-        var stats = new ReceptionEntranceStatsDto
-        {
-            InTail = statsRaw.FirstOrDefault(s => s.Status == RecordEntranceStatus.InTail)?.Count ?? 0,
-            InUnloading = statsRaw.FirstOrDefault(s => s.Status == RecordEntranceStatus.InUnloading)?.Count ?? 0,
-            Completed = statsRaw.FirstOrDefault(s => s.Status == RecordEntranceStatus.Completed)?.Count ?? 0
-        };
+        var recepcionadosQuery = _unitOfWork.RecordEntrance.Entities
+            .AsNoTracking()
+            .Where(r => r.ExecutionLogs.Any(l =>
+                l.WorkflowStepDefinitionCode == receptionStepCode &&
+                l.StartDate <= targetDate));
+
+        var totalEnPlanta = await recepcionadosQuery
+            .Where(r => r.ReceptionEntrance == null || 
+                    r.ReceptionEntrance.MedioExitDate == null)
+            .CountAsync(cancellationToken);
+
+        var totalDespachados = await recepcionadosQuery
+            .Where(r => r.ReceptionEntrance != null &&
+                        r.ReceptionEntrance.MedioExitDate != null)
+            .CountAsync(cancellationToken);
         #endregion
 
-        #region Listado filtrado y paginado
+        #region 3. Listado filtrado y paginado
         var query = _unitOfWork.RecordEntrance.Entities
             .AsNoTracking()
             .Include(r => r.ReceptionEntrance)
@@ -72,14 +79,14 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
         if (!string.IsNullOrWhiteSpace(request.PlateNumber))
         {
             var plateFilter = request.PlateNumber.Trim().ToLower().Replace(" ", "");
-            query = query.Where(r => r.ReceptionEntrance != null && 
+            query = query.Where(r => r.ReceptionEntrance != null &&
                 r.ReceptionEntrance.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
         }
 
         if (!string.IsNullOrWhiteSpace(request.DucatNumber))
         {
             var ducatFilter = request.DucatNumber.Trim().ToLower().Replace(" ", "");
-            query = query.Where(r => r.EntranceDucats.Any(d => 
+            query = query.Where(r => r.EntranceDucats.Any(d =>
                                                 d.DucatNumber.ToLower().Replace(" ", "").Contains(ducatFilter)));
         }
 
@@ -97,12 +104,13 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
             .ToListAsync(cancellationToken);
         #endregion
 
-        var data = records.Select(r => 
+        #region 4. Mapeo a Dto
+        var data = records.Select(r =>
         {
             var receptionLog = r.ExecutionLogs.First(l => l.WorkflowStepDefinitionCode == receptionStepCode);
             int? durationTotalSeconds = null;
             string? durationFormatted = null;
-            if(receptionLog.EndDate.HasValue && receptionLog.EndTime.HasValue)
+            if (receptionLog.EndDate.HasValue && receptionLog.EndTime.HasValue)
             {
                 var start = receptionLog.StartDate.ToDateTime(receptionLog.StartTime);
                 var end = receptionLog.EndDate.Value.ToDateTime(receptionLog.EndTime.Value);
@@ -112,47 +120,65 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
                 durationFormatted = span.ToString(@"hh\:mm\:ss");
             }
 
-            return new ReceptionEntranceListItemDto{
-            RecordEntranceId = r.Id,
-            ReceptionEntranceId = r.ReceptionEntrance!.Id,
-            Status = r.Status.ToString(),
-            CurrentStepCode = r.CurrentStepCode,
-            IsConsolidated = r.IsConsolidated,
-            CreatedAt = r.CreatedAt,
-
-            ReceptionStartDate = receptionLog.StartDate,
-            ReceptionStartTime = receptionLog.StartTime,
-            ReceptionEndDate = receptionLog.EndDate,
-            ReceptionEndTime = receptionLog.EndTime,
-            DurationTotalSeconds = durationTotalSeconds,
-            durationFormatted = durationFormatted,
-
-            CountryOfOrigin = r.ReceptionEntrance?.CountryOfOrigin ?? string.Empty,
-            Aduana = r.ReceptionEntrance?.Aduana ?? string.Empty,
-            DriverName = r.ReceptionEntrance?.DriverName ?? string.Empty,
-            PlateNumber = r.ReceptionEntrance?.PlateNumber ?? string.Empty,
-            TrailerChassis = r.ReceptionEntrance?.TrailerChassis ?? string.Empty,
-            DirverLicense = r.ReceptionEntrance?.DriverLicense ?? string.Empty,
-            Transportista = r.ReceptionEntrance?.Transportista ?? string.Empty,
-            Medio = r.ReceptionEntrance?.Medio ?? string.Empty,
-            Consignee = r.ReceptionEntrance?.Consignee ?? string.Empty,
-            SealNumber = r.ReceptionEntrance?.SealNumber ?? string.Empty,
-
-            Ducats = [.. r.EntranceDucats.Select(d => new EntranceDucatItemDto
+            return new RecordEntranceItemDto
             {
-                EntranceDucatId = d.Id,
-                DucatNumber = d.DucatNumber
-            })]
+                Status          = r.Status,
+                IsConsolidated  = r.IsConsolidated,
+
+                ReceptionEntrance = r.ReceptionEntrance == null ? null : new ReceptionEntranceItemDto
+                {
+                    Id                  = r.ReceptionEntrance.Id,
+                    CountryOfOrigin     = r.ReceptionEntrance.CountryOfOrigin,
+                    Aduana              = r.ReceptionEntrance.Aduana,
+                    PlateNumber         = r.ReceptionEntrance.PlateNumber,
+                    TrailerChassis      = r.ReceptionEntrance.TrailerChassis,
+                    DriverLicense       = r.ReceptionEntrance.DriverLicense,
+                    Transportista       = r.ReceptionEntrance.Transportista,
+                    Medio               = r.ReceptionEntrance.Medio,
+                    DriverName          = r.ReceptionEntrance.DriverName,
+                    Consignee           = r.ReceptionEntrance.Consignee,
+                    SealNumber          = r.ReceptionEntrance.SealNumber,
+                    UpdatedByUserName   = r.ReceptionEntrance.UpdatedByUserName,
+                    UpdatedDate         = r.ReceptionEntrance.UpdatedDate,
+                    UpdatedTime         = r.ReceptionEntrance.UpdatedTime,
+                    MedioExitDate       = r.ReceptionEntrance.MedioExitDate,
+                    MedioExitTime       = r.ReceptionEntrance.MedioExitTime
+                },
+
+                ExecutionLog = new StepExecutionLogItemDto
+                {
+                    StartDate                   = receptionLog.StartDate,
+                    StartTime                   = receptionLog.StartTime,
+                    EndDate                     = receptionLog.EndDate,
+                    EndTime                     = receptionLog.EndTime,
+                    ProcessedByUserName         = receptionLog.ProcessedByUserName,
+                    DurationTotalSeconds        = durationTotalSeconds,
+                    DurationFormatted           = durationFormatted
+                },
+
+                Ducats = [.. r.EntranceDucats.Select(d => new EntranceDucatItemDto
+                {
+                    Id = d.Id,
+                    DucatNumber = d.DucatNumber
+                })]
             };
         }).ToList();
+        #endregion
+
+        var stats = new ReceptionEntranceStatsDto
+        {
+            TotalIngresos       = totalIngresos,
+            TotalEnPlanta       = totalEnPlanta,
+            TotalDespachados    = totalDespachados
+        };
 
         return new GetReceptionEntrancesDto
         {
-            Data = data,
-            TotalCount = totalCount,
-            PageNumber = request.PageNumber,
-            PageSize = request.PageSize,
-            Stats = stats
+            Data        = data,
+            TotalCount  = totalCount,
+            PageNumber  = request.PageNumber,
+            PageSize    = request.PageSize,
+            Stats       = stats
         };
     }
 }
