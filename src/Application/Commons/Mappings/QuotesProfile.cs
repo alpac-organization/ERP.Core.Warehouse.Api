@@ -13,7 +13,13 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         public QuotesProfile()
         {
             CreateMap<Quotation, QuotationDto>()
-                .ForMember(dest => dest.QuotationId, opt => opt.MapFrom(src => src.Id));
+                .ForMember(dest => dest.QuotationId,   opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.MadeBy,        opt => opt.MapFrom(src => src.MadeBy))
+                .ForMember(dest => dest.QuoteDate,     opt => opt.MapFrom(src => src.QuoteDate))
+                .ForMember(dest => dest.QuotationCode, opt => opt.MapFrom(src => src.QuotationCode))
+                .ForMember(dest => dest.BranchName,    opt => opt.MapFrom(src => src.Branch != null ? src.Branch.BranchName : null))
+                .ForMember(dest => dest.Observations,  opt => opt.MapFrom(src => src.Observations));
+
         }
     }
     
@@ -51,7 +57,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 Id                   = Guid.NewGuid(),
                 IsActive             = true,
                 RegisterBy           = registerBy,
-                SuppliersLegalName   = command.SupplierName,
+                SuppliersLegalName   = command.SupplierName!,
                 ConstitutionType     = command.ConstitutionType,
                 ContactPhoneNumber   = command.ContactPhoneNumber,
                 IdentificationNumber = command.IdentificationNumber,

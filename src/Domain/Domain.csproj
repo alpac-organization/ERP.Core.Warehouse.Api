@@ -14,6 +14,7 @@
 
   <PropertyGroup>
     <NoWarn>$(NoWarn);CA1873</NoWarn>
+    <RootNamespace>ERP.Core.Warehouse.Api.Domain</RootNamespace>
   </PropertyGroup>
 
 </Project>
