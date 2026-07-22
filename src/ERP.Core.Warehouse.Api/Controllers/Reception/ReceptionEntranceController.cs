@@ -51,6 +51,7 @@ public class ReceptionEntranceController(IMediator _mediator) : ApiControllerBas
         [FromQuery] string? driver_name,
         [FromQuery] string? plate_number,
         [FromQuery] string? ducat_number,
+        [FromQuery] Guid? ducat_id,
         [FromQuery] DateTime? date,
         [FromQuery] int page_number = 1,
         [FromQuery] int page_size = 10,
@@ -67,6 +68,7 @@ public class ReceptionEntranceController(IMediator _mediator) : ApiControllerBas
             DriverName = driver_name,
             PlateNumber = plate_number,
             DucatNumber = ducat_number,
+            DucatId = ducat_id,
             Date = date,
             PageNumber = page_number,
             PageSize = page_size

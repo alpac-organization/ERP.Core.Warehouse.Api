@@ -12,6 +12,7 @@ public class GetReceptionEntrancesQuery : IRequest<GetReceptionEntrancesDto>
     public string? DriverName { get; set; }
     public string? PlateNumber { get; set; }
     public string? DucatNumber { get; set; }
+    public Guid? DucatId { get; set; }
     public DateTime? Date { get; set; }
 
     public int PageNumber { get; set; } = 1;

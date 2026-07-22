@@ -1,11 +1,11 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queries;
-using ERP.Core.Warehouse.Api.Application.Commons.Utils;
-using ERP.Core.Application.Commons.Interfaces;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
 
@@ -55,11 +55,13 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
         var query = _unitOfWork.RecordEntrance.Entities
             .AsNoTracking()
             .Include(r => r.ReceptionEntrance)
-            .Include(r => r.EntranceDucats)
+            .Include(r => r.EntranceDucats.Where(d => d.DeletedAt == null))
             .Include(r => r.ExecutionLogs.Where(l => l.WorkflowStepDefinitionCode == receptionStepCode))
             .Where(r => r.ExecutionLogs.Any(l =>
                 l.WorkflowStepDefinitionCode == receptionStepCode &&
-                l.StartDate == targetDate));
+                l.StartDate == targetDate) &&
+                r.ReceptionEntrance != null &&
+                r.ReceptionEntrance.DeletedAt == null);
 
         if (!string.IsNullOrWhiteSpace(request.DriverName))
         {
@@ -79,6 +81,11 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
             var ducatFilter = request.DucatNumber.Trim().ToLower().Replace(" ", "");
             query = query.Where(r => r.EntranceDucats.Any(d => 
                                                 d.DucatNumber.ToLower().Replace(" ", "").Contains(ducatFilter)));
+        }
+
+        if (request.DucatId.HasValue)
+        {
+            query = query.Where(r => r.EntranceDucats.Any(d => d.Id == request.DucatId.Value));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -107,6 +114,7 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
 
             return new ReceptionEntranceListItemDto{
             RecordEntranceId = r.Id,
+            ReceptionEntranceId = r.ReceptionEntrance!.Id,
             Status = r.Status.ToString(),
             CurrentStepCode = r.CurrentStepCode,
             IsConsolidated = r.IsConsolidated,
@@ -119,10 +127,22 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
             DurationTotalSeconds = durationTotalSeconds,
             durationFormatted = durationFormatted,
 
+            CountryOfOrigin = r.ReceptionEntrance?.CountryOfOrigin ?? string.Empty,
+            Aduana = r.ReceptionEntrance?.Aduana ?? string.Empty,
             DriverName = r.ReceptionEntrance?.DriverName ?? string.Empty,
             PlateNumber = r.ReceptionEntrance?.PlateNumber ?? string.Empty,
+            TrailerChassis = r.ReceptionEntrance?.TrailerChassis ?? string.Empty,
+            DirverLicense = r.ReceptionEntrance?.DriverLicense ?? string.Empty,
             Transportista = r.ReceptionEntrance?.Transportista ?? string.Empty,
-            DucatNumbers = [.. r.EntranceDucats.Select(d => d.DucatNumber)]
+            Medio = r.ReceptionEntrance?.Medio ?? string.Empty,
+            Consignee = r.ReceptionEntrance?.Consignee ?? string.Empty,
+            SealNumber = r.ReceptionEntrance?.SealNumber ?? string.Empty,
+
+            Ducats = [.. r.EntranceDucats.Select(d => new EntranceDucatItemDto
+            {
+                EntranceDucatId = d.Id,
+                DucatNumber = d.DucatNumber
+            })]
             };
         }).ToList();
 

@@ -7,9 +7,16 @@ public class ReceptionEntranceStatsDto
     public int Completed { get; set; }
 }
 
+public class EntranceDucatItemDto
+{
+    public Guid EntranceDucatId { get; set; }
+    public string DucatNumber { get; set; } = string.Empty;
+}
+
 public class ReceptionEntranceListItemDto
 {
     public Guid RecordEntranceId { get; set; }
+    public Guid ReceptionEntranceId { get; set; }
     public string Status { get; set; } = string.Empty;
     public string CurrentStepCode { get; set; } = string.Empty;
     public bool IsConsolidated { get; set; }
@@ -23,11 +30,18 @@ public class ReceptionEntranceListItemDto
     public int? DurationTotalSeconds { get; set; }
     public string? durationFormatted { get; set; }
 
+    public string CountryOfOrigin { get; set; } = string.Empty;
+    public string Aduana { get; set; } = string.Empty;
     public string DriverName { get; set; } = string.Empty;
     public string PlateNumber { get; set; } = string.Empty;
+    public string TrailerChassis { get; set; } = string.Empty;
+    public string DirverLicense { get; set; } = string.Empty;
     public string Transportista { get; set; } = string.Empty;
+    public string Medio { get; set; } = string.Empty;
+    public string Consignee { get; set; } = string.Empty;
+    public string SealNumber { get; set; } = string.Empty;
 
-    public List<string> DucatNumbers { get; set; } = [];
+    public List<EntranceDucatItemDto> Ducats { get; set; } = [];
 }
 
 public class GetReceptionEntrancesDto
