@@ -12,4 +12,8 @@
     <PackageReference Include="ERP.Core.Domain" Version="1.52.0" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CA1873</NoWarn>
+  </PropertyGroup>
+
 </Project>

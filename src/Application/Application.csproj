@@ -22,4 +22,8 @@
     <RootNamespace>ERP.Core.Warehouse.Api.Application</RootNamespace>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CA1873</NoWarn>
+  </PropertyGroup>
+
 </Project>
