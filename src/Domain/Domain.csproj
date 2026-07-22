@@ -8,8 +8,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+<<<<<<< HEAD
     <PackageReference Include="ERP.Core.Database.Domain" Version="1.52.0" />
     <PackageReference Include="ERP.Core.Domain" Version="1.52.0" />
+=======
+    <PackageReference Include="ERP.Core.Database.Domain" Version="1.51.1" />
+    <PackageReference Include="ERP.Core.Domain" Version="1.51.1" />
+>>>>>>> 5f72947cc3f96cf3191962fcbbb8f6d1ae0e72f7
   </ItemGroup>
+
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CA1873</NoWarn>
+  </PropertyGroup>
 
 </Project>

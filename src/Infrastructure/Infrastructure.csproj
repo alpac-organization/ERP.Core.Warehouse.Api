@@ -6,8 +6,13 @@
 
   <ItemGroup>
     <PackageReference Include="DotNetEnv" Version="3.2.0" />
+<<<<<<< HEAD
     <PackageReference Include="ERP.Core.Database.Infrastructure" Version="1.52.0" />
     <PackageReference Include="ERP.Core.Infrastructure" Version="1.52.0" />
+=======
+    <PackageReference Include="ERP.Core.Database.Infrastructure" Version="1.51.1" />
+    <PackageReference Include="ERP.Core.Infrastructure" Version="1.51.1" />
+>>>>>>> 5f72947cc3f96cf3191962fcbbb8f6d1ae0e72f7
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.9" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
@@ -18,6 +23,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>ERP.Core.Warehouse.Api.Infrastructure</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CA1873</NoWarn>
   </PropertyGroup>
 
 </Project>

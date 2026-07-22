@@ -6,8 +6,13 @@
 
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="16.2.0" />
+<<<<<<< HEAD
     <PackageReference Include="ERP.Core.Application" Version="1.52.0" />
     <PackageReference Include="ERP.Core.Database.Application" Version="1.52.0" />
+=======
+    <PackageReference Include="ERP.Core.Application" Version="1.51.1" />
+    <PackageReference Include="ERP.Core.Database.Application" Version="1.51.1" />
+>>>>>>> 5f72947cc3f96cf3191962fcbbb8f6d1ae0e72f7
     <PackageReference Include="FluentValidation" Version="12.1.1" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <PackageReference Include="MediatR" Version="14.2.0" />
@@ -20,6 +25,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>ERP.Core.Warehouse.Api.Application</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CA1873</NoWarn>
   </PropertyGroup>
 
 </Project>
