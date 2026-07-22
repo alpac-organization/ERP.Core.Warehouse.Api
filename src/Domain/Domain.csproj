@@ -8,8 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ERP.Core.Database.Domain" Version="1.48.0" />
-    <PackageReference Include="ERP.Core.Domain" Version="1.48.0" />
+    <PackageReference Include="ERP.Core.Database.Domain" Version="1.52.0" />
+    <PackageReference Include="ERP.Core.Domain" Version="1.52.0" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CA1873</NoWarn>
+    <RootNamespace>ERP.Core.Warehouse.Api.Domain</RootNamespace>
+  </PropertyGroup>
 
 </Project>
