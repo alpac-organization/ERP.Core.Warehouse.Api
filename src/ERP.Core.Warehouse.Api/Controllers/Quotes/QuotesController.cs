@@ -36,7 +36,8 @@ namespace ERP.Core.Warehouse.Api.Controllers.Quotes
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
         public async Task<List<object>> GetQuoteAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
-            [FromQuery] string? branch_code
+            [FromQuery] Guid? branch_id,
+            [FromQuery] string? quote_code
         )
         {
             var userIdStr = HttpContext.Items["UserId"] as string;

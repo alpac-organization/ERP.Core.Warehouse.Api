@@ -37,7 +37,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotes.v1.Commands
 
     public class SupplierDatails
     {
-        public string SupplierName { get; set; } = null!;
+        public string? SupplierName { get; set; }
         public string? ContactPhoneNumber { get; set; }
 
         public string? IdentificationNumber { get; set ; }
