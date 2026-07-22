@@ -34,7 +34,7 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
             : NicaraguaClock.Today;
 
         #region 2. Stats del dia (Filtro de busqueda)
-        var totalIngresos = await _unitOfWork.RecordEntrance.Entities
+        var totalEntries = await _unitOfWork.RecordEntrance.Entities
             .AsNoTracking()
             .Where(r => r.ExecutionLogs.Any(l =>
                 l.WorkflowStepDefinitionCode == receptionStepCode &&
@@ -47,12 +47,12 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
                 l.WorkflowStepDefinitionCode == receptionStepCode &&
                 l.StartDate <= targetDate));
 
-        var totalEnPlanta = await recepcionadosQuery
+        var totalOnSite = await recepcionadosQuery
             .Where(r => r.ReceptionEntrance == null || 
                     r.ReceptionEntrance.MedioExitDate == null)
             .CountAsync(cancellationToken);
 
-        var totalDespachados = await recepcionadosQuery
+        var totalExits = await recepcionadosQuery
             .Where(r => r.ReceptionEntrance != null &&
                         r.ReceptionEntrance.MedioExitDate != null)
             .CountAsync(cancellationToken);
@@ -167,9 +167,9 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
 
         var stats = new ReceptionEntranceStatsDto
         {
-            TotalIngresos       = totalIngresos,
-            TotalEnPlanta       = totalEnPlanta,
-            TotalDespachados    = totalDespachados
+            TotalEntries       = totalEntries,
+            TotalOnSite       = totalOnSite,
+            TotalExits    = totalExits
         };
 
         return new GetReceptionEntrancesDto

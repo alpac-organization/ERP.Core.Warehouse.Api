@@ -5,9 +5,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 
 public class ReceptionEntranceStatsDto
 {
-    public int TotalIngresos { get; set; }
-    public int TotalEnPlanta { get; set; }
-    public int TotalDespachados { get; set; }
+    public int TotalEntries { get; set; }
+    public int TotalOnSite { get; set; }
+    public int TotalExits { get; set; }
 }
 
 public class EntranceDucatItemDto
