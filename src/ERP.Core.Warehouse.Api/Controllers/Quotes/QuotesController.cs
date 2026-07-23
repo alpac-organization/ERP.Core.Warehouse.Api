@@ -58,5 +58,24 @@ namespace ERP.Core.Warehouse.Api.Controllers.Quotes
                 UserId      = Guid.Parse(userIdStr ?? "")
             });
         }
+
+
+        [Tags("Contizaciones")] 
+        [HttpGet("companies/{company_id}/modules/{module_code}/quotes/{quotation_id}/details")]      
+        [ProducesResponseType(typeof(PagedResponse<QuotationDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
+        public async Task<QuotationDto> GetQuoteAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid quotation_id)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            return await _mediator.Send(new GetQuoteDetailsQuery()
+            {
+                ModuleCode  = module_code,
+                CompanyId   = company_id,
+                UserId      = Guid.Parse(userIdStr ?? ""),
+                QuotationId = quotation_id
+            });
+        }
     }
 }

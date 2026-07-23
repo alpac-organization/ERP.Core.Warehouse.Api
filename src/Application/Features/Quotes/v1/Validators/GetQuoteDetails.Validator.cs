@@ -1,11 +1,12 @@
-using FluentValidation;
 using ERP.Core.Warehouse.Api.Application.Features.Quotes.v1.Queries;
+using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queries;
+using FluentValidation;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Quotes.v1.Validators
 {
-    public class GetQuotesValidator : AbstractValidator<GetQuotesQuery>
+    public class GetQuoteDetailsValidator : AbstractValidator<GetQuoteDetailsQuery>
     {
-        public GetQuotesValidator()
+        public GetQuoteDetailsValidator()
         {
             RuleFor(x => x.CompanyId)
                 .NotEmpty()
@@ -24,14 +25,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotes.v1.Validators
                     .WithMessage("El id de usuario es requerido")
                 .NotNull()
                     .WithMessage("El id de usuario es requerido");
-            
-            RuleFor(x => x.PageNumber)
-                .GreaterThan(0)
-                .WithMessage("El número de página debe ser mayor que 0.");
-            
-            RuleFor(x => x.PageSize)
-                .GreaterThan(0)
-                .WithMessage("El tamaño de página debe ser mayor que 0.");
+
+            RuleFor(x => x.QuotationId)
+                .NotEmpty()
+                .WithMessage("El id de la cotización es requerido.")
+                .NotEqual(Guid.Empty)
+                .WithMessage("El id de la cotización no es válido.");
         }
     }
 }
+
