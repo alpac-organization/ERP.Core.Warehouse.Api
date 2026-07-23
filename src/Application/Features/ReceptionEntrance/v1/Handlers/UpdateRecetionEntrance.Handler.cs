@@ -1,19 +1,16 @@
-using System.Runtime.CompilerServices;
-using ERP.Core.Application.Commons.Interfaces;
-using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
-using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
-using ERP.Core.Warehouse.Api.Application.Commons.Utils;
-using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Warehouse.Api.Application.Commons.Utils;
+using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
+using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
 
 public class UpdateReceptionEntranceHandler(
     IUnitOfWork _unitOfWork,
-    IErrorManager _errorManager,
-    ILogger<UpdateReceptionEntranceHandler> _logger)
+    IErrorManager _errorManager)
     : IRequestHandler<UpdateReceptionEntranceCommand, bool>
 {
     public async Task<bool> Handle(UpdateReceptionEntranceCommand request, CancellationToken cancellationToken)
@@ -37,7 +34,18 @@ public class UpdateReceptionEntranceHandler(
                 .Select(d => new { d.Id, Number = d.DucatNumber.Trim().Replace(" ", "") })
                 .ToList();
 
-            #region 1a. Duplicados en la misma solicitud
+            #region 1a. Confirmar Id presente en los DUCA
+            var itemsWithoutId = normalizedItems.Where(d => !d.Id.HasValue).ToList();
+
+            if (itemsWithoutId.Count != 0)
+            {
+                return _errorManager.ThrowBadRequest<bool>(
+                    "No se permite crear nuevos DUCA's en esta operación.",
+                    "ERP:DUCA_INSERT_NOT_ALLOWED");
+            }
+            #endregion
+
+            #region 1b. Duplicados en la misma solicitud
             var duplicatesInRequest = normalizedItems
                 .GroupBy(d => d.Number, StringComparer.OrdinalIgnoreCase)
                 .Where(g => g.Count() > 1)
@@ -52,7 +60,7 @@ public class UpdateReceptionEntranceHandler(
             }
             #endregion
 
-            #region 1b. Unicidad global, excluyendo los ducas que ya pertenecen al registro actual
+            #region 1c. Unicidad global, excluyendo los ducas que ya pertenecen al registro actual
             var normalizedNumbersLower = normalizedItems
                 .Select(d => d.Number.ToLower())
                 .ToList();
@@ -72,32 +80,25 @@ public class UpdateReceptionEntranceHandler(
             }
             #endregion
 
-            #region  1c. Actualizar por Id o insertar sin Id
+            #region  1d. Actualizar por Id
             var existingDucats = recordEntrance.EntranceDucats.ToList();
 
             foreach (var item in normalizedItems)
             {
-                if (item.Id.HasValue)
-                {
-                    var ducat = existingDucats.FirstOrDefault(d => d.Id == item.Id.Value);
+                Guid ducatId = item.Id!.Value;
+                
+                var ducat = existingDucats.FirstOrDefault(d => d.Id == ducatId);
 
-                    if (ducat == null)
-                    {
-                        return _errorManager.ThrowBadRequest<bool>(
-                            $"La DUCA con id '{item.Id}' no pertenece a este registro de recepción.",
-                            "ERP:DUCA_NOT_FOUND");
-                    }
-
-                    ducat.DucatNumber = item.Number;
-                }
-                else
+                if (ducat == null)
                 {
-                    var newDucat = item.Number.ToEntranceDucaEntity(recordEntrance.Id);
-                    recordEntrance.EntranceDucats.Add(newDucat);
+                    return _errorManager.ThrowBadRequest<bool>(
+                        $"La DUCA con id '{item.Id}' no pertenece a este registro de recepción.",
+                        "ERP:DUCA_NOT_FOUND");
                 }
+
+                ducat.DucatNumber = item.Number;
+
             }
-
-            recordEntrance.IsConsolidated = recordEntrance.EntranceDucats.Count(d => d.DeletedAt == null) > 1;
             #endregion
         }
         #endregion
@@ -131,22 +132,7 @@ public class UpdateReceptionEntranceHandler(
         }
         #endregion
 
-        try
-        {
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-        }
-        catch (DbUpdateConcurrencyException ex)
-        {
-            foreach( var entry in ex.Entries)
-            {
-                _logger.LogError(
-                    "Conflicto de concurrencia al guardar {Entity} (Id : {Id}) - Estado: {Statte}",
-                    entry.Entity.GetType().Name,
-                    entry.CurrentValues["Id"],
-                    entry.State);
-            }
-            throw;
-        }
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return true;
 
