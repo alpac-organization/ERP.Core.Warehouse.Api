@@ -122,6 +122,7 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
 
             return new RecordEntranceItemDto
             {
+                Id              = r.Id,
                 Status          = r.Status,
                 IsConsolidated  = r.IsConsolidated,
 
