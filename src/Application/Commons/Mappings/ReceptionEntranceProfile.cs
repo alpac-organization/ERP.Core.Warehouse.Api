@@ -65,9 +65,9 @@ public static class ReceptionEntranceMapper
 
     public static RecordEntrance ToRecordEntranceEntity(
         this CreateReceptionEntranceCommand command,
-         Guid recordEntranceId,
-          bool isConsolidated,
-          string stepCode)
+        Guid recordEntranceId,
+        bool isConsolidated,
+        string stepCode)
     {
         return new()
         {
@@ -115,7 +115,8 @@ public static class ReceptionEntranceMapper
         Guid recordEntranceId,
         DateOnly endDate,
         TimeOnly endTime,
-        string stepCode)
+        string stepCode,
+        string processedByUserame)
     {
         return new()
         {
@@ -126,7 +127,8 @@ public static class ReceptionEntranceMapper
             StartTime                   = command.StartTime,
             EndDate                     = endDate,
             EndTime                     = endTime,
-            ProcessedByUserId           = command.UserId.ToString()
+            ProcessedByUserId           = command.UserId.ToString(),
+            ProcessedByUserName         = processedByUserame
         };
     }
 }
