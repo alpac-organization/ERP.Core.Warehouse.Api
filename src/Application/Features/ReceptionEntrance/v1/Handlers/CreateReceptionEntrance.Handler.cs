@@ -6,6 +6,7 @@ using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
+using System.Net;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
 
@@ -98,9 +99,22 @@ public class CreateReceptionEntranceHandler(
 
         bool isConsolidated = request.DucatNumbers.Count > 1;
 
+        var user = await _unitOfWork.Users.Entities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+
+        if (user == null)
+        {
+            return _errorManager.ThrowBadRequest<bool>(
+                "No se pudo identificar al usuario autenticado en el sistema.",
+                "ERP:USER_NOT_FOUND");
+        }
+
+        var processedByUserName = user.Fullname ?? user.UserName ?? request.UserId.ToString();
+
         var recordEntrance = request.ToRecordEntranceEntity(recordEntranceId, isConsolidated, currentStepCode);
         var receptionEntrance = request.ToReceptionEntranceEntity(recordEntranceId);
-        var executionLog = request.ToStepExecutionLogEntity(recordEntranceId, systemEndDate, systemEndTime, currentStepCode);
+        var executionLog = request.ToStepExecutionLogEntity(recordEntranceId, systemEndDate, systemEndTime, currentStepCode, processedByUserName);
 
         await _unitOfWork.RecordEntrance.InsertRecordEntrance(recordEntrance);
         await _unitOfWork.ReceptionEntrance.InsertReceptionEntrance(receptionEntrance);
