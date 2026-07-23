@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
@@ -17,7 +18,7 @@ public class UpdateReceptionEntranceHandler(
     {
         var recordEntrance = await _unitOfWork.RecordEntrance.Entities
             .Include(r => r.ReceptionEntrance)
-            .Include(r => r.EntranceDucats)
+            .Include(r => r.EntranceDucats.Where(d => d.DeletedAt == null))
             .FirstOrDefaultAsync(r => r.Id == request.ReceptionId && r.DeletedAt == null, cancellationToken);
         
         if(recordEntrance == null)
@@ -27,92 +28,104 @@ public class UpdateReceptionEntranceHandler(
                 "ERP:RECEPTION_NOT_FOUND");
         }
 
-        #region 1. Validacion DUCA en la misma peticion
-        var duplicatesInRequest = request.DucatNumbers
-            .GroupBy(d => d.Trim(), StringComparer.OrdinalIgnoreCase)
-            .Where(g => g.Count() > 1)
-            .Select(g => g.Key)
-            .ToList();
-        
-        if (duplicatesInRequest.Count != 0)
+        #region 1. sincronizacion de Ducas
+        if (request.Ducats != null)
         {
-            return _errorManager.ThrowBadRequest<bool>(
-                $"La lista de DUCA's contiene números duplicados en la misma solicitud: {string.Join(", ", duplicatesInRequest)}",
-                "ERP:REQUEST_DUPLICATED_DUCA");
+            var normalizedItems = request.Ducats
+                .Select(d => new {d.Id, Number = d.DucatNumber.Trim().Replace(" ", "")})
+                .ToList();
+
+            #region 1a. Duplicados en la misma solicitud
+            var duplicatesInRequest = normalizedItems
+                .GroupBy(d  => d.Number, StringComparer.OrdinalIgnoreCase)
+                .Where(g    => g.Count() > 1)
+                .Select(g   => g.Key)
+                .ToList();
+            
+            if (duplicatesInRequest.Count != 0)
+            {
+                return _errorManager.ThrowBadRequest<bool>(
+                    $"La lista de DUCA's contiene números duplicados en la misma solicitud: {string.Join(", ", duplicatesInRequest)}",
+                    "ERP:REQUEST_DUPLICATED_DUCA");
+            }
+            #endregion
+
+            #region 1b. Unicidad global, excluyendo los ducas que ya pertenecen al registro actual
+            var normalizedNumbersLower = normalizedItems
+                .Select(d => d.Number.ToLower())
+                .ToList();
+
+            var duplicateGlobalDucas = await _unitOfWork.EntranceDucats.Entities
+                .Where(d => d.RecordEntranceId != request.ReceptionId &&
+                            d.DeletedAt == null &&
+                            normalizedNumbersLower.Contains(d.DucatNumber.Trim().ToLower()))
+                .Select(d => d.DucatNumber)
+                .ToListAsync(cancellationToken);
+            
+            if (duplicateGlobalDucas.Count != 0)
+            {
+                return _errorManager.ThrowBadRequest<bool>(
+                    $"Los siguientes números DUCA ya están registrados en el sistema: {string.Join(", ", duplicateGlobalDucas)}.",
+                    "ERP:GLOBAL_DUPLICATED_DUCA_ERROR");
+            }
+            #endregion
+
+            #region  1c. Actualizar por Id o insertar sin Id
+            var existingDucats = recordEntrance.EntranceDucats.ToList();
+
+            foreach(var item in normalizedItems)
+            {
+                if (item.Id.HasValue)
+                {
+                    var ducat = existingDucats.FirstOrDefault(d => d.Id == item.Id.Value);
+
+                    if (ducat == null)
+                    {
+                        return _errorManager.ThrowBadRequest<bool>(
+                            $"La DUCA con id '{item.Id}' no pertenece a este registro de recepción.",
+                            "ERP:DUCA_NOT_FOUND");
+                    }
+
+                    ducat.DucatNumber = item.Number;
+                }
+                else
+                {
+                    var newDucat = item.Number.ToEntranceDucaEntity(recordEntrance.Id);
+                    recordEntrance.EntranceDucats.Add(newDucat);
+                }
+            }
+
+            recordEntrance.IsConsolidated = recordEntrance.EntranceDucats.Count(d => d.DeletedAt == null) > 1;
+            #endregion
         }
         #endregion
 
-        #region 2. Validacion DUCA unicidad global
-        var normalizedRequestDucas = request.DucatNumbers
-            .Select(d => d.Trim().ToLower())
-            .ToList();
-
-        var duplicateGlobalducas = await _unitOfWork.EntranceDucats.Entities
-            .Where(d => d.RecordEntranceId != request.ReceptionId &&
-                    d.DeletedAt == null &&
-                    normalizedRequestDucas.Contains(d.DucatNumber.Trim().ToLower()))
-            .Select(d => d.DucatNumber)
-            .ToListAsync(cancellationToken);
-        
-        if(duplicateGlobalducas.Count != 0)
-        {
-            return _errorManager.ThrowBadRequest<bool>(
-                $"Los siguientes números DUCA ya están registrados en el sistema: {string.Join(", ", duplicateGlobalducas)}.",
-                "ERP:GLOBAL_DUPLICATED_DUCA_ERROR");
-        }
-        #endregion
-
-        #region  3. Actualizacion de campos
-        var nowNica = NicaraguaClock.Now;
-        var todayNica = DateOnly.FromDateTime(nowNica);
-        var timeNica = TimeOnly.FromDateTime(nowNica);
-
+        #region 2. Actualizacion parcial de los campos de la recepcion
         if(recordEntrance.ReceptionEntrance != null)
         {
-            recordEntrance.ReceptionEntrance.CountryOfOrigin = request.CountryOfOrigin;
-            recordEntrance.ReceptionEntrance.Aduana = request.Aduana;
-            recordEntrance.ReceptionEntrance.PlateNumber = request.PlateNumber;
-            recordEntrance.ReceptionEntrance.TrailerChassis = request.TrailerChassis;
-            recordEntrance.ReceptionEntrance.DriverLicense = request.DriverLicense;
-            recordEntrance.ReceptionEntrance.Transportista = request.Transportista;
-            recordEntrance.ReceptionEntrance.Medio = request.Medio;
-            recordEntrance.ReceptionEntrance.DriverName = request.DriverName;
-            recordEntrance.ReceptionEntrance.Consignee = request.Consignee;
-            recordEntrance.ReceptionEntrance.SealNumber = request.SealNumber;
+            var reception = recordEntrance.ReceptionEntrance;
 
-            recordEntrance.ReceptionEntrance.UpdatedByUserId = request.UserId.ToString();
-            recordEntrance.ReceptionEntrance.UpdatedDate = todayNica;
-            recordEntrance.ReceptionEntrance.UpdatedTime = timeNica;
-        }
+            if (request.CountryOfOrigin != null) reception.CountryOfOrigin  = request.CountryOfOrigin;
+            if (request.Aduana          != null) reception.Aduana           = request.Aduana;
+            if (request.PlateNumber     != null) reception.PlateNumber      = request.PlateNumber;
+            if (request.TrailerChassis  != null) reception.TrailerChassis   = request.TrailerChassis;
+            if (request.DriverLicense   != null) reception.DriverLicense    = request.DriverLicense;
+            if (request.Transportista   != null) reception.Transportista    = request.Transportista;
+            if (request.Medio           != null) reception.Medio            = request.Medio;
+            if (request.DriverName      != null) reception.DriverName       = request.DriverName;
+            if (request.Consignee       != null) reception.Consignee        = request.Consignee;
+            if (request.SealNumber      != null) reception.SealNumber       = request.SealNumber;
 
-        recordEntrance.IsConsolidated = request.DucatNumbers.Count > 1;
+            var user = await _unitOfWork.Users.Entities
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
 
-        #endregion
+            var nowNica = NicaraguaClock.Now;
 
-        #region 4. Sincronizacion de Ducas
-        var existingDucas = recordEntrance.EntranceDucats.ToList();
-        var newDucatNumbersNormalized = request.DucatNumbers
-            .Select(d => d.Trim().Replace(" ", ""))
-            .ToList();
-
-        //Eliminar Duca de la lista
-        foreach (var existingDucat in existingDucas)
-        {
-            if (!newDucatNumbersNormalized.Contains(existingDucat.DucatNumber, StringComparer.OrdinalIgnoreCase))
-            {
-                recordEntrance.EntranceDucats.Remove(existingDucat);
-            }
-        }
-
-        //Agregar nuevas ducas
-        foreach (var ducatNum in newDucatNumbersNormalized)
-        {
-            var exists = existingDucas.Any(e => e.DucatNumber.Equals(ducatNum, StringComparison.OrdinalIgnoreCase));
-            if (!exists)
-            {
-                var newDucatentity = ducatNum.ToEntranceDucaEntity(recordEntrance.Id);
-                recordEntrance.EntranceDucats.Add(newDucatentity);
-            }
+            reception.UpdatedByUserId = request.UserId.ToString();
+            reception.UpdatedByUserName = user?.Fullname ?? user?.UserName ?? request.UserId.ToString();
+            reception.UpdatedDate = DateOnly.FromDateTime(nowNica);
+            reception.UpdatedTime = TimeOnly.FromDateTime(nowNica);
         }
         #endregion
 

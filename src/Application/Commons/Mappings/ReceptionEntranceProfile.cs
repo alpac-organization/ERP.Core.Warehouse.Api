@@ -2,8 +2,6 @@ using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
-using ERP.Core.Database.Domain.Entities.Auth;
-using System.Xml;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 
@@ -51,7 +49,7 @@ public static class ReceptionEntranceMapper
             CompanyId       = companyId,
             ModuleCode      = moduleCode,
 
-            DucatNumbers    = dto.DucatNumbers,
+            Ducats          = dto.Ducats,
             CountryOfOrigin = dto.CountryOfOrigin,
             Aduana          = dto.Aduana,
             PlateNumber     = dto.PlateNumber,

@@ -14,7 +14,7 @@ public class UpdateReceptionEntranceValidator : AbstractValidator<UpdateReceptio
 
         RuleFor(x => x.ModuleCode)
             .NotEmpty().WithMessage("El código del módulo no puede estar vacío.");
-        
+
         RuleFor(x => x.ReceptionId)
             .NotEmpty().WithMessage("El idetificador de la recepción es obligatorio.")
             .NotEqual(Guid.Empty).WithMessage("El identificador de la recepción no es válido.");
@@ -22,37 +22,75 @@ public class UpdateReceptionEntranceValidator : AbstractValidator<UpdateReceptio
         RuleFor(x => x.UserId)
             .NotEqual(Guid.Empty).WithMessage("No se pudo identificar al usuario autenticado.");
 
-        RuleFor(x => x.DucatNumbers)
-            .NotEmpty().WithMessage("El número de Duca es un dato obligatorio.");
-
         RuleFor(x => x.CountryOfOrigin)
-            .NotEmpty().WithMessage("El país de procedencia es obligatorio.");
+            .NotEmpty().WithMessage("El país de procedencia es obligatorio.")
+            .When(x => x.CountryOfOrigin is not null);
 
         RuleFor(x => x.Aduana)
-            .NotEmpty().WithMessage("La Aduana de ingreso es obligatoria.");
+            .NotEmpty().WithMessage("La Aduana de ingreso es obligatoria.")
+            .When(x => x.Aduana is not null);
 
         RuleFor(x => x.PlateNumber)
-            .NotEmpty().WithMessage("El número de placa es obligatorio.");
+            .NotEmpty().WithMessage("El número de placa es obligatorio.")
+            .When(x => x.PlateNumber is not null);
 
         RuleFor(x => x.TrailerChassis)
-            .NotEmpty().WithMessage("El número de chasis/remolque es obligatorio.");
+            .NotEmpty().WithMessage("El número de chasis/remolque es obligatorio.")
+            .When(x => x.TrailerChassis is not null);
 
         RuleFor(x => x.DriverLicense)
-            .NotEmpty().WithMessage("La licencia del conductor es obligatoria.");
+            .NotEmpty().WithMessage("La licencia del conductor es obligatoria.")
+            .When(x => x.DriverLicense is not null);
 
         RuleFor(x => x.Transportista)
-            .NotEmpty().WithMessage("La empresa transportista es requerida.");
+            .NotEmpty().WithMessage("La empresa transportista es requerida.")
+            .When(x => x.Transportista is not null);
 
         RuleFor(x => x.Medio)
-            .NotEmpty().WithMessage("El medio de transporte es obligatorio.");
+            .NotEmpty().WithMessage("El medio de transporte es obligatorio.")
+            .When(x => x.Medio is not null);
 
         RuleFor(x => x.DriverName)
-            .NotEmpty().WithMessage("El nombre del conductor es obligatorio.");
+            .NotEmpty().WithMessage("El nombre del conductor es obligatorio.")
+            .When(x => x.DriverName is not null);
 
         RuleFor(x => x.Consignee)
-            .NotEmpty().WithMessage("El consignatario es obligatorio.");
+            .NotEmpty().WithMessage("El consignatario es obligatorio.")
+            .When(x => x.Consignee is not null);
 
         RuleFor(x => x.SealNumber)
-            .NotEmpty().WithMessage("El número de marchamo es obligatorio.");
+            .NotEmpty().WithMessage("El número de marchamo es obligatorio.")
+            .When(x => x.SealNumber is not null);
+
+        RuleForEach(x => x.Ducats)
+            .ChildRules(ducat =>
+            {
+                ducat.RuleFor(d => d.DucatNumber)
+                    .NotEmpty().WithMessage("El número de Duca no puede estar vacío");
+            })
+            .When(x => x.Ducats is not null);
+
+        RuleFor(x => x.Ducats)
+            .Must(list => list!
+                .Where(d => d.Id.HasValue)
+                .GroupBy(d => d.Id!.Value)
+                .All(g => g.Count() == 1))
+            .WithMessage("No se puede referenciar el mismo Id de Duca más de una vez en la misma solicitud.")
+            .When(x => x.Ducats is not null);
+
+        RuleFor(x => x)
+            .Must(x =>
+                x.Ducats is not null ||
+                x.CountryOfOrigin is not null ||
+                x.Aduana is not null ||
+                x.PlateNumber is not null ||
+                x.TrailerChassis is not null ||
+                x.DriverLicense is not null ||
+                x.Transportista is not null ||
+                x.Medio is not null ||
+                x.DriverName is not null ||
+                x.Consignee is not null ||
+                x.SealNumber is not null)
+            .WithMessage("Debe incluir al menos un campo para actualizar.");
     }
 }
