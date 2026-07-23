@@ -80,7 +80,26 @@ public class UpdateReceptionEntranceHandler(
             }
             #endregion
 
-            #region  1d. Actualizar por Id
+            #region 1d. Validar que los ducas no tengas registros hijos
+            var ducatIdsToUpdate = normalizedItems
+                .Select(i => i.Id!.Value)
+                .ToList();
+            
+            var ducatsWithChildren = await _unitOfWork.EntranceDucats.Entities
+                .Where(d => ducatIdsToUpdate.Contains(d.Id) && d.DeletedAt == null)
+                .Where(d => d.Discrepancy != null || d.RegistryDetail != null)
+                .Select(d => d.DucatNumber)
+                .ToListAsync(cancellationToken);
+
+            if (ducatsWithChildren.Count != 0)
+            {
+                return _errorManager.ThrowBadRequest<bool> (
+                    $"Las siguientes DUCA's tienen registros relacionados y no pueden editarse: {string.Join(", ", ducatsWithChildren)}",
+                    "ERP:DUCA_HAS_RELATED_RECORDS");
+            }
+            #endregion
+
+            #region  1e. Actualizar por Id
             var existingDucats = recordEntrance.EntranceDucats.ToList();
 
             foreach (var item in normalizedItems)
