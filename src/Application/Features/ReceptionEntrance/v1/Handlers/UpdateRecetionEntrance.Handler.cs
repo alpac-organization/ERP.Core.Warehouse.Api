@@ -6,12 +6,14 @@ using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
 
 public class UpdateReceptionEntranceHandler(
     IUnitOfWork _unitOfWork,
-    IErrorManager _errorManager)
+    IErrorManager _errorManager,
+    ILogger<UpdateReceptionEntranceHandler> _logger)
     : IRequestHandler<UpdateReceptionEntranceCommand, bool>
 {
     public async Task<bool> Handle(UpdateReceptionEntranceCommand request, CancellationToken cancellationToken)
@@ -20,8 +22,8 @@ public class UpdateReceptionEntranceHandler(
             .Include(r => r.ReceptionEntrance)
             .Include(r => r.EntranceDucats.Where(d => d.DeletedAt == null))
             .FirstOrDefaultAsync(r => r.Id == request.ReceptionId && r.DeletedAt == null, cancellationToken);
-        
-        if(recordEntrance == null)
+
+        if (recordEntrance == null)
         {
             return _errorManager.ThrowBadRequest<bool>(
                 "El registro de recepción no fue encontrado o ya ha sido eliminado.",
@@ -32,16 +34,16 @@ public class UpdateReceptionEntranceHandler(
         if (request.Ducats != null)
         {
             var normalizedItems = request.Ducats
-                .Select(d => new {d.Id, Number = d.DucatNumber.Trim().Replace(" ", "")})
+                .Select(d => new { d.Id, Number = d.DucatNumber.Trim().Replace(" ", "") })
                 .ToList();
 
             #region 1a. Duplicados en la misma solicitud
             var duplicatesInRequest = normalizedItems
-                .GroupBy(d  => d.Number, StringComparer.OrdinalIgnoreCase)
-                .Where(g    => g.Count() > 1)
-                .Select(g   => g.Key)
+                .GroupBy(d => d.Number, StringComparer.OrdinalIgnoreCase)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
                 .ToList();
-            
+
             if (duplicatesInRequest.Count != 0)
             {
                 return _errorManager.ThrowBadRequest<bool>(
@@ -61,7 +63,7 @@ public class UpdateReceptionEntranceHandler(
                             normalizedNumbersLower.Contains(d.DucatNumber.Trim().ToLower()))
                 .Select(d => d.DucatNumber)
                 .ToListAsync(cancellationToken);
-            
+
             if (duplicateGlobalDucas.Count != 0)
             {
                 return _errorManager.ThrowBadRequest<bool>(
@@ -73,7 +75,7 @@ public class UpdateReceptionEntranceHandler(
             #region  1c. Actualizar por Id o insertar sin Id
             var existingDucats = recordEntrance.EntranceDucats.ToList();
 
-            foreach(var item in normalizedItems)
+            foreach (var item in normalizedItems)
             {
                 if (item.Id.HasValue)
                 {
@@ -101,20 +103,20 @@ public class UpdateReceptionEntranceHandler(
         #endregion
 
         #region 2. Actualizacion parcial de los campos de la recepcion
-        if(recordEntrance.ReceptionEntrance != null)
+        if (recordEntrance.ReceptionEntrance != null)
         {
             var reception = recordEntrance.ReceptionEntrance;
 
-            if (request.CountryOfOrigin != null) reception.CountryOfOrigin  = request.CountryOfOrigin;
-            if (request.Aduana          != null) reception.Aduana           = request.Aduana;
-            if (request.PlateNumber     != null) reception.PlateNumber      = request.PlateNumber;
-            if (request.TrailerChassis  != null) reception.TrailerChassis   = request.TrailerChassis;
-            if (request.DriverLicense   != null) reception.DriverLicense    = request.DriverLicense;
-            if (request.Transportista   != null) reception.Transportista    = request.Transportista;
-            if (request.Medio           != null) reception.Medio            = request.Medio;
-            if (request.DriverName      != null) reception.DriverName       = request.DriverName;
-            if (request.Consignee       != null) reception.Consignee        = request.Consignee;
-            if (request.SealNumber      != null) reception.SealNumber       = request.SealNumber;
+            if (request.CountryOfOrigin != null) reception.CountryOfOrigin = request.CountryOfOrigin;
+            if (request.Aduana != null) reception.Aduana = request.Aduana;
+            if (request.PlateNumber != null) reception.PlateNumber = request.PlateNumber;
+            if (request.TrailerChassis != null) reception.TrailerChassis = request.TrailerChassis;
+            if (request.DriverLicense != null) reception.DriverLicense = request.DriverLicense;
+            if (request.Transportista != null) reception.Transportista = request.Transportista;
+            if (request.Medio != null) reception.Medio = request.Medio;
+            if (request.DriverName != null) reception.DriverName = request.DriverName;
+            if (request.Consignee != null) reception.Consignee = request.Consignee;
+            if (request.SealNumber != null) reception.SealNumber = request.SealNumber;
 
             var user = await _unitOfWork.Users.Entities
                 .AsNoTracking()
@@ -129,9 +131,24 @@ public class UpdateReceptionEntranceHandler(
         }
         #endregion
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            foreach( var entry in ex.Entries)
+            {
+                _logger.LogError(
+                    "Conflicto de concurrencia al guardar {Entity} (Id : {Id}) - Estado: {Statte}",
+                    entry.Entity.GetType().Name,
+                    entry.CurrentValues["Id"],
+                    entry.State);
+            }
+            throw;
+        }
 
         return true;
-        
+
     }
 }
