@@ -65,16 +65,28 @@ public class UpdateReceptionEntranceValidator : AbstractValidator<UpdateReceptio
         RuleForEach(x => x.Ducats)
             .ChildRules(ducat =>
             {
+                ducat.RuleFor(d => d.Id)
+                    .NotNull().WithMessage("El Id del DUCA es requerido para actualizar.")
+                    .NotEqual(Guid.Empty).WithMessage("El Id del DUCA no es válido.");
+
                 ducat.RuleFor(d => d.DucatNumber)
                     .NotEmpty().WithMessage("El número de Duca no puede estar vacío");
             })
             .When(x => x.Ducats is not null);
 
         RuleFor(x => x.Ducats)
-            .Must(list => list!
-                .Where(d => d.Id.HasValue)
-                .GroupBy(d => d.Id!.Value)
-                .All(g => g.Count() == 1))
+            .Must(list =>
+            {
+                if (list == null) return true;
+
+                var idsWithValue = list
+                    .Select(d => d.Id)
+                    .Where(id => id.HasValue)
+                    .Select(id => id!.Value)
+                    .ToList();
+
+                return idsWithValue.Count == idsWithValue.Distinct().Count();
+            })
             .WithMessage("No se puede referenciar el mismo Id de Duca más de una vez en la misma solicitud.")
             .When(x => x.Ducats is not null);
 

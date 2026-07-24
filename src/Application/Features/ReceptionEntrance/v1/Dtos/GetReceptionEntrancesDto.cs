@@ -46,18 +46,19 @@ public class ReceptionEntranceItemDto
     public TimeOnly? UpdatedTime { get; set; }
 
     public DateOnly? MedioExitDate { get; set; }
-    public TimeOnly? MedioExitTime   { get; set; }
+    public TimeOnly? MedioExitTime { get; set; }
 
 }
 
 public class RecordEntranceItemDto
 {
+    public Guid Id { get; set; }
     public RecordEntranceStatus Status { get; set; }
     public bool IsConsolidated { get; set; }
-    
 
-    public ReceptionEntranceItemDto? ReceptionEntrance {get;set;}
-    public StepExecutionLogItemDto? ExecutionLog {get;set;}
+
+    public ReceptionEntranceItemDto? ReceptionEntrance { get; set; }
+    public StepExecutionLogItemDto? ExecutionLog { get; set; }
     public List<EntranceDucatItemDto> Ducats { get; set; } = [];
 }
 public class GetReceptionEntrancesDto
