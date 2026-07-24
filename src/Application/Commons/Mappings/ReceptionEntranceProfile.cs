@@ -110,6 +110,23 @@ public static class ReceptionEntranceMapper
         };
     }
 
+    public static AddDucatsToReceptionCommand ToAddDucatsCommand(
+        this AddDucatsToReceptionDto dto,
+        Guid receptionId,
+        Guid userId,
+        Guid companyId,
+        string moduleCode)
+    {
+        return new()
+        {
+            ReceptionId     = receptionId,
+            UserId          = userId,
+            CompanyId       = companyId,
+            ModuleCode      = moduleCode,
+            DucatNumbers    = dto.DucatNumbers
+        };
+    }
+
     public static StepExecutionLogs ToStepExecutionLogEntity(
         this CreateReceptionEntranceCommand command,
         Guid recordEntranceId,

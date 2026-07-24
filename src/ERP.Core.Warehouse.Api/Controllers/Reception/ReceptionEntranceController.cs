@@ -102,4 +102,32 @@ public class ReceptionEntranceController(IMediator _mediator) : ApiControllerBas
 
         return Ok(response);
     }
+
+
+    [Tags("Control de Acceso")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/receptions/{reception_id}/ducats")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<OkObjectResult> AddDucatsToReceptionAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid reception_id,
+        [FromBody] AddDucatsToReceptionDto dto,
+        CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        Guid.TryParse(userIdStr, out var userId);
+
+        var command = dto.ToAddDucatsCommand(
+            receptionId: reception_id,
+            userId: userId,
+            companyId: company_id,
+            moduleCode: module_code
+        );
+
+        var response = await _mediator.Send(command, cancellationToken);
+
+        return Ok(response);
+    }
 }
