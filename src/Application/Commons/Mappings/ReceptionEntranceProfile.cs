@@ -28,7 +28,6 @@ public static class ReceptionEntranceMapper
             Transportista               = dto.Transportista,
             Medio                       = dto.Medio,
             DriverName                  = dto.DriverName,
-            Consignee                   = dto.Consignee,
             SealNumber                  = dto.SealNumber,
             StartDate                   = dto.StartDate,
             StartTime                   = dto.StartTime
@@ -58,7 +57,6 @@ public static class ReceptionEntranceMapper
             Transportista   = dto.Transportista,
             Medio           = dto.Medio,
             DriverName      = dto.DriverName,
-            Consignee       = dto.Consignee,
             SealNumber      = dto.SealNumber,
         };
     }
@@ -95,7 +93,6 @@ public static class ReceptionEntranceMapper
             Transportista       = command.Transportista,
             Medio               = command.Medio,
             DriverName          = command.DriverName,
-            Consignee           = command.Consignee,
             SealNumber          = command.SealNumber
         };
     }

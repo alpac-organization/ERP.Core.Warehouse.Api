@@ -42,9 +42,6 @@ public class CreateReceptionEntranceValidator : AbstractValidator<CreateReceptio
         RuleFor(x => x.DriverName)
             .NotEmpty().WithMessage("El nombre del conductor es obligatorio.");
 
-        RuleFor(x => x.Consignee)
-            .NotEmpty().WithMessage("El consignatario es obligatorio.");
-
         RuleFor(x => x.SealNumber)
             .NotEmpty().WithMessage("El número de marchamo es obligatorio.");
     }

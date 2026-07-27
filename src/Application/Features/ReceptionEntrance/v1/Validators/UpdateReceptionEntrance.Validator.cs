@@ -54,10 +54,6 @@ public class UpdateReceptionEntranceValidator : AbstractValidator<UpdateReceptio
             .NotEmpty().WithMessage("El nombre del conductor es obligatorio.")
             .When(x => x.DriverName is not null);
 
-        RuleFor(x => x.Consignee)
-            .NotEmpty().WithMessage("El consignatario es obligatorio.")
-            .When(x => x.Consignee is not null);
-
         RuleFor(x => x.SealNumber)
             .NotEmpty().WithMessage("El número de marchamo es obligatorio.")
             .When(x => x.SealNumber is not null);
@@ -101,7 +97,6 @@ public class UpdateReceptionEntranceValidator : AbstractValidator<UpdateReceptio
                 x.Transportista is not null ||
                 x.Medio is not null ||
                 x.DriverName is not null ||
-                x.Consignee is not null ||
                 x.SealNumber is not null)
             .WithMessage("Debe incluir al menos un campo para actualizar.");
     }

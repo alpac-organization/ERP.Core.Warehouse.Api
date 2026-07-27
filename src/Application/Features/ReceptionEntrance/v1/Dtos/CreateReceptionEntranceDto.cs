@@ -12,7 +12,6 @@ public record CreateReceptionEntranceDto
     public string Transportista { get; set; } = string.Empty;
     public string Medio { get; set; } = string.Empty;
     public string DriverName { get; set; } = string.Empty;
-    public string Consignee { get; set; } = string.Empty;
     public string SealNumber { get; set; } = string.Empty;
 
     public DateOnly StartDate { get; set; }
