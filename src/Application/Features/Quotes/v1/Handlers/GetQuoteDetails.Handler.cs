@@ -31,16 +31,26 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotes.v1.Handlers
                 return _errorManager.ThrowBadRequest<QuotationDto>("No se encontro registro de esta cotización", "ERP:QUOTE_NOT_FOUND");
             }
 
-            var quotationDto = _mapper.Map<QuotationDto>(quotation);
+            var quotationDto = _mapper.Map<QuotationInformationDto>(quotation);
 
             var listQuotesDetails = await _unitOfWork.QuotesDetails.Entities
                 .Where(quo => quo.QuotationId == quotationDto.QuotationId)
                 .Include(quo => quo.Supplier)
+                    .ThenInclude(quo => quo.SupplierDetails)
                 .ToListAsync(cancellationToken);
 
             var quotesDetailsMapped = _mapper.Map<List<QuotationDetailsDto>>(listQuotesDetails);
 
-            // quotationDto.QuotationDetails = quotesDetailsMapped; 
+            foreach (var detail in quotesDetailsMapped)
+            {
+                var quotedProducts = await _unitOfWork.QuotedProducts.Entities
+                    .Where(product => product.QuoteDetailId == detail.QuotationDetailId)
+                    .ToListAsync(cancellationToken);
+
+                detail.QuotedProducts = _mapper.Map<List<QuotedProductDto>>(quotedProducts);
+            }
+
+            quotationDto.QuotedSuppliers = quotesDetailsMapped;
 
             return quotationDto;
         }
