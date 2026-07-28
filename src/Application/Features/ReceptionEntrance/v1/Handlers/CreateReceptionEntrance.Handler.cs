@@ -78,7 +78,6 @@ public class CreateReceptionEntranceHandler(
                 r.Transportista.Trim().ToLower() == request.Transportista.Trim().ToLower() &&
                 r.Medio.Trim().ToLower() == request.Medio.Trim().ToLower() &&
                 r.DriverName.Trim().ToLower() == request.DriverName.Trim().ToLower() &&
-                r.Consignee.Trim().ToLower() == request.Consignee.Trim().ToLower() &&
                 r.SealNumber.Trim().ToLower() == request.SealNumber.Trim().ToLower(),
                 cancellationToken);
 
