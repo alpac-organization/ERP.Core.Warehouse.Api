@@ -137,7 +137,6 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
                     Transportista       = r.ReceptionEntrance.Transportista,
                     Medio               = r.ReceptionEntrance.Medio,
                     DriverName          = r.ReceptionEntrance.DriverName,
-                    Consignee           = r.ReceptionEntrance.Consignee,
                     SealNumber          = r.ReceptionEntrance.SealNumber,
                     UpdatedByUserName   = r.ReceptionEntrance.UpdatedByUserName,
                     UpdatedDate         = r.ReceptionEntrance.UpdatedDate,

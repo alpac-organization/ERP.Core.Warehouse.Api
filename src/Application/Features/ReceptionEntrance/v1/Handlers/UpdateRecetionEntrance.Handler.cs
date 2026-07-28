@@ -135,7 +135,6 @@ public class UpdateReceptionEntranceHandler(
             if (request.Transportista != null) reception.Transportista = request.Transportista;
             if (request.Medio != null) reception.Medio = request.Medio;
             if (request.DriverName != null) reception.DriverName = request.DriverName;
-            if (request.Consignee != null) reception.Consignee = request.Consignee;
             if (request.SealNumber != null) reception.SealNumber = request.SealNumber;
 
             var user = await _unitOfWork.Users.Entities

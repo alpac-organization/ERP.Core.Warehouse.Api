@@ -9,6 +9,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotes.v1.Dtos
         public string? BranchName { get; set; }
         public string? Observations { get; set; }
 
-        public List<QuotationDetailsDto> QuotationDetails { get; set; } = [];
     }
+
+    // public class QuotationDto : QuotationDto
+    // {
+    //     public List<QuotationDetailsDto>? QuotationDetails { get; set; } = [];
+    // }
 }

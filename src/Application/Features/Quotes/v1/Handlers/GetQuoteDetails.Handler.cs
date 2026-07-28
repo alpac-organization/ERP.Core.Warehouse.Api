@@ -35,15 +35,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotes.v1.Handlers
 
             var listQuotesDetails = await _unitOfWork.QuotesDetails.Entities
                 .Where(quo => quo.QuotationId == quotationDto.QuotationId)
-                .Include(quo => quo.Product)
-                    .ThenInclude(quo => quo.Category)
-                .Include(quo => quo.UnitMeasure)
                 .Include(quo => quo.Supplier)
                 .ToListAsync(cancellationToken);
 
             var quotesDetailsMapped = _mapper.Map<List<QuotationDetailsDto>>(listQuotesDetails);
 
-            quotationDto.QuotationDetails = quotesDetailsMapped; 
+            // quotationDto.QuotationDetails = quotesDetailsMapped; 
 
             return quotationDto;
         }

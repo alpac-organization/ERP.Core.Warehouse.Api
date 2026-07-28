@@ -95,7 +95,6 @@ public static class ReceptionEntranceMapper
             Transportista       = command.Transportista,
             Medio               = command.Medio,
             DriverName          = command.DriverName,
-            Consignee           = command.Consignee,
             SealNumber          = command.SealNumber
         };
     }
