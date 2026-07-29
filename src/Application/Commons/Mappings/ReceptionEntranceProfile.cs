@@ -74,7 +74,7 @@ public static class ReceptionEntranceMapper
             Id              = recordEntranceId,
             ServiceOrderId  = null,
             CurrentStepCode = stepCode,
-            Status          = RecordEntranceStatus.InTail,
+            Status          = RecordEntranceStatus.Queue,
             ClosedAtDate    = null,
             ClosedAtTime    = null,
             IsConsolidated  = isConsolidated
@@ -93,7 +93,6 @@ public static class ReceptionEntranceMapper
             TrailerChassis      = command.TrailerChassis,
             DriverLicense       = command.DriverLicense,
             Transportista       = command.Transportista,
-            Medio               = command.Medio,
             DriverName          = command.DriverName,
             SealNumber          = command.SealNumber
         };

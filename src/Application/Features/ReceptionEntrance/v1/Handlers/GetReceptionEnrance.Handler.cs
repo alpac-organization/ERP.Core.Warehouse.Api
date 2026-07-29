@@ -48,13 +48,11 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
                 l.StartDate <= targetDate));
 
         var totalOnSite = await recepcionadosQuery
-            .Where(r => r.ReceptionEntrance == null || 
-                    r.ReceptionEntrance.MedioExitDate == null)
+            .Where(r => r.ReceptionEntrance == null)
             .CountAsync(cancellationToken);
 
         var totalExits = await recepcionadosQuery
-            .Where(r => r.ReceptionEntrance != null &&
-                        r.ReceptionEntrance.MedioExitDate != null)
+            .Where(r => r.ReceptionEntrance != null)
             .CountAsync(cancellationToken);
         #endregion
 
@@ -135,14 +133,11 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
                     TrailerChassis      = r.ReceptionEntrance.TrailerChassis,
                     DriverLicense       = r.ReceptionEntrance.DriverLicense,
                     Transportista       = r.ReceptionEntrance.Transportista,
-                    Medio               = r.ReceptionEntrance.Medio,
                     DriverName          = r.ReceptionEntrance.DriverName,
                     SealNumber          = r.ReceptionEntrance.SealNumber,
                     UpdatedByUserName   = r.ReceptionEntrance.UpdatedByUserName,
                     UpdatedDate         = r.ReceptionEntrance.UpdatedDate,
                     UpdatedTime         = r.ReceptionEntrance.UpdatedTime,
-                    MedioExitDate       = r.ReceptionEntrance.MedioExitDate,
-                    MedioExitTime       = r.ReceptionEntrance.MedioExitTime
                 },
 
                 ExecutionLog = new StepExecutionLogItemDto
