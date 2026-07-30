@@ -42,7 +42,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 ProductId         = command.ProductId,
                 UnitMeasureId     = command.UnitMeasureId,
                 PurchaseRequestId = purchaseRequestId,  
-                // Hace falta mapear la justificación
+                Justification     = command.Justification
             };
         }
     }
