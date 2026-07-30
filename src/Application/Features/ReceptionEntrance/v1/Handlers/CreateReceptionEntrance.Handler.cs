@@ -6,7 +6,7 @@ using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
-using System.Net;
+using ERP.Core.Manager.Api.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
 
@@ -29,41 +29,62 @@ public class CreateReceptionEntranceHandler(
         }
 
         var currentStepCode = firstStep.Code;
+        bool isDuca = request.DocumentType == DocumentType.DUCA;
 
-        #region 1. Validación DUCA duplicados en la misma peticion
-        var duplicatesInRequest = request.DucatNumbers
-            .GroupBy(d => d.Trim(), StringComparer.OrdinalIgnoreCase)
-            .Where(g => g.Count() > 1)
-            .Select(g => g.Key)
-            .ToList();
-
-        if (duplicatesInRequest.Any())
+        #region 1. Validación DUCA (solo aplica si DocumentType == DUCA)
+        if (isDuca)
         {
-            return _errorManager.ThrowBadRequest<bool>(
-                $"La lista de DUCA's contiene números duplicados en la misma solicitud: {string.Join(", ", duplicatesInRequest)}",
-                "ERP:REQUEST_DUPLICATED_DUCA");
+            #region 1.a Validación DUCA duplicados en la misma peticion
+            var duplicatesInRequest = request.DucatNumbers
+                .GroupBy(d => d.Trim(), StringComparer.OrdinalIgnoreCase)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
+            
+            if (duplicatesInRequest.Any())
+            {
+                return _errorManager.ThrowBadRequest<bool>(
+                    $"La lista de DUCA's contiene números duplicados en la misma solicitud: {string.Join(", ", duplicatesInRequest)}",
+                    "ERP:REQUEST_DUPLICATED_DUCA");
+            }
+            #endregion
+
+            #region 1.b validacion DUCA unicidad global
+            var normalizedRequestDucas = request.DucatNumbers
+                .Select(d => d.Trim().ToLower())
+                .ToList();
+
+            var duplicateGlobalDucas = await _unitOfWork.EntranceDucats.Entities
+                .Where(d => normalizedRequestDucas.Contains(d.DucatNumber.Trim().ToLower()))
+                .Select(d => d.DucatNumber)
+                .ToListAsync(cancellationToken);
+
+            if (duplicateGlobalDucas.Any())
+            {
+                return _errorManager.ThrowBadRequest<bool>(
+                    $"Los siguientes números de DUCA ya están registrados en el sistema: {string.Join(", ", duplicateGlobalDucas)}. Cada DUCA debe ser único globalmente.",
+                    "ERP:GLOBAL_DUPLICATED_DUCA_ERROR");
+            }
+            #endregion
+        }
+        else
+        {
+            #region 1.c DocumentType == CustomsDeclaration: validar unicidad del numero de declaracion
+            var declarationExists = await _unitOfWork.CustomsDeclarations.Entities
+                .AnyAsync(d => d.CustomsDeclarationNumber.Trim().ToLower() 
+                            == request.CustomsDeclarationNumber!.Trim().ToLower(), cancellationToken);
+
+            if (declarationExists)
+            {
+                return _errorManager.ThrowBadRequest<bool>(
+                    $"El número de declaración aduanera {request.CustomsDeclarationNumber} ya está registrado en el sistema.",
+                    "ERP:GLOBAL_DUPLICATED_CUSTOMS_DECLARATION");
+            }
+            #endregion
         }
         #endregion
 
-        #region 2. validacion DUCA unicidad global
-        var normalizedRequestDucas = request.DucatNumbers
-            .Select(d => d.Trim().ToLower())
-            .ToList();
-
-        var duplicateGlobalDucas = await _unitOfWork.EntranceDucats.Entities
-            .Where(d => normalizedRequestDucas.Contains(d.DucatNumber.Trim().ToLower()))
-            .Select(d => d.DucatNumber)
-            .ToListAsync(cancellationToken);
-
-        if (duplicateGlobalDucas.Any())
-        {
-            return _errorManager.ThrowBadRequest<bool>(
-                $"Los siguientes números de DUCA ya están registrados en el sistema: {string.Join(", ", duplicateGlobalDucas)}. Cada DUCA debe ser único globalmente.",
-                "ERP:GLOBAL_DUPLICATED_DUCA_ERROR");
-        }
-        #endregion
-
-        #region 3. Validacion de Datos
+        #region 2. Validacion de Datos (ingreso fisico duplicado el mismo dia)
         var startOfToday = DateTime.UtcNow.Date;
         var endOfToday = startOfToday.AddDays(1);
 
@@ -76,6 +97,7 @@ public class CreateReceptionEntranceHandler(
                 r.TrailerChassis.Trim().ToLower() == request.TrailerChassis.Trim().ToLower() &&
                 r.DriverLicense.Trim().ToLower() == request.DriverLicense.Trim().ToLower() &&
                 r.Transportista.Trim().ToLower() == request.Transportista.Trim().ToLower() &&
+                r.TransportUnitId == request.TransportUnitId &&
                 r.DriverName.Trim().ToLower() == request.DriverName.Trim().ToLower() &&
                 r.SealNumber.Trim().ToLower() == request.SealNumber.Trim().ToLower(),
                 cancellationToken);
@@ -88,7 +110,7 @@ public class CreateReceptionEntranceHandler(
         }
         #endregion
 
-        #region 4. Registro de datos en db
+        #region 3. Registro de datos en db
         var recordEntranceId = Guid.NewGuid();
 
         var nowNica = NicaraguaClock.Now;
@@ -118,11 +140,22 @@ public class CreateReceptionEntranceHandler(
         await _unitOfWork.ReceptionEntrance.InsertReceptionEntrance(receptionEntrance);
         await _unitOfWork.StepExecutionLogs.InsertExecutionLog(executionLog);
 
-        var ducatEntities = request.DucatNumbers
-            .Select(ducatNumber => ducatNumber.ToEntranceDucaEntity(recordEntranceId))
-            .ToList();
+        if (isDuca)
+        {
+            var ducatEntities = request.DucatNumbers
+                .Select(ducatNumber => ducatNumber.ToEntranceDucaEntity(recordEntranceId))
+                .ToList();
 
-        await _unitOfWork.EntranceDucats.InsertEntranceDucatsRange(ducatEntities);
+            await _unitOfWork.EntranceDucats.InsertEntranceDucatsRange(ducatEntities);            
+        }
+        else
+        {
+            var customsDeclaration = request.ToCustomsDeclarationEntity(recordEntranceId);
+            await _unitOfWork.CustomsDeclarations.RegisterCustomsDeclarations(customsDeclaration);
+
+            var customsDeclarationDetails = request.ToCustomsDeclarationDetailsEntity(customsDeclaration.Id);
+            await _unitOfWork.CustomsDeclarationDetails.RegisterCustomsDeclarationDetails(customsDeclarationDetails);
+        }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         #endregion

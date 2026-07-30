@@ -19,16 +19,23 @@ public static class ReceptionEntranceMapper
             CompanyId                   = companyId,
             ModuleCode                  = moduleCode,
 
+            DocumentType                = dto.DocumentType,
             DucatNumbers                = dto.DucatNumbers,
+
+            CustomsDeclarationNumber    = dto.CustomsDeclarationNumber,
+            Packages                    = dto.Packages,
+            Customer                    = dto.Customer,
+            Product                     = dto.Product,
+            ContainerNumber             = dto.ContainerNumber,
+
             CountryOfOrigin             = dto.CountryOfOrigin,
             Aduana                      = dto.Aduana,
             PlateNumber                 = dto.PlateNumber,
             TrailerChassis              = dto.TrailerChassis,
             DriverLicense               = dto.DriverLicense,
             Transportista               = dto.Transportista,
-            Medio                       = dto.Medio,
+            TransportUnitId             = dto.TransportUnitId,
             DriverName                  = dto.DriverName,
-            Consignee                   = dto.Consignee,
             SealNumber                  = dto.SealNumber,
             StartDate                   = dto.StartDate,
             StartTime                   = dto.StartTime
@@ -58,7 +65,6 @@ public static class ReceptionEntranceMapper
             Transportista   = dto.Transportista,
             Medio           = dto.Medio,
             DriverName      = dto.DriverName,
-            Consignee       = dto.Consignee,
             SealNumber      = dto.SealNumber,
         };
     }
@@ -93,8 +99,33 @@ public static class ReceptionEntranceMapper
             TrailerChassis      = command.TrailerChassis,
             DriverLicense       = command.DriverLicense,
             Transportista       = command.Transportista,
+            TransportUnitId     = command.TransportUnitId,
             DriverName          = command.DriverName,
-            SealNumber          = command.SealNumber
+            SealNumber          = command.SealNumber,
+            DocumentType        = command.DocumentType
+        };
+    }
+
+    public static CustomsDeclarations ToCustomsDeclarationEntity(this CreateReceptionEntranceCommand command, Guid recordEntranceId)
+    {
+        return new()
+        {
+            Id                          = Guid.NewGuid(),
+            RecordEntranceId            = recordEntranceId,
+            CustomsDeclarationNumber    = command.CustomsDeclarationNumber!.Trim()
+        };
+    }
+
+    public static CustomsDeclarationDetails ToCustomsDeclarationDetailsEntity(this CreateReceptionEntranceCommand command, Guid customsDeclarationId)
+    {
+        return new()
+        {
+            Id                      = Guid.NewGuid(),
+            CustomsDeclarationId    = customsDeclarationId,
+            Packages                = command.Packages!.Value,
+            Customer                = command.Customer!.Trim(),
+            Product                 = command.Product!.Trim(),
+            ContainerNumber         = command.ContainerNumber!.Trim()
         };
     }
 
@@ -104,7 +135,8 @@ public static class ReceptionEntranceMapper
         {
             Id                  = Guid.NewGuid(),
             DucatNumber         = ducatNumber.Trim().Replace(" ", ""),
-            RecordEntranceId    = recordEntranceId
+            RecordEntranceId    = recordEntranceId,
+            Status              = DucaStatus.Pending
         };
     }
 

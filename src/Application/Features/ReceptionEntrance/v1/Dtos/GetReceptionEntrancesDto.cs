@@ -39,7 +39,6 @@ public class ReceptionEntranceItemDto
     public string DriverLicense { get; set; } = string.Empty;
     public string Transportista { get; set; } = string.Empty;
     public string Medio { get; set; } = string.Empty;
-    public string Consignee { get; set; } = string.Empty;
     public string SealNumber { get; set; } = string.Empty;
     public string? UpdatedByUserName { get; set; }
     public DateOnly? UpdatedDate { get; set; }

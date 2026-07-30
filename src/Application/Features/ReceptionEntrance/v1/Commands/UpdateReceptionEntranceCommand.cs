@@ -18,7 +18,6 @@ public class UpdateReceptionEntranceCommand : BaseRequest, IRequest<bool>
     public string? Transportista { get; set; }
     public string? Medio { get; set; }
     public string? DriverName { get; set; }
-    public string? Consignee { get; set; }
     public string? SealNumber { get; set; }
 
 }

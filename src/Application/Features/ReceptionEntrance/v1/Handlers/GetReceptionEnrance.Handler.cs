@@ -47,13 +47,15 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
                 l.WorkflowStepDefinitionCode == receptionStepCode &&
                 l.StartDate <= targetDate));
 
-        var totalOnSite = await recepcionadosQuery
-            .Where(r => r.ReceptionEntrance == null)
-            .CountAsync(cancellationToken);
+        // var totalOnSite = await recepcionadosQuery
+        //     .Where(r => r.ReceptionEntrance == null || 
+        //             r.ReceptionEntrance.MedioExitDate == null)
+        //     .CountAsync(cancellationToken);
 
-        var totalExits = await recepcionadosQuery
-            .Where(r => r.ReceptionEntrance != null)
-            .CountAsync(cancellationToken);
+        // var totalExits = await recepcionadosQuery
+        //     .Where(r => r.ReceptionEntrance != null &&
+        //                 r.ReceptionEntrance.MedioExitDate != null)
+        //     .CountAsync(cancellationToken);
         #endregion
 
         #region 3. Listado filtrado y paginado
@@ -133,11 +135,14 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
                     TrailerChassis      = r.ReceptionEntrance.TrailerChassis,
                     DriverLicense       = r.ReceptionEntrance.DriverLicense,
                     Transportista       = r.ReceptionEntrance.Transportista,
+                    // Medio               = r.ReceptionEntrance.Medio,
                     DriverName          = r.ReceptionEntrance.DriverName,
                     SealNumber          = r.ReceptionEntrance.SealNumber,
                     UpdatedByUserName   = r.ReceptionEntrance.UpdatedByUserName,
                     UpdatedDate         = r.ReceptionEntrance.UpdatedDate,
                     UpdatedTime         = r.ReceptionEntrance.UpdatedTime,
+                    // MedioExitDate       = r.ReceptionEntrance.MedioExitDate,
+                    // MedioExitTime       = r.ReceptionEntrance.MedioExitTime
                 },
 
                 ExecutionLog = new StepExecutionLogItemDto
@@ -160,12 +165,12 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
         }).ToList();
         #endregion
 
-        var stats = new ReceptionEntranceStatsDto
-        {
-            TotalEntries       = totalEntries,
-            TotalOnSite       = totalOnSite,
-            TotalExits    = totalExits
-        };
+        // var stats = new ReceptionEntranceStatsDto
+        // {
+        //     TotalEntries       = totalEntries,
+        //     TotalOnSite       = totalOnSite,
+        //     TotalExits    = totalExits
+        // };
 
         return new GetReceptionEntrancesDto
         {
@@ -173,7 +178,7 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
             TotalCount  = totalCount,
             PageNumber  = request.PageNumber,
             PageSize    = request.PageSize,
-            Stats       = stats
+            // Stats       = stats
         };
     }
 }
