@@ -1,4 +1,6 @@
+using AutoMapper;
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
@@ -177,5 +179,13 @@ public static class ReceptionEntranceMapper
             ProcessedByUserId           = command.UserId.ToString(),
             ProcessedByUserName         = processedByUserame
         };
+    }
+}
+
+public class TransportUnitProfile : Profile
+{
+    public TransportUnitProfile()
+    {
+        CreateMap<TransportUnit, TransportUnitListItemDto>();
     }
 }

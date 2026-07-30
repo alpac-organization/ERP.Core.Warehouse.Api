@@ -21,8 +21,15 @@ public class GetReceptionEntrancesQuery : IRequest<GetReceptionEntrancesDto>
 
 public class GetReceptionEntranceDetailQuery : IRequest<ReceptionEntranceDetailDto>
 {
-    public Guid CompanyId {get;set;}
-    public string ModuleCode {get;set;} = string.Empty;
-    public Guid UserId {get;set;}
-    public Guid RecordId {get;set;}
+    public Guid CompanyId { get; set; }
+    public string ModuleCode { get; set; } = string.Empty;
+    public Guid UserId { get; set; }
+    public Guid RecordId { get; set; }
+}
+
+public class GetTreansportUnitsQuery : IRequest<List<TransportUnitListItemDto>>
+{
+    public Guid CompanyId { get; set; }
+    public string ModuleCode { get; set; } = string.Empty;
+    public Guid UserId { get; set; }
 }

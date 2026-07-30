@@ -52,3 +52,13 @@ public class GetReceptionEntranceDetailValidator : AbstractValidator<GetReceptio
             .NotEqual(Guid.Empty).WithMessage("El identificador de la recepción es obligatorio.");
     }
 }
+
+public class GetTransportUnitsValidator : AbstractValidator<GetTreansportUnitsQuery>
+{
+    public GetTransportUnitsValidator()
+    {
+        RuleFor(x => x.CompanyId).NotEqual(Guid.Empty).WithMessage("El id de la empresa es requerido");
+        RuleFor(x => x.ModuleCode).NotEmpty().WithMessage("El código de módulo es requerido.");
+        RuleFor(x => x.UserId).NotEqual(Guid.Empty).WithMessage("No se pudo identificar al usuario autenticado.");
+    }
+}

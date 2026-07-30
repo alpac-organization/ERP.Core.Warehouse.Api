@@ -6,6 +6,8 @@ using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queries;
+using AutoMapper;
+using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
 
@@ -250,6 +252,28 @@ public class GetReceptionEntranceDetailHandler(IUnitOfWork _unitOfWork, IErrorMa
 
             ExecutionLog = executionLogDto
         };
+    }
+}
+#endregion
+
+#region Obtener vehiculos
+public class GetTransportUnitsHandlers(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
+    : BaseValidatorHandler<GetTreansportUnitsQuery, List<TransportUnitListItemDto>>(unitOfWork, errorManager)
+{
+    private readonly IMapper _mapper = mapper;
+
+    public override async Task<List<TransportUnitListItemDto>> Handle(GetTreansportUnitsQuery request, CancellationToken cancellationToken)
+    {
+        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+        if(!access.IsSuccess) return access.ErrorResponse!;
+
+        var transportUnits = await _unitOfWork.TransportUnit.Entities
+            .AsNoTracking()
+            .Where(t => t.DeletedAt == null)
+            .OrderBy(t => t.Name)
+            .ToListAsync(cancellationToken);
+
+        return _mapper.Map<List<TransportUnitListItemDto>>(transportUnits);
     }
 }
 #endregion
