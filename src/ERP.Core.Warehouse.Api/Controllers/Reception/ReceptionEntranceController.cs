@@ -75,6 +75,29 @@ public class ReceptionEntranceController(IMediator _mediator) : ApiControllerBas
         }, cancellationToken);
     }
 
+    [Tags("Control de Acceso")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/receptions/{reception_id}")]
+    [ProducesResponseType(typeof(ReceptionEntranceDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<ReceptionEntranceDetailDto> GetReceptionEntranceDetailAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid reception_id,
+        CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        Guid.TryParse(userIdStr, out var userId);
+
+        return await _mediator.Send(new GetReceptionEntranceDetailQuery
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = userId,
+            RecordId = reception_id
+        }, cancellationToken);
+    }
+
 
     [Tags("Control de Acceso")]
     [HttpPatch("companies/{company_id}/modules/{module_code}/receptions/{reception_id}")]
