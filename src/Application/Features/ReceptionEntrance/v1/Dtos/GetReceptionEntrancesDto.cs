@@ -84,3 +84,9 @@ public class ReceptionEntranceStatsDto
     public int TotalOnSite { get; set; }
     public int TotalExists { get; set; }
 }
+
+public class TransportUnitListItemDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+}

@@ -253,3 +253,22 @@ public class GetReceptionEntranceDetailHandler(IUnitOfWork _unitOfWork, IErrorMa
     }
 }
 #endregion
+
+#region Obtener vehiculos
+public class GetTransportUnitsHandlers(IUnitOfWork _unitOfWork) : IRequestHandler<GetTreansportUnitsQuery, List<TransportUnitListItemDto>>
+{
+    public async Task<List<TransportUnitListItemDto>> Handle(GetTreansportUnitsQuery request, CancellationToken cancellationToken)
+    {
+        return await _unitOfWork.TransportUnit.Entities
+            .AsNoTracking()
+            .Where(t => t.DeletedAt == null)
+            .OrderBy(t => t.Name)
+            .Select(t => new TransportUnitListItemDto
+            {
+                Id = t.Id,
+                Name = t.Name
+            })
+            .ToListAsync(cancellationToken);
+    }
+}
+#endregion
