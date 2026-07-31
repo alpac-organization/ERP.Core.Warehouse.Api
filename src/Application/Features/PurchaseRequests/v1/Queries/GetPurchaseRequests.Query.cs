@@ -8,6 +8,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Querie
     public class GetPurchaseRequestsQuery : BaseRequest, IRequest<PagedResponse<PurchaseRequestDto>>
     {
         public string? Code { get; set; }
+        public Guid? AreaId { get; set; }
         public Guid? BranchId { get; set; }
         public PurchaseRequestType? RequestType { get; set; }
 

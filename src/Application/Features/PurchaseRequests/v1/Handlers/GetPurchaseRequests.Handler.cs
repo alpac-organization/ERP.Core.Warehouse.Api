@@ -27,6 +27,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 .Include(purs => purs.Branch)
                 .AsNoTracking();
 
+            if (access.Role?.RoleType != RoleType.Administrator && access.Role?.RoleType != RoleType.Supervisor)
+            {
+                purchaseRequestsQuery = purchaseRequestsQuery
+                    .Where(pur => pur.AreaId == access.User.AreaId);
+            }
+
+            if (request.AreaId.HasValue)
+            {
+                purchaseRequestsQuery = purchaseRequestsQuery
+                    .Where(pur => pur.AreaId == access.User.AreaId);
+            }
+
             if (!string.IsNullOrEmpty(request.Code))
             {
                 purchaseRequestsQuery = purchaseRequestsQuery

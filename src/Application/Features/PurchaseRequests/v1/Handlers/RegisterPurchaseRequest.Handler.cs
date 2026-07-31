@@ -28,6 +28,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return _errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:INVALID_ACCESS");
             }
 
+            Guid areaId = access.User.AreaId;
+
+            if (access.Role?.RoleType == RoleType.Administrator && request.AreaId.HasValue)
+            {
+                areaId = request.AreaId.Value;
+            }
+
             //Generar codigo solicitud
             var (isSucceded, code) = await _codeGenerator.GenerateUniqueCodeToPurchaseRequest(request.RequestType, request.BranchId);
 
@@ -36,7 +43,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return _errorManager.ThrowBadRequest<bool>("Ocurrio un error la generar la solucitud de comprar", "ERP:ERROR_CODE_GENERATOR");
             }
 
-            var purchaseRequestEntity = PurchaseRequestMapper.ToPurchaseRequestEntity(request, code);
+            var purchaseRequestEntity = PurchaseRequestMapper.ToPurchaseRequestEntity(request, code, areaId);
 
             await _unitOfWork.PurchaseRequests.RegisterPurchaseRequest(purchaseRequestEntity);
 
