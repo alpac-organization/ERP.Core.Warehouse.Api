@@ -1,10 +1,12 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Domain.Entities.Errors;
 using ERP.Core.Infrastructure.Attributes;
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
-using ERP.Core.Warehouse.Api.Application.Features.Quotes.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
@@ -34,14 +36,48 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
 
         [Tags("Solicitudes de compras")] 
         [HttpGet("companies/{company_id}/modules/{module_code}/purchase-requests")]      
-        [ProducesResponseType(typeof(PagedResponse<QuotationDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PagedResponse<PurchaseRequestDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
-        public async Task<OkResult> GetPurchaseRequestAsync([FromRoute] Guid company_id, [FromRoute] string module_code)
+        public async Task<PagedResponse<PurchaseRequestDto>> GetPurchaseRequestAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
+            [FromQuery] Guid? branch_id = null,
+            [FromQuery] PurchaseRequestType? request_type = null,
+            [FromQuery] string? code = null,
+            [FromQuery] int page_number = 1,
+            [FromQuery] int page_size  = 10
+        )
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
-            return Ok();
+            return await _mediator.Send(new GetPurchaseRequestsQuery()
+            {
+                BranchId = branch_id,
+                CompanyId = company_id,
+                Code = code,
+                ModuleCode = module_code,
+                RequestType = request_type,
+                UserId = Guid.Parse(userIdStr ?? ""),
+                PageNumber = page_number,
+                PageSize = page_size,
+            });
+        }
+
+        [Tags("Solicitudes de compras")] 
+        [HttpGet("companies/{company_id}/modules/{module_code}/purchase-requests/{purchase_request_id}/details")]      
+        [ProducesResponseType(typeof(PurchaseRequestDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
+        public async Task<PurchaseRequestDetailsDto> GetPurchaseRequestAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid purchase_request_id)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            return await _mediator.Send(new GetPurchaseRequestDetailsQuery()
+            {
+                PurchaseRequestId = purchase_request_id,
+                CompanyId = company_id,
+                UserId = Guid.Parse(userIdStr ?? ""),
+                ModuleCode = module_code
+            });
         }
     }
 }
