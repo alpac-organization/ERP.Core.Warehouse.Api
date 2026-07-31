@@ -1,12 +1,14 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Application.Commons.Interfaces;
+
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
-using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Queries;
-using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
+
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
@@ -21,11 +23,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return access.ErrorResponse!;
             }
 
-            if (access.Role?.RoleType == RoleType.Supervisor)
-            {
-                return _errorManager.ThrowBadRequest<PagedResponse<PurchaseRequestDto>>("No tienes permiso para realizar esta acción", "ERP:INVALID_ACCESS");
-            }
-
             var purchaseRequestsQuery = _unitOfWork.PurchaseRequests.Entities
                 .Include(purs => purs.Branch)
                 .AsNoTracking();
@@ -35,7 +32,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 purchaseRequestsQuery = purchaseRequestsQuery
                     .Where(purs => purs.Code == request.Code);
             }
-        
 
             if (!string.IsNullOrEmpty(request.Code))
             {
@@ -43,12 +39,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     .Where(purs => purs.Code == request.Code);
             }
 
-
             if (request.RequestType.HasValue)
             {
                 purchaseRequestsQuery = purchaseRequestsQuery
                     .Where(purs => purs.RequestType == request.RequestType);
             }
+
+            var totalRecords = await purchaseRequestsQuery.CountAsync(cancellationToken);
 
             var purchaseRequests = await purchaseRequestsQuery
                 .OrderByDescending(quo => quo.CreatedAt)
@@ -62,7 +59,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 purchaseRequestsMapped,
                 request.PageNumber,
                 request.PageSize,
-                0
+                totalRecords
             );
         }
     }

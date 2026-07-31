@@ -26,11 +26,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
                 .NotEqual(Guid.Empty)
                 .WithMessage("El id de la sucursal es requerido.");
 
-            RuleFor(x => x.RequestDate)
-                .NotEmpty().WithMessage("La fecha de solicitud es obligatoria.")
-                .Must(date => date != default)
-                .WithMessage("La fecha de solicitud no es válida.");
-
             RuleFor(x => x.RequestType)
                 .IsInEnum()
                 .WithMessage("El tipo de solicitud no es válido.");
