@@ -1,21 +1,23 @@
-using MediatR;
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Manager.Api.Domain.Enums;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
+using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queries;
-using AutoMapper;
-using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
 
-public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager)
-    : IRequestHandler<GetReceptionEntrancesQuery, GetReceptionEntrancesDto>
+public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
+    : BaseValidatorHandler<GetReceptionEntrancesQuery, GetReceptionEntrancesDto>(unitOfWork, errorManager)
 {
-    public async Task<GetReceptionEntrancesDto> Handle(GetReceptionEntrancesQuery request, CancellationToken cancellationToken)
+    public override async Task<GetReceptionEntrancesDto> Handle(GetReceptionEntrancesQuery request, CancellationToken cancellationToken)
     {
+        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+        if (!access.IsSuccess) return access.ErrorResponse!;
+
         #region 1. Busqueda de Code
         var receptionStep = await _unitOfWork.WorkflowStepDefinitions.Entities
             .OrderBy(x => x.ExecutionOrder)
@@ -34,7 +36,7 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
         var targetDate = request.Date.HasValue
             ? DateOnly.FromDateTime(request.Date.Value)
             : NicaraguaClock.Today;
-        
+
         #region 2. Filtro Base
         var query = _unitOfWork.RecordEntrance.Entities
             .AsNoTracking()
@@ -68,7 +70,7 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
             query = query.Where(r => r.EntranceDucats.Any(d => d.Id == request.DucatId.Value));
         }
         #endregion
-        
+
 
         #region 3. Stats del dia (Filtro de busqueda)
         var totalEntries = await _unitOfWork.RecordEntrance.Entities
@@ -85,7 +87,7 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
                 l.StartDate <= targetDate));
 
         var totalOnSite = await recepcionadosQuery
-            .Where(r => r.ReceptionEntrance == null || 
+            .Where(r => r.ReceptionEntrance == null ||
                     r.ReceptionEntrance.TransportUnitExitDate == null)
             .CountAsync(cancellationToken);
 
@@ -119,15 +121,15 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
 
         return new GetReceptionEntrancesDto
         {
-            Data        = data,
-            TotalCount  = totalCount,
-            PageNumber  = request.PageNumber,
-            PageSize    = request.PageSize,
-            Stats       = new ReceptionEntranceStatsDto
+            Data = data,
+            TotalCount = totalCount,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize,
+            Stats = new ReceptionEntranceStatsDto
             {
-                    TotalEntries       = totalEntries,
-                    TotalOnSite       = totalOnSite,
-                    TotalExists    = totalExits
+                TotalEntries = totalEntries,
+                TotalOnSite = totalOnSite,
+                TotalExists = totalExits
 
             }
         };
@@ -135,12 +137,15 @@ public class GetReceptionEntrancesHandler(IUnitOfWork _unitOfWork, IErrorManager
 }
 
 #region Obtener con Detaller
-public class GetReceptionEntranceDetailHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager)
-    : IRequestHandler<GetReceptionEntranceDetailQuery, ReceptionEntranceDetailDto>
+public class GetReceptionEntranceDetailHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
+    : BaseValidatorHandler<GetReceptionEntranceDetailQuery, ReceptionEntranceDetailDto>(unitOfWork, errorManager)
 {
-    public async Task<ReceptionEntranceDetailDto> 
+    public override async Task<ReceptionEntranceDetailDto>
         Handle(GetReceptionEntranceDetailQuery request, CancellationToken cancellationToken)
     {
+        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+        if (!access.IsSuccess) return access.ErrorResponse!;
+
         var recordEntrance = await _unitOfWork.RecordEntrance.Entities
             .AsNoTracking()
             .Include(r => r.ReceptionEntrance!)
@@ -150,7 +155,7 @@ public class GetReceptionEntranceDetailHandler(IUnitOfWork _unitOfWork, IErrorMa
                 .ThenInclude(cd => cd.Details)
             .Include(r => r.ExecutionLogs)
             .FirstOrDefaultAsync(r => r.Id == request.RecordId && r.DeletedAt == null, cancellationToken);
-        
+
         if (recordEntrance == null
             || recordEntrance.ReceptionEntrance == null
             || recordEntrance.ReceptionEntrance.DeletedAt != null)
@@ -166,8 +171,8 @@ public class GetReceptionEntranceDetailHandler(IUnitOfWork _unitOfWork, IErrorMa
         var receptionStep = await _unitOfWork.WorkflowStepDefinitions.Entities
             .OrderBy(x => x.ExecutionOrder)
             .FirstOrDefaultAsync(cancellationToken);
-        
-        if(receptionStep == null)
+
+        if (receptionStep == null)
         {
             return _errorManager.ThrowInternalError<ReceptionEntranceDetailDto>(
             "No se encontró una configuración para el flujo de trabajo (WorkflowStepDefinition). Contacte al administrador.",
@@ -176,33 +181,33 @@ public class GetReceptionEntranceDetailHandler(IUnitOfWork _unitOfWork, IErrorMa
 
         var receptionLog = recordEntrance.ExecutionLogs
             .FirstOrDefault(l => l.WorkflowStepDefinitionCode == receptionStep.Code);
-        
+
         ExecutionLogDetailDto? executionLogDto = null;
 
-        if(receptionLog != null)
+        if (receptionLog != null)
         {
             int? durationSeconds = null;
             string? durationFormatted = null;
 
-            if(receptionLog.EndDate.HasValue && receptionLog.EndTime.HasValue)
+            if (receptionLog.EndDate.HasValue && receptionLog.EndTime.HasValue)
             {
-                var start    = receptionLog.StartDate.ToDateTime(receptionLog.StartTime);
-                var end      = receptionLog.EndDate.Value.ToDateTime(receptionLog.EndTime.Value);
+                var start = receptionLog.StartDate.ToDateTime(receptionLog.StartTime);
+                var end = receptionLog.EndDate.Value.ToDateTime(receptionLog.EndTime.Value);
                 var duration = end - start;
 
-                durationSeconds   = (int)duration.TotalSeconds;
+                durationSeconds = (int)duration.TotalSeconds;
                 durationFormatted = $"{(int)duration.TotalHours:D2}:{duration.Minutes:D2}:{duration.Seconds:D2}";
             }
 
             executionLogDto = new ExecutionLogDetailDto
             {
-                StartDate            = receptionLog.StartDate,
-                StartTime            = receptionLog.StartTime,
-                EndDate              = receptionLog.EndDate,
-                EndTime              = receptionLog.EndTime,
-                ProcessedByUserName  = receptionLog.ProcessedByUserName,
+                StartDate = receptionLog.StartDate,
+                StartTime = receptionLog.StartTime,
+                EndDate = receptionLog.EndDate,
+                EndTime = receptionLog.EndTime,
+                ProcessedByUserName = receptionLog.ProcessedByUserName,
                 DurationTotalSeconds = durationSeconds,
-                DurationFormatted    = durationFormatted
+                DurationFormatted = durationFormatted
             };
         }
         #endregion
@@ -210,25 +215,25 @@ public class GetReceptionEntranceDetailHandler(IUnitOfWork _unitOfWork, IErrorMa
         return new ReceptionEntranceDetailDto
         {
             Id = recordEntrance.Id,
-            Status                = recordEntrance.Status,
-            IsConsolidated        = recordEntrance.IsConsolidated,
+            Status = recordEntrance.Status,
+            IsConsolidated = recordEntrance.IsConsolidated,
 
-            CountryOfOrigin       = reception.CountryOfOrigin,
-            Aduana                = reception.Aduana,
-            PlateNumber           = reception.PlateNumber,
-            TrailerChassis        = reception.TrailerChassis,
-            DriverLicense         = reception.DriverLicense,
-            Transportista         = reception.Transportista,
-            TransportUnitId       = reception.TransportUnitId,
-            TransportUnitName     = reception.TransportUnit?.Name,
-            DriverName            = reception.DriverName,
-            SealNumber            = reception.SealNumber,
-            DocumentType          = reception.DocumentType,
+            CountryOfOrigin = reception.CountryOfOrigin,
+            Aduana = reception.Aduana,
+            PlateNumber = reception.PlateNumber,
+            TrailerChassis = reception.TrailerChassis,
+            DriverLicense = reception.DriverLicense,
+            Transportista = reception.Transportista,
+            TransportUnitId = reception.TransportUnitId,
+            TransportUnitName = reception.TransportUnit?.Name,
+            DriverName = reception.DriverName,
+            SealNumber = reception.SealNumber,
+            DocumentType = reception.DocumentType,
             TransportUnitExitDate = reception.TransportUnitExitDate,
             TransportUnitExitTime = reception.TransportUnitExitTime,
-            UpdatedByUserName     = reception.UpdatedByUserName,
-            UpdatedDate           = reception.UpdatedDate,
-            UpdatedTime           = reception.UpdatedTime,
+            UpdatedByUserName = reception.UpdatedByUserName,
+            UpdatedDate = reception.UpdatedDate,
+            UpdatedTime = reception.UpdatedTime,
 
             Ducats = reception.DocumentType == DocumentType.DUCA
                 ? [.. recordEntrance.EntranceDucats
@@ -238,7 +243,7 @@ public class GetReceptionEntranceDetailHandler(IUnitOfWork _unitOfWork, IErrorMa
                         Id = d.Id,
                         DucatNumber = d.DucatNumber,
                     })] : null,
-            
+
             CustomsDeclaration = reception.DocumentType == DocumentType.CustomsDeclaration
                                 && recordEntrance.CustomsDeclarations != null
                 ? new CustomsDeclarationDetailDto
@@ -265,7 +270,7 @@ public class GetTransportUnitsHandlers(IUnitOfWork unitOfWork, IErrorManager err
     public override async Task<List<TransportUnitListItemDto>> Handle(GetTreansportUnitsQuery request, CancellationToken cancellationToken)
     {
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
-        if(!access.IsSuccess) return access.ErrorResponse!;
+        if (!access.IsSuccess) return access.ErrorResponse!;
 
         var transportUnits = await _unitOfWork.TransportUnit.Entities
             .AsNoTracking()

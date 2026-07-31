@@ -1,19 +1,22 @@
-using ERP.Core.Application.Commons.Interfaces;
-using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
-using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
-using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
+using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using ERP.Core.Database.Application.Commons.Interfaces.Bases;
+using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
+using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
 
 public class AddDucatsToReceptionHandler(
-    IUnitOfWork _unitOfWork,
-    IErrorManager _errorManager)
-    : IRequestHandler<AddDucatsToReceptionCommand, bool>
+    IUnitOfWork unitOfWork,
+    IErrorManager errorManager)
+    : BaseValidatorHandler<AddDucatsToReceptionCommand, bool>(unitOfWork, errorManager)
 {
-    public async Task<bool> Handle(AddDucatsToReceptionCommand request, CancellationToken cancellationToken)
+    public override async Task<bool> Handle(AddDucatsToReceptionCommand request, CancellationToken cancellationToken)
     {
+        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+        if (!access.IsSuccess) return access.ErrorResponse!;
+        
         #region 1. Verificar que el registro padre exista
         var recordEntrance = await _unitOfWork.RecordEntrance.Entities
             .Include(r => r.EntranceDucats.Where(d => d.DeletedAt == null))
