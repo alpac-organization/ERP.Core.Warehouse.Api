@@ -11,3 +11,12 @@ public class GetMerchandiseRegistryQuery : IRequest<GetMerchandiseRegistryDto>
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 10;
 }
+
+public class GetMerchandiseRegistryDetailsQuery : IRequest<GetMerchandiseRegistryDetailDto>
+{
+    public Guid CompanyId { get; set; }
+    public string ModuleCode { get; set; } = string.Empty;
+    public Guid UserId { get; set; }
+    public Guid ReceptionId {get;set;} // = RecordEntrance.Id
+    
+}

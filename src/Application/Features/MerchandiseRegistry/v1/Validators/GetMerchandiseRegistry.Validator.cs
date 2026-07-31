@@ -30,3 +30,18 @@ public class GetMerchandiseRegistryValidator : AbstractValidator<GetMerchandiseR
             .WithMessage("El tamaño de página no puede exceder 100 registros.");
     }
 }
+
+public class GetMerchandiseRegistryDetailValidator : AbstractValidator<GetMerchandiseRegistryDetailsQuery>
+{
+    public GetMerchandiseRegistryDetailValidator()
+    {
+        RuleFor(x => x.CompanyId)
+            .NotEqual(Guid.Empty).WithMessage("El id de la empresa es requerido.");
+        RuleFor(x => x.ModuleCode)
+            .NotEmpty().WithMessage("El código del módulo es requerido.");
+        RuleFor(x => x.UserId)
+            .NotEqual(Guid.Empty).WithMessage("No se pudo identificar al usuario autenticado.");
+        RuleFor(x => x.ReceptionId)
+            .NotEqual(Guid.Empty).WithMessage("El identificador de la recepción es obligatorio.");
+    }
+}

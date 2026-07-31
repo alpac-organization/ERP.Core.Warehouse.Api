@@ -37,4 +37,27 @@ public class ReceptionEntranceController(IMediator _mediator) : ApiControllerBas
             PageSize = page_size
         }, cancellationToken);
     }
+
+    [Tags("Registro de Mercadería")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/merchandise-registry/{reception_id}")]
+    [ProducesResponseType(typeof(GetMerchandiseRegistryDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<GetMerchandiseRegistryDetailDto> GetMerchandiseRegistryDetailAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid reception_id,
+        CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        Guid.TryParse(userIdStr, out var userId);
+
+        return await _mediator.Send(new GetMerchandiseRegistryDetailsQuery
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            ReceptionId = reception_id,
+            UserId = userId
+        }, cancellationToken);
+    }
 }
