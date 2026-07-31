@@ -47,10 +47,11 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 
     public static class PurchaseRequestMapper
     {
-        public static PurchaseRequest ToPurchaseRequestEntity(this Commands.RegisterPurchaseRequestCommand command, string codeGenerated)
+        public static PurchaseRequest ToPurchaseRequestEntity(this Commands.RegisterPurchaseRequestCommand command, string codeGenerated, Guid areaId)
         {
             return new()
             {
+                AreaId        = areaId,
                 Code          = codeGenerated,
                 UserId        = command.UserId,
                 BranchId      = command.BranchId,
