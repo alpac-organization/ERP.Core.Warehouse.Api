@@ -1,17 +1,17 @@
-using ERP.Core.Domain.Entities.Errors;
-using ERP.Core.Infrastructure.Attributes;
-using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Dtos;
-using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Queries;
-using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using ERP.Core.Domain.Entities.Errors;
+using ERP.Core.Infrastructure.Attributes;
+using ERP.Core.Warehouse.Api.Controllers.ApiBase;
+using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Controllers.MerchandiseRegistry;
 
 [HasToken]
 [ApiVersion("1.0")]
 [Route("api/v1/")]
-public class ReceptionEntranceController(IMediator _mediator) : ApiControllerBase
+public class MerchandiseRegistryController(IMediator _mediator) : ApiControllerBase
 {
     [Tags("Registro de Mercadería")]
     [HttpGet("companies/{company_id}/modules/{module_code}/merchandise-registry")]
