@@ -7,12 +7,14 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queries;
+using AutoMapper.QueryableExtensions;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
 
-public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
+public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
     : BaseValidatorHandler<GetReceptionEntrancesQuery, GetReceptionEntrancesDto>(unitOfWork, errorManager)
 {
+    public readonly IMapper _mapper = mapper;
     public override async Task<GetReceptionEntrancesDto> Handle(GetReceptionEntrancesQuery request, CancellationToken cancellationToken)
     {
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
@@ -26,7 +28,7 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
         if (receptionStep == null)
         {
             return _errorManager.ThrowInternalError<GetReceptionEntrancesDto>(
-                "No se encontró una configuración para el flujo de trabja (WorkflowStepDefinition). Contacte al administrador.",
+                "No se encontró una configuración para el flujo de trabajo (WorkflowStepDefinition). Contacte al administrador.",
                 "ERP:WORKFLOW_NOT_CONFIGURED");
         }
 
@@ -105,17 +107,7 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
             .OrderByDescending(r => r.CreatedAt)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
-            .Select(r => new ReceptionEntranceListItemDto
-            {
-                Id = r.Id,
-                Status = r.Status,
-                PlateNumber = r.ReceptionEntrance!.PlateNumber,
-                DriverName = r.ReceptionEntrance!.DriverName,
-                DocumentType = r.ReceptionEntrance!.DocumentType,
-                ArrivalTime = r.ExecutionLogs
-                                .Where(l => l.WorkflowStepDefinitionCode == receptionStepCode)
-                                .Select(l => l.StartTime).First(),
-            })
+            .ProjectTo<ReceptionEntranceListItemDto>(_mapper.ConfigurationProvider, new { receptionStepCode })
             .ToListAsync(cancellationToken);
         #endregion
 
@@ -137,9 +129,11 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
 }
 
 #region Obtener con Detaller
-public class GetReceptionEntranceDetailHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
+public class GetReceptionEntranceDetailHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
     : BaseValidatorHandler<GetReceptionEntranceDetailQuery, ReceptionEntranceDetailDto>(unitOfWork, errorManager)
 {
+    private readonly IMapper _mapper = mapper;
+
     public override async Task<ReceptionEntranceDetailDto>
         Handle(GetReceptionEntranceDetailQuery request, CancellationToken cancellationToken)
     {
@@ -165,8 +159,6 @@ public class GetReceptionEntranceDetailHandler(IUnitOfWork unitOfWork, IErrorMan
                 "ERP:RECEPTION_NOT_FOUND");
         }
 
-        var reception = recordEntrance.ReceptionEntrance;
-
         #region Buscar el step de recepcion para calcular duracion
         var receptionStep = await _unitOfWork.WorkflowStepDefinitions.Entities
             .OrderBy(x => x.ExecutionOrder)
@@ -179,84 +171,11 @@ public class GetReceptionEntranceDetailHandler(IUnitOfWork unitOfWork, IErrorMan
             "ERP:WORKFLOW_NOT_CONFIGURED");
         }
 
-        var receptionLog = recordEntrance.ExecutionLogs
-            .FirstOrDefault(l => l.WorkflowStepDefinitionCode == receptionStep.Code);
-
-        ExecutionLogDetailDto? executionLogDto = null;
-
-        if (receptionLog != null)
+        return _mapper.Map<ReceptionEntranceDetailDto>(recordEntrance, opts =>
         {
-            int? durationSeconds = null;
-            string? durationFormatted = null;
-
-            if (receptionLog.EndDate.HasValue && receptionLog.EndTime.HasValue)
-            {
-                var start = receptionLog.StartDate.ToDateTime(receptionLog.StartTime);
-                var end = receptionLog.EndDate.Value.ToDateTime(receptionLog.EndTime.Value);
-                var duration = end - start;
-
-                durationSeconds = (int)duration.TotalSeconds;
-                durationFormatted = $"{(int)duration.TotalHours:D2}:{duration.Minutes:D2}:{duration.Seconds:D2}";
-            }
-
-            executionLogDto = new ExecutionLogDetailDto
-            {
-                StartDate = receptionLog.StartDate,
-                StartTime = receptionLog.StartTime,
-                EndDate = receptionLog.EndDate,
-                EndTime = receptionLog.EndTime,
-                ProcessedByUserName = receptionLog.ProcessedByUserName,
-                DurationTotalSeconds = durationSeconds,
-                DurationFormatted = durationFormatted
-            };
-        }
+            opts.Items["receptionStepCode"] = receptionStep.Code;
+        });
         #endregion
-
-        return new ReceptionEntranceDetailDto
-        {
-            Id = recordEntrance.Id,
-            Status = recordEntrance.Status,
-            IsConsolidated = recordEntrance.IsConsolidated,
-
-            CountryOfOrigin = reception.CountryOfOrigin,
-            Aduana = reception.Aduana,
-            PlateNumber = reception.PlateNumber,
-            TrailerChassis = reception.TrailerChassis,
-            DriverLicense = reception.DriverLicense,
-            Transportista = reception.Transportista,
-            TransportUnitId = reception.TransportUnitId,
-            TransportUnitName = reception.TransportUnit?.Name,
-            DriverName = reception.DriverName,
-            SealNumber = reception.SealNumber,
-            DocumentType = reception.DocumentType,
-            TransportUnitExitDate = reception.TransportUnitExitDate,
-            TransportUnitExitTime = reception.TransportUnitExitTime,
-            UpdatedByUserName = reception.UpdatedByUserName,
-            UpdatedDate = reception.UpdatedDate,
-            UpdatedTime = reception.UpdatedTime,
-
-            Ducats = reception.DocumentType == DocumentType.DUCA
-                ? [.. recordEntrance.EntranceDucats
-                    .Where(d => d.DeletedAt == null)
-                    .Select(d => new EntranceDucatDetailItemDto
-                    {
-                        Id = d.Id,
-                        DucatNumber = d.DucatNumber,
-                    })] : null,
-
-            CustomsDeclaration = reception.DocumentType == DocumentType.CustomsDeclaration
-                                && recordEntrance.CustomsDeclarations != null
-                ? new CustomsDeclarationDetailDto
-                {
-                    CustomsDecarationNumber = recordEntrance.CustomsDeclarations.CustomsDeclarationNumber,
-                    Packages = recordEntrance.CustomsDeclarations.Details?.Packages,
-                    Customer = recordEntrance.CustomsDeclarations.Details?.Customer,
-                    Product = recordEntrance.CustomsDeclarations.Details?.Product,
-                    ContainerNumber = recordEntrance.CustomsDeclarations.Details?.ContainerNumber
-                } : null,
-
-            ExecutionLog = executionLogDto
-        };
     }
 }
 #endregion
