@@ -6,6 +6,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Comman
 {
     public class RegisterPurchaseRequestCommand : BaseRequest, IRequest<bool>
     {
+        public Guid? AreaId { get; set; }
         public Guid BranchId { get; set; }
         public DateOnly RequestDate { get; set; }
         public string? Justification { get; set; }

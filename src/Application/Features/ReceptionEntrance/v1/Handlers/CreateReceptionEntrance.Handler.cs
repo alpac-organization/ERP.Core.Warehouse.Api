@@ -1,27 +1,30 @@
 
-using MediatR;
 using Microsoft.EntityFrameworkCore;
+using ERP.Core.Manager.Api.Domain.Enums;
 using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
-using ERP.Core.Warehouse.Api.Application.Commons.Utils;
-using ERP.Core.Manager.Api.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
 
 public class CreateReceptionEntranceHandler(
-    IUnitOfWork _unitOfWork,
-    IErrorManager _errorManager) 
-    : IRequestHandler<CreateReceptionEntranceCommand, bool>
+    IUnitOfWork unitOfWork,
+    IErrorManager errorManager)
+    : BaseValidatorHandler<CreateReceptionEntranceCommand, bool>(unitOfWork, errorManager)
 {
-   public async Task<bool> Handle(CreateReceptionEntranceCommand request, CancellationToken cancellationToken)
+    public override async Task<bool> Handle(CreateReceptionEntranceCommand request, CancellationToken cancellationToken)
     {
+        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+        if (!access.IsSuccess) return access.ErrorResponse!;
+
         var firstStep = await _unitOfWork.WorkflowStepDefinitions.Entities
             .OrderBy(x => x.ExecutionOrder)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if ( firstStep == null)
+        if (firstStep == null)
         {
             return _errorManager.ThrowInternalError<bool>(
                 "No se encontró una configuración para el flujo de trabajo (WorkflowStepDefinition). Contacte al administrador.",
@@ -40,7 +43,7 @@ public class CreateReceptionEntranceHandler(
                 .Where(g => g.Count() > 1)
                 .Select(g => g.Key)
                 .ToList();
-            
+
             if (duplicatesInRequest.Any())
             {
                 return _errorManager.ThrowBadRequest<bool>(
@@ -71,7 +74,7 @@ public class CreateReceptionEntranceHandler(
         {
             #region 1.c DocumentType == CustomsDeclaration: validar unicidad del numero de declaracion
             var declarationExists = await _unitOfWork.CustomsDeclarations.Entities
-                .AnyAsync(d => d.CustomsDeclarationNumber.Trim().ToLower() 
+                .AnyAsync(d => d.CustomsDeclarationNumber.Trim().ToLower()
                             == request.CustomsDeclarationNumber!.Trim().ToLower(), cancellationToken);
 
             if (declarationExists)
@@ -146,7 +149,7 @@ public class CreateReceptionEntranceHandler(
                 .Select(ducatNumber => ducatNumber.ToEntranceDucaEntity(recordEntranceId))
                 .ToList();
 
-            await _unitOfWork.EntranceDucats.InsertEntranceDucatsRange(ducatEntities);            
+            await _unitOfWork.EntranceDucats.InsertEntranceDucatsRange(ducatEntities);
         }
         else
         {
@@ -159,7 +162,7 @@ public class CreateReceptionEntranceHandler(
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         #endregion
-        
+
         return true;
     }
 }
