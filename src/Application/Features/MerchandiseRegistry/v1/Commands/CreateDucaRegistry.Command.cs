@@ -12,5 +12,19 @@ public class CreateDucatRegistryCommand : BaseRequest, IRequest<bool>
     public bool IsInTransit { get; set; }
     public DateOnly? RegisteredStartDate { get; set; }
     public TimeOnly? RegisteredStartTime { get; set; }
+}
 
+public class CreateDucatRegistryDetailCommand : BaseRequest, IRequest<bool>
+{
+    public Guid ReceptionId { get; set; }
+    public Guid EntranceDucatId { get; set; }
+
+    public Guid ProductId { get; set; }
+    public int TotalBultos { get; set; }
+    public decimal TotalWeight { get; set; }
+    public string? ProductDescription { get; set; }
+    public string Remitente { get; set; } = string.Empty;
+    public string? DestinationAreaObservation { get; set; }
+    public DateOnly? RegisteredStartDate { get; set; }
+    public TimeOnly? RegisteredStartTime { get; set; }
 }

@@ -286,3 +286,53 @@ public static class DucatRegistryMapper
 }
 
 #endregion
+
+#region  Crear registro detalle
+public class DucatRegistryDetailProfile : Profile
+{
+    public DucatRegistryDetailProfile()
+    {
+        CreateMap<CreateDucatRegistryDetailCommand, DucatRegistryDetails>()
+            .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
+            .ForMember(d => d.RecordEntranceId, o => o.Ignore())
+            .ForMember(d => d.EntranceDucatId, o => o.Ignore())
+            .ForMember(d => d.RegisteredByUserId, o => o.Ignore())
+            .ForMember(d => d.RegisteredByUserName, o => o.Ignore())
+            .ForMember(d => d.RegisteredStartDate, o => o.Ignore())
+            .ForMember(d => d.RegisteredStartTime, o => o.Ignore())
+            .ForMember(d => d.RegisteredEndDate, o => o.Ignore())
+            .ForMember(d => d.RegisteredEndTime, o => o.Ignore())
+            .ForMember(d => d.UpdatedByUserId, o => o.Ignore())
+            .ForMember(d => d.UpdatedByUserName, o => o.Ignore())
+            .ForMember(d => d.UpdatedDate, o => o.Ignore())
+            .ForMember(d => d.UpdatedTime, o => o.Ignore());
+    }
+}
+
+public static class DucatRegistryDetailMapper
+{
+    public static CreateDucatRegistryDetailCommand ToCommand(
+        this CreateDucatRegistryDetailDto dto,
+        Guid receptionId,
+        Guid entranceDucatId,
+        Guid userId,
+        Guid companyId,
+        string moduleCode)
+    {
+        return new()
+        {
+            ReceptionId = receptionId,
+            EntranceDucatId = entranceDucatId,
+            UserId = userId,
+            CompanyId = companyId,
+            ModuleCode = moduleCode,
+            ProductId = dto.ProductId,
+            TotalBultos = dto.TotalBultos,
+            TotalWeight = dto.TotalWeight,
+            ProductDescription = dto.ProductDescription,
+            Remitente = dto.Remitente,
+            DestinationAreaObservation = dto.DestinationAreaObservation
+        };
+    }
+}
+#endregion

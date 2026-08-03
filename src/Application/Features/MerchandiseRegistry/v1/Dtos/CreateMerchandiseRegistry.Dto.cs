@@ -9,3 +9,15 @@ public record CreateDucatRegistryDto
     public DateOnly? RegisteredStartDate { get; set; }
     public TimeOnly? RegisteredStartTime { get; set; }
 }
+
+public record CreateDucatRegistryDetailDto
+{
+    public Guid ProductId { get; set; }
+    public int TotalBultos { get; set; }
+    public decimal TotalWeight { get; set; }
+    public string? ProductDescription { get; set; }
+    public string Remitente { get; set; } = string.Empty;
+    public string? DestinationAreaObservation { get; set; }
+    public DateOnly? RegisteredStartDate { get; set; }
+    public TimeOnly? RegisteredStartTime { get; set; }
+}

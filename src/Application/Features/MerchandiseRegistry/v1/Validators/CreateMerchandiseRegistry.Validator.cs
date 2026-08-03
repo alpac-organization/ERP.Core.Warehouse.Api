@@ -31,3 +31,38 @@ public class CreateDucatRegistryValidator : AbstractValidator<CreateDucatRegistr
             .NotNull().WithMessage("La hora de inicio es obligatoria.");
     }
 }
+
+public class CreateDucaRegistryDetailValidator : AbstractValidator<CreateDucatRegistryDetailCommand>
+{
+    public CreateDucaRegistryDetailValidator()
+    {
+        RuleFor(x => x.UserId)
+            .NotEqual(Guid.Empty).WithMessage("No se pudo identificar al usuario autenticado.");
+ 
+        RuleFor(x => x.ReceptionId)
+            .NotEqual(Guid.Empty).WithMessage("El identificador de recepción es obligatorio.");
+ 
+        RuleFor(x => x.EntranceDucatId)
+            .NotEqual(Guid.Empty).WithMessage("El identificador del DUCA es obligatorio.");
+ 
+        RuleFor(x => x.ProductId)
+            .NotEqual(Guid.Empty).WithMessage("El producto es obligatorio.");
+ 
+        RuleFor(x => x.TotalBultos)
+            .GreaterThan(0).WithMessage("La cantidad de bultos debe ser mayor a cero (0).");
+ 
+        RuleFor(x => x.TotalWeight)
+            .GreaterThan(0).WithMessage("El peso total debe ser mayor a cero (0).");
+ 
+        RuleFor(x => x.Remitente)
+            .NotEmpty().WithMessage("El remitente es obligatorio.")
+            .MaximumLength(200).WithMessage("El remitente no puede superar los 200 caracteres.");
+ 
+        RuleFor(x => x.ProductDescription)
+            .MaximumLength(500).WithMessage("La descripción del producto no puede superar los 500 caracteres.");
+ 
+        RuleFor(x => x.DestinationAreaObservation)
+            .MaximumLength(500)
+            .WithMessage("La observación del área de destino no puede superar los 500 caracteres.");
+    }
+}
