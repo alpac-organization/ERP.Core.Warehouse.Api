@@ -30,14 +30,26 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
             if (access.Role?.RoleType != RoleType.Administrator && access.Role?.RoleType != RoleType.Supervisor)
             {
-                purchaseRequestsQuery = purchaseRequestsQuery
-                    .Where(pur => pur.AreaId == access.User.AreaId);
+
+                if (access.Role?.RoleType == RoleType.Operator)
+                {  
+                    //Obtener unicamente las solicitudes del usuario que genero sus solocitudes
+                    purchaseRequestsQuery = purchaseRequestsQuery
+                        .Where(pur => pur.User.Id == request.UserId);
+                }
+
+                if (access.Role?.RoleType == RoleType.Manager)
+                {
+                    //Obtener todas las solicitudes del area del usuario
+                    purchaseRequestsQuery = purchaseRequestsQuery
+                        .Where(pur => pur.AreaId == access.User.AreaId);
+                }
             }
 
-            if (request.AreaId.HasValue)
+            if (request.AreaId.HasValue && access.Role?.RoleType == RoleType.Administrator)
             {
                 purchaseRequestsQuery = purchaseRequestsQuery
-                    .Where(pur => pur.AreaId == access.User.AreaId);
+                    .Where(pur => pur.AreaId == request.AreaId);
             }
 
             if (!string.IsNullOrEmpty(request.Code))
@@ -46,10 +58,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     .Where(purs => purs.Code == request.Code);
             }
 
-            if (!string.IsNullOrEmpty(request.Code))
+            if (request.Status.HasValue)
             {
                 purchaseRequestsQuery = purchaseRequestsQuery
-                    .Where(purs => purs.Code == request.Code);
+                    .Where(purs => purs.RequestStatus == request.Status);
             }
 
             if (request.RequestType.HasValue)

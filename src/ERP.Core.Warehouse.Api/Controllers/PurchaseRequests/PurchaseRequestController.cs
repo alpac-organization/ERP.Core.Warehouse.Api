@@ -21,7 +21,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
         [ProducesResponseType(typeof(CreatedResult), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
-        public async Task<CreatedResult> RegisterPurchaseRequestCommand([FromRoute] Guid company_id, [FromRoute] string module_code, [FromBody] RegisterPurchaseRequestCommand payload)
+        public async Task<CreatedResult> RegisterPurchaseRequestAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromBody] RegisterPurchaseRequestCommand payload)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
@@ -43,6 +43,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
             [FromQuery] Guid? branch_id = null,
             [FromQuery] PurchaseRequestType? request_type = null,
             [FromQuery] string? code = null,
+            [FromQuery] PurchaseRequestStatus? status = null,
             [FromQuery] int page_number = 1,
             [FromQuery] int page_size  = 10
         )
@@ -54,6 +55,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
                 BranchId = branch_id,
                 CompanyId = company_id,
                 Code = code,
+                Status = status,
                 ModuleCode = module_code,
                 RequestType = request_type,
                 UserId = Guid.Parse(userIdStr ?? ""),
@@ -86,7 +88,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
         [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
-        public async Task<OkResult> ProcessPurchaseRequestCommand([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid purchase_request_id, [FromBody] ProcessPurchaseRequestCommand payload)
+        public async Task<OkResult> ProcessPurchaseRequestAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid purchase_request_id, [FromBody] ProcessPurchaseRequestCommand payload)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
@@ -106,7 +108,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
         [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
-        public async Task<OkResult> DeletePurchaseRequestCommand([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid purchase_request_id, [FromBody] DeletePurchaseRequestCommand payload)
+        public async Task<OkResult> DeletePurchaseRequestAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid purchase_request_id, [FromBody] DeletePurchaseRequestCommand payload)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
