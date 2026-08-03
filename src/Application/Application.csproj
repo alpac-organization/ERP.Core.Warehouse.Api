@@ -6,8 +6,13 @@
 
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="16.2.0" />
+<<<<<<< HEAD
     <PackageReference Include="ERP.Core.Application" Version="1.71.0" />
     <PackageReference Include="ERP.Core.Database.Application" Version="1.71.0" />
+=======
+    <PackageReference Include="ERP.Core.Application" Version="1.70.0" />
+    <PackageReference Include="ERP.Core.Database.Application" Version="1.70.0" />
+>>>>>>> 1305626a8ed4c20498600311d13300c026384bf1
     <PackageReference Include="FluentValidation" Version="12.1.1" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <PackageReference Include="MediatR" Version="14.2.0" />
