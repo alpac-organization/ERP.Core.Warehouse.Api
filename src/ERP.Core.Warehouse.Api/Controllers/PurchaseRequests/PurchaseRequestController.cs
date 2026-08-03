@@ -99,5 +99,25 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
             
             return Ok();
         }
+
+
+        [Tags("Solicitudes de compras")] 
+        [HttpDelete("companies/{company_id}/modules/{module_code}/purchase-requests/{purchase_request_id}")]      
+        [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
+        public async Task<OkResult> DeletePurchaseRequestCommand([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid purchase_request_id, [FromBody] DeletePurchaseRequestCommand payload)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            payload.CompanyId = company_id;
+            payload.ModuleCode = module_code;
+            payload.UserId = Guid.Parse(userIdStr ?? "");
+            payload.PurchaseRequestId = purchase_request_id;
+
+            await _mediator.Send(payload);
+            
+            return Ok();
+        }
     }
 }

@@ -24,6 +24,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             }
 
             var purchaseRequestsQuery = _unitOfWork.PurchaseRequests.Entities
+                .Where(purs => purs.IsActive)
                 .Include(purs => purs.Branch)
                 .AsNoTracking();
 
