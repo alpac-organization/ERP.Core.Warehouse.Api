@@ -59,6 +59,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 Justification = command.Justification,
                 RequestStatus = PurchaseRequestStatus.Pending,
                 Id            = Guid.NewGuid(),
+                IsActive      = true,
                 RequestDate   = DateOnly.FromDateTime(DateTime.UtcNow),
             };
         }
