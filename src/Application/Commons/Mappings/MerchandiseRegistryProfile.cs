@@ -126,13 +126,15 @@ public class DucatRegistryProfile : Profile
     {
         CreateMap<CreateDucatRegistryDto, CreateDucatRegistryCommand>();
 
-        CreateMap<CreateDucatRegistryCommand, DucatRegistryEntity>()
+        CreateMap<CreateDucatRegistryCommand, DucatRegistry>()
             .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
             .ForMember(d => d.RecordEntranceId, o => o.MapFrom(s => s.ReceptionId))
             .ForMember(d => d.RegisteredByUserId, o => o.Ignore())
             .ForMember(d => d.RegisteredByUserName, o => o.Ignore())
-            .ForMember(d => d.RegisteredDate, o => o.Ignore())
-            .ForMember(d => d.RegisteredTime, o => o.Ignore())
+            .ForMember(d => d.RegisteredStartDate, o => o.Ignore())
+            .ForMember(d => d.RegisteredStartTime, o => o.Ignore())
+            .ForMember(d => d.RegisteredEndDate, o => o.Ignore())
+            .ForMember(d => d.RegisteredEndTime, o => o.Ignore())
             .ForMember(d => d.UpdatedByUserId, o => o.Ignore())
             .ForMember(d => d.UpdatedByUserName, o => o.Ignore())
             .ForMember(d => d.UpdatedDate, o => o.Ignore())
