@@ -1,0 +1,85 @@
+using AutoMapper;
+using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Commands;
+
+namespace ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Handlers;
+
+public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
+    : BaseValidatorHandler<CreateDucatRegistryCommand, bool>(unitOfWork, errorManager)
+{
+    public override async Task<bool> Handle(CreateDucatRegistryCommand request, CancellationToken cancellationToken)
+    {
+         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+        if (!access.IsSuccess) return access.ErrorResponse!;
+
+        var recordEntrance = await _unitOfWork.RecordEntrance.Entities
+            .Include(r => r.ReceptionEntrance!)
+            .Include(r => r.DucatRegistry!)
+            .FirstOrDefaultAsync(r => r.Id == request.ReceptionId, cancellationToken);
+
+        if(recordEntrance == null || recordEntrance.ReceptionEntrance == null)
+        {
+             return _errorManager.ThrowBadRequest<bool>(
+                "El registro de recepción no fue encontrado o ya ha sido eliminado.",
+                "ERP:RECEPTION_NOT_FOUND");
+        }
+
+        if(recordEntrance.ReceptionEntrance.DocumentType != DocumentType.DUCA)
+        {
+            return _errorManager.ThrowBadRequest<bool>(
+                "El detalle general solo aplica para recepciones de tipo DUCA.",
+                "ERP:INVALID_DOCUMENT_TYPE");
+        }
+
+        if (recordEntrance.DucatRegistry != null)
+        {
+            return _errorManager.ThrowBadRequest<bool>(
+                "El detalle general de esta recepción ya fue registrado. Use la edición para modificarlo.",
+                "ERP:DUCAT_REGISTRY_ALREADY_EXISTS");
+        }
+
+        var user = await _unitOfWork.Users.Entities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+        
+        if (user == null)
+        {
+            return _errorManager.ThrowBadRequest<bool>(
+                "No se pudo identificar al usuario autenticado en el sistema.",
+                "ERP:USER_NOT_FOUND");
+        }
+
+        var registeredByUserName = user.Fullname ?? user.UserName ?? request.UseriId.ToString();
+
+        var nowNica = NicaraguaClock.Now;
+        var today = DateOnly.FromDateTime(nowNica);
+        var now = TomeOnly.FromDateTime(nowNica);
+
+        var ducatRegistry = _mapper.Map<DucatRegistryEntity>(request);
+        ducatRegistry.RegisteredByUserId = request.UserId.ToString();
+        ducatRegistry.RegisteredByUserName = registeredByUserName;
+        ducatRegistry.RegisteredDate = today;
+        ducatRegistry.RegisteredTime = now;
+
+        var executionLog = new StepExecutionLogs
+        {
+            Id = Guid.NewGuid(),
+            RecordEntranceId = recordEntrance.Id,
+            WorkflowStepDefinitionCode = MerchandiseRegistrationSteps.Duca,
+            StartDate = today,
+            StartTime = now,
+            EndDate = null,
+            EndTime = null,
+            ProcessedByUserId = request.UserId.ToString(),
+            ProcessedByUserName = registeredByUserName
+        };
+
+        recordEntrance.CurrentStepCode = MerchandiseRegistrationSteps.Duca;
+
+        await _unitOfWork.DucatRegistry.InsertDucatRegistry(ducatRegistry);
+        await _unitOfWork.StepExecutionLogs.InsertExecutionLog(executionLog);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return true;
+    }
+}

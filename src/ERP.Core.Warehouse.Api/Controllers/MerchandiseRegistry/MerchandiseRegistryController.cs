@@ -5,6 +5,7 @@ using ERP.Core.Infrastructure.Attributes;
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Queries;
+using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Controllers.MerchandiseRegistry;
 
@@ -59,5 +60,30 @@ public class MerchandiseRegistryController(IMediator _mediator) : ApiControllerB
             ReceptionId = reception_id,
             UserId = userId
         }, cancellationToken);
+    }
+
+    [Tags("Registro de Mercadería")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/receptions/{reception_id}/ducat-registry")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<OkObjectResult> CreateDucatRegistryAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid reception_id,
+        [FromBody] CreateDucatRegistryDto dto,
+        CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        Guid.TryParse(userIdStr, out var userId);
+
+        var command = _mapper.Map<CreateDucatRegistryCommand>(dto);
+        command.ReceptionId = reception_id;
+        command.UserId = userId;
+        command.CompanyId = company_id;
+        command.ModuleCode = module_code;
+
+        var response = await _mediator.Send(command, cancellationToken);
+        return Ok(response);
     }
 }

@@ -3,6 +3,7 @@ using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Manager.Api.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 
@@ -117,4 +118,24 @@ public class MerchandiseRegistrationSteps
 {
     public const string CustomsDeclaration = "RECEP";
     public const string Duca = "REME";
+}
+
+public class DucatRegistryProfile : Profile
+{
+    public DucatRegistryProfile()
+    {
+        CreateMap<CreateDucatRegistryDto, CreateDucatRegistryCommand>();
+
+        CreateMap<CreateDucatRegistryCommand, DucatRegistryEntity>()
+            .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
+            .ForMember(d => d.RecordEntranceId, o => o.MapFrom(s => s.ReceptionId))
+            .ForMember(d => d.RegisteredByUserId, o => o.Ignore())
+            .ForMember(d => d.RegisteredByUserName, o => o.Ignore())
+            .ForMember(d => d.RegisteredDate, o => o.Ignore())
+            .ForMember(d => d.RegisteredTime, o => o.Ignore())
+            .ForMember(d => d.UpdatedByUserId, o => o.Ignore())
+            .ForMember(d => d.UpdatedByUserName, o => o.Ignore())
+            .ForMember(d => d.UpdatedDate, o => o.Ignore())
+            .ForMember(d => d.UpdatedTime, o => o.Ignore());
+    }
 }
