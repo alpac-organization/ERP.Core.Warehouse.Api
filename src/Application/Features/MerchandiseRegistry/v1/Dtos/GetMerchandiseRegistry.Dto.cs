@@ -38,6 +38,15 @@ public class MerchandiseDucatDetailDto
     public string? ProductDescription { get; set; }
     public string? Remitente { get; set; }
     public string? DestinationAreaObservation { get; set; }
+
+    public string? RegisteredByUserName { get; set; }
+    public DateOnly? RegisteredStartDate { get; set; }
+    public DateOnly? RegisteredEndDate { get; set; }
+    public TimeOnly? RegisteredStartTime { get; set; }
+    public TimeOnly? RegisteredEndTime { get; set; }
+    public int? DurationInSeconds { get; set; }
+    public string? DurationFormatted { get; set; }
+
     public string? UpdatedByUserName { get; set; }
     public DateOnly? UpdatedDate { get; set; }
     public TimeOnly? UpdatedTime { get; set; }
@@ -88,6 +97,11 @@ public class MerchandiseReceptionDetailDto
 
 public class MerchandiseRegistrationLogDto
 {
+    public DateOnly? MerchandiseRegistrationEndDate { get; set; }
+    public TimeOnly? MerchandiseRegistrationEndTime { get; set; }
+    public string? MerchandiseFinishedByUserName { get; set; }
+    public int? DurationTotalSeconds { get; set; }
+    public string? DurationFormatted { get; set; }
     public DateOnly? MerchandiseRegistrationDate { get; set; }
     public TimeOnly? MerchandiseRegistrationTime { get; set; }
     public string? MerchandiseRegisteredByUserName { get; set; }
@@ -98,8 +112,18 @@ public class MerchandiseDucaRegistryDetailDto
     public string? Empresa { get; set; } // naviera
     public string? GeneralObservations { get; set; }
     public bool? IsInTransit { get; set; }
+
+    public string? RegisteredByUserName { get; set; }
+    public DateOnly? RegisteredStartDate { get; set; }
+    public DateOnly? RegisteredEndDate { get; set; }
+    public TimeOnly? RegisteredStartTime { get; set; }
+    public TimeOnly? RegisteredEndTime { get; set; }
+
     public string? UpdatedByUserName { get; set; }
     public DateOnly? UpdatedDate { get; set; }
     public TimeOnly? UpdatedTime { get; set; }
+
+    public int? DurationInSeconds { get; set; }
+    public string? DurationFormatted { get; set; }
     public List<MerchandiseDucatDetailDto>? Ducats { get; set; }
 }
