@@ -278,7 +278,9 @@ public static class DucatRegistryMapper
             ContainerNumber = dto.ContainerNumber,
             Empresa = dto.Empresa,
             GeneralObservations = dto.GeneralObservations,
-            IsInTransit = dto.IsInTransit
+            IsInTransit = dto.IsInTransit,
+            RegisteredStartDate = dto.RegisteredStartDate,
+            RegisteredStartTime = dto.RegisteredStartTime
         };
     }
 }

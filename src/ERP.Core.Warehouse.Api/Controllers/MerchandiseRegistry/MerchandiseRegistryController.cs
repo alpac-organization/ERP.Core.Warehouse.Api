@@ -87,4 +87,6 @@ public class MerchandiseRegistryController(IMediator _mediator) : ApiControllerB
         var response = await _mediator.Send(command, cancellationToken);
         return Ok(response);
     }
+
+    
 }

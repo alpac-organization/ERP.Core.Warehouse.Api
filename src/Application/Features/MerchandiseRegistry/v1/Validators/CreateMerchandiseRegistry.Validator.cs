@@ -23,5 +23,11 @@ public class CreateDucatRegistryValidator : AbstractValidator<CreateDucatRegistr
 
         RuleFor(x => x.GeneralObservations)
             .MaximumLength(1000).WithMessage("Las observaciones generales no pueden superar los 1000 caracteres.");
+
+        RuleFor(x => x.RegisteredStartDate)
+            .NotNull().WithMessage("La fecha de inicio es obligatoria.");
+
+        RuleFor(x => x.RegisteredStartTime)
+            .NotNull().WithMessage("La hora de inicio es obligatoria.");
     }
 }

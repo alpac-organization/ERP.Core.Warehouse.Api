@@ -76,8 +76,10 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
         ducatRegistry.ContainerNumber = sanitizedContainerNumber;
         ducatRegistry.RegisteredByUserId = request.UserId.ToString();
         ducatRegistry.RegisteredByUserName = registeredByUserName;
-        ducatRegistry.RegisteredStartDate = today;
-        ducatRegistry.RegisteredStartTime = now;
+        ducatRegistry.RegisteredStartDate = request.RegisteredStartDate;
+        ducatRegistry.RegisteredStartTime = request.RegisteredStartTime;
+        ducatRegistry.RegisteredEndDate = today;
+        ducatRegistry.RegisteredEndTime = now;
 
         var executionLog = await _unitOfWork.StepExecutionLogs.Entities
             .FirstOrDefaultAsync(l => l.RecordEntranceId == recordEntrance.Id && l.WorkflowStepDefinitionCode == MerchandiseRegistrationSteps.Duca, cancellationToken);
