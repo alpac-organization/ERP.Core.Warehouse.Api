@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using ERP.Core.Domain.Entities.Errors;
 using ERP.Core.Infrastructure.Attributes;
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
+using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Queries;
-using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Controllers.MerchandiseRegistry;
 
@@ -77,11 +77,12 @@ public class MerchandiseRegistryController(IMediator _mediator) : ApiControllerB
         var userIdStr = HttpContext.Items["UserId"] as string;
         Guid.TryParse(userIdStr, out var userId);
 
-        var command = _mapper.Map<CreateDucatRegistryCommand>(dto);
-        command.ReceptionId = reception_id;
-        command.UserId = userId;
-        command.CompanyId = company_id;
-        command.ModuleCode = module_code;
+        var command = dto.ToCommand(
+             receptionId: reception_id,
+             userId: userId,
+             companyId: company_id,
+             moduleCode: module_code
+         );
 
         var response = await _mediator.Send(command, cancellationToken);
         return Ok(response);

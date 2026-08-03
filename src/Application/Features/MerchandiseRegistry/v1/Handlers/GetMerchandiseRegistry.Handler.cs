@@ -70,13 +70,9 @@ public class GetMerchandiseRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorM
             .AsNoTracking()
             .Include(r => r.ReceptionEntrance!)
                 .ThenInclude(re => re.TransportUnit)
-            .Include(r => r.EntranceDucats.Where(d => d.DeletedAt == null))
             .Include(r => r.DucatRegistry!)
-                .ThenInclude(dr => dr.Details)
-                    .ThenInclude(d => d.Product)
             .Include(r => r.CustomsDeclarations!)
                 .ThenInclude(cd => cd.Details)
-            .Include(r => r.ExecutionLogs)
             .FirstOrDefaultAsync(r => r.Id == request.ReceptionId && r.DeletedAt == null, cancellationToken);
 
         if (recordEntrance == null
@@ -87,6 +83,18 @@ public class GetMerchandiseRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorM
                 "El registro de recepción no fue encontrado o ya ha sido eliminado.",
                 "ERP:RECEPTION_NOT_FOUND");
         }
+
+        recordEntrance.EntranceDucats = await _unitOfWork.EntranceDucats.Entities
+            .AsNoTracking()
+            .Where(l => l.RecordEntranceId == recordEntrance.Id && l.DeletedAt == null)
+            .Include(d => d.RegistryDetail!)
+                .ThenInclude(rd => rd.Product)
+            .ToListAsync(cancellationToken);
+
+        recordEntrance.ExecutionLogs = await _unitOfWork.StepExecutionLogs.Entities
+            .AsNoTracking()
+            .Where(l => l.RecordEntranceId == recordEntrance.Id)
+            .ToListAsync(cancellationToken);
 
         return _mapper.Map<GetMerchandiseRegistryDetailDto>(recordEntrance);
     }
