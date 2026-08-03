@@ -105,21 +105,24 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
 
         [Tags("Solicitudes de compras")] 
         [HttpDelete("companies/{company_id}/modules/{module_code}/purchase-requests/{purchase_request_id}")]      
-        [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
-        public async Task<OkResult> DeletePurchaseRequestAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid purchase_request_id, [FromBody] DeletePurchaseRequestCommand payload)
+        public async Task<NoContentResult> DeletePurchaseRequestAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid purchase_request_id)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
-            payload.CompanyId = company_id;
-            payload.ModuleCode = module_code;
-            payload.UserId = Guid.Parse(userIdStr ?? "");
-            payload.PurchaseRequestId = purchase_request_id;
+            var Payload = new DeletePurchaseRequestCommand()
+            {
+                CompanyId = company_id,
+                ModuleCode = module_code,
+                UserId = Guid.Parse(userIdStr ?? ""),
+                PurchaseRequestId = purchase_request_id
+            };
 
-            await _mediator.Send(payload);
+            await _mediator.Send(Payload);
             
-            return Ok();
+            return NoContent();
         }
     }
 }
