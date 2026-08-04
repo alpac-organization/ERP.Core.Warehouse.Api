@@ -1,14 +1,15 @@
+using FluentValidation;
 using ERP.Core.Manager.Api.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
-using FluentValidation;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Validators;
+
 public class CreateReceptionEntranceValidator : AbstractValidator<CreateReceptionEntranceCommand>
 {
     public CreateReceptionEntranceValidator()
     {
         RuleFor(x => x.UserId)
-            .NotEqual(Guid.Empty).WithMessage("No se pudo identificar al ususario autenticado.");
+            .NotEqual(Guid.Empty).WithMessage("No se pudo identificar al usuario autenticado.");
 
         RuleFor(x => x.DocumentType)
             .Must(dt => dt == DocumentType.DUCA || dt == DocumentType.CustomsDeclaration)
@@ -16,54 +17,76 @@ public class CreateReceptionEntranceValidator : AbstractValidator<CreateReceptio
 
         When(x => x.DocumentType == DocumentType.CustomsDeclaration, () =>
         {
-           RuleFor(x => x.CustomsDeclarationNumber)
-            .NotEmpty().WithMessage("El número de declaración aduanera es obligatorio.");
-           
-           RuleFor(x => x.Packages)
-            .NotNull().WithMessage("La cantidad de Bultos es obligatoria.")
-            .GreaterThan(0).WithMessage("La cantidad de bultos debe ser mayor a cero (0).");
-           
-           RuleFor(x => x.Customer)
-            .NotEmpty().WithMessage("El cliente es obligatorio.");
-           
-           RuleFor(x => x.Product)
-            .NotEmpty().WithMessage("El producto es obligatorio.");
-           
-           RuleFor(x => x.ContainerNumber)
-            .NotEmpty().WithMessage("El número de contenedor es obligatorio.");
+            RuleFor(x => x.CustomsDeclarationNumber)
+                .NotEmpty().WithMessage("El número de declaración aduanera es obligatorio.")
+                .MaximumLength(30).WithMessage("El número de declaración aduanera no puede exceder 30 caracteres.");
+
+            RuleFor(x => x.Packages)
+                .NotNull().WithMessage("La cantidad de Bultos es obligatoria.")
+                .GreaterThan(0).WithMessage("La cantidad de bultos debe ser mayor a cero (0).");
+
+            RuleFor(x => x.Customer)
+                .NotEmpty().WithMessage("El cliente es obligatorio.")
+                .MaximumLength(100).WithMessage("El cliente no puede exceder 100 caracteres.");
+
+            RuleFor(x => x.Product)
+                .NotEmpty().WithMessage("El producto es obligatorio.")
+                .MaximumLength(100).WithMessage("El producto no puede exceder 100 caracteres.");
+
+            RuleFor(x => x.ContainerNumber)
+                .NotEmpty().WithMessage("El número de contenedor es obligatorio.")
+                .MaximumLength(30).WithMessage("El número de contenedor no puede exceder 30 caracteres.");
         });
-            
+
+        When(x => x.DocumentType == DocumentType.DUCA, () =>
+        {
+            RuleFor(x => x.DucatNumbers)
+                .NotEmpty().WithMessage("Debe indicar al menos un número de DUCA.");
+
+            RuleForEach(x => x.DucatNumbers)
+                .NotEmpty().WithMessage("El número de DUCA no puede estar vacío.")
+                .MaximumLength(100).WithMessage("El número de DUCA no puede exceder 100 caracteres.");
+        });
+
         RuleFor(x => x.StartDate)
             .NotEmpty().WithMessage("La fecha de inicio es obligatoria.");
-     
+
         RuleFor(x => x.StartTime)
             .NotEmpty().WithMessage("La hora de inicio es obligatoria.");
-        
+
         RuleFor(x => x.CountryOfOrigin)
-            .NotEmpty().WithMessage("El país de procedencia es obligatorio.");
-        
+            .NotEmpty().WithMessage("El país de procedencia es obligatorio.")
+            .MaximumLength(50).WithMessage("El país de procedencia no puede exceder 50 caracteres.");
+
         RuleFor(x => x.Aduana)
-            .NotEmpty().WithMessage("La Aduana de ingreso es obligatoria.");
+            .NotEmpty().WithMessage("La Aduana de ingreso es obligatoria.")
+            .MaximumLength(50).WithMessage("La Aduana no puede exceder 50 caracteres.");
 
         RuleFor(x => x.PlateNumber)
-            .NotEmpty().WithMessage("El número de placa es obligatorio.");
+            .NotEmpty().WithMessage("El número de placa es obligatorio.")
+            .MaximumLength(30).WithMessage("El número de placa no puede exceder 30 caracteres.");
 
         RuleFor(x => x.TrailerChassis)
-            .NotEmpty().WithMessage("El número de chasis/remolque es obligatorio.");
+            .NotEmpty().WithMessage("El número de chasis/remolque es obligatorio.")
+            .MaximumLength(30).WithMessage("El número de chasis/remolque no puede exceder 30 caracteres.");
 
         RuleFor(x => x.DriverLicense)
-            .NotEmpty().WithMessage("La licencia del conductor es obligatoria.");
+            .NotEmpty().WithMessage("La licencia del conductor es obligatoria.")
+            .MaximumLength(20).WithMessage("La licencia del conductor no puede exceder 20 caracteres.");
 
         RuleFor(x => x.Transportista)
-            .NotEmpty().WithMessage("La empresa transportista es requerida.");
-        
+            .NotEmpty().WithMessage("La empresa transportista es requerida.")
+            .MaximumLength(100).WithMessage("La empresa transportista no puede exceder 100 caracteres.");
+
         RuleFor(x => x.TransportUnitId)
             .NotEqual(Guid.Empty).WithMessage("La unidad de transporte es obligatoria.");
-        
+
         RuleFor(x => x.DriverName)
-            .NotEmpty().WithMessage("El nombre del conductor es obligatorio.");
+            .NotEmpty().WithMessage("El nombre del conductor es obligatorio.")
+            .MaximumLength(100).WithMessage("El nombre del conductor no puede exceder 100 caracteres.");
 
         RuleFor(x => x.SealNumber)
-            .NotEmpty().WithMessage("El número de marchamo es obligatorio.");
+            .NotEmpty().WithMessage("El número de marchamo es obligatorio.")
+            .MaximumLength(50).WithMessage("El número de marchamo no puede exceder 50 caracteres.");
     }
 }
