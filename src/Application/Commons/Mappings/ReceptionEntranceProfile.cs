@@ -72,7 +72,6 @@ public static class ReceptionEntranceMapper
             TrailerChassis = dto.TrailerChassis.SanitizeCode(),
             DriverLicense = dto.DriverLicense.SanitizeCode(),
             Transportista = dto.Transportista.SanitizeAlphanumeric(),
-            Medio = dto.Medio,
             DriverName = dto.DriverName.SanitizeAlphanumeric(),
             SealNumber = dto.SealNumber.SanitizeCode(),
         };
