@@ -15,7 +15,13 @@ public record UpdateReceptionEntranceDto
     public string? TrailerChassis { get; set; }
     public string? DriverLicense { get; set; }
     public string? Transportista { get; set; }
-    public string? Medio { get; set; }
+    public Guid? TransportUnitId { get; set; }
     public string? DriverName { get; set; }
     public string? SealNumber { get; set; }
+
+    public string? CustomsDeclarationNumber { get; set; }
+    public int? Packages { get; set; }
+    public string? Customer { get; set; }
+    public string? Product { get; set; }
+    public string? ContainerNumber { get; set; }
 }
