@@ -5,6 +5,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Commons.Constants;
+using ERP.Core.Manager.Api.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
 
@@ -20,6 +21,7 @@ public class AddDucatsToReceptionHandler(
 
         #region 1. Verificar que el registro padre exista
         var recordEntrance = await _unitOfWork.RecordEntrance.Entities
+            .Include(r => r.ReceptionEntrance)
             .Include(r => r.EntranceDucats.Where(d => d.DeletedAt == null))
             .FirstOrDefaultAsync(r => r.Id == request.ReceptionId && r.DeletedAt == null, cancellationToken);
 
@@ -29,7 +31,14 @@ public class AddDucatsToReceptionHandler(
                 "ERP:RECEPTION_NOT_FOUND");
         #endregion
 
-        #region  1.a Restringir si el expediente ya avanzo de paso
+        #region 1.a Validar que el expediente sea tipo DUCA
+        if (recordEntrance.ReceptionEntrance?.DocumentType != DocumentType.DUCA)
+            return _errorManager.ThrowBadRequest<bool>(
+                "No se pueden agregar DUCA's a un expediente que no es de tipo DUCA.",
+                "ERP:INVALID_DOCUMENT_TYPE_FOR_DUCA");
+        #endregion
+
+        #region  1.b Restringir si el expediente ya avanzo de paso
         var hasAdvanced = await _unitOfWork.StepExecutionLogs.Entities
             .AnyAsync(l => l.RecordEntranceId == request.ReceptionId
                         && l.WorkflowStepDefinitionCode != WorkflowStepCodes.Reception
