@@ -7,6 +7,7 @@ using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using Superpower;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queries;
+using ERP.Core.Manager.Api.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Controllers.Reception;
 
@@ -50,9 +51,12 @@ public class ReceptionEntranceController(IMediator _mediator) : ApiControllerBas
         [FromRoute] string module_code,
         [FromQuery] string? driver_name,
         [FromQuery] string? plate_number,
+        [FromQuery] DocumentType? document_type,
+        [FromQuery] string? document_number,
         [FromQuery] string? ducat_number,
         [FromQuery] Guid? ducat_id,
-        [FromQuery] DateTime? date,
+        [FromQuery] DateTime? start_date,
+        [FromQuery] DateTime? end_date,
         [FromQuery] int page_number = 1,
         [FromQuery] int page_size = 10,
         CancellationToken cancellationToken = default)
@@ -67,9 +71,12 @@ public class ReceptionEntranceController(IMediator _mediator) : ApiControllerBas
             UserId = userId,
             DriverName = driver_name,
             PlateNumber = plate_number,
+            DocumentType = document_type,
+            DocumentNumber = document_number,
             DucatNumber = ducat_number,
             DucatId = ducat_id,
-            Date = date,
+            StartDate = start_date,
+            EndDate = end_date,
             PageNumber = page_number,
             PageSize = page_size
         }, cancellationToken);

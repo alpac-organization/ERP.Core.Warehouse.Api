@@ -1,3 +1,4 @@
+using ERP.Core.Manager.Api.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using MediatR;
 
@@ -11,9 +12,13 @@ public class GetReceptionEntrancesQuery : IRequest<GetReceptionEntrancesDto>
 
     public string? DriverName { get; set; }
     public string? PlateNumber { get; set; }
-    public string? DucatNumber { get; set; }
+    public DocumentType? DocumentType { get; set; }
+    public string? DocumentNumber { get; set; }
+    public String? DucatNumber { get; set; }
     public Guid? DucatId { get; set; }
-    public DateTime? Date { get; set; }
+
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
 
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 10;
