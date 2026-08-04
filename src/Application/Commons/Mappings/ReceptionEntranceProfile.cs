@@ -80,6 +80,23 @@ public static class ReceptionEntranceMapper
             ContainerNumber = dto.ContainerNumber?.SanitizeCode(),
         };
     }
+
+
+    public static ExitVehicleCommand ToExitVehicleCommand(
+        this ExitVehicleDto dto,
+        Guid receptionId, Guid userId, Guid companyId, string moduleCode)
+    {
+        return new()
+        {
+            ReceptionId = receptionId,
+            UserId = userId,
+            CompanyId = companyId,
+            ModuleCode = moduleCode,
+            ExitDate = dto?.ExitDate,
+            ExitTime = dto?.ExitTime
+        };
+    }
+
     public static RecordEntrance ToRecordEntranceEntity(
         this CreateReceptionEntranceCommand command,
         Guid recordEntranceId,
@@ -265,6 +282,7 @@ public class ReceptionEntranceProfile : Profile
                 {
                     var log = src.ExecutionLogs.FirstOrDefault(l => l.WorkflowStepDefinitionCode == stepCode);
                     return context.Mapper.Map<ExecutionLogDetailDto>(log);
+
                 }
                 return null;
             }));
