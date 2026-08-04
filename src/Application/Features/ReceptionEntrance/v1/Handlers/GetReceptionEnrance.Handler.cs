@@ -35,18 +35,33 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
         var receptionStepCode = receptionStep.Code;
         #endregion
 
-        var targetDate = request.Date.HasValue
-            ? DateOnly.FromDateTime(request.Date.Value)
+        var statsTargetDate = request.StartDate.HasValue
+            ? DateOnly.FromDateTime(request.StartDate.Value)
             : NicaraguaClock.Today;
 
-        #region 2. Filtro Base
+        #region 2. Filtro Base (busqueda global)
         var query = _unitOfWork.RecordEntrance.Entities
             .AsNoTracking()
             .Where(r => r.ExecutionLogs.Any(l =>
-                l.WorkflowStepDefinitionCode == receptionStepCode &&
-                l.StartDate == targetDate) &&
+                l.WorkflowStepDefinitionCode == receptionStepCode) &&
                 r.ReceptionEntrance != null &&
                 r.ReceptionEntrance.DeletedAt == null);
+
+        if (request.StartDate.HasValue || request.EndDate.HasValue)
+        {
+            var rangeStart = request.StartDate.HasValue
+                ? DateOnly.FromDateTime(request.StartDate.Value)
+                : DateOnly.FromDateTime(request.EndDate!.Value);
+
+            var rangeEnd = request.EndDate.HasValue
+                ? DateOnly.FromDateTime(request.EndDate.Value)
+                : rangeStart;
+
+            query = query.Where(r => r.ExecutionLogs.Any(l =>
+                l.WorkflowStepDefinitionCode == receptionStepCode &&
+                l.StartDate >= rangeStart && 
+                l.StartDate <= rangeEnd));
+        }
 
         if (!string.IsNullOrWhiteSpace(request.DriverName))
         {
@@ -60,17 +75,26 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
             query = query.Where(r => r.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
         }
 
+        if (request.DocumentType.HasValue)
+            query = query.Where(r => r.ReceptionEntrance!.DocumentType == request.DocumentType.Value);
+
+        if (!string.IsNullOrWhiteSpace(request.DocumentNumber))
+        {
+            var docFilter = request.DocumentNumber.Trim().ToLower().Replace(" ", "");
+            query = query.Where(r =>
+                r.EntranceDucats.Any(d => d.DucatNumber.ToLower().Replace(" ", "").Contains(docFilter)) ||
+                (r.CustomsDeclarations != null &&
+                 r.CustomsDeclarations.CustomsDeclarationNumber.ToLower().Replace(" ", "").Contains(docFilter)));
+        }
+
         if (!string.IsNullOrWhiteSpace(request.DucatNumber))
         {
             var ducatFilter = request.DucatNumber.Trim().ToLower().Replace(" ", "");
-            query = query.Where(r => r.EntranceDucats.Any(d =>
-                                                d.DucatNumber.ToLower().Replace(" ", "").Contains(ducatFilter)));
+            query = query.Where(r => r.EntranceDucats.Any(d => d.DucatNumber.ToLower().Replace(" ", "").Contains(ducatFilter)));
         }
 
         if (request.DucatId.HasValue)
-        {
             query = query.Where(r => r.EntranceDucats.Any(d => d.Id == request.DucatId.Value));
-        }
         #endregion
 
 
@@ -79,14 +103,14 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
             .AsNoTracking()
             .Where(r => r.ExecutionLogs.Any(l =>
                 l.WorkflowStepDefinitionCode == receptionStepCode &&
-                l.StartDate == targetDate))
+                l.StartDate == statsTargetDate))
             .CountAsync(cancellationToken);
 
         var recepcionadosQuery = _unitOfWork.RecordEntrance.Entities
             .AsNoTracking()
             .Where(r => r.ExecutionLogs.Any(l =>
                 l.WorkflowStepDefinitionCode == receptionStepCode &&
-                l.StartDate <= targetDate));
+                l.StartDate <= statsTargetDate));
 
         var totalOnSite = await recepcionadosQuery
             .Where(r => r.ReceptionEntrance == null ||
