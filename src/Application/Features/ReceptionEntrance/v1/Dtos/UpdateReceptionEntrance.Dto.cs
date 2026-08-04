@@ -7,7 +7,7 @@ public record UpdateDucatItemDto
 }
 public record UpdateReceptionEntranceDto
 {
-    public List<UpdateDucatItemDto> Ducats { get; set; } = [];
+    public List<UpdateDucatItemDto>? Ducats { get; set; }
 
     public string? CountryOfOrigin { get; set; }
     public string? Aduana { get; set; }
