@@ -195,8 +195,8 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
         registryDetail.EntranceDucatId = entranceDucat.Id;
         registryDetail.RegisteredByUserId = request.UserId.ToString();
         registryDetail.RegisteredByUserName = currentUserName;
-        registryDetail.RegisteredStartDate = today;
-        registryDetail.RegisteredStartTime = now;
+        registryDetail.RegisteredStartDate = request.RegisteredStartDate;
+        registryDetail.RegisteredStartTime = request.RegisteredStartTime;
         registryDetail.RegisteredEndDate = today;
         registryDetail.RegisteredEndTime = now;
 

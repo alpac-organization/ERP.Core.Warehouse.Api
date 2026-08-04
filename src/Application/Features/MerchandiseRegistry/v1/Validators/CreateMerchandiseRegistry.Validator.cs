@@ -64,5 +64,11 @@ public class CreateDucaRegistryDetailValidator : AbstractValidator<CreateDucatRe
         RuleFor(x => x.DestinationAreaObservation)
             .MaximumLength(500)
             .WithMessage("La observación del área de destino no puede superar los 500 caracteres.");
+
+        RuleFor(x => x.RegisteredStartDate)
+            .NotNull().WithMessage("La fecha de inicio es obligatoria.");
+ 
+        RuleFor(x => x.RegisteredStartTime)
+            .NotNull().WithMessage("La hora de inicio es obligatoria.");
     }
 }

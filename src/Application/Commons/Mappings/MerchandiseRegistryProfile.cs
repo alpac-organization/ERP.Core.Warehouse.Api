@@ -331,7 +331,9 @@ public static class DucatRegistryDetailMapper
             TotalWeight = dto.TotalWeight,
             ProductDescription = dto.ProductDescription,
             Remitente = dto.Remitente,
-            DestinationAreaObservation = dto.DestinationAreaObservation
+            DestinationAreaObservation = dto.DestinationAreaObservation,
+            RegisteredStartDate = dto.RegisteredStartDate,
+            RegisteredStartTime = dto.RegisteredStartTime
         };
     }
 }
