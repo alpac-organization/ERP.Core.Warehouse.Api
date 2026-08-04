@@ -48,10 +48,7 @@ public static class ReceptionEntranceMapper
 
     public static UpdateReceptionEntranceCommand ToUpdateCommand(
         this UpdateReceptionEntranceDto dto,
-        Guid receptionId,
-        Guid userId,
-        Guid companyId,
-        string moduleCode)
+        Guid receptionId, Guid userId, Guid companyId, string moduleCode)
     {
         return new()
         {
@@ -66,17 +63,23 @@ public static class ReceptionEntranceMapper
                 DucatNumber = d.DucatNumber.SanitizeCode()
             }).ToList(),
 
-            CountryOfOrigin = dto.CountryOfOrigin.SanitizeAlphanumeric(),
-            Aduana = dto.Aduana.SanitizeAlphanumeric(),
-            PlateNumber = dto.PlateNumber.SanitizeCode(),
-            TrailerChassis = dto.TrailerChassis.SanitizeCode(),
-            DriverLicense = dto.DriverLicense.SanitizeCode(),
-            Transportista = dto.Transportista.SanitizeAlphanumeric(),
-            DriverName = dto.DriverName.SanitizeAlphanumeric(),
-            SealNumber = dto.SealNumber.SanitizeCode(),
+            CountryOfOrigin = dto.CountryOfOrigin?.SanitizeAlphanumeric(),
+            Aduana = dto.Aduana?.SanitizeAlphanumeric(),
+            PlateNumber = dto.PlateNumber?.SanitizeCode(),
+            TrailerChassis = dto.TrailerChassis?.SanitizeCode(),
+            DriverLicense = dto.DriverLicense?.SanitizeCode(),
+            Transportista = dto.Transportista?.SanitizeAlphanumeric(),
+            TransportUnitId = dto.TransportUnitId,
+            DriverName = dto.DriverName?.SanitizeAlphanumeric(),
+            SealNumber = dto.SealNumber?.SanitizeCode(),
+
+            CustomsDeclarationNumber = dto.CustomsDeclarationNumber?.SanitizeCode(),
+            Packages = dto.Packages,
+            Customer = dto.Customer?.SanitizeAlphanumeric(),
+            Product = dto.Product?.SanitizeAlphanumeric(),
+            ContainerNumber = dto.ContainerNumber?.SanitizeCode(),
         };
     }
-
     public static RecordEntrance ToRecordEntranceEntity(
         this CreateReceptionEntranceCommand command,
         Guid recordEntranceId,
