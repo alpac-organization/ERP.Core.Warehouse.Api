@@ -5,6 +5,7 @@ using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 using ERP.Core.Manager.Api.Domain.Enums;
+using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 
@@ -23,23 +24,23 @@ public static class ReceptionEntranceMapper
             ModuleCode = moduleCode,
 
             DocumentType = dto.DocumentType,
-            DucatNumbers = dto.DucatNumbers,
+            DucatNumbers = dto.DucatNumbers.SanitizeCodeList(),
 
-            CustomsDeclarationNumber = dto.CustomsDeclarationNumber,
+            CustomsDeclarationNumber = dto.CustomsDeclarationNumber?.SanitizeCode(),
             Packages = dto.Packages,
-            Customer = dto.Customer,
-            Product = dto.Product,
-            ContainerNumber = dto.ContainerNumber,
+            Customer = dto.Customer?.SanitizeAlphanumeric(),
+            Product = dto.Product?.SanitizeAlphanumeric(),
+            ContainerNumber = dto.ContainerNumber?.SanitizeCode(),
 
-            CountryOfOrigin = dto.CountryOfOrigin,
-            Aduana = dto.Aduana,
-            PlateNumber = dto.PlateNumber,
-            TrailerChassis = dto.TrailerChassis,
-            DriverLicense = dto.DriverLicense,
-            Transportista = dto.Transportista,
+            CountryOfOrigin = dto.CountryOfOrigin.SanitizeAlphanumeric(),
+            Aduana = dto.Aduana.SanitizeAlphanumeric(),
+            PlateNumber = dto.PlateNumber.SanitizeCode(),
+            TrailerChassis = dto.TrailerChassis.SanitizeCode(),
+            DriverLicense = dto.DriverLicense.SanitizeCode(),
+            Transportista = dto.Transportista.SanitizeAlphanumeric(),
             TransportUnitId = dto.TransportUnitId,
-            DriverName = dto.DriverName,
-            SealNumber = dto.SealNumber,
+            DriverName = dto.DriverName.SanitizeAlphanumeric(),
+            SealNumber = dto.SealNumber.SanitizeCode(),
             StartDate = dto.StartDate,
             StartTime = dto.StartTime
         };
@@ -59,16 +60,21 @@ public static class ReceptionEntranceMapper
             CompanyId = companyId,
             ModuleCode = moduleCode,
 
-            Ducats = dto.Ducats,
-            CountryOfOrigin = dto.CountryOfOrigin,
-            Aduana = dto.Aduana,
-            PlateNumber = dto.PlateNumber,
-            TrailerChassis = dto.TrailerChassis,
-            DriverLicense = dto.DriverLicense,
-            Transportista = dto.Transportista,
+            Ducats = dto.Ducats?.Select(d => new UpdateDucatItemDto
+            {
+                Id = d.Id,
+                DucatNumber = d.DucatNumber.SanitizeCode()
+            }).ToList(),
+
+            CountryOfOrigin = dto.CountryOfOrigin.SanitizeAlphanumeric(),
+            Aduana = dto.Aduana.SanitizeAlphanumeric(),
+            PlateNumber = dto.PlateNumber.SanitizeCode(),
+            TrailerChassis = dto.TrailerChassis.SanitizeCode(),
+            DriverLicense = dto.DriverLicense.SanitizeCode(),
+            Transportista = dto.Transportista.SanitizeAlphanumeric(),
             Medio = dto.Medio,
-            DriverName = dto.DriverName,
-            SealNumber = dto.SealNumber,
+            DriverName = dto.DriverName.SanitizeAlphanumeric(),
+            SealNumber = dto.SealNumber.SanitizeCode(),
         };
     }
 
@@ -156,7 +162,7 @@ public static class ReceptionEntranceMapper
             UserId = userId,
             CompanyId = companyId,
             ModuleCode = moduleCode,
-            DucatNumbers = dto.DucatNumbers
+            DucatNumbers = dto.DucatNumbers.SanitizeCodeList()
         };
     }
 

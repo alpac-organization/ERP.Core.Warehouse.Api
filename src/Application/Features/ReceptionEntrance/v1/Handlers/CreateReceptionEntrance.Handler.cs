@@ -7,6 +7,7 @@ using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Commons.Constants;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
 
@@ -20,18 +21,20 @@ public class CreateReceptionEntranceHandler(
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        var firstStep = await _unitOfWork.WorkflowStepDefinitions.Entities
-            .OrderBy(x => x.ExecutionOrder)
-            .FirstOrDefaultAsync(cancellationToken);
+        #region 0. Paso de workflow explícito (Recepción)
+        var currentStepCode = WorkflowStepCodes.Reception;
 
-        if (firstStep == null)
+        var stepIsConfigured = await _unitOfWork.WorkflowStepDefinitions.Entities
+            .AnyAsync(x => x.Code == currentStepCode, cancellationToken);
+
+        if (!stepIsConfigured)
         {
             return _errorManager.ThrowInternalError<bool>(
-                "No se encontró una configuración para el flujo de trabajo (WorkflowStepDefinition). Contacte al administrador.",
+                $"No se encontró la configuración del paso '{WorkflowStepCodes.Reception}' en WorkflowStepDefinitions. Contacte al administrador.",
                 "ERP:WORKFLOW_NOT_CONFIGURED");
         }
+        #endregion
 
-        var currentStepCode = firstStep.Code;
         bool isDuca = request.DocumentType == DocumentType.DUCA;
 
         #region 1. Validación DUCA (solo aplica si DocumentType == DUCA)
@@ -120,7 +123,7 @@ public class CreateReceptionEntranceHandler(
         var systemEndDate = DateOnly.FromDateTime(nowNica);
         var systemEndTime = TimeOnly.FromDateTime(nowNica);
 
-        bool isConsolidated = request.DucatNumbers.Count > 1;
+        bool isConsolidated = isDuca && request.DucatNumbers.Count > 1;
 
         var user = await _unitOfWork.Users.Entities
             .AsNoTracking()
