@@ -70,6 +70,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     .Where(purs => purs.RequestType == request.RequestType);
             }
 
+            if (request.BranchId.HasValue)
+            {
+                purchaseRequestsQuery = purchaseRequestsQuery
+                    .Where(purs => purs.BranchId == request.BranchId);
+            }
+
             var totalRecords = await purchaseRequestsQuery.CountAsync(cancellationToken);
 
             var purchaseRequests = await purchaseRequestsQuery
