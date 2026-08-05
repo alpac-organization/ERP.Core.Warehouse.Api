@@ -3,6 +3,11 @@ using ERP.Core.Manager.Api.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 
+public enum VehicleStatus
+{
+    OnSite = 1,
+    Exited = 2
+}
 public class ReceptionEntranceListItemDto
 {
     public Guid Id { get; set; }
@@ -11,6 +16,7 @@ public class ReceptionEntranceListItemDto
     public DocumentType DocumentType { get; set; }
     public TimeOnly ArrivalTime { get; set; }
     public RecordEntranceStatus Status { get; set; }
+    public VehicleStatus VehicleStatus { get; set; }
 }
 
 public class GetReceptionEntrancesDto
