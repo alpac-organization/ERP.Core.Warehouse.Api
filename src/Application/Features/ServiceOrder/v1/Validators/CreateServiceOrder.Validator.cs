@@ -20,6 +20,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.CreateServiceOrder.v1.Vali
 
             RuleFor(x => x.BranchId)
                 .NotEmpty().WithMessage("La sucursal es requerida.");
+
+            RuleFor(x => x.CustomerId)
+                .NotEmpty().WithMessage("El cliente es requerido.");
         }
     }
 }
