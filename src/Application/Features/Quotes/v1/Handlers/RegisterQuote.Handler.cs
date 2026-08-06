@@ -43,14 +43,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotes.v1.Handlers
             }
 
             //Falta asociar la orden de compra
-            // var quotationEntity = QuotationMapper.ToQuotationEntity(request, access.User.Fullname ?? "", quotationsCode);
-            // await _unitOfWork.Quotations.RegisterQuotation(quotationEntity);
+            var quotationEntity = QuotationMapper.ToQuotationEntity(request, access.User.Fullname ?? "", quotationsCode);
+            await _unitOfWork.Quotations.RegisterQuotation(quotationEntity);
 
             foreach (var detail in request.QuoteDetails)
             {
                 //✅Registrar detalles de la cotización padre.
-                // var quoteDetailEntity = QuotationMapper.ToQuotationDetailEntity(detail, quotationEntity.Id);
-                // await _unitOfWork.QuotesDetails.RegisterQuoteDetail(quoteDetailEntity);
+                var quoteDetailEntity = QuotationMapper.ToQuotationDetailEntity(detail, quotationEntity.Id);
+                await _unitOfWork.QuotesDetails.RegisterQuoteDetail(quoteDetailEntity);
 
                 // foreach (var productInformation in detail.Products)
                 // {

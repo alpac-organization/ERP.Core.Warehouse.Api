@@ -12,7 +12,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotes.v1.Dtos
     public class QuotationDetailsDto
     {
         public Guid QuotationDetailId { get; set; }
-        // public QuotationStatus Status { get; set; }
+        public QuotationStatus Status { get; set; }
 
         //Objetos ingnorados al hacer el mapping para mejor control de los datos
         public SupplierDto SupplierInformation { get; set; } = new ();
