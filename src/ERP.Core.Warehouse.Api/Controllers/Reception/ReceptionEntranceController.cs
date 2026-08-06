@@ -191,7 +191,7 @@ public class ReceptionEntranceController(IMediator _mediator) : ApiControllerBas
     [FromRoute] Guid company_id,
     [FromRoute] string module_code,
     [FromRoute] Guid reception_id,
-    [FromBody] ExitVehicleDto? dto,
+    [FromBody] ExitVehicleDto dto,
     CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
