@@ -35,6 +35,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
 
     public class ProductInformation
     {
+        public bool HasQuotation { get; set; }
+
         public int Quantity { get; set; }
         public int? QuantityUnit { get; set; }
 

@@ -32,9 +32,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             }
 
             var detailsMapped = _mapper.Map<PurchaseRequestDetailsDto>(purchaseRequest);
-
-            //Obterner la logica del mapeo de los productos.
-
+            
             var requestedProducts = await _unitOfWork.PurchaseRequestItems.Entities
                 .Where(product => product.PurchaseRequestId == purchaseRequest.Id)
                 .Include(product => product.UnitMeasure)
@@ -42,9 +40,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     .ThenInclude(product => product.Category)
                 .ToListAsync(cancellationToken);
 
-            // var requestedProductsMapped = _mapper.Map<List<ProductInformation>>(requestedProducts);
+            var requestedProductsMapped = _mapper.Map<List<ProductInformation>>(requestedProducts);
 
-            // detailsMapped.RequestedProducts = requestedProductsMapped;
+            detailsMapped.RequestedProducts = requestedProductsMapped;
 
             return detailsMapped;
         }
