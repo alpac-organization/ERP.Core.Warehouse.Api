@@ -6,9 +6,8 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Services;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
-using ERP.Core.Warehouse.Api.Application.Features.Quotes.v1.Commands;
-using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
@@ -47,11 +46,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
             await _unitOfWork.PurchaseRequests.RegisterPurchaseRequest(purchaseRequestEntity);
 
-            foreach (var product in request.RequestedProducts)
+            foreach (var product in request.PurchaseRequestItems)
             {
                 //Registrar productos solicitados en la requisición.
                 var requestedProductEntity = PurchaseRequestMapper.ToRequestedProductEntity(product, purchaseRequestEntity.Id);
-                // await _unitOfWork.RequestedProducts.RegisterRequestedProduct(requestedProductEntity);
+                await _unitOfWork.PurchaseRequestItems.RegisterPurchaseRequestItem(requestedProductEntity);
             }
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);

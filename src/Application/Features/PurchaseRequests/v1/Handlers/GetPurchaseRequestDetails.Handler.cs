@@ -21,7 +21,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             }
 
             var purchaseRequest = await _unitOfWork.PurchaseRequests.Entities
-                // .Include(pur => pur.User)
+                .Include(pur => pur.RegistrationUser)
                 .Include(pur => pur.Branch)
                 .Where(pur => pur.Id == request.PurchaseRequestId)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -35,12 +35,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
             //Obterner la logica del mapeo de los productos.
 
-            // var requestedProducts = await _unitOfWork.RequestedProducts.Entities
-            //     .Where(product => product.PurchaseRequestId == purchaseRequest.Id)
-            //     .Include(product => product.UnitMeasure)
-            //     .Include(product => product.Product)
-            //         .ThenInclude(product => product.Category)
-            //     .ToListAsync(cancellationToken);
+            var requestedProducts = await _unitOfWork.PurchaseRequestItems.Entities
+                .Where(product => product.PurchaseRequestId == purchaseRequest.Id)
+                .Include(product => product.UnitMeasure)
+                .Include(product => product.Product)
+                    .ThenInclude(product => product.Category)
+                .ToListAsync(cancellationToken);
 
             // var requestedProductsMapped = _mapper.Map<List<ProductInformation>>(requestedProducts);
 

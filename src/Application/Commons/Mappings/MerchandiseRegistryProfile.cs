@@ -14,27 +14,27 @@ public class MerchandiseRegistryProfile : Profile
 
         // ==== 1. Lista de registros ====
         CreateMap<RecordEntrance, MerchandiseRegistryListItemDto>()
-    .ForMember(d => d.PlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.PlateNumber))
-    .ForMember(d => d.DriverName, o => o.MapFrom(s => s.ReceptionEntrance!.DriverName))
-    .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType))
-    .ForMember(d => d.ContainerNumber, o => o.MapFrom(s =>
-        s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration
-            ? s.CustomsDeclarations!.Details!.ContainerNumber
-            : (s.DucatRegistry != null ? s.DucatRegistry.ContainerNumber : null)))
-    .ForMember(d => d.ArrivalDate, o => o.MapFrom(s => s.ExecutionLogs
-        .Where(l => l.WorkflowStepDefinitionCode == receptionStepCode)
-        .Select(l => l.StartDate).First()))
-    .ForMember(d => d.ArrivalTime, o => o.MapFrom(s => s.ExecutionLogs
-        .Where(l => l.WorkflowStepDefinitionCode == receptionStepCode)
-        .Select(l => l.StartTime).First()))
-    .ForMember(d => d.TotalDocuments, o => o.MapFrom(s =>
-        s.ReceptionEntrance!.DocumentType == DocumentType.DUCA
-            ? s.EntranceDucats.Count(x => x.DeletedAt == null)
-            : (s.CustomsDeclarations != null ? 1 : 0)))
-    .ForMember(d => d.CompletedDocuments, o => o.MapFrom(s =>
-        s.ReceptionEntrance!.DocumentType == DocumentType.DUCA
-            ? s.EntranceDucats.Count(x => x.DeletedAt == null && x.Status == DucaStatus.Completed)
-            : (s.CustomsDeclarations != null && s.CustomsDeclarations.Details != null ? 1 : 0)));
+            .ForMember(d => d.PlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.PlateNumber))
+            .ForMember(d => d.DriverName, o => o.MapFrom(s => s.ReceptionEntrance!.DriverName))
+            .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType))
+            .ForMember(d => d.ContainerNumber, o => o.MapFrom(s =>
+                s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration
+                    ? s.CustomsDeclarations!.Details!.ContainerNumber
+                    : (s.DucatRegistry != null ? s.DucatRegistry.ContainerNumber : null)))
+            .ForMember(d => d.ArrivalDate, o => o.MapFrom(s => s.ExecutionLogs
+                .Where(l => l.WorkflowStepDefinitionCode == receptionStepCode)
+                .Select(l => l.StartDate).First()))
+            .ForMember(d => d.ArrivalTime, o => o.MapFrom(s => s.ExecutionLogs
+                .Where(l => l.WorkflowStepDefinitionCode == receptionStepCode)
+                .Select(l => l.StartTime).First()))
+            .ForMember(d => d.TotalDocuments, o => o.MapFrom(s =>
+                s.ReceptionEntrance!.DocumentType == DocumentType.DUCA
+                    ? s.EntranceDucats.Count(x => x.DeletedAt == null)
+                    : (s.CustomsDeclarations != null ? 1 : 0)))
+            .ForMember(d => d.CompletedDocuments, o => o.MapFrom(s =>
+                s.ReceptionEntrance!.DocumentType == DocumentType.DUCA
+                    ? s.EntranceDucats.Count(x => x.DeletedAt == null && x.Status == DucaStatus.Completed)
+                    : (s.CustomsDeclarations != null && s.CustomsDeclarations.Details != null ? 1 : 0)));
 
         // ==== 2. Detalle de un DUCA (item hijo) ====
         CreateMap<EntranceDucats, MerchandiseDucatDetailDto>()

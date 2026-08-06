@@ -34,8 +34,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 if (access.Role?.RoleType == RoleType.Operator)
                 {  
                     //Obtener unicamente las solicitudes del usuario que genero sus solocitudes
-                    // purchaseRequestsQuery = purchaseRequestsQuery
-                        // .Where(pur => pur.User.Id == request.UserId);
+                    purchaseRequestsQuery = purchaseRequestsQuery
+                        .Where(pur => pur.RegisteredByUserId == request.UserId);
                 }
 
                 if (access.Role?.RoleType == RoleType.Manager)
