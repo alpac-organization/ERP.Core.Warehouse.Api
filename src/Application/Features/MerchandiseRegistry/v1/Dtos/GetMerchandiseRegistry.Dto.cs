@@ -38,6 +38,9 @@ public class MerchandiseDucatDetailDto
     public string? Remitente { get; set; }
     public string? DestinationAreaObservation { get; set; }
 
+    public Guid? ServiceOrderId { get; set; }
+    public string? ServiceOrderCode { get; set; }
+
     public string? RegisteredByUserName { get; set; }
     public DateOnly? RegisteredStartDate { get; set; }
     public DateOnly? RegisteredEndDate { get; set; }
@@ -57,6 +60,9 @@ public class MerchandiseCustomsDeclarationDetailDto
     public int? Packages { get; set; }
     public string? Customer { get; set; }
     public string? Product { get; set; }
+
+    public Guid? ServiceOrderId { get; set; }
+    public string? ServiceOrderCode { get; set; }
 }
 
 public class GetMerchandiseRegistryDetailDto

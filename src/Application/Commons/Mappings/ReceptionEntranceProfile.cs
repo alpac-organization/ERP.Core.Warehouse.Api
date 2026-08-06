@@ -7,7 +7,6 @@ using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
-
 public static class ReceptionEntranceMapper
 {
     public static CreateReceptionEntranceCommand ToCommand(

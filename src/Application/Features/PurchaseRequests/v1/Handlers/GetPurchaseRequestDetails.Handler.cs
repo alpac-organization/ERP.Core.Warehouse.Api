@@ -42,9 +42,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     .ThenInclude(product => product.Category)
                 .ToListAsync(cancellationToken);
 
-            var requestedProductsMapped = _mapper.Map<List<ProductInformation>>(requestedProducts);
+            // var requestedProductsMapped = _mapper.Map<List<ProductInformation>>(requestedProducts);
 
-            detailsMapped.RequestedProducts = requestedProductsMapped;
+            // detailsMapped.RequestedProducts = requestedProductsMapped;
 
             return detailsMapped;
         }

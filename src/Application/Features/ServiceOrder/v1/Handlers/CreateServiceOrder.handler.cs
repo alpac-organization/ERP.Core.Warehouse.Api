@@ -7,6 +7,7 @@ using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Dtos;
 using ServiceOrderEntity = ERP.Core.Database.Domain.Entities.Warehouse.ServiceOrder;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using AutoMapper;
+using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Handlers
 {
@@ -35,16 +36,19 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Handlers
                     "ERP:CUSTOMER_NOT_FOUND");
 
             // 3.b Validar que no exista una OS abierta para el mismo cliente en la misma sucursal
+            var today = NicaraguaClock.Today;
+
             var hasOpenOrder = await _unitOfWork.ServiceOrders.Entities
                 .AnyAsync(so =>
                     so.CustomerId == request.CustomerId &&
-                    (so.Status == OSStatus.Pending || so.Status == OSStatus.InProgress),
+                    (so.Status == OSStatus.Pending || so.Status == OSStatus.InProgress) &&
+                    DateOnly.FromDateTime(so.CreatedAt.AddHours(-6)) == today,
                     cancellationToken);
 
             if (hasOpenOrder)
             {
                 return _errorManager.ThrowBadRequest<CreateServiceOrderResponse>(
-                    "El cliente ya tiene una orden de servicio abierta.",
+                    "El cliente ya tiene una orden de servicio abierta para el día de hoy.",
                     "ERP:CUSTOMER_HAS_OPEN_SERVICE_ORDER");
             }
 
