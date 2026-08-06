@@ -9,17 +9,20 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Comman
         public Guid? AreaId { get; set; }
         public Guid BranchId { get; set; }
         public DateOnly RequestDate { get; set; }
-        public string? Justification { get; set; }
+        public string? Observations { get; set; }
         public PurchaseRequestType RequestType { get; set; }
-        public List<RequestedProduct> RequestedProducts { get; set; } = [];
+        public List<PurchaseRequestItem> PurchaseRequestItems { get; set; } = [];
     }
 
-    public class RequestedProduct
+    public class PurchaseRequestItem
     {
         public int Quantity { get; set; }
         public int? QuantityUnit { get; set; }
-        public Guid UnitMeasureId { get; set; }
+
         public Guid ProductId { get; set; }
+        public Guid UnitMeasureId { get; set; }
+
+        public string? Description { get; set; }
         public string? Justification { get; set; }
     }
 }

@@ -18,19 +18,27 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             CreateMap<PurchaseRequest, PurchaseRequestDetailsDto>()
                 .ForMember(dest => dest.PurchaseRequestId,          opt => opt.MapFrom(src => src.Id))
 
-                .ForPath(dest => dest.UserInformation.UserId,       opt => opt.MapFrom(src => src.User.Id))
-                .ForPath(dest => dest.UserInformation.Email,        opt => opt.MapFrom(src => src.User.Email))
-                .ForPath(dest => dest.UserInformation.Fullname,     opt => opt.MapFrom(src => src.User.Fullname))
+                .ForPath(dest => dest.CreatorUserInformation.PictureUrl,     opt => opt.Ignore())
+                .ForPath(dest => dest.CreatorUserInformation.UserId,     opt => opt.MapFrom(src => src.RegistrationUser.Id))
+                .ForPath(dest => dest.CreatorUserInformation.Fullname,     opt => opt.MapFrom(src => src.RegistrationUser.Fullname))
+                .ForPath(dest => dest.CreatorUserInformation.Email,     opt => opt.MapFrom(src => src.RegistrationUser.Email))
 
-                .ForPath(dest => dest.BranchInformation.BranchId,     opt => opt.MapFrom(src => src.Branch.Id))
+                .ForPath(dest => dest.ReviewerUserInformation.PictureUrl,     opt => opt.Ignore())
+                .ForPath(dest => dest.ReviewerUserInformation.UserId,     opt => opt.MapFrom(src => src.RegistrationUser.Id))
+                .ForPath(dest => dest.ReviewerUserInformation.Fullname,     opt => opt.MapFrom(src => src.RegistrationUser.Fullname))
+                .ForPath(dest => dest.ReviewerUserInformation.Email,     opt => opt.MapFrom(src => src.RegistrationUser.Email))
+
+
+                .ForPath(dest => dest.BranchInformation.BranchId,   opt => opt.MapFrom(src => src.Branch.Id))
                 .ForPath(dest => dest.BranchInformation.BranchCode,   opt => opt.MapFrom(src => src.Branch.BranchCode))
                 .ForPath(dest => dest.BranchInformation.BranchName,   opt => opt.MapFrom(src => src.Branch.BranchName))
                 .ForPath(dest => dest.BranchInformation.CompanyAlias, opt => opt.MapFrom(src => src.Branch.CompanyAlias))
 
                 .ForPath(dest => dest.RequestedProducts, opt => opt.Ignore());
 
-            CreateMap<RequestedProduct, ProductInformation>()
+            CreateMap<PurchaseRequestItem, ProductInformation>()
                 .ForMember(dest => dest.PurchaseRequestId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
                 
                 .ForPath(dest => dest.ProductDetails.ProductId,   opt => opt.MapFrom(src => src.Product.Id))
                 .ForPath(dest => dest.ProductDetails.ProductName, opt => opt.MapFrom(src => src.Product.ProductName))
@@ -51,30 +59,32 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             return new()
             {
-                AreaId        = areaId,
-                Code          = codeGenerated,
-                UserId        = command.UserId,
-                BranchId      = command.BranchId,
-                RequestType   = command.RequestType,
-                Justification = command.Justification,
-                RequestStatus = PurchaseRequestStatus.Pending,
-                Id            = Guid.NewGuid(),
-                IsActive      = true,
-                RequestDate   = DateOnly.FromDateTime(DateTime.UtcNow),
+                AreaId              = areaId,
+                Code                = codeGenerated,
+                RegisteredByUserId  = command.UserId,
+                BranchId            = command.BranchId,
+                RequestType         = command.RequestType,
+                Observations        = command.Observations,
+                RequestStatus       = PurchaseRequestStatus.Pending,
+                Id                  = Guid.NewGuid(),
+                IsActive            = true,
+                RequestDate         = DateOnly.FromDateTime(DateTime.UtcNow)
             };
         }
 
-        public static RequestedProduct ToRequestedProductEntity(this Commands.RequestedProduct command, Guid purchaseRequestId)
+        public static PurchaseRequestItem ToRequestedProductEntity(this Commands.PurchaseRequestItem command, Guid purchaseRequestId)
         {
             return new()
             {
+                HasQuotation      = false,
                 Id                = Guid.NewGuid(),
+                PurchaseRequestId = purchaseRequestId,  
                 Quantity          = command.Quantity,
                 QuantityUnit      = command.QuantityUnit,
                 ProductId         = command.ProductId,
                 UnitMeasureId     = command.UnitMeasureId,
-                PurchaseRequestId = purchaseRequestId,  
-                Justification     = command.Justification
+                Justification     = command.Justification,
+                Description       = command.Description,
             };
         }
     }

@@ -1,5 +1,5 @@
 using FluentValidation;
-using ERP.Core.Manager.Api.Domain.Enums;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Validators;

@@ -1,5 +1,4 @@
 using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Manager.Api.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 
