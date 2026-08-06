@@ -228,7 +228,11 @@ public class ReceptionEntranceProfile : Profile
             .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType))
             .ForMember(d => d.ArrivalTime, o => o.MapFrom(s => s.ExecutionLogs
                 .Where(l => l.WorkflowStepDefinitionCode == receptionStepCode)
-                .Select(l => l.StartTime).FirstOrDefault()));
+                .Select(l => l.StartTime).FirstOrDefault()))
+            .ForMember(d => d.VehicleStatus, o => o.MapFrom(s =>
+            (s.ReceptionEntrance!.TransportUnitExitDate != null && s.ReceptionEntrance!.TransportUnitExitTime != null)
+            ? VehicleStatus.Exited
+            : VehicleStatus.OnSite));
 
         // 2. Mapeos para los detalles hijos
         CreateMap<EntranceDucats, EntranceDucatDetailItemDto>();

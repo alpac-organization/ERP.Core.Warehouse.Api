@@ -46,22 +46,42 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
                 l.WorkflowStepDefinitionCode == receptionStepCode) &&
                 r.ReceptionEntrance != null &&
                 r.ReceptionEntrance.DeletedAt == null);
+        
+        bool hasSearchFilters = 
+            !string.IsNullOrWhiteSpace(request.DriverName) ||
+            !string.IsNullOrWhiteSpace(request.PlateNumber) ||
+            request.DocumentType.HasValue ||
+            !string.IsNullOrWhiteSpace(request.DocumentNumber) ||
+            !string.IsNullOrWhiteSpace(request.DucatNumber) ||
+            request.DucatId.HasValue;
+        
+        bool hasExplicitDate = request.StartDate.HasValue || request.EndDate.HasValue;
 
-        if (request.StartDate.HasValue || request.EndDate.HasValue)
+        if (hasExplicitDate)
         {
+            //fecha explicita: se respeta el rango indicado sin importar otros filtros
             var rangeStart = request.StartDate.HasValue
                 ? DateOnly.FromDateTime(request.StartDate.Value)
                 : DateOnly.FromDateTime(request.EndDate!.Value);
 
             var rangeEnd = request.EndDate.HasValue
-                ? DateOnly.FromDateTime(request.EndDate.Value)
+                ?DateOnly.FromDateTime(request.EndDate.Value)
                 : rangeStart;
-
+            
             query = query.Where(r => r.ExecutionLogs.Any(l =>
                 l.WorkflowStepDefinitionCode == receptionStepCode &&
-                l.StartDate >= rangeStart && 
+                l.StartDate >= rangeStart &&
                 l.StartDate <= rangeEnd));
         }
+        else if (!hasSearchFilters)
+        {
+            var today = NicaraguaClock.Today;
+            query = query.Where(r => r.ExecutionLogs.Any(l =>
+                l.WorkflowStepDefinitionCode == receptionStepCode &&
+                l.StartDate == today));
+        }
+
+        // else: hay filtros de busqueda pero no fecha explicita
 
         if (!string.IsNullOrWhiteSpace(request.DriverName))
         {
@@ -114,17 +134,18 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
 
         var totalOnSite = await recepcionadosQuery
             .Where(r => r.ReceptionEntrance == null ||
-                    r.ReceptionEntrance.TransportUnitExitDate == null)
+                    r.ReceptionEntrance.TransportUnitExitDate == null ||
+                    r.ReceptionEntrance.TransportUnitExitTime == null)
             .CountAsync(cancellationToken);
 
         var totalExits = await recepcionadosQuery
             .Where(r => r.ReceptionEntrance != null &&
-                        r.ReceptionEntrance.TransportUnitExitDate != null)
+                        r.ReceptionEntrance.TransportUnitExitDate != null &&
+                        r.ReceptionEntrance.TransportUnitExitTime != null)
             .CountAsync(cancellationToken);
         #endregion
 
-        #region 3. Conteo
-
+        #region 4. Conteo
         var totalCount = await query.CountAsync(cancellationToken);
 
         var data = await query
