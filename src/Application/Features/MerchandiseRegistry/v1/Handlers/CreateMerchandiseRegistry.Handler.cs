@@ -92,8 +92,8 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
                 Id = Guid.NewGuid(),
                 RecordEntranceId = recordEntrance.Id,
                 WorkflowStepDefinitionCode = MerchandiseRegistrationSteps.Duca,
-                StartDate = today,
-                StartTime = now,
+                StartDate = request.RegisteredStartDate ?? today,
+                StartTime = request.RegisteredStartTime ?? now,
                 EndDate = null,
                 EndTime = null,
                 ProcessedByUserId = request.UserId.ToString(),
@@ -262,3 +262,67 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
         return true;
     }
 }
+
+#region Asignar OS a Declaracion Aduanera
+public class AssignServiceOrderToCustomsDeclarationHandlers(IUnitOfWork unitOfWork, IErrorManager errorManager)
+    : BaseValidatorHandler<AssignServiceOrderToCustomsDeclarationCommand, bool>(unitOfWork, errorManager)
+{
+    public override async Task<bool> Handle(AssignServiceOrderToCustomsDeclarationCommand request, CancellationToken cancellationToken)
+    {
+        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+        if (!access.IsSuccess) return access.ErrorResponse!;
+
+        var recordEntrance = await _unitOfWork.RecordEntrance.Entities
+            .Include(r => r.ReceptionEntrance!)
+            .Include(r => r.CustomsDeclarations!)
+            .FirstOrDefaultAsync(r => r.Id == request.ReceptionId && r.DeletedAt == null, cancellationToken);
+
+        if (recordEntrance == null || recordEntrance.ReceptionEntrance == null)
+            return _errorManager.ThrowBadRequest<bool>(
+                "El registro de recepción no fue encontrado o ya ha sido eliminado.",
+                "ERP:RECEPTION_NOT_FOUND");
+
+        if (recordEntrance.ReceptionEntrance.DocumentType != DocumentType.CustomsDeclaration)
+            return _errorManager.ThrowBadRequest<bool>(
+                "Esta operación solo aplica para recepciones de tipo Declaración Aduanera.",
+                "ERP:INVALID_DOCUMENT_TYPE");
+
+        if (recordEntrance.CustomsDeclarations == null)
+            return _errorManager.ThrowBadRequest<bool>(
+                "Esta recepción no tiene una declaración aduanera registrada.",
+                "ERP:CUSTOMS_DECLARATION_NOT_FOUND");
+
+        if (recordEntrance.CustomsDeclarations.ServiceOrderId != null)
+            return _errorManager.ThrowBadRequest<bool>(
+                "Esta declaración aduanera ya tiene una orden de servicio asignada.",
+                "ERP:CUSTOMS_DECLARATION_SERVICE_ORDER_ALREADY_ASSIGNED");
+
+        var serviceOrder = await _unitOfWork.ServiceOrders.Entities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(so => so.Id == request.ServiceOrderId && so.DeletedAt == null, cancellationToken);
+
+        if (serviceOrder == null)
+            return _errorManager.ThrowBadRequest<bool>(
+                "La orden de servicio indicada no existe.",
+                "ERP:SERVICE_ORDER_NOT_FOUND");
+
+        var serviceOrderAlreadyUsed = await _unitOfWork.EntranceDucats.Entities
+            .AnyAsync(d => d.ServiceOrderId == request.ServiceOrderId && d.DeletedAt == null, cancellationToken)
+            || await _unitOfWork.CustomsDeclarations.Entities
+            .AnyAsync(c => c.ServiceOrderId == request.ServiceOrderId && c.DeletedAt == null, cancellationToken);
+
+        if (serviceOrderAlreadyUsed)
+            return _errorManager.ThrowBadRequest<bool>(
+                "La orden de servicio indicada ya está asignada a otro documento.",
+                "ERP:SERVICE_ORDER_ALREADY_IN_USE");
+
+        recordEntrance.CustomsDeclarations.ServiceOrderId = serviceOrder.Id;
+        recordEntrance.CustomsDeclarations.ServiceOrderCode = serviceOrder.Code;
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return true;
+
+    }
+}
+#endregion

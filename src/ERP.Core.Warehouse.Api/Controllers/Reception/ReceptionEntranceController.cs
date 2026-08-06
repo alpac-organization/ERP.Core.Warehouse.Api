@@ -8,6 +8,8 @@ using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using Superpower;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queries;
 using ERP.Core.Manager.Api.Domain.Enums;
+using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Controllers.Reception;
 
@@ -207,5 +209,33 @@ public class ReceptionEntranceController(IMediator _mediator) : ApiControllerBas
         var response = await _mediator.Send(command, cancellationToken);
 
         return Ok(response);
+    }
+
+    [Tags("Registro de Mercancía")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/receptions/{reception_id}/customs-declaration/service-order")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<OkObjectResult> AssignServiceOrderToCustomsDeclarationAsync(
+    [FromRoute] Guid company_id,
+    [FromRoute] string module_code,
+    [FromRoute] Guid reception_id,
+    [FromBody] AssignServiceOrderToCustomsDeclarationDto dto,
+    CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+    Guid.TryParse(userIdStr, out var userId);
+
+    var command = new AssignServiceOrderToCustomsDeclarationCommand
+    {
+        ReceptionId = reception_id,
+        ServiceOrderId = dto.ServiceOrderId,
+        UserId = userId,
+        CompanyId = company_id,
+        ModuleCode = module_code
+    };
+
+    var response = await _mediator.Send(command, cancellationToken);
+    return Ok(response);
     }
 }
