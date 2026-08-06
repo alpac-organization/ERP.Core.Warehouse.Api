@@ -51,7 +51,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             {
                 //Registrar productos solicitados en la requisición.
                 var requestedProductEntity = PurchaseRequestMapper.ToRequestedProductEntity(product, purchaseRequestEntity.Id);
-                await _unitOfWork.RequestedProducts.RegisterRequestedProduct(requestedProductEntity);
+                // await _unitOfWork.RequestedProducts.RegisterRequestedProduct(requestedProductEntity);
             }
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);

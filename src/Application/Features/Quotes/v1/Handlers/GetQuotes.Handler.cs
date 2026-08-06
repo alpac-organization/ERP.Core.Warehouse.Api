@@ -23,19 +23,19 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotes.v1.Handlers
             }
 
             var quotationsQuery = _unitOfWork.Quotations.Entities
-                .Include(quo => quo.Branch)
+                // .Include(quo => quo.Branch)
                 .AsNoTracking();
 
             if (request.BranchId.HasValue)
             {
-                quotationsQuery = quotationsQuery 
-                    .Where(quo => quo.BranchId == request.BranchId);
+                // quotationsQuery = quotationsQuery 
+                    // .Where(quo => quo.BranchId == request.BranchId);
             }
 
             if (!string.IsNullOrEmpty(request.QuoteCode))
             {
-                quotationsQuery = quotationsQuery 
-                    .Where(quo => quo.QuotationCode == request.QuoteCode);
+                // quotationsQuery = quotationsQuery 
+                    // .Where(quo => quo.QuotationCode == request.QuoteCode);
             }
 
             var totalRecords = await quotationsQuery.CountAsync(cancellationToken);

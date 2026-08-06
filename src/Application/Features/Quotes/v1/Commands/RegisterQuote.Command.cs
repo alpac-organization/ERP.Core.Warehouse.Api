@@ -1,6 +1,6 @@
 using MediatR;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
-using ERP.Core.Database.Domain.Entities.Shopping;
+using ERP.Core.Warehouse.Api.Application.Features.Quotes.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Quotes.v1.Commands
 {
@@ -31,6 +31,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotes.v1.Commands
         public int? QuantityPerUnit { get; set; }
         public decimal PriceTotal { get; set; }
 
-        public QuotedProductData AdditionalData { get; set; } = new();
+        public QuotedProductDto AdditionalData { get; set; } = new();
     }
 }

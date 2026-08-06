@@ -1,6 +1,5 @@
 using AutoMapper;
 using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Manager.Api.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Commands;
@@ -58,6 +57,10 @@ public class MerchandiseRegistryProfile : Profile
             .ForMember(d => d.DurationInSeconds, o => o.MapFrom(s => ComputeEachDucaDurationSeconds(s)))
             .ForMember(d => d.DurationFormatted, o => o.MapFrom(s => ComputeEachDucaDurationFormatted(s)))
 
+            // Orden de servicio
+            .ForMember(d => d.ServiceOrderId, o => o.MapFrom(s => s.ServiceOrderId))
+            .ForMember(d => d.ServiceOrderCode, o => o.MapFrom(s => s.ServiceOrderCode))
+
             // Datos de auditoría de actualización
             .ForMember(d => d.UpdatedByUserName, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.UpdatedByUserName : null))
             .ForMember(d => d.UpdatedDate, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.UpdatedDate : (DateOnly?)null))
@@ -92,7 +95,9 @@ public class MerchandiseRegistryProfile : Profile
             .ForMember(d => d.CustomsDeclarationNumber, o => o.MapFrom(s => s.CustomsDeclarationNumber))
             .ForMember(d => d.Packages, o => o.MapFrom(s => s.Details != null ? s.Details.Packages : (int?)null))
             .ForMember(d => d.Customer, o => o.MapFrom(s => s.Details != null ? s.Details.Customer : null))
-            .ForMember(d => d.Product, o => o.MapFrom(s => s.Details != null ? s.Details.Product : null));
+            .ForMember(d => d.Product, o => o.MapFrom(s => s.Details != null ? s.Details.Product : null))
+            .ForMember(d => d.ServiceOrderId, o => o.MapFrom(s => s.ServiceOrderId))
+            .ForMember(d => d.ServiceOrderCode, o => o.MapFrom(s => s.ServiceOrderCode));
 
         // ==== 5. Bloque de recepción ====
         CreateMap<RecordEntrance, MerchandiseReceptionDetailDto>()
