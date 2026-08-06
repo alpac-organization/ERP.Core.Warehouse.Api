@@ -195,6 +195,9 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
             return _errorManager.ThrowBadRequest<bool>(
             "La orden de servicio indicada ya está asignada a otro documento.",
             "ERP:SERVICE_ORDER_ALREADY_IN_USE");
+
+        entranceDucat.ServiceOrderId = serviceOrder.Id;
+        entranceDucat.ServiceOrderCode = serviceOrder.Code;
         #endregion
 
         #region 3. Usuario actual
