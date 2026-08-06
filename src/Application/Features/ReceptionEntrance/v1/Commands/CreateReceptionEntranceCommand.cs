@@ -6,7 +6,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Comma
 
 public class CreateReceptionEntranceCommand : BaseRequest, IRequest<bool>
 {
-    public Guid? ServiceOrderId { get; set; }
     public string WorkflowStepDefinitionCode { get; set; } = string.Empty;
 
     public DocumentType DocumentType { get; set; }

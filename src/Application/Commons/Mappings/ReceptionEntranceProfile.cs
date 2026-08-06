@@ -275,15 +275,17 @@ public class ReceptionEntranceProfile : Profile
                 s.ReceptionEntrance!.DocumentType == DocumentType.DUCA ? s.EntranceDucats : null))
             .ForMember(d => d.CustomsDeclaration, o => o.MapFrom(s =>
                 s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration ? s.CustomsDeclarations : null))
-            .ForMember(d => d.ExecutionLog, o => o.MapFrom((src, dest, destMember, context) =>
+            .ForMember(d => d.ExecutionLog, o => 
             {
-                if (context.Items.TryGetValue("receptionStepCode", out var code) && code is string stepCode)
-                {
-                    var log = src.ExecutionLogs.FirstOrDefault(l => l.WorkflowStepDefinitionCode == stepCode);
-                    return context.Mapper.Map<ExecutionLogDetailDto>(log);
+                o.Condition((src, dest, srcMember, destMember, context) => 
+                    context.Items.TryGetValue("receptionStepCode", out var code) && code is string);
 
-                }
-                return null;
-            }));
+                o.MapFrom((src, dest, destMember, context) =>
+                {
+                    var stepCode = (string)context.Items["receptionStepCode"];
+                    var log = src.ExecutionLogs.FirstOrDefault(l => l.WorkflowStepDefinitionCode == stepCode);
+                    return log == null ? null : context.Mapper.Map<ExecutionLogDetailDto>(log);
+                });
+            });
     }
 }
