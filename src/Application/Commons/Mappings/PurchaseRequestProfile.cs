@@ -2,9 +2,7 @@ using AutoMapper;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
-
 using Commands = ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
-using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
@@ -41,16 +39,16 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(dest => dest.PurchaseRequestId, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
                 
-            //     .ForPath(dest => dest.ProductDetails.ProductId,   opt => opt.MapFrom(src => src.Product.Id))
-            //     .ForPath(dest => dest.ProductDetails.ProductName, opt => opt.MapFrom(src => src.Product.ProductName))
+                .ForPath(dest => dest.ProductDetails.ProductId,   opt => opt.MapFrom(src => src.Product.Id))
+                .ForPath(dest => dest.ProductDetails.ProductName, opt => opt.MapFrom(src => src.Product.ProductName))
 
-            //     .ForPath(dest => dest.ProductDetails.CategoryInformation.CatagoryId, opt => opt.MapFrom(src => src.Product.Category.Id))
-            //     .ForPath(dest => dest.ProductDetails.CategoryInformation.Code,       opt => opt.MapFrom(src => src.Product.Category.Code))                
-            //     .ForPath(dest => dest.ProductDetails.CategoryInformation.Name,       opt => opt.MapFrom(src => src.Product.Category.Name))
+                .ForPath(dest => dest.ProductDetails.CategoryInformation.CatagoryId, opt => opt.MapFrom(src => src.Product.Category.Id))
+                .ForPath(dest => dest.ProductDetails.CategoryInformation.Code,       opt => opt.MapFrom(src => src.Product.Category.Code))                
+                .ForPath(dest => dest.ProductDetails.CategoryInformation.Name,       opt => opt.MapFrom(src => src.Product.Category.Name))
 
-            //     .ForPath(dest => dest.UnitMeasureInformation.Code,   opt => opt.MapFrom(src => src.UnitMeasure.Code))
-            //     .ForPath(dest => dest.UnitMeasureInformation.Name,   opt => opt.MapFrom(src => src.UnitMeasure.Name))
-            //     .ForPath(dest => dest.UnitMeasureInformation.Symbol, opt => opt.MapFrom(src => src.UnitMeasure.Symbol));
+                .ForPath(dest => dest.UnitMeasureInformation.Code,   opt => opt.MapFrom(src => src.UnitMeasure.Code))
+                .ForPath(dest => dest.UnitMeasureInformation.Name,   opt => opt.MapFrom(src => src.UnitMeasure.Name))
+                .ForPath(dest => dest.UnitMeasureInformation.Symbol, opt => opt.MapFrom(src => src.UnitMeasure.Symbol));
         }
     }
 
