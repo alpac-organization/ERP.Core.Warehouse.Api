@@ -1,6 +1,5 @@
 using AutoMapper;
 using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Manager.Api.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Commands;
@@ -15,27 +14,27 @@ public class MerchandiseRegistryProfile : Profile
 
         // ==== 1. Lista de registros ====
         CreateMap<RecordEntrance, MerchandiseRegistryListItemDto>()
-    .ForMember(d => d.PlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.PlateNumber))
-    .ForMember(d => d.DriverName, o => o.MapFrom(s => s.ReceptionEntrance!.DriverName))
-    .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType))
-    .ForMember(d => d.ContainerNumber, o => o.MapFrom(s =>
-        s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration
-            ? s.CustomsDeclarations!.Details!.ContainerNumber
-            : (s.DucatRegistry != null ? s.DucatRegistry.ContainerNumber : null)))
-    .ForMember(d => d.ArrivalDate, o => o.MapFrom(s => s.ExecutionLogs
-        .Where(l => l.WorkflowStepDefinitionCode == receptionStepCode)
-        .Select(l => l.StartDate).First()))
-    .ForMember(d => d.ArrivalTime, o => o.MapFrom(s => s.ExecutionLogs
-        .Where(l => l.WorkflowStepDefinitionCode == receptionStepCode)
-        .Select(l => l.StartTime).First()))
-    .ForMember(d => d.TotalDocuments, o => o.MapFrom(s =>
-        s.ReceptionEntrance!.DocumentType == DocumentType.DUCA
-            ? s.EntranceDucats.Count(x => x.DeletedAt == null)
-            : (s.CustomsDeclarations != null ? 1 : 0)))
-    .ForMember(d => d.CompletedDocuments, o => o.MapFrom(s =>
-        s.ReceptionEntrance!.DocumentType == DocumentType.DUCA
-            ? s.EntranceDucats.Count(x => x.DeletedAt == null && x.Status == DucaStatus.Completed)
-            : (s.CustomsDeclarations != null && s.CustomsDeclarations.Details != null ? 1 : 0)));
+            .ForMember(d => d.PlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.PlateNumber))
+            .ForMember(d => d.DriverName, o => o.MapFrom(s => s.ReceptionEntrance!.DriverName))
+            .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType))
+            .ForMember(d => d.ContainerNumber, o => o.MapFrom(s =>
+                s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration
+                    ? s.CustomsDeclarations!.Details!.ContainerNumber
+                    : (s.DucatRegistry != null ? s.DucatRegistry.ContainerNumber : null)))
+            .ForMember(d => d.ArrivalDate, o => o.MapFrom(s => s.ExecutionLogs
+                .Where(l => l.WorkflowStepDefinitionCode == receptionStepCode)
+                .Select(l => l.StartDate).First()))
+            .ForMember(d => d.ArrivalTime, o => o.MapFrom(s => s.ExecutionLogs
+                .Where(l => l.WorkflowStepDefinitionCode == receptionStepCode)
+                .Select(l => l.StartTime).First()))
+            .ForMember(d => d.TotalDocuments, o => o.MapFrom(s =>
+                s.ReceptionEntrance!.DocumentType == DocumentType.DUCA
+                    ? s.EntranceDucats.Count(x => x.DeletedAt == null)
+                    : (s.CustomsDeclarations != null ? 1 : 0)))
+            .ForMember(d => d.CompletedDocuments, o => o.MapFrom(s =>
+                s.ReceptionEntrance!.DocumentType == DocumentType.DUCA
+                    ? s.EntranceDucats.Count(x => x.DeletedAt == null && x.Status == DucaStatus.Completed)
+                    : (s.CustomsDeclarations != null && s.CustomsDeclarations.Details != null ? 1 : 0)));
 
         // ==== 2. Detalle de un DUCA (item hijo) ====
         CreateMap<EntranceDucats, MerchandiseDucatDetailDto>()
@@ -57,6 +56,10 @@ public class MerchandiseRegistryProfile : Profile
             // Cálculos directos de duración usando Start y End
             .ForMember(d => d.DurationInSeconds, o => o.MapFrom(s => ComputeEachDucaDurationSeconds(s)))
             .ForMember(d => d.DurationFormatted, o => o.MapFrom(s => ComputeEachDucaDurationFormatted(s)))
+
+            // Orden de servicio
+            .ForMember(d => d.ServiceOrderId, o => o.MapFrom(s => s.ServiceOrderId))
+            .ForMember(d => d.ServiceOrderCode, o => o.MapFrom(s => s.ServiceOrderCode))
 
             // Datos de auditoría de actualización
             .ForMember(d => d.UpdatedByUserName, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.UpdatedByUserName : null))
@@ -92,7 +95,9 @@ public class MerchandiseRegistryProfile : Profile
             .ForMember(d => d.CustomsDeclarationNumber, o => o.MapFrom(s => s.CustomsDeclarationNumber))
             .ForMember(d => d.Packages, o => o.MapFrom(s => s.Details != null ? s.Details.Packages : (int?)null))
             .ForMember(d => d.Customer, o => o.MapFrom(s => s.Details != null ? s.Details.Customer : null))
-            .ForMember(d => d.Product, o => o.MapFrom(s => s.Details != null ? s.Details.Product : null));
+            .ForMember(d => d.Product, o => o.MapFrom(s => s.Details != null ? s.Details.Product : null))
+            .ForMember(d => d.ServiceOrderId, o => o.MapFrom(s => s.ServiceOrderId))
+            .ForMember(d => d.ServiceOrderCode, o => o.MapFrom(s => s.ServiceOrderCode));
 
         // ==== 5. Bloque de recepción ====
         CreateMap<RecordEntrance, MerchandiseReceptionDetailDto>()
@@ -323,6 +328,7 @@ public static class DucatRegistryDetailMapper
         {
             ReceptionId = receptionId,
             EntranceDucatId = entranceDucatId,
+            ServiceOrderId = dto.ServiceOrderId,
             UserId = userId,
             CompanyId = companyId,
             ModuleCode = moduleCode,

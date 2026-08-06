@@ -30,20 +30,20 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
                 .IsInEnum()
                 .WithMessage("El tipo de solicitud no es válido.");
 
-            RuleFor(x => x.Justification)
+            RuleFor(x => x.Observations)
                 .MaximumLength(1000)
-                .WithMessage("La justificación no puede exceder los 1000 caracteres.");
+                .WithMessage("Las observaciones no puede exceder los 1000 caracteres.");
 
-            RuleFor(x => x.RequestedProducts)
+            RuleFor(x => x.PurchaseRequestItems)
                 .NotEmpty()
                 .WithMessage("Debe agregar al menos un producto a la solicitud.");
 
-            RuleForEach(x => x.RequestedProducts)
+            RuleForEach(x => x.PurchaseRequestItems)
                 .SetValidator(new RequestedProductValidator());
         }
     }
 
-    public class RequestedProductValidator : AbstractValidator<RequestedProduct>
+    public class RequestedProductValidator : AbstractValidator<PurchaseRequestItem>
     {
         public RequestedProductValidator()
         {

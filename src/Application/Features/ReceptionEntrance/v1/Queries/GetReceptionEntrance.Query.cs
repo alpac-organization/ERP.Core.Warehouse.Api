@@ -1,6 +1,6 @@
-using ERP.Core.Manager.Api.Domain.Enums;
-using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using MediatR;
+using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queries;
 

@@ -5,11 +5,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
 {
     public class PurchaseRequestDetailsDto : PurchaseRequestDto
     {
-        public string? Justification { get; set; }
+        public string? Observations { get; set; }
         public string? ReasonRejection { get; set; }
 
-        public UserInformation UserInformation { get; set; } = new ();
         public BranchInformation BranchInformation { get; set; } = new ();
+        public CreatorUserInformation CreatorUserInformation { get; set; } = new();
+        public ReviewerUserInformation ReviewerUserInformation { get; set; } = new ();
 
         public List<ProductInformation> RequestedProducts { get; set; } =  [];
     }
@@ -22,7 +23,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public string? CompanyAlias { get; set; }
     }
 
-    public class UserInformation
+    public class ReviewerUserInformation: CreatorUserInformation { }
+    public class CreatorUserInformation
     {        
         public Guid UserId { get; set; }
         public string? Email { get; set; }
@@ -30,11 +32,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public string? PictureUrl { get; set; }
     }
 
+
     public class ProductInformation
     {
         public int Quantity { get; set; }
         public int? QuantityUnit { get; set; }
+
+        public string? Description { get; set; }
         public string? Justification { get; set; }
+
         public Guid PurchaseRequestId { get; set; }
 
         public ProductDetails ProductDetails { get; set; } = new ();
