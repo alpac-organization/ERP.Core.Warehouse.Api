@@ -6,7 +6,9 @@ using ERP.Core.Infrastructure.Attributes;
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queries;
+using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Controllers.Reception;
 

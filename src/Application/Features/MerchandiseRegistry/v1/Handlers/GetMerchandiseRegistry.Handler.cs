@@ -29,12 +29,75 @@ public class GetMerchandiseRegistryHandler(IUnitOfWork unitOfWork, IErrorManager
                 "No se encontró la configuración del paso de recepción. Contacte al administrador.",
                 "ERP:WORKFLOW_NO_CONFIGURED");
         }
+
+        var receptionStepCode = receptionStep.Code;
         #endregion
 
         #region filtro base
         var query = _unitOfWork.RecordEntrance.Entities
             .AsNoTracking()
             .Where(r => r.ReceptionEntrance != null && r.ReceptionEntrance.DeletedAt == null);
+
+        bool hasExplicitDate = request.StarDate.HasValue || request.EndDate.HasValue;
+
+        if (hasExplicitDate)
+        {
+            var rangeStart = request.StarDate.HasValue
+                ? DateOnly.FromDateTime(request.StarDate.Value)
+                : DateOnly.FromDateTime(request.EndDate!.Value);
+
+            var rangeEnd = request.EndDate.HasValue
+                ? DateOnly.FromDateTime(request.EndDate.Value)
+                : rangeStart;
+
+            query = query.Where(r => r.ExecutionLogs.Any(l =>
+                l.WorkflowStepDefinitionCode == receptionStepCode &&
+                l.StartDate >= rangeStart &&
+                l.StartDate <= rangeEnd));
+        } // else: sin fecha explicita no se filtra, se muestran todos los registros
+
+        if (!string.IsNullOrWhiteSpace(request.DriverName))
+        {
+            var driverFilter = request.DriverName.Trim().ToLower().Replace(" ", "");
+            query = query.Where(r => r.ReceptionEntrance!.DriverName.ToLower().Replace(" ", "").Contains(driverFilter));
+        }
+        
+        if (!string.IsNullOrWhiteSpace(request.PlateNumber))
+        {
+            var plateFilter = request.PlateNumber.Trim().ToLower().Replace(" ", "");
+            query = query.Where(r => r.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
+        }
+
+        if (request.DocumentType.HasValue)
+            query = query.Where(r => r.ReceptionEntrance!.DocumentType == request.DocumentType.Value);
+        
+        if (!string.IsNullOrWhiteSpace(request.DocumentNumber))
+        {
+            var docFilter = request.DocumentNumber.Trim().ToLower().Replace(" ", "");
+            query = query.Where(r =>
+                r.EntranceDucats.Any(d => d.DucatNumber.ToLower().Replace(" ", "").Contains(docFilter)) ||
+                (r.CustomsDeclarations != null &&
+                 r.CustomsDeclarations.CustomsDeclarationNumber.ToLower().Replace(" ", "").Contains(docFilter)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.DucatNumber))
+        {
+            var ducatFilter = request.DucatNumber.Trim().ToLower().Replace(" ", "");
+            query = query.Where(r => r.EntranceDucats.Any(d => d.DucatNumber.ToLower().Replace(" ", "").Contains(ducatFilter)));
+        }
+        
+        if(request.DucatId.HasValue)
+            query = query.Where(r => r.EntranceDucats.Any(d => d.Id == request.DucatId.Value));
+
+        if (!string.IsNullOrWhiteSpace(request.ServiceOrderCode))
+        {
+            var osFilter = request.ServiceOrderCode.Trim().ToLower().Replace(" ", "");
+            query = query.Where(r =>
+                r.EntranceDucats.Any(d => d.ServiceOrderCode != null &&
+                    d.ServiceOrderCode.ToLower().Replace(" ", "").Contains(osFilter)) ||
+                (r.CustomsDeclarations != null && r.CustomsDeclarations.ServiceOrderCode != null &&
+                    r.CustomsDeclarations.ServiceOrderCode.ToLower().Replace(" ", "").Contains(osFilter)));
+        }
         #endregion
 
         var totalCount = await query.CountAsync(cancellationToken);

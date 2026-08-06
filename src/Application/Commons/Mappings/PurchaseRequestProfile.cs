@@ -2,7 +2,6 @@ using AutoMapper;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
-
 using Commands = ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
