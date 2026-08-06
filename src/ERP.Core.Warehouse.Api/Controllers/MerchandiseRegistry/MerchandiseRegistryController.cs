@@ -119,7 +119,7 @@ public class MerchandiseRegistryController(IMediator _mediator) : ApiControllerB
     }
 
     [Tags("Registro de Mercancía")]
-    [HttpPost(" Lo metió de nuevocompanies/{company_id}/modules/{module_code}/receptions/{reception_id}/customs-declaration/service-order")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/receptions/{reception_id}/customs-declaration/service-order")]
     [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
