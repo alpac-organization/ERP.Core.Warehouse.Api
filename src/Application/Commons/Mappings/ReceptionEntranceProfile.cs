@@ -106,7 +106,6 @@ public static class ReceptionEntranceMapper
         return new()
         {
             Id = recordEntranceId,
-            ServiceOrderId = null,
             CurrentStepCode = stepCode,
             Status = RecordEntranceStatus.Queue,
             ClosedAtDate = null,
