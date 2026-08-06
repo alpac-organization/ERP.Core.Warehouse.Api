@@ -18,6 +18,7 @@ public class CreateDucatRegistryDetailCommand : BaseRequest, IRequest<bool>
 {
     public Guid ReceptionId { get; set; }
     public Guid EntranceDucatId { get; set; }
+    public Guid? ServiceOrderId { get; set; }
 
     public Guid ProductId { get; set; }
     public int TotalBultos { get; set; }
@@ -27,4 +28,10 @@ public class CreateDucatRegistryDetailCommand : BaseRequest, IRequest<bool>
     public string? DestinationAreaObservation { get; set; }
     public DateOnly? RegisteredStartDate { get; set; }
     public TimeOnly? RegisteredStartTime { get; set; }
+}
+
+public class AssignServiceOrderToCustomsDeclarationCommand : BaseRequest, IRequest<bool>
+{
+    public Guid ReceptionId { get; set; }
+    public Guid ServiceOrderId { get; set; }
 }

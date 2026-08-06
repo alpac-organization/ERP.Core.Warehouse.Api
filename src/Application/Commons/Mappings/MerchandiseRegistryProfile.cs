@@ -323,6 +323,7 @@ public static class DucatRegistryDetailMapper
         {
             ReceptionId = receptionId,
             EntranceDucatId = entranceDucatId,
+            ServiceOrderId = dto.ServiceOrderId,
             UserId = userId,
             CompanyId = companyId,
             ModuleCode = moduleCode,

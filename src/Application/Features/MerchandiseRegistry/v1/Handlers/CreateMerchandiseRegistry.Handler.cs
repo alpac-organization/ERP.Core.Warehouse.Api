@@ -18,7 +18,7 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
 {
     public override async Task<bool> Handle(CreateDucatRegistryCommand request, CancellationToken cancellationToken)
     {
-         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
         var recordEntrance = await _unitOfWork.RecordEntrance.Entities
@@ -26,14 +26,14 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
             .Include(r => r.DucatRegistry!)
             .FirstOrDefaultAsync(r => r.Id == request.ReceptionId && r.DeletedAt == null, cancellationToken);
 
-        if(recordEntrance == null || recordEntrance.ReceptionEntrance == null)
+        if (recordEntrance == null || recordEntrance.ReceptionEntrance == null)
         {
-             return _errorManager.ThrowBadRequest<bool>(
-                "El registro de recepción no fue encontrado o ya ha sido eliminado.",
-                "ERP:RECEPTION_NOT_FOUND");
+            return _errorManager.ThrowBadRequest<bool>(
+               "El registro de recepción no fue encontrado o ya ha sido eliminado.",
+               "ERP:RECEPTION_NOT_FOUND");
         }
 
-        if(recordEntrance.ReceptionEntrance.DocumentType != DocumentType.DUCA)
+        if (recordEntrance.ReceptionEntrance.DocumentType != DocumentType.DUCA)
         {
             return _errorManager.ThrowBadRequest<bool>(
                 "El detalle general solo aplica para recepciones de tipo DUCA.",
@@ -49,17 +49,17 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
 
         var sanitizedContainerNumber = SanitizeAlphanumeric(request.ContainerNumber);
 
-        if(string.IsNullOrEmpty(sanitizedContainerNumber))
+        if (string.IsNullOrEmpty(sanitizedContainerNumber))
         {
             return _errorManager.ThrowBadRequest<bool>(
                 "El número de contenedor debe contener al menos un caracter alfanumérico.",
                 "ERP:INVALID_CONTAINER_NUMBER");
         }
-        
+
         var user = await _unitOfWork.Users.Entities
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
-        
+
         if (user == null)
         {
             return _errorManager.ThrowBadRequest<bool>(
@@ -85,7 +85,7 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
         var executionLog = await _unitOfWork.StepExecutionLogs.Entities
             .FirstOrDefaultAsync(l => l.RecordEntranceId == recordEntrance.Id && l.WorkflowStepDefinitionCode == MerchandiseRegistrationSteps.Duca, cancellationToken);
 
-        if(executionLog == null)
+        if (executionLog == null)
         {
             executionLog = new StepExecutionLogs
             {
@@ -109,7 +109,7 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
 
         return true;
     }
-     private static string SanitizeAlphanumeric(string? value)
+    private static string SanitizeAlphanumeric(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return string.Empty;
         return Regex.Replace(value, "[^a-zA-Z0-9]", "").ToUpperInvariant();
@@ -137,25 +137,25 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
             return _errorManager.ThrowBadRequest<bool>(
                 "El registro de recepción no fue encontrado o ya ha sido eliminado.",
                 "ERP:RECEPTION_NOT_FOUND");
- 
+
         if (recordEntrance.ReceptionEntrance.DocumentType != DocumentType.DUCA)
             return _errorManager.ThrowBadRequest<bool>(
                 "El detalle por DUCA solo aplica para recepciones de tipo DUCA.",
                 "ERP:INVALID_DOCUMENT_TYPE");
- 
+
         if (recordEntrance.DucatRegistry == null)
             return _errorManager.ThrowBadRequest<bool>(
                 "Debe registrar primero el detalle general (Dato General) de esta recepción.",
                 "ERP:DUCAT_REGISTRY_NOT_FOUND");
-        
+
         var entranceDucat = recordEntrance.EntranceDucats
             .FirstOrDefault(d => d.Id == request.EntranceDucatId && d.DeletedAt == null);
-        
+
         if (entranceDucat == null)
             return _errorManager.ThrowBadRequest<bool>(
                 "El DUCA indicado no existe o no pertenece a esta recepción.",
                 "ERP:DUCAT_NOT_FOUND");
-        
+
         if (entranceDucat.RegistryDetail != null)
             return _errorManager.ThrowBadRequest<bool>(
                 "Este DUCA ya tiene un detalle registrado. Use la edición para modificarlo.",
@@ -172,6 +172,33 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
                 "ERP:PRODUCT_NOT_FOUND");
         #endregion
 
+        #region 2.b Validacion de orden de servicio
+        if (entranceDucat.ServiceOrderId != null)
+            return _errorManager.ThrowBadRequest<bool>(
+                "Este DUCA ya tiene una orden de servicio asignada.",
+            "ERP:DUCAT_SERVICE_ORDER_ALREADY_ASSIGNED");
+
+        var serviceOrder = await _unitOfWork.ServiceOrders.Entities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(so => so.Id == request.ServiceOrderId && so.DeletedAt == null, cancellationToken);
+
+        if (serviceOrder == null)
+            return _errorManager.ThrowBadRequest<bool>(
+                "La orden de servicio indicada no existe.",
+            "ERP:SERVICE_ORDER_NOT_FOUND");
+
+        // ¿Otro documento usa esta misma OS?
+        var serviceOrderAlreadyUsed = await _unitOfWork.EntranceDucats.Entities
+            .AnyAsync(d => d.ServiceOrderId == request.ServiceOrderId && d.DeletedAt == null, cancellationToken)
+            || await _unitOfWork.CustomsDeclarations.Entities
+            .AnyAsync(c => c.ServiceOrderId == request.ServiceOrderId && c.DeletedAt == null, cancellationToken);
+
+        if (serviceOrderAlreadyUsed)
+            return _errorManager.ThrowBadRequest<bool>(
+            "La orden de servicio indicada ya está asignada a otro documento.",
+            "ERP:SERVICE_ORDER_ALREADY_IN_USE");
+        #endregion
+
         #region 3. Usuario actual
         var user = await _unitOfWork.Users.Entities
             .AsNoTracking()
@@ -181,7 +208,7 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
             return _errorManager.ThrowBadRequest<bool>(
                 "No se pudo identificar al usuario autenticado en el sistema.",
                 "ERP:USER_NOT_FOUND");
-        
+
         var currentUserName = user.Fullname ?? user.UserName ?? request.UserId.ToString();
         #endregion
 
@@ -219,7 +246,7 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
                     l.RecordEntranceId == recordEntrance.Id &&
                     l.WorkflowStepDefinitionCode == MerchandiseRegistrationSteps.Duca,
                     cancellationToken);
-            
+
             if (executionLog != null)
             {
                 executionLog.EndDate = today;
