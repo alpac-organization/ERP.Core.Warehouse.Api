@@ -162,7 +162,7 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
 
         #region 2. Validacion de producto
         var productExists = await _unitOfWork.Products.Entities
-            .AnyAsync(p => p.Id == request.ProductId && p.DeletedAt == null, cancellationToken);
+            .AnyAsync(p => p.Id == request.MerchandiseId && p.DeletedAt == null, cancellationToken);
 
         if (!productExists)
             return _errorManager.ThrowBadRequest<bool>(

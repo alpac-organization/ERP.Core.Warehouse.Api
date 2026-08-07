@@ -151,7 +151,7 @@ public class GetMerchandiseRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorM
             .AsNoTracking()
             .Where(l => l.RecordEntranceId == recordEntrance.Id && l.DeletedAt == null)
             .Include(d => d.RegistryDetail!)
-                .ThenInclude(rd => rd.Product)
+                .ThenInclude(rd => rd.Merchandise)
             .ToListAsync(cancellationToken);
 
         recordEntrance.ExecutionLogs = await _unitOfWork.StepExecutionLogs.Entities

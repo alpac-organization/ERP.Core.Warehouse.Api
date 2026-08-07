@@ -38,8 +38,8 @@ public class MerchandiseRegistryProfile : Profile
 
         // ==== 2. Detalle de un DUCA (item hijo) ====
         CreateMap<EntranceDucats, MerchandiseDucatDetailDto>()
-            .ForMember(d => d.ProductId, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.ProductId : (Guid?)null))
-            .ForMember(d => d.ProductName, o => o.MapFrom(s => s.RegistryDetail != null && s.RegistryDetail.Product != null ? s.RegistryDetail.Product.ProductName : null))
+            .ForMember(d => d.MerchandiseId, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.MerchandiseId : (Guid?)null))
+            .ForMember(d => d.MerchandiseName, o => o.MapFrom(s => s.RegistryDetail != null && s.RegistryDetail.Merchandise != null ? s.RegistryDetail.Merchandise.MerchandiseName : null))
             .ForMember(d => d.TotalBultos, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.TotalBultos : (int?)null))
             .ForMember(d => d.TotalWeight, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.TotalWeight : (decimal?)null))
             .ForMember(d => d.ProductDescription, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.ProductDescription : null))
@@ -332,7 +332,7 @@ public static class DucatRegistryDetailMapper
             UserId = userId,
             CompanyId = companyId,
             ModuleCode = moduleCode,
-            ProductId = dto.ProductId,
+            MerchandiseId = dto.MerchandiseId,
             TotalBultos = dto.TotalBultos,
             TotalWeight = dto.TotalWeight,
             ProductDescription = dto.ProductDescription,
