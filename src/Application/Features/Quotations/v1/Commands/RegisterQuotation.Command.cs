@@ -8,8 +8,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands
 {
     public class RegisterQuotationCommand : BaseRequest, IRequest<bool>
     {
+        public required List<QuotationItem> QuotationItems { get; set; }
+    }
+
+    public class QuotationItem
+    {
         public Guid SupplierId { get; set; }
-        public Guid PurchaseRequestId { get; set; }
+        public Guid PurchaseRequestItemId { get; set; }
 
         public bool HasDelivery { get; set; }
         public bool HasGuarantee { get; set; }
@@ -27,6 +32,5 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands
 
         public decimal? WarrantyPeriod { get; set; }
         public TimeType? WarrantyPeriodTimeType { get; set; }
-
     }
 }
