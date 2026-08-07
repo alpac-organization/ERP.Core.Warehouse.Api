@@ -45,7 +45,7 @@ public class CreateDucaRegistryDetailValidator : AbstractValidator<CreateDucatRe
         RuleFor(x => x.EntranceDucatId)
             .NotEqual(Guid.Empty).WithMessage("El identificador del DUCA es obligatorio.");
  
-        RuleFor(x => x.ProductId)
+        RuleFor(x => x.MerchandiseId)
             .NotEqual(Guid.Empty).WithMessage("El producto es obligatorio.");
  
         RuleFor(x => x.TotalBultos)

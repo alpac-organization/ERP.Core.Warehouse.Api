@@ -30,8 +30,8 @@ public class MerchandiseDucatDetailDto
     public string DucatNumber { get; set; } = string.Empty;
     public DucaStatus Status { get; set; }
 
-    public Guid? ProductId { get; set; }
-    public string? ProductName { get; set; }
+    public Guid? MerchandiseId { get; set; }
+    public string? MerchandiseName { get; set; }
     public int? TotalBultos { get; set; }
     public decimal? TotalWeight { get; set; }
     public string? ProductDescription { get; set; }

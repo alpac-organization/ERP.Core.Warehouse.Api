@@ -20,7 +20,7 @@ public class CreateDucatRegistryDetailCommand : BaseRequest, IRequest<bool>
     public Guid EntranceDucatId { get; set; }
     public Guid? ServiceOrderId { get; set; }
 
-    public Guid ProductId { get; set; }
+    public Guid MerchandiseId { get; set; }
     public int TotalBultos { get; set; }
     public decimal TotalWeight { get; set; }
     public string? ProductDescription { get; set; }
