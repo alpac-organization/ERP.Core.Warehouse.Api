@@ -21,12 +21,25 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Validators
                 .NotEmpty()
                 .WithMessage("El código del módulo no puede estar vacío.");
 
+            RuleFor(x => x.QuotationItems)
+                .NotEmpty()
+                .WithMessage("Debe agregar al menos una cotización.");
+
+            RuleForEach(x => x.QuotationItems)
+                .SetValidator(new QuotationItemValidator());
+        }
+    }
+
+    public class QuotationItemValidator : AbstractValidator<QuotationItem>
+    {
+        public QuotationItemValidator()
+        {
             RuleFor(x => x.SupplierId)
                 .NotEmpty().WithMessage("El id del proveedor no puede estar vacío.")
                 .NotEqual(Guid.Empty)
                 .WithMessage("El id del proveedor no es válido.");
-                
-            RuleFor(x => x.PurchaseRequestId)
+
+            RuleFor(x => x.PurchaseRequestItemId)
                 .NotEmpty().WithMessage("El id de la solicitud de compra no puede estar vacío.")
                 .NotEqual(Guid.Empty)
                 .WithMessage("El id de la solicitud de compra no es válido.");
