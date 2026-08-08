@@ -124,5 +124,19 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
             
             return NoContent();
         }
+
+
+        [Tags("Solicitudes de compras")] 
+        [HttpGet("companies/{company_id}/modules/{module_code}/purchase-requests/{purchase_request_id}/send")]      
+        [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
+        public async Task<NoContentResult> SendPurchaseRequestToReviewAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid purchase_request_id)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+            //Logica para mandar a revición las solicitudes de compras.
+
+            return NoContent();
+        }
     }
 }
