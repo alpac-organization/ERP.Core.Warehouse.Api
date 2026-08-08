@@ -7,6 +7,7 @@ using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Commands;
+using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Controllers.MerchandiseRegistry;
 
@@ -23,6 +24,13 @@ public class MerchandiseRegistryController(IMediator _mediator) : ApiControllerB
     public async Task<GetMerchandiseRegistryDto> GetMerchandiseRegistryAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
+        [FromQuery] DateTime? start_date,
+        [FromQuery] DateTime? end_date,
+        [FromQuery] string? driver_name,
+        [FromQuery] string? plate_number,
+        [FromQuery] DocumentType? document_type,
+        [FromQuery] string? document_number,
+        [FromQuery] string? service_order_code,
         [FromQuery] int page_number = 1,
         [FromQuery] int page_size = 10,
         CancellationToken cancellationToken = default)
@@ -35,6 +43,13 @@ public class MerchandiseRegistryController(IMediator _mediator) : ApiControllerB
             CompanyId = company_id,
             ModuleCode = module_code,
             UserId = userId,
+            StarDate = start_date,
+            EndDate = end_date,
+            DriverName = driver_name,
+            PlateNumber = plate_number,
+            DocumentType = document_type,
+            DocumentNumber = document_number,
+            ServiceOrderCode = service_order_code,
             PageNumber = page_number,
             PageSize = page_size
         }, cancellationToken);
