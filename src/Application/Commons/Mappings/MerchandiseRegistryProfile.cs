@@ -350,9 +350,33 @@ public class MerchandiseProfile : Profile
 {
     public MerchandiseProfile()
     {
+        CreateMap<Merchandises, MerchandiseDto>()
+           .ForMember(dest => dest.MerchandiseId, opt => opt.MapFrom(src => src.Id));
+
         CreateMap<Merchandises, MerchandiseDucatDetailDto>()
             .ForMember(dest => dest.MerchandiseId, opt => opt.MapFrom(src => src.Id));
 
         CreateMap<CategoryProducts, MerchandiseCategoryDto>();
+
     }
+}
+public static class RegisterMerchandiseMapper
+{
+    public static RegisterMerchandiseCommand ToCommand(
+        this RegisterMerchandiseDto dto,
+        Guid userId,
+        Guid companyId,
+        string moduleCode)
+    {
+        return new()
+        {
+            UserId = userId,
+            CompanyId = companyId,
+            ModuleCode = moduleCode,
+            MerchandiseName = dto.MerchandiseName,
+            Description = dto.Description,
+            CategoryId = dto.CategoryId
+        };
+    }
+
 }

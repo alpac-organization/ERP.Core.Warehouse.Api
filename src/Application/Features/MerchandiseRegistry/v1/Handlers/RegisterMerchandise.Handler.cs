@@ -5,7 +5,7 @@ using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Command
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
+namespace ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Handlers;
 
 public class RegisterMerchandiseHandler(IUnitOfWork unitOfWork, ILogger<RegisterMerchandiseHandler> logger, IErrorManager errorManager)
     : BaseValidatorHandler<RegisterMerchandiseCommand, Guid>(unitOfWork, errorManager)
@@ -34,7 +34,7 @@ public class RegisterMerchandiseHandler(IUnitOfWork unitOfWork, ILogger<Register
         var merchandiseEntity = new Database.Domain.Entities.Warehouse.Merchandises
         {
             MerchandiseName = request.MerchandiseName,
-            Description = request.Desciption,
+            Description = request.Description,
             CategoryId = request.CategoryId
         };
 

@@ -6,6 +6,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Com
 public class RegisterMerchandiseCommand : BaseRequest, IRequest<Guid>
 {
     public string MerchandiseName { get; set; } = null!;
-    public string? Desciption { get; set; }
+    public string? Description { get; set; }
     public Guid CategoryId { get; set; }
 }

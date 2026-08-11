@@ -17,3 +17,10 @@ public class MerchandiseCategoryDto
     public string? Code { get; set; }
     public bool IsActive { get; set; }
 }
+
+public class RegisterMerchandiseDto
+{
+    public string MerchandiseName { get; set; } = null!;
+    public string? Description { get; set; }
+    public Guid CategoryId { get; set; }
+}

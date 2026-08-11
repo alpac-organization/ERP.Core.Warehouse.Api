@@ -133,7 +133,7 @@ public class MerchandiseRegistryController(IMediator _mediator) : ApiControllerB
         return Ok(response);
     }
 
-    [Tags("Registro de Mercancía")]
+    [Tags("Registro de Mercadería")]
     [HttpPost("companies/{company_id}/modules/{module_code}/receptions/{reception_id}/customs-declaration/service-order")]
     [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
@@ -160,4 +160,52 @@ public class MerchandiseRegistryController(IMediator _mediator) : ApiControllerB
         var response = await _mediator.Send(command, cancellationToken);
         return Ok(response);
     }
+
+    #region Merchandise
+    [Tags("Catálogo de Mercadería")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/merchandises")]
+    [ProducesResponseType(typeof(List<MerchandiseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<List<MerchandiseDto>> GetMerchandisesAsync(
+    [FromRoute] Guid company_id,
+    [FromRoute] string module_code,
+    [FromQuery] Guid? category_id,
+    CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        Guid.TryParse(userIdStr, out var userId);
+
+        return await _mediator.Send(new GetMerchandisesQuery
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = userId,
+            CategoryProductId = category_id
+        }, cancellationToken);
+    }
+
+    [Tags("Catálogo de Mercadería")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/merchandises")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<Guid> RegisterMerchandiseAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromBody] RegisterMerchandiseDto dto,
+        CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        Guid.TryParse(userIdStr, out var userId);
+
+        var command = dto.ToCommand(
+            userId: userId,
+            companyId: company_id,
+            moduleCode: module_code
+        );
+
+        return await _mediator.Send(command, cancellationToken);
+    }
+    #endregion
 }
