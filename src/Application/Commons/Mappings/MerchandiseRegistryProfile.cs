@@ -3,6 +3,7 @@ using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Commands;
+using ERP.Core.Database.Domain.Entities.Catalogs;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 
@@ -344,3 +345,14 @@ public static class DucatRegistryDetailMapper
     }
 }
 #endregion
+
+public class MerchandiseProfile : Profile
+{
+    public MerchandiseProfile()
+    {
+        CreateMap<Merchandises, MerchandiseDucatDetailDto>()
+            .ForMember(dest => dest.MerchandiseId, opt => opt.MapFrom(src => src.Id));
+
+        CreateMap<CategoryProducts, MerchandiseCategoryDto>();
+    }
+}

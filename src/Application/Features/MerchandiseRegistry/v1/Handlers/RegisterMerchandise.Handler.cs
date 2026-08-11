@@ -1,7 +1,6 @@
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
-using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Commands;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -32,7 +31,7 @@ public class RegisterMerchandiseHandler(IUnitOfWork unitOfWork, ILogger<Register
 
         logger.LogInformation("🚀 Iniciando registro de mercadería: {MerchandiseName}", request.MerchandiseName);
 
-        var merchandiseEntity = new Merchandises
+        var merchandiseEntity = new Database.Domain.Entities.Warehouse.Merchandises
         {
             MerchandiseName = request.MerchandiseName,
             Description = request.Desciption,
