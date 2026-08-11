@@ -28,14 +28,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 Id                  = Guid.NewGuid(),
                 WarehouseName       = command.WarehouseName,
                 BranchId            = command.BranchId,
-                MaxHeight           = command.WarehouseInformation.MaxHeight,
-                MinHeight           = command.WarehouseInformation.MinHeight,
-                RampasCount         = command.WarehouseInformation.RampasCount,
-                WarehouseType       = command.WarehouseInformation.WarehouseType,
-                ParkingSpacesCount  = command.WarehouseInformation.ParkingSpacesCount,
-                TotalArea           = command.WarehouseInformation.TotalArea,
-                TotalCubicCapacity  = command.WarehouseInformation.TotalCubicCapacity,
-                UnusableArea        = command.WarehouseInformation.UnusableArea
+                WarehouseType       = command.WarehouseInformation.WarehouseType
             };
         }
 
@@ -48,24 +41,20 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 Id                    = Guid.NewGuid(),
                 Name                  = command.ZoneName,
                 WarehouseId           = warehouseId,
-                LengthMetres          = command.LengthMetres,
-                HeightMetres          = command.HeightMetres,
-                MaxWeightCapacityKg   = command.MaxWeightCapacityKg,
-                TotalVolumeCapacityM3 = command.TotalVolumeCapacityM3,
+                WidthMetres           = command.WidthMetres,
+                LengthMetres          = command.LengthMetres
             };
         }
 
-        public static Racks ToRackEntity(this Commands.RackInformation command, Guid zoneId)
+        public static Racks ToRackEntity(this Commands.RackInformation command, Guid warehouseId)
         {
             return new()
             {
                 IsAvailable     = true,
-                SectionId       = zoneId,
+                WarehouseId     = warehouseId,
                 RowNumber       = command.RowNumber,
                 LevelNumber     = command.LevelNumber,
-                CostPerPosition = command.CostPerPosition,
-                MaxWeightKg     = command.MaxWeightKg,
-                MaxHeightMetres = command.MaxHeightMetres  
+                CostPerPosition = command.CostPerPosition
             };
         }
     }

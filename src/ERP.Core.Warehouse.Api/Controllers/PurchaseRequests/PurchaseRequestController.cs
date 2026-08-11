@@ -17,24 +17,6 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
     public class PurchaseRequestController(IMediator _mediator) : ApiControllerBase
     {
         [Tags("Solicitudes de compras")] 
-        [HttpPost("companies/{company_id}/modules/{module_code}/purchase-requests")]      
-        [ProducesResponseType(typeof(CreatedResult), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
-        public async Task<CreatedResult> RegisterPurchaseRequestAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromBody] RegisterPurchaseRequestCommand payload)
-        {
-            var userIdStr = HttpContext.Items["UserId"] as string;
-
-            payload.CompanyId = company_id;
-            payload.ModuleCode = module_code;
-            payload.UserId = Guid.Parse(userIdStr ?? "");
-
-            await _mediator.Send(payload);
-
-            return Created();
-        }
-
-        [Tags("Solicitudes de compras")] 
         [HttpGet("companies/{company_id}/modules/{module_code}/purchase-requests")]      
         [ProducesResponseType(typeof(PagedResponse<PurchaseRequestDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  

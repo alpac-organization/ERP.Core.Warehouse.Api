@@ -2,7 +2,6 @@ using AutoMapper;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
-using Commands = ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
@@ -49,42 +48,6 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForPath(dest => dest.UnitMeasureInformation.Code,   opt => opt.MapFrom(src => src.UnitMeasure.Code))
                 .ForPath(dest => dest.UnitMeasureInformation.Name,   opt => opt.MapFrom(src => src.UnitMeasure.Name))
                 .ForPath(dest => dest.UnitMeasureInformation.Symbol, opt => opt.MapFrom(src => src.UnitMeasure.Symbol));
-        }
-    }
-
-    public static class PurchaseRequestMapper
-    {
-        public static PurchaseRequest ToPurchaseRequestEntity(this Commands.RegisterPurchaseRequestCommand command, string codeGenerated, Guid areaId)
-        {
-            return new()
-            {
-                AreaId              = areaId,
-                Code                = codeGenerated,
-                RegisteredByUserId  = command.UserId,
-                BranchId            = command.BranchId,
-                RequestType         = command.RequestType,
-                Observations        = command.Observations,
-                RequestStatus       = PurchaseRequestStatus.Pending,
-                Id                  = Guid.NewGuid(),
-                IsActive            = true,
-                RequestDate         = DateOnly.FromDateTime(DateTime.UtcNow)
-            };
-        }
-
-        public static PurchaseRequestItem ToRequestedProductEntity(this Commands.PurchaseRequestItem command, Guid purchaseRequestId)
-        {
-            return new()
-            {
-                HasQuotation      = false,
-                Id                = Guid.NewGuid(),
-                PurchaseRequestId = purchaseRequestId,  
-                Quantity          = command.Quantity,
-                QuantityUnit      = command.QuantityUnit,
-                ProductId         = command.ProductId,
-                UnitMeasureId     = command.UnitMeasureId,
-                Justification     = command.Justification,
-                Description       = command.Description,
-            };
         }
     }
 }

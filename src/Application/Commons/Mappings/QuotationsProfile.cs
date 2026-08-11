@@ -2,13 +2,24 @@ using AutoMapper;
 using ERP.Core.Database.Domain.Entities.Shopping;
 
 using Commands = ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands;
+using QuotationDtos = ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
 
     public class QuotationsProfile : Profile
     {
-        
+        public QuotationsProfile()
+        {
+            CreateMap<Quotation, QuotationDtos.QuotationItems>()
+                .ForMember(dest => dest.QuotationId, opt => opt.MapFrom(src => src.Id));
+
+            CreateMap<Quotation, QuotationDtos.QuotationDto>()
+                .ForMember(dest => dest.QuotationId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.SupplierInformation, opt => opt.MapFrom(src => src.Supplier));
+
+            CreateMap<Supplier, QuotationDtos.SupplierInformationDto>();
+        }
     }
 
     public static class QuotationsMapper

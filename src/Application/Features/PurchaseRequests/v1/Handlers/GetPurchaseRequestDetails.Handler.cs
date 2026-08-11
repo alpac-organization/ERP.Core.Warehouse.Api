@@ -36,6 +36,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             var requestedProducts = await _unitOfWork.PurchaseRequestItems.Entities
                 .Where(product => product.PurchaseRequestId == purchaseRequest.Id)
                 .Include(product => product.UnitMeasure)
+                .Include(product => product.Quotations)
+                    .ThenInclude(quotation => quotation.Supplier)
                 .Include(product => product.Product)
                     .ThenInclude(product => product.Category)
                 .ToListAsync(cancellationToken);
