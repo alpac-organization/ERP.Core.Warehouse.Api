@@ -1,6 +1,3 @@
-# =========================
-# 1. BUILD + PUBLISH STAGE
-# =========================
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 WORKDIR /src
@@ -16,8 +13,8 @@ RUN dotnet nuget add source "https://nuget.pkg.github.com/alpac-organization/ind
     --store-password-in-clear-text
 
 # Copiar archivos de proyecto
-COPY ["src/Application/Application.csproj", "src/Application/"]
 COPY ["src/Domain/Domain.csproj", "src/Domain/"]
+COPY ["src/Application/Application.csproj", "src/Application/"]
 COPY ["src/Infrastructure/Infrastructure.csproj", "src/Infrastructure/"]
 COPY ["src/ERP.Core.Warehouse.Api/ERP.Core.Warehouse.Api.csproj", "src/ERP.Core.Warehouse.Api/"]
 
