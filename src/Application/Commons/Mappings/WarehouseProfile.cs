@@ -28,14 +28,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 Id                  = Guid.NewGuid(),
                 WarehouseName       = command.WarehouseName,
                 BranchId            = command.BranchId,
-                MaxHeight           = command.WarehouseInformation.MaxHeight,
-                MinHeight           = command.WarehouseInformation.MinHeight,
-                RampasCount         = command.WarehouseInformation.RampasCount,
                 WarehouseType       = command.WarehouseInformation.WarehouseType,
-                ParkingSpacesCount  = command.WarehouseInformation.ParkingSpacesCount,
-                TotalArea           = command.WarehouseInformation.TotalArea,
-                TotalCubicCapacity  = command.WarehouseInformation.TotalCubicCapacity,
-                UnusableArea        = command.WarehouseInformation.UnusableArea
             };
         }
 
@@ -49,9 +42,6 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 Name                  = command.ZoneName,
                 WarehouseId           = warehouseId,
                 LengthMetres          = command.LengthMetres,
-                HeightMetres          = command.HeightMetres,
-                MaxWeightCapacityKg   = command.MaxWeightCapacityKg,
-                TotalVolumeCapacityM3 = command.TotalVolumeCapacityM3,
             };
         }
 
@@ -59,13 +49,9 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             return new()
             {
-                IsAvailable     = true,
                 SectionId       = zoneId,
                 RowNumber       = command.RowNumber,
                 LevelNumber     = command.LevelNumber,
-                CostPerPosition = command.CostPerPosition,
-                MaxWeightKg     = command.MaxWeightKg,
-                MaxHeightMetres = command.MaxHeightMetres  
             };
         }
     }
