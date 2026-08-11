@@ -134,8 +134,17 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
         public async Task<NoContentResult> SendPurchaseRequestToReviewAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid purchase_request_id)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
-            //Logica para mandar a revición las solicitudes de compras.
 
+            var payload = new SendPurchaseRequestToReviewCommand()
+            {
+                CompanyId = company_id,
+                ModuleCode = module_code,
+                UserId = Guid.Parse(userIdStr ?? ""),
+                PurchaseRequestId = purchase_request_id
+            };
+
+            await _mediator.Send(payload);
+            
             return NoContent();
         }
     }
