@@ -43,9 +43,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return _errorManager.ThrowBadRequest<bool>("La solicitud de compra se encuentra inactiva", "ERP:PURCHASE_REQUEST_INACTIVE");
             }
 
-            if (purchaseRequest.RequestStatus != PurchaseRequestStatus.Pending)
+            if (purchaseRequest.RequestStatus != PurchaseRequestStatus.Approved)
             {
-                return _errorManager.ThrowBadRequest<bool>("La solicitud de compra no se encuentra en estado pendiente", "ERP:PURCHASE_REQUEST_NOT_PENDING");
+                return _errorManager.ThrowBadRequest<bool>("La solicitud de compra no se encuentra en estado aprobada", "ERP:PURCHASE_REQUEST_NOT_PENDING");
             }
 
             if (purchaseRequest.AccountingReview is not null)
