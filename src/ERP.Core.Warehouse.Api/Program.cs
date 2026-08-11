@@ -5,7 +5,6 @@ using System.Text.Json.Serialization;
 using ERP.Core.Infrastructure.Middlewares;
 using ERP.Core.Warehouse.Api.Infrastructure;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
 var root = builder.Environment.ContentRootPath;
@@ -15,12 +14,21 @@ if (File.Exists(envPath)) DotNetEnv.Env.Load(envPath);
 else DotNetEnv.Env.Load();
 
 builder.Configuration.AddEnvironmentVariables();
+
 builder.Services.AddApplicationServices();
-builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddInfrastructureServices(builder.Configuration);
 
 builder.Services.AddControllers();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "ERP.Core.Warehouse.Api",
+        Version = "v1",
+        Description = "Dominio de compras y almacenes..."
+    });
+});
 
 var allowedOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")  
@@ -46,38 +54,19 @@ builder.Services.AddControllers()
 
 builder.Logging.AddFilter("LuckyPennySoftware.MediatE.License", LogLevel.None);
 
-//Configuración de la documentacion del swagger de las APIs
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "ERP.Core.Warehouse.Api",
-        Version = "v1",
-        Description = "Dominio para bodegas "
-    });
-});
-
 var app = builder.Build();
 
-app.UseStaticFiles(new StaticFileOptions
-{
-    OnPrepareResponse = ctx =>
-    {
-        ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
-        ctx.Context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, OPTIONS");
-        ctx.Context.Response.Headers.Append("Access-Control-Allow-Headers", "Content-Type");
-    }
-});
-
-app.UseMiddleware<ExceptionMiddleware>();
+//Casos de uso, (Middlewares, Cors..., etc)
 app.UseRouting();
 
 app.UseCors("ViteLocalPolicy");
 
+//Middlewares..
+app.UseMiddleware<ExceptionMiddleware>();
+
 app.UseMiddleware<ApiKeyMiddleware>();
 
 app.UseMiddleware<AuthMiddleware>();
-
 
 if (app.Environment.IsDevelopment())
 {
@@ -88,9 +77,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHsts();
 app.UseSwagger();
-app.UseSwaggerUI();
 app.MapControllers();
 
 app.Run();
