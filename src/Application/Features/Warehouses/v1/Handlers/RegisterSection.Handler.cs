@@ -5,6 +5,7 @@ using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
+using Microsoft.EntityFrameworkCore;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 {
@@ -23,7 +24,20 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 
             logger.LogInformation("🚀Iniciando proceso de registro de sección.");
 
-            var sectionEntity = request.ToSectionEntity();
+            #region Usuario actual
+            var user = await _unitOfWork.Users.Entities
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+
+            if (user == null)
+                return _errorManager.ThrowBadRequest<bool>(
+                    "No se pudo identificar al usuario autenticado en el sistema.",
+                    "ERP:USER_NOT_FOUND");
+
+            var currentUserName = user.Fullname ?? user.UserName ?? request.UserId.ToString();
+            #endregion
+
+            var sectionEntity = request.ToSectionEntity(currentUserName);
 
             await _unitOfWork.Sections.RegisterSection(sectionEntity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
