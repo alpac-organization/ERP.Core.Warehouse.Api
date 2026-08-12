@@ -1,18 +1,17 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
-
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
-using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
-
-using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
+using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 {
-    public class RegisterWarehouseHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, ILogger<RegisterWarehouseHandler> _logger) :  BaseValidatorHandler<RegisterWarehouseCommand, bool>(_unitOfWork, _errorManager)
+    public class RegisterWarehouseHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, ILogger<RegisterWarehouseHandler> _logger)
+        :  BaseValidatorHandler<RegisterWarehouseCommand, bool>(_unitOfWork, _errorManager)
     {
         public override async Task<bool> Handle(RegisterWarehouseCommand request, CancellationToken cancellationToken)
         {
@@ -30,16 +29,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
             
             _logger.LogInformation("🚀Iniciando proceso de registro de almacen.");
 
-            //Your code here
-            var warehouseEntity = WarehouseMapper.ToWarehouseEntity(request);
-
-            var lastCode = await _unitOfWork.Warehouses.Entities
-                .Where(w => w.Code != null)
-                .OrderByDescending(w => w.Code)
-                .Select(w => w.Code)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            warehouseEntity.Code = CodeGenerator.GenerateWarehouseCode(lastCode ?? "000001");
+            var warehouseEntity = request.ToWarehouseEntity();
             
             await _unitOfWork.Warehouses.RegisterWarehouse(warehouseEntity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);

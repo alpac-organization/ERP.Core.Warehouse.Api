@@ -6,30 +6,66 @@ using Commands = ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Comma
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 
-public class WarehouseProfile : Profile
-{
-    public WarehouseProfile()
+    public class WarehouseProfile : Profile
     {
-        CreateMap<Warehouses, WarehouseDto>()
+        public WarehouseProfile()
+        {
+            CreateMap<Warehouses, WarehouseDto>()
             .ForMember(dest => dest.WarehouseId, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.WarehouseCode, opt => opt.MapFrom(src => src.Code))
-            .ForMember(dest => dest.WarehouseName, opt => opt.MapFrom(src => src.WarehouseName));
+            .ForMember(dest => dest.WarehouseName, opt => opt.MapFrom(src => src.WarehouseName))
+            .ForMember(dest => dest.WarehouseType, opt => opt.MapFrom(src => src.WarehouseType.ToString()))
+            .ForMember(dest => dest.SubWarehouses, opt => opt.MapFrom(src => src.SubWarehouses));
+        }
     }
-}
 
-public static class WarehouseMapper
-{
-    public static Warehouses ToWarehouseEntity(this Commands.RegisterWarehouseCommand command)
+    public static class WarehouseMapper
     {
-        return new()
+        public static Warehouses ToWarehouseEntity(this Commands.RegisterWarehouseCommand command)
         {
-            IsActive = true,
-            Id = Guid.NewGuid(),
-            WarehouseName = command.WarehouseName,
-            BranchId = command.BranchId,
-            WarehouseType = command.WarehouseInformation.WarehouseType,
-        };
-    }
+            var warehouseId = Guid.NewGuid();
+
+            var details = new WarehouseDetails
+            {
+                Id = Guid.NewGuid(),
+                WarehouseId = warehouseId,
+                WitdhMetres = command.WarehouseDetails.WidthMetres,
+                LengthMetres = command.WarehouseDetails.LengthMetres,
+                RampsCount = command.WarehouseDetails.RampsCount,
+                ParkingSpacesCount = command.WarehouseDetails.ParkingSpacesCount
+            };
+
+            return new()
+            {
+                Id = warehouseId,
+                Code = command.Code,
+                IsActive = true,
+                WarehouseName = command.WarehouseName,
+                BranchId = command.BranchId,
+                WarehouseType = command.WarehouseType,
+                ParentWarehouseId = command.ParentWarehouseId,
+
+                Details = details,
+                Capacity = details.ToCalculatedCapacity(warehouseId)
+            };
+        }
+
+        public static WarehouseCapacity ToCalculatedCapacity(this WarehouseDetails details, Guid warehouseId)
+        {
+            var totalArea = details.WitdhMetres * details.LengthMetres;
+
+            return new WarehouseCapacity
+            {
+                Id = Guid.NewGuid(),
+                WarehouseId = warehouseId,
+                TotalAreaM2 = totalArea,
+                UsableAreaM2 = null, // aún no hay secciones/racks para descontar
+                UnusableAreaM2 = null,
+                TotalMaxPolines = null,
+                CurrentPolinesStored = null,
+                LastCalculatedAt = DateTime.UtcNow
+            };
+        }
 
     public static Sections ToSectionEntity(this Commands.SectionInformation command, Guid warehouseId, string sectionCode)
     {
