@@ -1,8 +1,7 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
-using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
+using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Validators
 {
@@ -26,14 +25,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Validators
 
             RuleFor(x => x.Code)
                 .NotEmpty().WithMessage("El código del almacén es obligatorio.")
-                .MaximumLength(20).WithMessage("El código del almacén no puede superar los 20 caracteres.")
-                .MustAsync(async (code, cancellationToken) =>
-                {
-                    var exists = await unitOfWork.Warehouses.Entities
-                        .AnyAsync(w => w.Code == code, cancellationToken);
-                    return !exists;
-                })
-                .WithMessage("Ya existe un almacén registrado con este código.");
+                .MaximumLength(20).WithMessage("El código del almacén no puede superar los 20 caracteres.");
 
             RuleFor(x => x.WarehouseName)
                 .NotEmpty().WithMessage("El nombre del almacén es obligatorio.")
@@ -65,6 +57,21 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Validators
                     .GreaterThanOrEqualTo(0).When(x => x.WarehouseDetails.ParkingSpacesCount.HasValue)
                     .WithMessage("La cantidad de espacios de parqueo no puede ser negativa.");
             });
+
+            // Code único dentro de la misma sucursal
+            RuleFor(x => x)
+                .MustAsync(async (command, cancellationToken) =>
+                {
+                    var exists = await unitOfWork.Warehouses.Entities
+                        .AnyAsync(w =>
+                            w.BranchId == command.BranchId &&
+                            w.Code == command.Code,
+                            cancellationToken);
+
+                    return !exists;
+                })
+                .WithMessage("Ya existe un almacén registrado con este código en esta sucursal.")
+                .WithName("Code");
 
             // Duplicado: mismo nombre + mismas dimensiones dentro de la misma sucursal
             RuleFor(x => x)
