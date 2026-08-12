@@ -35,6 +35,10 @@ public class WarehouseProfile : Profile
 
         CreateMap<Racks, RackSummaryDto>()
             .ForMember(dest => dest.RackId, opt => opt.MapFrom(src => src.Id));
+
+        CreateMap<Racks, RackFlatDto>()
+            .ForMember(dest => dest.UsageProfile, opt => opt.MapFrom(src => src.UsageProfile.ToString()))
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()));
         #endregion
     }
 }

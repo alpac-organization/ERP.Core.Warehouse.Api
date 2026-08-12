@@ -66,3 +66,44 @@ public class LevelCapacityDto
     public decimal UsedLengthMetres { get; set; }
     public decimal AvailableLengthMetres { get; set; }
 }
+
+public class RackDimensionGroupDto
+{
+    public decimal WidthMetres { get; set; }
+    public decimal LengthMetres { get; set; }
+    public decimal? HeightMetres { get; set; }
+    public int Count { get; set; }
+}
+
+public class RackStatusGroupDto
+{
+    public string Status { get; set; } = null!;
+    public int Count { get; set; }
+}
+
+public class RackUsageProfileGroupDto
+{
+    public string UsageProfile { get; set; } = null!;
+    public int Count { get; set; }
+}
+
+public class RackSectionSummaryDto
+{
+    public Guid SectionId { get; set; }
+    public decimal SectionLengthMetres { get; set; }
+    public int TotalRacksCount { get; set; }
+    public List<LevelCapacityDto> LevelsCapacity { get; set; } = [];
+    public List<RackStatusGroupDto> StatusBreakdown { get; set; } = [];
+    public List<RackUsageProfileGroupDto> UsageProfileBreakdown { get; set; } = [];
+    public List<RackDimensionGroupDto> DimensionGroups { get; set; } = [];
+}
+
+public class RackFlatDto
+{
+    public int LevelNumber { get; set; }
+    public decimal WidthMetres { get; set; }
+    public decimal LengthMetres { get; set; }
+    public decimal? HeightMetres { get; set; }
+    public string Status { get; set; } = null!;
+    public string UsageProfile { get; set; } = null!;
+}
