@@ -1,9 +1,11 @@
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using ERP.Core.Domain.Entities.Errors;
-using ERP.Core.Warehouse.Api.Controllers.ApiBase;
-using MediatR;
-using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 using ERP.Core.Infrastructure.Attributes;
+using ERP.Core.Warehouse.Api.Controllers.ApiBase;
+using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
+using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Controllers.Warehouses;
 
@@ -36,4 +38,28 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
 
         return Created(string.Empty, response);
     }
+
+    [Tags("Secciones")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}/sections")]
+    [ProducesResponseType(typeof(List<SectionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<List<SectionDto>> GetSectionsAsync(
+    [FromRoute] Guid company_id,
+    [FromRoute] string module_code,
+    [FromRoute] Guid warehouse_id,
+    CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        Guid.TryParse(userIdStr, out var userId);
+
+        return await _mediator.Send(new GetSectionsQuery
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = userId,
+            WarehouseId = warehouse_id
+        }, cancellationToken);
+    }
+
 }
