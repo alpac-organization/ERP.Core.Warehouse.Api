@@ -18,6 +18,14 @@ public class WarehouseProfile : Profile
         .ForMember(dest => dest.WarehouseName, opt => opt.MapFrom(src => src.WarehouseName))
         .ForMember(dest => dest.WarehouseType, opt => opt.MapFrom(src => src.WarehouseType.ToString()))
         .ForMember(dest => dest.SubWarehouses, opt => opt.MapFrom(src => src.SubWarehouses));
+
+        #region Sections
+        CreateMap<Sections, SectionDto>()
+            .ForMember(dest => dest.SectionId, opt => opt.MapFrom(src => src.Id))
+            .ForMember(dest => dest.SectionCode, opt => opt.MapFrom(src => src.Code))
+            .ForMember(dest => dest.SectionName, opt => opt.MapFrom(src => src.Name))
+            .ForMember(dest => dest.SectionType, opt => opt.MapFrom(src => src.SectionType.ToString()));
+        #endregion
     }
 }
 
