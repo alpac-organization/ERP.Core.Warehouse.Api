@@ -27,7 +27,7 @@ public class RegisterRacksBulkCommand : BaseRequest, IRequest<RegisterRacksBulkR
 {
     public Guid SectionId { get; set; }
     public string? ShelfCode { get; set; }
-    public int StartingDepositNumber { get; set; } = 1;
+    public int? StartingDepositNumber { get; set; }
     public List<RackLevelSpec> Levels { get; set; } = [];
 }
 

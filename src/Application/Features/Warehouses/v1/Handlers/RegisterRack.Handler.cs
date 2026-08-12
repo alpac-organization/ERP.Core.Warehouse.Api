@@ -10,9 +10,11 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
 
-public class RegisterRacksBulkHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
+public class RegisterRacksBulkHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
     : BaseValidatorHandler<RegisterRacksBulkCommand, RegisterRacksBulkResultDto>(unitOfWork, errorManager)
 {
+    private readonly IMapper _mapper = mapper;
+
     public override async Task<RegisterRacksBulkResultDto> Handle(RegisterRacksBulkCommand request, CancellationToken cancellationToken)
     {
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
@@ -26,11 +28,49 @@ public class RegisterRacksBulkHandler(IUnitOfWork unitOfWork, IErrorManager erro
                 "La sección indicada no existe o no está activa.",
                 "ERP:SECTION_NOT_FOUND");
 
-        var estanteCode = string.IsNullOrWhiteSpace(request.ShelfCode)
+        var shelfCode = string.IsNullOrWhiteSpace(request.ShelfCode)
             ? section.Code.Replace("-", string.Empty)
             : request.ShelfCode;
 
-        var racksToCreate = request.ToRackEntities(estanteCode);
+        // Trae RowNumber, LevelNumber y LengthMetres en una sola pasada
+        var existingRacks = await _unitOfWork.Racks.Entities
+            .Where(r => r.SectionId == request.SectionId)
+            .Select(r => new { r.RowNumber, r.LevelNumber, r.LengthMetres })
+            .ToListAsync(cancellationToken);
+
+        var lastRowByLevel = existingRacks
+            .GroupBy(r => r.LevelNumber)
+            .ToDictionary(g => g.Key, g => g.Max(r => r.RowNumber));
+
+        var usedLengthByLevel = existingRacks
+            .GroupBy(r => r.LevelNumber)
+            .ToDictionary(g => g.Key, g => g.Sum(r => r.LengthMetres));
+
+        var nextDepositNumber = request.StartingDepositNumber ?? (existingRacks.Count + 1);
+
+        var racksToCreate = request.ToRackEntities(shelfCode, nextDepositNumber, lastRowByLevel);
+
+        // Capacidad por nivel: la profundidad acumulada de racks no puede superar el largo de la sección
+        var overCapacityLevels = racksToCreate
+            .GroupBy(r => r.LevelNumber)
+            .Select(g => new
+            {
+                LevelNumber = g.Key,
+                UsedBefore = usedLengthByLevel.GetValueOrDefault(g.Key, 0m),
+                Requested = g.Sum(r => r.LengthMetres)
+            })
+            .Where(x => x.UsedBefore + x.Requested > section.LengthMetres)
+            .ToList();
+
+        if (overCapacityLevels.Count > 0)
+        {
+            var detail = string.Join("; ", overCapacityLevels.Select(x =>
+                $"nivel {x.LevelNumber}: ocupado {x.UsedBefore}m + solicitado {x.Requested}m > disponible {section.LengthMetres}m"));
+
+            return _errorManager.ThrowBadRequest<RegisterRacksBulkResultDto>(
+                $"La sección no tiene capacidad suficiente para los racks solicitados ({detail}).",
+                "ERP:SECTION_LENGTH_EXCEEDED");
+        }
 
         // Duplicados generados dentro de la misma solicitud
         var duplicatedCodes = racksToCreate
@@ -83,18 +123,39 @@ public class RegisterRacksBulkHandler(IUnitOfWork unitOfWork, IErrorManager erro
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var allLevelNumbers = existingRacks.Select(r => r.LevelNumber)
+            .Union(racksToCreate.Select(r => r.LevelNumber))
+            .Distinct();
+
+        var levelsCapacity = allLevelNumbers
+            .Select(levelNumber =>
+            {
+                var usedBefore = usedLengthByLevel.GetValueOrDefault(levelNumber, 0m);
+                var addedNow = racksToCreate.Where(r => r.LevelNumber == levelNumber).Sum(r => r.LengthMetres);
+                var usedTotal = usedBefore + addedNow;
+
+                var racksCountBefore = existingRacks.Count(r => r.LevelNumber == levelNumber);
+                var racksCountNow = racksCountBefore + racksToCreate.Count(r => r.LevelNumber == levelNumber);
+
+                return new LevelCapacityDto
+                {
+                    LevelNumber = levelNumber,
+                    RacksCount = racksCountNow,
+                    UsedLengthMetres = usedTotal,
+                    AvailableLengthMetres = section.LengthMetres - usedTotal
+                };
+            })
+            .OrderBy(x => x.LevelNumber)
+            .ToList();
+
         return new RegisterRacksBulkResultDto
         {
-            SectionId       = request.SectionId,
-            TotalRequested  = racksToCreate.Count,
-            TotalCreated    = racksToCreate.Count,
-            Racks = racksToCreate.Select(r => new RackSummaryDto
-            {
-                RackId      = r.Id,
-                Code        = r.Code,
-                LevelNumber = r.LevelNumber,
-                RowNumber   = r.RowNumber
-            }).ToList()
+            SectionId = request.SectionId,
+            SectionLengthMetres = section.LengthMetres,
+            TotalRequested = racksToCreate.Count,
+            TotalCreated = racksToCreate.Count,
+            Racks = _mapper.Map<List<RackSummaryDto>>(racksToCreate),
+            LevelCapacity = levelsCapacity
         };
     }
 }

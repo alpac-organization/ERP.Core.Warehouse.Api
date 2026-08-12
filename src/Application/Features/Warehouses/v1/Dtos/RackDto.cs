@@ -22,7 +22,7 @@ public class RackDto
 public class RegisterRacksBulkDto
 {
     public string? ShelfCode { get; set; } // codigo de estante
-    public int StartingDepositNumber { get; set; } = 1;
+    public int? StartingDepositNumber { get; set; }
     public List<RackLevelSpecDto> Levels { get; set; } = [];
 }
 
@@ -44,8 +44,10 @@ public class RackLevelSpecDto
 public class RegisterRacksBulkResultDto
 {
     public Guid SectionId { get; set; }
+    public decimal SectionLengthMetres { get; set; }
     public int TotalRequested { get; set; }
     public int TotalCreated { get; set; }
+    public List<LevelCapacityDto> LevelCapacity { get; set; } = [];
     public List<RackSummaryDto> Racks { get; set; } = [];
 }
 
@@ -55,4 +57,12 @@ public class RackSummaryDto
     public string Code { get; set; } = null!;
     public int LevelNumber { get; set; }
     public int RowNumber { get; set; }
+}
+
+public class LevelCapacityDto
+{
+    public int LevelNumber { get; set; }
+    public int RacksCount { get; set; }
+    public decimal UsedLengthMetres { get; set; }
+    public decimal AvailableLengthMetres { get; set; }
 }

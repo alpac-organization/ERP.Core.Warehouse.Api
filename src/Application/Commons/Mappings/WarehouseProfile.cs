@@ -32,6 +32,9 @@ public class WarehouseProfile : Profile
             .ForMember(dest => dest.RackId, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.UsageProfile, opt => opt.MapFrom(src => src.UsageProfile.ToString()))
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()));
+
+        CreateMap<Racks, RackSummaryDto>()
+            .ForMember(dest => dest.RackId, opt => opt.MapFrom(src => src.Id));
         #endregion
     }
 }
@@ -151,31 +154,38 @@ public static class RackMapper
         };
     }
 
-    public static List<Racks> ToRackEntities(this Commands.RegisterRacksBulkCommand command, string estanteCode)
+    public static List<Racks> ToRackEntities(
+        this Commands.RegisterRacksBulkCommand command,
+        string shelfCode,
+        int nextDepositNumber,
+        IReadOnlyDictionary<int, int> lastRowByLevel)
     {
         var racks = new List<Racks>();
-        var depositNumber = command.StartingDepositNumber;
+        var depositNumber = nextDepositNumber;
         var now = NicaraguaClock.Now;
 
         foreach (var level in command.Levels.OrderBy(l => l.LevelNumber))
         {
-            for (var row = 1; row <= level.RacksCount; row++)
+            var startingRow = lastRowByLevel.GetValueOrDefault(level.LevelNumber, 0) + 1;
+            var lastRow = startingRow + level.RacksCount - 1;
+
+            for (var row = startingRow; row <= lastRow; row++)
             {
                 racks.Add(new Racks
                 {
-                    Id                  = Guid.NewGuid(),
-                    SectionId           = command.SectionId,
-                    Code                = $"{estanteCode}-D{depositNumber}",
-                    WidthMetres         = level.WidthMetres,
-                    LengthMetres        = level.LengthMetres,
-                    HeightMetres        = level.HeightMetres,
-                    UsageProfile        = level.UsageProfile,
-                    RowNumber           = row,
-                    LevelNumber         = level.LevelNumber,
-                    MaxPulleys          = level.MaxPulleys,
-                    Status              = level.Status,
-                    UnavailableReason   = level.UnavailableReason,
-                    StatusChangedAt     = now
+                    Id = Guid.NewGuid(),
+                    SectionId = command.SectionId,
+                    Code = $"{shelfCode}-D{depositNumber}",
+                    WidthMetres = level.WidthMetres,
+                    LengthMetres = level.LengthMetres,
+                    HeightMetres = level.HeightMetres,
+                    UsageProfile = level.UsageProfile,
+                    RowNumber = row,
+                    LevelNumber = level.LevelNumber,
+                    MaxPulleys = level.MaxPulleys,
+                    Status = level.Status,
+                    UnavailableReason = level.UnavailableReason,
+                    StatusChangedAt = now
                 });
 
                 depositNumber++;
@@ -197,24 +207,24 @@ public static class RackDtoMapper
     {
         return new Commands.RegisterRacksBulkCommand
         {
-            SectionId              = sectionId,
-            ShelfCode              = dto.ShelfCode,
-            StartingDepositNumber  = dto.StartingDepositNumber,
+            SectionId = sectionId,
+            ShelfCode = dto.ShelfCode,
+            StartingDepositNumber = dto.StartingDepositNumber,
             Levels = dto.Levels.Select(l => new Commands.RackLevelSpec
             {
-                LevelNumber         = l.LevelNumber,
-                RacksCount          = l.RacksCount,
-                WidthMetres         = l.WidthMetres,
-                LengthMetres        = l.LengthMetres,
-                HeightMetres        = l.HeightMetres,
-                UsageProfile        = l.UsageProfile,
-                MaxPulleys          = l.MaxPulleys,
-                Status              = l.Status,
-                UnavailableReason   = l.UnavailableReason
+                LevelNumber = l.LevelNumber,
+                RacksCount = l.RacksCount,
+                WidthMetres = l.WidthMetres,
+                LengthMetres = l.LengthMetres,
+                HeightMetres = l.HeightMetres,
+                UsageProfile = l.UsageProfile,
+                MaxPulleys = l.MaxPulleys,
+                Status = l.Status,
+                UnavailableReason = l.UnavailableReason
             }).ToList(),
-            UserId      = userId,
-            CompanyId   = companyId,
-            ModuleCode  = moduleCode
+            UserId = userId,
+            CompanyId = companyId,
+            ModuleCode = moduleCode
         };
     }
 }
