@@ -6,6 +6,7 @@ using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
+using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
@@ -53,7 +54,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return _errorManager.ThrowBadRequest<bool>("La solicitud de compra ya fue enviada a revisión", "ERP:REVIEW_ALREADY_EXISTS");
             }
 
-            //Verificar que todos los productos solicitados tengan al menos una cotización activa
             var itemsWithoutQuotation = purchaseRequest.PurchaseRequestItems
                 .Where(item => !item.Quotations.Any(quo => quo.IsActive))
                 .ToList();
@@ -67,10 +67,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             {
                 Id = Guid.NewGuid(),
                 PurchaseRequestId = purchaseRequest.Id,
-                Status = AccountingReviewStatus.Pending
+                Status = AccountingReviewStatus.Pending,
+                Comments = request.Comments,
+                ReviewedByUserId = access.User.Id
             };
 
-            await _unitOfWork.RequisitionAccountingReviews.RegisterRequisitionAccountingReview(accountingReview);
+            var RequisitionAccountingReviewEntity = RequisitionAccountingReviewMapper.ToRequisitionAccountingReviewEntity(request, access.User.Id);
+            await _unitOfWork.RequisitionAccountingReviews.RegisterRequisitionAccountingReview(RequisitionAccountingReviewEntity);
+
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return true;

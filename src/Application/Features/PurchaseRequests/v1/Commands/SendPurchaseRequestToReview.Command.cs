@@ -8,5 +8,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Comman
     {
         [JsonIgnore]
         public Guid PurchaseRequestId { get; set; }
+        public string? Comments { get; set; }
     }
 }
