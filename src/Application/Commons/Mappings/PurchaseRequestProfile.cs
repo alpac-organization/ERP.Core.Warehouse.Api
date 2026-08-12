@@ -25,18 +25,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForPath(dest => dest.CreatorUserInformation.WorkAreaInformation, opt => opt.MapFrom(src => src.RegistrationUser.WorkArea))
 
                 .ForPath(dest => dest.ReviewerUserInformation, opt => opt.MapFrom(src => src.UserRevision))
-                .ForPath(dest => dest.ReviewerUserInformation!.WorkAreaInformation, opt => opt.MapFrom(src => src.UserRevision.WorkArea))
-
-
-                
-                .ForPath(dest => dest.RequestedProducts,opt => opt.MapFrom(src => src.PurchaseRequestItems));
-
-            CreateMap<PurchaseRequestItem, ProductInformation>()
-                .ForMember(dest => dest.PurchaseRequestId, opt => opt.MapFrom(src => src.Id))
-
-                .ForPath(dest => dest.ProductDetails,   opt => opt.MapFrom(src => src.Product))
-                .ForPath(dest => dest.UnitMeasureInformation,   opt => opt.MapFrom(src => src.UnitMeasure))
-                .ForPath(dest => dest.ProductDetails.CategoryInformation,   opt => opt.MapFrom(src => src.Product.Category));
+                .ForPath(dest => dest.ReviewerUserInformation!.WorkAreaInformation, opt => opt.MapFrom(src => src.UserRevision.WorkArea));
         }
     }
 

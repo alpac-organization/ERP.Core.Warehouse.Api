@@ -4,6 +4,7 @@ using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Dtos;
 
 using Commands = ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
@@ -23,18 +24,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForPath(dest => dest.PurchaseRequest.InformationFromRequestingArea,       opt => opt.MapFrom(src => src.PurchaseRequest.WorkArea))
                 .ForPath(dest => dest.PurchaseRequest.InformationFromRequestingArea.CostCenters,       opt => opt.MapFrom(src => src.PurchaseRequest.WorkArea.CostCenters))
                 .ForPath(dest => dest.SentByUserInformation, opt => opt.MapFrom(src => src.SentByUser))
-                .ForPath(dest => dest.SentByUserInformation.WorkAreaInformation, opt => opt.MapFrom(src => src.SentByUser.WorkArea))
+                .ForPath(dest => dest.SentByUserInformation.WorkAreaInformation, opt => opt.MapFrom(src => src.SentByUser.WorkArea));
 
-                .ForPath(dest => dest.PurchaseRequest.RequestedProducts,       opt => opt.MapFrom(src => src.PurchaseRequest.PurchaseRequestItems));
-
-            // CreateMap<Quotation, QuotationInformationDto>()
-            //     .ForMember(dest => dest.QuotationId, opt => opt.MapFrom(src => src.Id))
-
-            //     .ForPath(dest => dest.SupplierInformation.SupplierId, opt => opt.MapFrom(src => src.Supplier.Id))
-            //     .ForPath(dest => dest.SupplierInformation.ImageUrl, opt => opt.MapFrom(src => src.Supplier.ImageUrl))
-            //     .ForPath(dest => dest.SupplierInformation.SuppliersLegalName, opt => opt.MapFrom(src => src.Supplier.SuppliersLegalName))
-            //     .ForPath(dest => dest.SupplierInformation.IdentificationNumber, opt => opt.MapFrom(src => src.Supplier.IdentificationNumber))
-            //     .ForPath(dest => dest.SupplierInformation.IdentificationType, opt => opt.MapFrom(src => src.Supplier.IdentificationType));
         }
     }
 

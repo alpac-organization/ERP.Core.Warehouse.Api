@@ -1,5 +1,6 @@
 using AutoMapper;
 using ERP.Core.Database.Domain.Entities.Shopping;
+using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 
 using Commands = ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands;
 
@@ -8,7 +9,12 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 
     public class QuotationsProfile : Profile
     {
-        
+        public QuotationsProfile()
+        {
+            CreateMap<Quotation, QuotationInformationDto>()
+                .ForMember(dest => dest.QuotationId, opt => opt.MapFrom(src => src.Id))
+                .ForPath(dest => dest.SupplierInformation, opt => opt.MapFrom(src => src.Supplier));
+        }
     }
 
     public static class QuotationsMapper
