@@ -1,5 +1,4 @@
-using ERP.Core.Database.Domain.Entities.Catalogs;
-using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
 {
@@ -9,10 +8,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public string? ReasonRejection { get; set; }
 
         public BranchInformation BranchInformation { get; set; } = new ();
-        public CreatorUserInformation CreatorUserInformation { get; set; } = new();
+        public WorkAreaInformation  InformationFromRequestingArea { get; set; } = new ();
+        public CreatorUserInformation  CreatorUserInformation { get; set; } = new();
         public ReviewerUserInformation ReviewerUserInformation { get; set; } = new ();
+        public List<ProductInformation> RequestedProducts { get; set; }  =  [];
 
-        public List<ProductInformation> RequestedProducts { get; set; } =  [];
     }
 
     public class BranchInformation
@@ -23,14 +23,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public string? CompanyAlias { get; set; }
     }
 
-    public class ReviewerUserInformation: CreatorUserInformation { }
-    public class CreatorUserInformation
-    {        
-        public Guid UserId { get; set; }
-        public string? Email { get; set; }
-        public string? Fullname { get; set; }
-        public string? PictureUrl { get; set; }
-    }
+    public class ReviewerUserInformation : SentByUserInformation { }
+    public class CreatorUserInformation  : SentByUserInformation { }
 
 
     public class ProductInformation

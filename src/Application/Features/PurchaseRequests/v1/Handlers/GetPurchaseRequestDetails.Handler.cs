@@ -22,7 +22,21 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
             var purchaseRequest = await _unitOfWork.PurchaseRequests.Entities
                 .Include(pur => pur.RegistrationUser)
+                    .ThenInclude(user => user.WorkArea)
+                        .ThenInclude(area => area.CostCenters)
+
                 .Include(pur => pur.Branch)
+
+                .Include(pur => pur.WorkArea)
+                    .ThenInclude(area => area.CostCenters)
+
+                .Include(pur => pur.PurchaseRequestItems)
+                    .ThenInclude(item => item.Product)
+                        .ThenInclude(product => product.Category)
+
+                .Include(pur => pur.PurchaseRequestItems)
+                    .ThenInclude(item => item.UnitMeasure)
+
                 .Where(pur => pur.Id == request.PurchaseRequestId)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -31,20 +45,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return _errorManager.ThrowBadRequest<PurchaseRequestDetailsDto>("No se encontro el detalle de esta solicitud", "ERP:NOT_FOUND");
             }
 
-            var detailsMapped = _mapper.Map<PurchaseRequestDetailsDto>(purchaseRequest);
-            
-            var requestedProducts = await _unitOfWork.PurchaseRequestItems.Entities
-                .Where(product => product.PurchaseRequestId == purchaseRequest.Id)
-                .Include(product => product.UnitMeasure)
-                .Include(product => product.Product)
-                    .ThenInclude(product => product.Category)
-                .ToListAsync(cancellationToken);
-
-            var requestedProductsMapped = _mapper.Map<List<ProductInformation>>(requestedProducts);
-
-            detailsMapped.RequestedProducts = requestedProductsMapped;
-
-            return detailsMapped;
+            return _mapper.Map<PurchaseRequestDetailsDto>(purchaseRequest);        
         }
     }
     

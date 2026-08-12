@@ -1,8 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 
-using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Database.Domain.Entities.Shopping;
+using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
@@ -63,17 +62,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return _errorManager.ThrowBadRequest<bool>("Todos los productos solicitados deben tener al menos una cotización asociada", "ERP:ITEMS_WITHOUT_QUOTATION");
             }
 
-            var accountingReview = new RequisitionAccountingReview
-            {
-                Id = Guid.NewGuid(),
-                PurchaseRequestId = purchaseRequest.Id,
-                Status = AccountingReviewStatus.Pending,
-                Comments = request.Comments,
-                ReviewedByUserId = access.User.Id
-            };
-
             var RequisitionAccountingReviewEntity = RequisitionAccountingReviewMapper.ToRequisitionAccountingReviewEntity(request, access.User.Id);
+
             await _unitOfWork.RequisitionAccountingReviews.RegisterRequisitionAccountingReview(RequisitionAccountingReviewEntity);
+
+            purchaseRequest.RequestStatus = PurchaseRequestStatus.Revision;
+
+            await _unitOfWork.PurchaseRequests.UpdateAsync(purchaseRequest);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
