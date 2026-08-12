@@ -26,6 +26,13 @@ public class WarehouseProfile : Profile
             .ForMember(dest => dest.SectionName, opt => opt.MapFrom(src => src.Name))
             .ForMember(dest => dest.SectionType, opt => opt.MapFrom(src => src.SectionType.ToString()));
         #endregion
+
+        #region Racks
+        CreateMap<Racks, RackDto>()
+            .ForMember(dest => dest.RackId, opt => opt.MapFrom(src => src.Id))
+            .ForMember(dest => dest.UsageProfile, opt => opt.MapFrom(src => src.UsageProfile.ToString()))
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()));
+        #endregion
     }
 }
 
@@ -116,6 +123,98 @@ public static class SectionMapper
             WarehouseId = command.WarehouseId,
 
             OverflowCapacity = overflowCapacity
+        };
+    }
+}
+#endregion
+
+#region Racks
+public static class RackMapper
+{
+    public static Racks ToRackEntity(this Commands.RegisterRackCommand command)
+    {
+        return new()
+        {
+            Id = Guid.NewGuid(),
+            SectionId = command.SectionId,
+            Code = command.Code.Trim(),
+            WidthMetres = command.WidthMetres,
+            LengthMetres = command.LengthMetres,
+            HeightMetres = command.HeightMetres,
+            UsageProfile = command.UsageProfile,
+            RowNumber = command.RowNumber,
+            LevelNumber = command.LevelNumber,
+            MaxPulleys = command.MaxPulleys,
+            Status = command.Status,
+            UnavailableReason = command.UnavailableReason,
+            StatusChangedAt = NicaraguaClock.Now
+        };
+    }
+
+    public static List<Racks> ToRackEntities(this Commands.RegisterRacksBulkCommand command, string estanteCode)
+    {
+        var racks = new List<Racks>();
+        var depositNumber = command.StartingDepositNumber;
+        var now = NicaraguaClock.Now;
+
+        foreach (var level in command.Levels.OrderBy(l => l.LevelNumber))
+        {
+            for (var row = 1; row <= level.RacksCount; row++)
+            {
+                racks.Add(new Racks
+                {
+                    Id                  = Guid.NewGuid(),
+                    SectionId           = command.SectionId,
+                    Code                = $"{estanteCode}-D{depositNumber}",
+                    WidthMetres         = level.WidthMetres,
+                    LengthMetres        = level.LengthMetres,
+                    HeightMetres        = level.HeightMetres,
+                    UsageProfile        = level.UsageProfile,
+                    RowNumber           = row,
+                    LevelNumber         = level.LevelNumber,
+                    MaxPulleys          = level.MaxPulleys,
+                    Status              = level.Status,
+                    UnavailableReason   = level.UnavailableReason,
+                    StatusChangedAt     = now
+                });
+
+                depositNumber++;
+            }
+        }
+
+        return racks;
+    }
+}
+
+public static class RackDtoMapper
+{
+    public static Commands.RegisterRacksBulkCommand ToCommand(
+        this RegisterRacksBulkDto dto,
+        Guid sectionId,
+        Guid userId,
+        Guid companyId,
+        string moduleCode)
+    {
+        return new Commands.RegisterRacksBulkCommand
+        {
+            SectionId              = sectionId,
+            ShelfCode              = dto.ShelfCode,
+            StartingDepositNumber  = dto.StartingDepositNumber,
+            Levels = dto.Levels.Select(l => new Commands.RackLevelSpec
+            {
+                LevelNumber         = l.LevelNumber,
+                RacksCount          = l.RacksCount,
+                WidthMetres         = l.WidthMetres,
+                LengthMetres        = l.LengthMetres,
+                HeightMetres        = l.HeightMetres,
+                UsageProfile        = l.UsageProfile,
+                MaxPulleys          = l.MaxPulleys,
+                Status              = l.Status,
+                UnavailableReason   = l.UnavailableReason
+            }).ToList(),
+            UserId      = userId,
+            CompanyId   = companyId,
+            ModuleCode  = moduleCode
         };
     }
 }
