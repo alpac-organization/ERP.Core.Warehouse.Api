@@ -22,26 +22,36 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
             }
 
             var review = await _unitOfWork.RequisitionAccountingReviews.Entities
-                .Include(rev => rev.ReviewedByUser)
+                //Usuario que envia la solicitud a revición
+                .Include(rev => rev.SentByUser)
+                    .ThenInclude(user => user.WorkArea)
+
+                //Solicitud de compras
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.Branch)
+
+                //Areas la que va realizada la solicitud            
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.WorkArea)
+                        .ThenInclude(area => area.CostCenters)
+
+                //Usuario que registro la solicitud de compra
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.RegistrationUser)
+                        .ThenInclude(user => user.WorkArea)
+
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.UserRevision)
+                        .ThenInclude(user => user.WorkArea)
+
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.PurchaseRequestItems)
                         .ThenInclude(item => item.UnitMeasure)
+
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.PurchaseRequestItems)
                         .ThenInclude(item => item.Product)
-                            .ThenInclude(product => product.Category)
-                .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(pur => pur.PurchaseRequestItems)
-                        .ThenInclude(item => item.Quotations)
-                            .ThenInclude(quo => quo.Supplier)
+
                 .AsNoTracking()
                 .Where(rev => rev.Id == request.RequisitionAccountingReviewId)
                 .FirstOrDefaultAsync(cancellationToken);
