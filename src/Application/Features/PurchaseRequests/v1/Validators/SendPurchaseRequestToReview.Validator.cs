@@ -20,7 +20,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
             RuleFor(x => x.PurchaseRequestId)
                 .NotEqual(Guid.Empty)
                 .WithMessage("El identificador de la solicitud de compra no es válido.");
-
+                
             RuleFor(x => x.ModuleCode)
                 .NotEmpty()
                 .WithMessage("El código del módulo no puede estar vacío.");

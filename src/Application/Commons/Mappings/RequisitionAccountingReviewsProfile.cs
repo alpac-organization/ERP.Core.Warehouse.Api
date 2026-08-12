@@ -1,6 +1,9 @@
 using AutoMapper;
 using ERP.Core.Database.Domain.Entities.Shopping;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Dtos;
+
+using Commands = ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
@@ -76,6 +79,21 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForPath(dest => dest.SupplierInformation.SuppliersLegalName, opt => opt.MapFrom(src => src.Supplier.SuppliersLegalName))
                 .ForPath(dest => dest.SupplierInformation.IdentificationNumber, opt => opt.MapFrom(src => src.Supplier.IdentificationNumber))
                 .ForPath(dest => dest.SupplierInformation.IdentificationType, opt => opt.MapFrom(src => src.Supplier.IdentificationType));
+        }
+    }
+
+    public static class RequisitionAccountingReviewMapper
+    {
+        public static RequisitionAccountingReview ToRequisitionAccountingReviewEntity(this Commands.SendPurchaseRequestToReviewCommand request, Guid reviewedByUserId)
+        {
+            return new RequisitionAccountingReview()
+            {
+                Id                = Guid.NewGuid(),
+                Status            = AccountingReviewStatus.Pending,
+                Comments          = request.Comments,
+                PurchaseRequestId = request.PurchaseRequestId,
+                ReviewedByUserId  = reviewedByUserId
+            };
         }
     }
 }
