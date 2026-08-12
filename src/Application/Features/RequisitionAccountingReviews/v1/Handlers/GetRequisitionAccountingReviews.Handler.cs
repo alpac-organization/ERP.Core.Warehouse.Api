@@ -2,7 +2,6 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
-using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
@@ -24,36 +23,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
             }
 
             var reviewsQuery = _unitOfWork.RequisitionAccountingReviews.Entities
-                .Include(rev => rev.ReviewedByUser)
+                .Include(rev => rev.SentByUser)
+                    .ThenInclude(user => user.WorkArea)
                 .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(pur => pur.Branch)
-                .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(pur => pur.RegistrationUser)
-                .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(pur => pur.PurchaseRequestItems)
-                        .ThenInclude(item => item.UnitMeasure)
-                .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(pur => pur.PurchaseRequestItems)
-                        .ThenInclude(item => item.Product)
-                            .ThenInclude(product => product.Category)
                 .AsNoTracking();
 
-            if (access.Role?.RoleType != RoleType.Administrator && access.Role?.RoleType != RoleType.Supervisor)
+            if (request.AreaId.HasValue)
             {
-
-                if (access.Role?.RoleType == RoleType.Operator)
-                {
-                    //Obtener unicamente las revisiones de las solicitudes que el usuario genero
-                    reviewsQuery = reviewsQuery
-                        .Where(rev => rev.PurchaseRequest.RegisteredByUserId == request.UserId);
-                }
-
-                if (access.Role?.RoleType == RoleType.Manager)
-                {
-                    //Obtener todas las revisiones de las solicitudes del area del usuario
-                    reviewsQuery = reviewsQuery
-                        .Where(rev => rev.PurchaseRequest.AreaId == access.User.AreaId);
-                }
+                reviewsQuery = reviewsQuery
+                    .Where(rev => rev.PurchaseRequest.AreaId == request.AreaId);
             }
 
             if (request.Status.HasValue)
@@ -80,5 +58,4 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
             );
         }
     }
-    
 }

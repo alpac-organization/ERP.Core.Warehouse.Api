@@ -21,21 +21,23 @@ namespace ERP.Core.Warehouse.Api.Controllers.RequisitionAccountingReviews
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<PagedResponse<RequisitionAccountingReviewDto>> GetRequisitionAccountingReviewsAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
+            [FromQuery] Guid? area_id = null,
             [FromQuery] AccountingReviewStatus? status = null,
             [FromQuery] int page_number = 1,
             [FromQuery] int page_size = 10
         )
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
-
+            
             return await _mediator.Send(new GetRequisitionAccountingReviewsQuery()
             {
-                Status = status,
-                CompanyId = company_id,
-                ModuleCode = module_code,
-                UserId = Guid.Parse(userIdStr ?? ""),
-                PageNumber = page_number,
-                PageSize = page_size,
+                Status      = status,
+                AreaId      = area_id,
+                CompanyId   = company_id,
+                ModuleCode  = module_code,
+                UserId      = Guid.Parse(userIdStr ?? ""),
+                PageNumber  = page_number,
+                PageSize    = page_size,
             });
         }
 
