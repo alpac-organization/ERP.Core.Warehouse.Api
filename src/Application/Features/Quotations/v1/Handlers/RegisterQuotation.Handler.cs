@@ -32,7 +32,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 
             foreach (var quotation in request.QuotationItems)
             {
-
                 var item = await _unitOfWork.PurchaseRequestItems.Entities
                     .Where(pur => pur.Id == quotation.PurchaseRequestItemId)
                     .FirstOrDefaultAsync(cancellationToken);
@@ -46,15 +45,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                 var totalToPay = item.Quantity * quotation.Price;
 
                 var quotationEntity = QuotationsMapper.ToQuotationsEntity(quotation);
-
                 quotationEntity.PriceTotal = totalToPay;
 
-                var counts = await _unitOfWork.Quotations.Entities
-                    .Where(quo => quo.IsActive)
-                    .Where(quo => quo.PurchaseRequestItemId == quotation.PurchaseRequestItemId)
-                    .CountAsync(cancellationToken);
-
-                if (counts > 0)
+                if (!item.HasQuotation)
                 {
                     item.HasQuotation = true;
                     await _unitOfWork.PurchaseRequestItems.UpdateAsync(item);

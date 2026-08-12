@@ -70,6 +70,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             return new()
             {
+<<<<<<< HEAD
                 // IsActive = true,
                 // Code = sectionCode,
                 // Id = Guid.NewGuid(),
@@ -79,6 +80,14 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 // HeightMetres = command.HeightMetres,
                 // MaxWeightCapacityKg = command.MaxWeightCapacityKg,
                 // TotalVolumeCapacityM3 = command.TotalVolumeCapacityM3,
+=======
+                IsActive              = true,
+                Code                  = sectionCode,
+                Id                    = Guid.NewGuid(),
+                Name                  = command.ZoneName,
+                WarehouseId           = warehouseId,
+                LengthMetres          = command.LengthMetres,
+>>>>>>> 2e93fc318063b23799e843c08c10284113dd27c2
             };
         }
 
@@ -86,6 +95,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             return new()
             {
+<<<<<<< HEAD
                 // IsAvailable = true,
                 // SectionId = zoneId,
                 // RowNumber = command.RowNumber,
@@ -93,6 +103,11 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 // CostPerPosition = command.CostPerPosition,
                 // MaxWeightKg = command.MaxWeightKg,
                 // MaxHeightMetres = command.MaxHeightMetres
+=======
+                SectionId       = zoneId,
+                RowNumber       = command.RowNumber,
+                LevelNumber     = command.LevelNumber,
+>>>>>>> 2e93fc318063b23799e843c08c10284113dd27c2
             };
         }
     }
