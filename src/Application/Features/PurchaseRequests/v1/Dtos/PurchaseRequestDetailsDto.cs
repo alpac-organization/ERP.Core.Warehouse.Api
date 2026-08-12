@@ -10,8 +10,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public BranchInformation BranchInformation { get; set; } = new ();
         public WorkAreaInformation  InformationFromRequestingArea { get; set; } = new ();
         public CreatorUserInformation  CreatorUserInformation { get; set; } = new();
-        public ReviewerUserInformation ReviewerUserInformation { get; set; } = new ();
         public List<ProductInformation> RequestedProducts { get; set; }  =  [];
+        public ReviewerUserInformation? ReviewerUserInformation { get; set; } = null;
 
     }
 
