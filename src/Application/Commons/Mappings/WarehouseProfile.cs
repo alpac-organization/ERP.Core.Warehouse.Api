@@ -22,20 +22,47 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
     {
         public static Warehouses ToWarehouseEntity(this Commands.RegisterWarehouseCommand command)
         {
+            var warehouseId = Guid.NewGuid();
+
+            var details = new WarehouseDetails
+            {
+                Id = Guid.NewGuid(),
+                WarehouseId         = warehouseId,
+                WitdhMetres         = command.WarehouseDetails.WidthMetres,
+                LengthMetres        = command.WarehouseDetails.LengthMetres,
+                RampsCount          = command.WarehouseDetails.RampsCount,
+                ParkingSpacesCount  = command.WarehouseDetails.ParkingSpacesCount
+            };
+
             return new()
             {
+                Id                  = warehouseId,
+                Code                = command.Code,
                 IsActive            = true,
-                Id                  = Guid.NewGuid(),
                 WarehouseName       = command.WarehouseName,
                 BranchId            = command.BranchId,
-                MaxHeight           = command.WarehouseInformation.MaxHeight,
-                MinHeight           = command.WarehouseInformation.MinHeight,
-                RampasCount         = command.WarehouseInformation.RampasCount,
-                WarehouseType       = command.WarehouseInformation.WarehouseType,
-                ParkingSpacesCount  = command.WarehouseInformation.ParkingSpacesCount,
-                TotalArea           = command.WarehouseInformation.TotalArea,
-                TotalCubicCapacity  = command.WarehouseInformation.TotalCubicCapacity,
-                UnusableArea        = command.WarehouseInformation.UnusableArea
+                WarehouseType       = command.WarehouseType,
+                ParentWarehouseId   = command.ParentWarehouseId,
+
+                Details             = details,
+                Capacity            = details.ToCalculatedCapacity(warehouseId)
+            };
+        }
+
+        public static WarehouseCapacity ToCalculatedCapacity(this WarehouseDetails details, Guid warehouseId)
+        {
+            var totalArea   = details.WitdhMetres * details.LengthMetres;
+
+            return new WarehouseCapacity
+            {
+                Id                      = Guid.NewGuid(),
+                WarehouseId             = warehouseId,
+                TotalAreaM2             = totalArea,
+                UsableAreaM2            = null, // aún no hay secciones/racks para descontar
+                UnusableAreaM2          = null,
+                TotalMaxPolines         = null,
+                CurrentPolinesStored    = null,
+                LastCalculatedAt        = DateTime.UtcNow
             };
         }
 
@@ -43,15 +70,15 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             return new()
             {
-                IsActive              = true,
-                Code                  = sectionCode,
-                Id                    = Guid.NewGuid(),
-                Name                  = command.ZoneName,
-                WarehouseId           = warehouseId,
-                LengthMetres          = command.LengthMetres,
-                HeightMetres          = command.HeightMetres,
-                MaxWeightCapacityKg   = command.MaxWeightCapacityKg,
-                TotalVolumeCapacityM3 = command.TotalVolumeCapacityM3,
+                // IsActive = true,
+                // Code = sectionCode,
+                // Id = Guid.NewGuid(),
+                // Name = command.ZoneName,
+                // WarehouseId = warehouseId,
+                // LengthMetres = command.LengthMetres,
+                // HeightMetres = command.HeightMetres,
+                // MaxWeightCapacityKg = command.MaxWeightCapacityKg,
+                // TotalVolumeCapacityM3 = command.TotalVolumeCapacityM3,
             };
         }
 
@@ -59,13 +86,13 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             return new()
             {
-                IsAvailable     = true,
-                SectionId       = zoneId,
-                RowNumber       = command.RowNumber,
-                LevelNumber     = command.LevelNumber,
-                CostPerPosition = command.CostPerPosition,
-                MaxWeightKg     = command.MaxWeightKg,
-                MaxHeightMetres = command.MaxHeightMetres  
+                // IsAvailable = true,
+                // SectionId = zoneId,
+                // RowNumber = command.RowNumber,
+                // LevelNumber = command.LevelNumber,
+                // CostPerPosition = command.CostPerPosition,
+                // MaxWeightKg = command.MaxWeightKg,
+                // MaxHeightMetres = command.MaxHeightMetres
             };
         }
     }
