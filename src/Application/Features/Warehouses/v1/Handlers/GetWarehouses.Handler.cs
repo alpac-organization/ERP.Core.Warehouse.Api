@@ -2,32 +2,38 @@ using MediatR;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 
+using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
 
-namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
+namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
+
+public class GetWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
+    : BaseValidatorHandler<GetWarehousesQuery, List<WarehouseDto>>(unitOfWork, errorManager)
 {
-    public class GetWarehousesHandler(IUnitOfWork _unitOfWork, IMapper _mapper) : IRequestHandler<GetWarehousesQuery, List<WarehouseDto>>
+    private readonly IMapper _mapper = mapper;
+
+    public override async Task<List<WarehouseDto>> Handle(GetWarehousesQuery request, CancellationToken cancellationToken)
     {
-        public async Task<List<WarehouseDto>> Handle(GetWarehousesQuery request, CancellationToken cancellationToken)
+        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+        if (!access.IsSuccess) return access.ErrorResponse!;
+
+        var baseQuery = _unitOfWork.Warehouses.Entities
+            .AsNoTracking()
+            .Where(ware => ware.IsActive && ware.ParentWarehouseId == null);
+
+        if (!string.IsNullOrEmpty(request.BranchCode))
         {
-            var warehousesQuery = _unitOfWork.Warehouses.Entities
-                .Where(ware => ware.IsActive)
-                .Include(ware => ware.Branch)
-                .AsNoTracking();
-
-
-            if (!string.IsNullOrEmpty(request.BranchCode))
-            {
-                warehousesQuery = warehousesQuery
-                    .Where(ware => ware.Branch.BranchCode == request.BranchCode);
-            }
-
-            var warehouses = await warehousesQuery
-                .FirstOrDefaultAsync(cancellationToken);
-                
-            return _mapper.Map<List<WarehouseDto>>(warehouses);
+            baseQuery = baseQuery.Where(ware => ware.Branch.BranchCode == request.BranchCode);
         }
+
+        var warehouses = await baseQuery
+            .Include(ware => ware.Branch)
+            .Include(ware => ware.SubWarehouses.Where(sub => sub.IsActive))
+            .ToListAsync(cancellationToken);
+
+        return _mapper.Map<List<WarehouseDto>>(warehouses);
     }
 }
