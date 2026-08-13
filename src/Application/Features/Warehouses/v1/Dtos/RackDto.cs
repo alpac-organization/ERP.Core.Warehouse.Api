@@ -107,3 +107,5 @@ public class RackFlatDto
     public string Status { get; set; } = null!;
     public string UsageProfile { get; set; } = null!;
 }
+
+public record RackDimensionKey(decimal WidthMetres, decimal LengthMetres, decimal? HeightMetres);

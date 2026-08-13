@@ -39,6 +39,27 @@ public class WarehouseProfile : Profile
         CreateMap<Racks, RackFlatDto>()
             .ForMember(dest => dest.UsageProfile, opt => opt.MapFrom(src => src.UsageProfile.ToString()))
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()));
+
+        CreateMap<IGrouping<int, RackFlatDto>, LevelCapacityDto>()
+            .ForMember(dest => dest.LevelNumber, opt => opt.MapFrom(src => src.Key))
+            .ForMember(dest => dest.RacksCount, opt => opt.MapFrom(src => src.Count()))
+            .ForMember(dest => dest.UsedLengthMetres, opt => opt.MapFrom(src => src.Sum(r => r.LengthMetres)))
+            .ForMember(dest => dest.AvailableLengthMetres, opt => opt.MapFrom((src, _, _, ctx) =>
+                (decimal)ctx.Items["SectionLength"] - src.Sum(r => r.LengthMetres)));
+
+        CreateMap<IGrouping<string, RackFlatDto>, RackStatusGroupDto>()
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Key))
+            .ForMember(dest => dest.Count, opt => opt.MapFrom(src => src.Count()));
+
+        CreateMap<IGrouping<string, RackFlatDto>, RackUsageProfileGroupDto>()
+            .ForMember(dest => dest.UsageProfile, opt => opt.MapFrom(src => src.Key))
+            .ForMember(dest => dest.Count, opt => opt.MapFrom(src => src.Count()));
+
+        CreateMap<IGrouping<RackDimensionKey, RackFlatDto>, RackDimensionGroupDto>()
+            .ForMember(dest => dest.WidthMetres, opt => opt.MapFrom(src => src.Key.WidthMetres))
+            .ForMember(dest => dest.LengthMetres, opt => opt.MapFrom(src => src.Key.LengthMetres))
+            .ForMember(dest => dest.HeightMetres, opt => opt.MapFrom(src => src.Key.HeightMetres))
+            .ForMember(dest => dest.Count, opt => opt.MapFrom(src => src.Count()));
         #endregion
     }
 }

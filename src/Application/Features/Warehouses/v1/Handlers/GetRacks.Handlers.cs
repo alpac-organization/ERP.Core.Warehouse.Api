@@ -1,11 +1,11 @@
 using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
+using AutoMapper.QueryableExtensions;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
+using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
-using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
 
@@ -32,49 +32,35 @@ public class GetRackSectionSummaryHandler(IUnitOfWork unitOfWork, IErrorManager 
             .ProjectTo<RackFlatDto>(_mapper.ConfigurationProvider)
             .ToListAsync(cancellationToken);
 
-        var levelsCapacity = racks
+        var levelGroups = racks
             .GroupBy(r => r.LevelNumber)
-            .Select(g => new LevelCapacityDto
-            {
-                LevelNumber = g.Key,
-                RacksCount = g.Count(),
-                UsedLengthMetres = g.Sum(r => r.LengthMetres),
-                AvailableLengthMetres = section.LengthMetres - g.Sum(r => r.LengthMetres)
-            })
-            .OrderBy(x => x.LevelNumber)
+            .OrderBy(g => g.Key)
             .ToList();
 
-        var statusBreakdown = racks
+        var levelsCapacity = _mapper.Map<List<LevelCapacityDto>>(
+            levelGroups,
+            opts => opts.Items["SectionLength"] = section.LengthMetres);
+
+        var statusGroups = racks
             .GroupBy(r => r.Status)
-            .Select(g => new RackStatusGroupDto
-            {
-                Status = g.Key,
-                Count = g.Count()
-            })
-            .OrderByDescending(x => x.Count)
+            .OrderByDescending(g => g.Count())
             .ToList();
 
-        var usageProfileBreakdown = racks
+        var statusBreakdown = _mapper.Map<List<RackStatusGroupDto>>(statusGroups);
+
+        var usageProfileGroups = racks
             .GroupBy(r => r.UsageProfile)
-            .Select(g => new RackUsageProfileGroupDto
-            {
-                UsageProfile = g.Key,
-                Count = g.Count()
-            })
-            .OrderByDescending(x => x.Count)
+            .OrderByDescending(g => g.Count())
             .ToList();
+
+        var usageProfileBreakdown = _mapper.Map<List<RackUsageProfileGroupDto>>(usageProfileGroups);
 
         var dimensionGroups = racks
-            .GroupBy(r => new { r.WidthMetres, r.LengthMetres, r.HeightMetres })
-            .Select(g => new RackDimensionGroupDto
-            {
-                WidthMetres = g.Key.WidthMetres,
-                LengthMetres = g.Key.LengthMetres,
-                HeightMetres = g.Key.HeightMetres,
-                Count = g.Count()
-            })
-            .OrderByDescending(x => x.Count)
+            .GroupBy(r => new RackDimensionKey(r.WidthMetres, r.LengthMetres, r.HeightMetres))
+            .OrderByDescending(g => g.Count())
             .ToList();
+
+        var dimensionGroupsDto = _mapper.Map<List<RackDimensionGroupDto>>(dimensionGroups);
 
         return new RackSectionSummaryDto
         {
@@ -84,7 +70,7 @@ public class GetRackSectionSummaryHandler(IUnitOfWork unitOfWork, IErrorManager 
             LevelsCapacity = levelsCapacity,
             StatusBreakdown = statusBreakdown,
             UsageProfileBreakdown = usageProfileBreakdown,
-            DimensionGroups = dimensionGroups
+            DimensionGroups = dimensionGroupsDto
         };
     }
 }
