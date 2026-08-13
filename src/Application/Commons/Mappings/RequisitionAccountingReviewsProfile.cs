@@ -4,7 +4,6 @@ using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Dtos;
 
 using Commands = ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
-using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
@@ -20,10 +19,11 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             CreateMap<RequisitionAccountingReview, RequisitionAccountingReviewDetailsDto>()
                 .ForMember(dest => dest.RequisitionAccountingReviewId, opt => opt.MapFrom(src => src.Id))
 
-                .ForPath(dest => dest.PurchaseRequest,       opt => opt.MapFrom(src => src.PurchaseRequest))
-                .ForPath(dest => dest.PurchaseRequest.InformationFromRequestingArea,       opt => opt.MapFrom(src => src.PurchaseRequest.WorkArea))
-                .ForPath(dest => dest.PurchaseRequest.InformationFromRequestingArea.CostCenters,       opt => opt.MapFrom(src => src.PurchaseRequest.WorkArea.CostCenters))
-                .ForPath(dest => dest.SentByUserInformation, opt => opt.MapFrom(src => src.SentByUser))
+                .ForPath(dest => dest.PurchaseRequest, opt => opt.MapFrom(src => src.PurchaseRequest))
+                .ForPath(dest => dest.PurchaseRequest.InformationFromRequestingArea, opt => opt.MapFrom(src => src.PurchaseRequest.WorkArea))
+                .ForPath(dest => dest.PurchaseRequest.InformationFromRequestingArea.CostCenters, opt => opt.MapFrom(src => src.PurchaseRequest.WorkArea.CostCenters))
+                
+                .ForPath(dest => dest.SentByUserInformation,                     opt => opt.MapFrom(src => src.SentByUser))
                 .ForPath(dest => dest.SentByUserInformation.WorkAreaInformation, opt => opt.MapFrom(src => src.SentByUser.WorkArea));
 
         }
