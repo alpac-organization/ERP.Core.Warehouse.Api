@@ -168,6 +168,7 @@ public static class SectionMapper
             Code = command.Code,
             Name = command.Name,
             SectionType = command.SectionType,
+            StorageType = command.StorageType,
             WidthMetres = command.WidthMetres,
             LengthMetres = command.LengthMetres,
             WarehouseId = command.WarehouseId,
