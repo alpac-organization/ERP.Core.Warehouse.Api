@@ -48,5 +48,24 @@ namespace ERP.Core.Warehouse.Api.Controllers.Quotes
 
             return Ok();
         }
+        
+        [Tags("Contizaciones")] 
+        [HttpPatch("companies/{company_id}/modules/{module_code}/quotations/{quotation_id}/accept-for-purchase")]      
+        [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
+        public async Task<OkResult> AcceptQuotationForPurchaseAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid quotation_id, [FromBody] AcceptQuotationForPurchaseCommand payload)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            payload.CompanyId = company_id;
+            payload.ModuleCode = module_code;
+            payload.QuotationId = quotation_id;
+            payload.UserId = Guid.Parse(userIdStr ?? "");
+
+            await _mediator.Send(payload);
+
+            return Ok();
+        }
     }
 }

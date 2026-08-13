@@ -46,6 +46,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public bool IsActive { get; set; }
         public bool HasDelivery { get; set; }
         public bool HasGuarantee { get; set; }
+        public bool IsAcceptedForPurchase { get; set; }
 
         public decimal Iva { get; set; }
         public decimal Price { get; set; }
