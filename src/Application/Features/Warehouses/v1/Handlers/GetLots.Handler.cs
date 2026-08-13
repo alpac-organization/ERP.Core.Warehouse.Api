@@ -30,3 +30,21 @@ public class GetLotByIdHandler(IUnitOfWork unitOfWork, IErrorManager errorManage
         return lot;
     }
 }
+
+#region Get Lots por Section
+public class GetLotsBySectionHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
+    : BaseValidatorHandler<GetLotsBySectionQuery, List<LotListItemDto>>(unitOfWork, errorManager)
+{
+    private readonly IMapper _mapper = mapper;
+
+    public override async Task<List<LotListItemDto>> Handle(GetLotsBySectionQuery request, CancellationToken cancellationToken)
+    {
+        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+        if (!access.IsSuccess) return [];
+
+        return await _mapper.ProjectTo<LotListItemDto>(
+                _unitOfWork.Lots.Entities.Where(l => l.SectionId == request.SectionId))
+            .ToListAsync(cancellationToken);
+    }
+}
+#endregion

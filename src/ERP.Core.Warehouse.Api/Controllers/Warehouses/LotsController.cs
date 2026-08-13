@@ -35,6 +35,36 @@ public class LotsController(IMediator mediator) : ApiControllerBase
         return Ok(response);
     }
 
+    #region Get Lots By Section
+    [Tags("Tramos")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/sections/{section_id}/lots")]
+    [ProducesResponseType(typeof(List<LotListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetLotsBySectionAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid section_id,
+        CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        if (!Guid.TryParse(userIdStr, out var userId))
+            return Unauthorized();
+
+        var query = new GetLotsBySectionQuery
+        {
+            SectionId = section_id,
+            UserId = userId,
+            CompanyId = company_id,
+            ModuleCode = module_code
+        };
+
+        var response = await mediator.Send(query, cancellationToken);
+        return Ok(response);
+    }
+    #endregion
+
+    #region Get Lots by Id
     [Tags("Tramos")]
     [HttpGet("companies/{company_id}/modules/{module_code}/sections/{section_id}/lots/{lot_id}")]
     [ProducesResponseType(typeof(LotDto), StatusCodes.Status200OK)]
@@ -63,5 +93,6 @@ public class LotsController(IMediator mediator) : ApiControllerBase
         var response = await mediator.Send(query, cancellationToken);
         return Ok(response);
     }
+    #endregion
 }
 

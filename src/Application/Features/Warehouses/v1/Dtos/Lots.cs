@@ -68,3 +68,14 @@ public class LotPositionDto
     public bool AllowsStacking { get; set; }
     public bool IsBlocked { get; set; }
 }
+
+public class LotListItemDto
+{
+    public Guid LotId { get; set; }
+    public string? Code { get; set; }
+    public decimal WidthMetres { get; set; }
+    public decimal LengthMetres { get; set; }
+    public string? Status { get; set; }
+    public int TotalPositions { get; set; }
+    public int OccupiedPositions { get; set; }
+}
