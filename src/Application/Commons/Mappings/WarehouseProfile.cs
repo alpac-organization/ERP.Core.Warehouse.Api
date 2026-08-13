@@ -25,7 +25,8 @@ public class WarehouseProfile : Profile
             .ForMember(dest => dest.SectionId, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.SectionCode, opt => opt.MapFrom(src => src.Code))
             .ForMember(dest => dest.SectionName, opt => opt.MapFrom(src => src.Name))
-            .ForMember(dest => dest.SectionType, opt => opt.MapFrom(src => src.SectionType.ToString()));
+            .ForMember(dest => dest.SectionType, opt => opt.MapFrom(src => src.SectionType.ToString()))
+            .ForMember(dest => dest.StorageType, opt => opt.MapFrom(src => src.StorageType.ToString()));
         #endregion
 
         #region Racks
@@ -168,6 +169,7 @@ public static class SectionMapper
             Code = command.Code,
             Name = command.Name,
             SectionType = command.SectionType,
+            StorageType = command.StorageType,
             WidthMetres = command.WidthMetres,
             LengthMetres = command.LengthMetres,
             WarehouseId = command.WarehouseId,

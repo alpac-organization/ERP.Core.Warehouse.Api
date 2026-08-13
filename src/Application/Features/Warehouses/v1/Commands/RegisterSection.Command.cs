@@ -13,6 +13,7 @@ public class RegisterSectionCommand : BaseRequest, IRequest<bool>
     public string Code { get; set; } = null!;
     public string Name { get; set; } = null!;
     public SectionType SectionType { get; set; }
+    public SectionStorageType StorageType { get; set; } = SectionStorageType.Empty;
     public decimal WidthMetres { get; set; }
     public decimal LengthMetres { get; set; }
 
