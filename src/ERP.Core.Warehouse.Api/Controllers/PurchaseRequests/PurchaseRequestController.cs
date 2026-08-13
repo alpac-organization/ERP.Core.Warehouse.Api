@@ -65,11 +65,11 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
         }
 
         [Tags("Solicitudes de compras")] 
-        [HttpGet("companies/{company_id}/modules/{module_code}/purchase-requests/{purchase_request_id}/details")]      
+        [HttpGet("companies/{company_id}/modules/{module_code}/purchase-requests/{purchase_request_id}")]      
         [ProducesResponseType(typeof(PurchaseRequestDetailsDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
-        public async Task<PurchaseRequestDetailsDto> GetPurchaseRequestAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid purchase_request_id)
+        public async Task<PurchaseRequestDetailsDto> GetPurchaseRequestDetailsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid purchase_request_id)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
@@ -79,6 +79,29 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
                 CompanyId = company_id,
                 UserId = Guid.Parse(userIdStr ?? ""),
                 ModuleCode = module_code
+            });
+        }
+
+        [Tags("Solicitudes de compras")] 
+        [HttpGet("companies/{company_id}/modules/{module_code}/purchase-requests/{purchase_request_id}/products")]      
+        [ProducesResponseType(typeof(PagedResponse<PurchaseRequestItemDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
+        public async Task<PagedResponse<PurchaseRequestItemDto>> GetPurchaseRequestProductsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid purchase_request_id,
+            [FromQuery] int page_number = 1,
+            [FromQuery] int page_size  = 10
+        )
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            return await _mediator.Send(new GetPurchaseRequestsProductsQuery()
+            {
+                PurchaseRequestId = purchase_request_id,
+                CompanyId = company_id,
+                UserId = Guid.Parse(userIdStr ?? ""),
+                ModuleCode = module_code,
+                PageNumber = page_number,
+                PageSize = page_size,
             });
         }
 
