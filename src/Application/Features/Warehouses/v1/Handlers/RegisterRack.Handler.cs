@@ -32,6 +32,21 @@ public class RegisterRacksBulkHandler(IUnitOfWork unitOfWork, IErrorManager erro
             ? section.Code.Replace("-", string.Empty)
             : request.ShelfCode;
 
+        var shelfPrefix = $"{shelfCode}-D";
+
+        var shelfCodeUsedInOtherSection = await _unitOfWork.Racks.Entities
+            .Where(r => r.SectionId != request.SectionId && r.Code.StartsWith(shelfPrefix))
+            .Join(_unitOfWork.Sections.Entities,
+                r => r.SectionId,
+                s => s.Id,
+                (r, s) => s)
+            .AnyAsync(s => s.WarehouseId == section.WarehouseId, cancellationToken);
+
+        if (shelfCodeUsedInOtherSection)
+            return _errorManager.ThrowBadRequest<RegisterRacksBulkResultDto>(
+                $"El código de estante '{shelfCode}' ya está en uso en otra sección de este almacén.",
+                "ERP:SHELF_CODE_ALREADY_USED_IN_WAREHOUSE");
+
         // Trae RowNumber, LevelNumber y LengthMetres en una sola pasada
         var existingRacks = await _unitOfWork.Racks.Entities
             .Where(r => r.SectionId == request.SectionId)
