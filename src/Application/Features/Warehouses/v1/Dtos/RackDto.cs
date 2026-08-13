@@ -48,7 +48,7 @@ public class RegisterRacksBulkResultDto
     public int TotalRequested { get; set; }
     public int TotalCreated { get; set; }
     public List<LevelCapacityDto> LevelCapacity { get; set; } = [];
-    public List<RackSummaryDto> Racks { get; set; } = [];
+    // public List<RackSummaryDto> Racks { get; set; } = [];
 }
 
 public class RackSummaryDto
