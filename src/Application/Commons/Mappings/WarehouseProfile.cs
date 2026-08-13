@@ -3,6 +3,7 @@ using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
+using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using Commands = ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
@@ -60,6 +61,27 @@ public class WarehouseProfile : Profile
             .ForMember(dest => dest.LengthMetres, opt => opt.MapFrom(src => src.Key.LengthMetres))
             .ForMember(dest => dest.HeightMetres, opt => opt.MapFrom(src => src.Key.HeightMetres))
             .ForMember(dest => dest.Count, opt => opt.MapFrom(src => src.Count()));
+        #endregion
+
+        #region Lots
+        CreateMap<Lots, LotDto>()
+            .ForMember(d => d.LotId, o => o.MapFrom(s => s.Id))
+            .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()))
+            .ForMember(d => d.TotalPositions, o => o.MapFrom(s => s.Positions.Count))
+            .ForMember(d => d.OccupiedPositions, o => o.MapFrom(s => s.Positions.Count(p => p.CurrentStock != null)));
+
+        CreateMap<LotsPositions, LotPositionDto>()
+            .ForMember(d => d.PositionId, o => o.MapFrom(s => s.Id));
+
+        CreateMap<Lots, LotSummaryDto>()
+            .ForMember(d => d.LotId, o => o.MapFrom(s => s.Id))
+            .ForMember(d => d.PositionsCount, o => o.MapFrom(s => s.Positions.Count));
+
+        CreateMap<Lots, LotListItemDto>()
+            .ForMember(d => d.LotId, o => o.MapFrom(s => s.Id))
+            .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()))
+            .ForMember(d => d.TotalPositions, o => o.MapFrom(s => s.Positions.Count))
+            .ForMember(d => d.OccupiedPositions, o => o.MapFrom(s => s.Positions.Count(p => p.CurrentStock != null)));
         #endregion
     }
 }
@@ -252,5 +274,77 @@ public static class RackDtoMapper
             ModuleCode = moduleCode
         };
     }
+}
+#endregion
+
+#region Lots
+public static class LotMapper
+{
+    public static List<Lots> ToLotEntities(this RegisterLotsCommand command)
+    {
+        var now = NicaraguaClock.Now;
+
+        return command.Groups
+            .SelectMany(ExpandGroupCodes)
+            .Select(item => BuildLot(command.SectionId, item, now))
+            .ToList();
+    }
+
+    private const int LotCodePadLength = 2; // tramos van de 01 a 40 por bodega
+
+    private static IEnumerable<(string Code, RegisterLotGroupDto Spec)> ExpandGroupCodes(RegisterLotGroupDto group)
+    {
+        if (group.Codes is { Count: > 0 })
+            return group.Codes.Select(c => (c.Trim(), group));
+
+        var start = group.StartNumber ?? 1;
+        var count = group.Count ?? 0;
+        var prefix = group.CodePrefix ?? string.Empty;
+
+        return Enumerable.Range(start, count)
+            .Select(n => ($"{prefix}{n.ToString().PadLeft(LotCodePadLength, '0')}", group));
+    }
+    private static Lots BuildLot(Guid sectionId, (string Code, RegisterLotGroupDto Spec) item, DateTime now)
+    {
+        var lotId = Guid.NewGuid();
+        var spec = item.Spec;
+
+        return new Lots
+        {
+            Id = lotId,
+            SectionId = sectionId,
+            Code = item.Code,
+            WidthMetres = spec.WidthMetres,
+            LengthMetres = spec.LengthMetres,
+            NominalRows = spec.NominalRows,
+            NominalColumns = spec.NominalColumns,
+            AllowsStacking = spec.AllowsStacking,
+            Status = spec.Status,
+            UnavailableReason = spec.UnavailableReason,
+            StatusChangedAt = now,
+            Positions = Enumerable.Range(1, spec.NominalRows)
+                .SelectMany(row => Enumerable.Range(1, spec.NominalColumns).Select(col => (row, col)))
+                .Select((rc, index) => new LotsPositions
+                {
+                    Id = Guid.NewGuid(),
+                    LotId = lotId,
+                    RowNumber = rc.row,
+                    ColumnNumber = rc.col,
+                    PositionCode = (index + 1).ToString().PadLeft(2, '0'),
+                    AllowsStacking = spec.AllowsStacking,
+                    IsBlocked = false
+                })
+                .ToList()
+        };
+    }
+    public static RegisterLotsCommand ToCommand(
+        this RegisterLotsDto dto, Guid sectionId, Guid userId, Guid companyId, string moduleCode) => new()
+        {
+            SectionId = sectionId,
+            Groups = dto.Groups,
+            UserId = userId,
+            CompanyId = companyId,
+            ModuleCode = moduleCode
+        };
 }
 #endregion
