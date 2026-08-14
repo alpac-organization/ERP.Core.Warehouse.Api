@@ -22,10 +22,15 @@ public class MerchandiseRegistryProfile : Profile
                 s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration
                     ? s.CustomsDeclarations!.Details!.ContainerNumber
                     : (s.DucatRegistry != null ? s.DucatRegistry.ContainerNumber : null)))
-            .ForMember(d => d.ArrivalDate, o => o.MapFrom(s => s.ExecutionLogs
+                    ? s.CustomsDeclarations!.Details!.ContainerNumber
+            : (s.DucatRegistry != null ? s.DucatRegistry.ContainerNumber : null)))
+l            .ForMember(d => d.ArrivalDate, o => o.MapFrom(s => s.ExecutionLogs
                 .Where(l => l.WorkflowStepDefinitionCode == receptionStepCode)
                 .Select(l => l.StartDate).First()))
             .ForMember(d => d.ArrivalTime, o => o.MapFrom(s => s.ExecutionLogs
+                .Where(l => l.WorkflowStepDefinitionCode == receptionStepCode)
+                .Select(l => l.StartTime).First()))
+            .ForMember(d => d.Duca, o => o.MapFrom(s => s.ExecutionLogs
                 .Where(l => l.WorkflowStepDefinitionCode == receptionStepCode)
                 .Select(l => l.StartTime).First()))
             .ForMember(d => d.TotalDocuments, o => o.MapFrom(s =>
@@ -46,6 +51,7 @@ public class MerchandiseRegistryProfile : Profile
             .ForMember(d => d.ProductDescription, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.ProductDescription : null))
             .ForMember(d => d.Remitente, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.Remitente : null))
             .ForMember(d => d.DestinationAreaObservation, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.DestinationAreaObservation : null))
+            .ForMember(d => d.Status, o => o.MapFrom(s => s.Status))
 
             // Datos de creación / registro
             .ForMember(d => d.RegisteredByUserName, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.RegisteredByUserName : null))
@@ -72,6 +78,7 @@ public class MerchandiseRegistryProfile : Profile
             .ForMember(d => d.Empresa, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.Empresa : null))
             .ForMember(d => d.GeneralObservations, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.GeneralObservations : null))
             .ForMember(d => d.IsInTransit, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.IsInTransit : (bool?)null))
+            .ForMember(d => d.Status, o => o.MapFrom(s => s.DucatRegistry != null ? s. : DucaStatus.Pending))
 
             // Datos de creación / registro
             .ForMember(d => d.RegisteredByUserName, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.RegisteredByUserName : null))
@@ -97,6 +104,7 @@ public class MerchandiseRegistryProfile : Profile
             .ForMember(d => d.Packages, o => o.MapFrom(s => s.Details != null ? s.Details.Packages : (int?)null))
             .ForMember(d => d.Customer, o => o.MapFrom(s => s.Details != null ? s.Details.Customer : null))
             .ForMember(d => d.Product, o => o.MapFrom(s => s.Details != null ? s.Details.Product : null))
+            .ForMember(d => d.Status, o => o.MapFrom(s => s.Status))
             .ForMember(d => d.ServiceOrderId, o => o.MapFrom(s => s.ServiceOrderId))
             .ForMember(d => d.ServiceOrderCode, o => o.MapFrom(s => s.ServiceOrderCode));
 
