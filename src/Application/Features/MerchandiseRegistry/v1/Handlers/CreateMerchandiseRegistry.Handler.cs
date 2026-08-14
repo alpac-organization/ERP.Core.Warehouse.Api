@@ -79,6 +79,7 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
         ducatRegistry.RegisteredStartTime = request.RegisteredStartTime;
         ducatRegistry.RegisteredEndDate = today;
         ducatRegistry.RegisteredEndTime = now;
+        ducatRegistry.Status = DucaStatus.Pending;
 
         var executionLog = await _unitOfWork.StepExecutionLogs.Entities
             .FirstOrDefaultAsync(l => l.RecordEntranceId == recordEntrance.Id && l.WorkflowStepDefinitionCode == MerchandiseRegistrationSteps.Duca, cancellationToken);
@@ -160,14 +161,15 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
                 "ERP:DUCAT_DETAIL_ALREADY_EXISTS");
         #endregion
 
-        #region 2. Validacion de producto
-        var productExists = await _unitOfWork.Products.Entities
-            .AnyAsync(p => p.Id == request.MerchandiseId && p.DeletedAt == null, cancellationToken);
+        #region 2. Validacion de Mercaderia
+        var merchandise = await _unitOfWork.Merchandises.Entities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == request.MerchandiseId && p.DeletedAt == null, cancellationToken);
 
-        if (!productExists)
+        if (merchandise == null)
             return _errorManager.ThrowBadRequest<bool>(
-                "El producto indicado no existe en el sistema.",
-                "ERP:PRODUCT_NOT_FOUND");
+                "La mercadería indicada no existe en el sistema.",
+                "ERP:MERCHANDISE_NOT_FOUND");
         #endregion
 
         #region 2.b Validacion de orden de servicio
@@ -221,6 +223,7 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
         var registryDetail = mapper.Map<DucatRegistryDetails>(request);
         registryDetail.RecordEntranceId = recordEntrance.DucatRegistry!.Id;
         registryDetail.EntranceDucatId = entranceDucat.Id;
+        registryDetail.MerchandiseName = merchandise.MerchandiseName;
         registryDetail.RegisteredByUserId = request.UserId.ToString();
         registryDetail.RegisteredByUserName = currentUserName;
         registryDetail.RegisteredStartDate = request.RegisteredStartDate;
@@ -255,6 +258,8 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
                 executionLog.FinishedByUserId = request.UserId.ToString();
                 executionLog.FinishedByUserName = currentUserName;
             }
+
+            recordEntrance.DucatRegistry!.Status = DucaStatus.Completed;
         }
         #endregion
 
@@ -319,6 +324,7 @@ public class AssignServiceOrderToCustomsDeclarationHandlers(IUnitOfWork unitOfWo
 
         recordEntrance.CustomsDeclarations.ServiceOrderId = serviceOrder.Id;
         recordEntrance.CustomsDeclarations.ServiceOrderCode = serviceOrder.Code;
+        recordEntrance.CustomsDeclarations.Status = DucaStatus.Completed;
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
