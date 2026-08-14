@@ -148,13 +148,31 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
             return NoContent();
         }
 
-
         [Tags("Solicitudes de compras")] 
-        [HttpPost("companies/{company_id}/modules/{module_code}/purchase-requests/{purchase_request_id}/send")]      
+        [HttpPost("companies/{company_id}/modules/{module_code}/purchase-requests/{purchase_request_id}/send-accounting-review")]      
         [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
         public async Task<NoContentResult> SendPurchaseRequestToReviewAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid purchase_request_id, [FromBody] SendPurchaseRequestToReviewCommand payload)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            payload.CompanyId = company_id;
+            payload.ModuleCode = module_code;
+            payload.UserId = Guid.Parse(userIdStr ?? "");
+            payload.PurchaseRequestId = purchase_request_id;
+            
+            await _mediator.Send(payload);
+            
+            return NoContent();
+        }
+
+        [Tags("Solicitudes de compras")] 
+        [HttpPost("companies/{company_id}/modules/{module_code}/purchase-requests/{purchase_request_id}/send-management-review")]      
+        [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
+        public async Task<NoContentResult> SendPurchaseRequestToManagementReviewAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid purchase_request_id, [FromBody] SendPurchaseRequestToManagementReviewCommand payload)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
