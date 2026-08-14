@@ -295,6 +295,7 @@ public static class RackDtoMapper
             SectionId = sectionId,
             LevelNumber = levelNumber,
             Status = status,
+            UsageProfile = usageProfile,
             WidthMetres = widthMetres,
             LengthMetres = lengthMetres,
             HeightMetres = heightMetres,
