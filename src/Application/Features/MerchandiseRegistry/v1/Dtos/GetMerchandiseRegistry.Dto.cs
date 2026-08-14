@@ -13,6 +13,7 @@ public class MerchandiseRegistryListItemDto
     public DocumentType DocumentType { get; set; }
     public int TotalDocuments { get; set; }
     public int CompletedDocuments { get; set; }
+    public DucaStatus? Status { get; set; }
 }
 
 public class GetMerchandiseRegistryDto
@@ -63,6 +64,7 @@ public class MerchandiseCustomsDeclarationDetailDto
 
     public Guid? ServiceOrderId { get; set; }
     public string? ServiceOrderCode { get; set; }
+    public DucaStatus Status { get; set; }
 }
 
 public class GetMerchandiseRegistryDetailDto
@@ -117,6 +119,8 @@ public class MerchandiseDucaRegistryDetailDto
     public string? Empresa { get; set; } // naviera
     public string? GeneralObservations { get; set; }
     public bool? IsInTransit { get; set; }
+
+    public DucaStatus Status { get; set; }
 
     public string? RegisteredByUserName { get; set; }
     public DateOnly? RegisteredStartDate { get; set; }
