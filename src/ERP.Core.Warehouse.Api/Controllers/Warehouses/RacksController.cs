@@ -71,4 +71,31 @@ public class RacksController(IMediator mediator) : ApiControllerBase
         var response = await mediator.Send(query, cancellationToken);
         return Ok(response);
     }
+
+    [Tags("Racks")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/racks/{rack_id}")]
+    [ProducesResponseType(typeof(RackDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetRackByIdAsync(
+    [FromRoute] Guid company_id,
+    [FromRoute] string module_code,
+    [FromRoute] Guid rack_id,
+    CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        if (!Guid.TryParse(userIdStr, out var userId))
+            return Unauthorized();
+
+        var query = new GetRackByIdQuery
+        {
+            RackId = rack_id,
+            UserId = userId,
+            CompanyId = company_id,
+            ModuleCode = module_code
+        };
+
+        var response = await mediator.Send(query, cancellationToken);
+        return Ok(response);
+    }
 }

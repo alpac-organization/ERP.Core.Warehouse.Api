@@ -46,6 +46,8 @@ public class GetRacksBySectionHandler(IUnitOfWork unitOfWork, IErrorManager erro
             query = query.Where(r => r.HeightMetres == request.HeightMetres.Value);
 
         var racks = await query
+            .OrderBy(r => r.LevelNumber)
+            .ThenBy(r => r.RowNumber)
             .ProjectTo<RackSummaryDto>(_mapper.ConfigurationProvider)
             .ToListAsync(cancellationToken);
 
@@ -55,5 +57,29 @@ public class GetRacksBySectionHandler(IUnitOfWork unitOfWork, IErrorManager erro
             TotalRacksCount = racks.Count,
             Racks = racks
         };
+    }
+}
+
+public class GetRackByIdHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
+    : BaseValidatorHandler<GetRackByIdQuery, RackDto>(unitOfWork, errorManager)
+{
+    private readonly IMapper _mapper = mapper;
+
+    public override async Task<RackDto> Handle(GetRackByIdQuery request, CancellationToken cancellationToken)
+    {
+        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+        if (!access.IsSuccess) return access.ErrorResponse!;
+
+        var rack = await _unitOfWork.Racks.Entities
+            .Where(r => r.Id == request.RackId)
+            .ProjectTo<RackDto>(_mapper.ConfigurationProvider)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (rack is null)
+            return _errorManager.ThrowBadRequest<RackDto>(
+                "El rack indicado no existe.",
+                "ERP:RACK_NOT_FOUND");
+
+        return rack;
     }
 }

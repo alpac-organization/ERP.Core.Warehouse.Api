@@ -15,3 +15,8 @@ public class GetRacksBySectionQuery : BaseRequest, IRequest<RackSectionFilterRes
     public decimal? LengthMetres { get; set; }
     public decimal? HeightMetres { get; set; }
 }
+
+public class GetRackByIdQuery : BaseRequest, IRequest<RackDto>
+{
+    public Guid RackId { get; set; }
+}

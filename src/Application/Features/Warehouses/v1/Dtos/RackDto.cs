@@ -17,6 +17,10 @@ public class RackDto
     public string? Status { get; set; }
     public string? UnavailableReason { get; set; }
     public DateTime? StatusChangedAt { get; set; }
+
+    public int TotalPositions { get; set; }
+    public int OccupiedPositions { get; set; }
+    public List<RackPositionDto> Positions { get; set; } = [];
 }
 
 public class RegisterRacksBulkDto
@@ -73,4 +77,13 @@ public class RackSectionFilterResultDto
     public Guid SectionId { get; set; }
     public int TotalRacksCount { get; set; }
     public List<RackSummaryDto> Racks { get; set; } = [];
+}
+
+public class RackPositionDto
+{
+    public Guid PositionId { get; set; }
+    public int PositionNumber { get; set; }
+    public string PositionCode { get; set; } = null!;
+    public bool IsBlocked { get; set; }
+    public string? BlockReason { get; set; }
 }
