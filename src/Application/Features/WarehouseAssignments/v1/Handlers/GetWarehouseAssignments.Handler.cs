@@ -11,100 +11,157 @@ using ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Querie
 namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Handlers;
 
 public class GetPendingAssignmentsHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
-    : BaseValidatorHandler<GetPendingAssignmentsQuery, PagedWarehouseAssignmentsDto<PendingAssignmentItemDto>>(unitOfWork, errorManager)
+    : BaseValidatorHandler<GetPendingAssignmentsQuery, PagedWarehouseAssignmentsDto<PendingDocumentItemDto>>(unitOfWork, errorManager)
 {
-    public override async Task<PagedWarehouseAssignmentsDto<PendingAssignmentItemDto>> Handle(
+    public override async Task<PagedWarehouseAssignmentsDto<PendingDocumentItemDto>> Handle(
         GetPendingAssignmentsQuery request,
         CancellationToken cancellationToken)
     {
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        var query = _unitOfWork.RecordEntrance.Entities
+        var receptionStepCode = await GetReceptionStepCodeAsync(_unitOfWork, cancellationToken);
+
+        var assignedDucatIds = _unitOfWork.WarehouseAssignments.Entities
             .AsNoTracking()
-            .Include(r => r.ReceptionEntrance!)
-            .Include(r => r.EntranceDucats)
-            .Include(r => r.CustomsDeclarations!)
-                .ThenInclude(cd => cd.Details)
-            .Include(r => r.DucatRegistry)
-            .Include(r => r.ExecutionLogs)
-            .Where(r => r.ReceptionEntrance != null
-                && r.ReceptionEntrance.DeletedAt == null
-                && r.DeletedAt == null
-                && r.Assignment == null);
+            .Where(a => a.DeletedAt == null && a.EntranceDucatId != null)
+            .Select(a => a.EntranceDucatId!.Value);
+
+        var assignedCustomsIds = _unitOfWork.WarehouseAssignments.Entities
+            .AsNoTracking()
+            .Where(a => a.DeletedAt == null && a.CustomsDeclarationId != null)
+            .Select(a => a.CustomsDeclarationId!.Value);
+
+        var ducatsQuery = _unitOfWork.EntranceDucats.Entities
+            .AsNoTracking()
+            .Include(d => d.RecordEntrance!)
+                .ThenInclude(r => r.ReceptionEntrance)
+            .Include(d => d.RecordEntrance!)
+                .ThenInclude(r => r.DucatRegistry)
+            .Include(d => d.RecordEntrance!)
+                .ThenInclude(r => r.ExecutionLogs)
+            .Include(d => d.RegistryDetail)
+            .Where(d => d.DeletedAt == null
+                && d.Status == DucaStatus.Completed
+                && d.RecordEntrance.DeletedAt == null
+                && d.RecordEntrance.ReceptionEntrance != null
+                && d.RecordEntrance.ReceptionEntrance.DeletedAt == null);
+
+        var customsQuery = _unitOfWork.CustomsDeclarations.Entities
+            .AsNoTracking()
+            .Include(c => c.RecordEntrance!)
+                .ThenInclude(r => r.ReceptionEntrance)
+            .Include(c => c.RecordEntrance!)
+                .ThenInclude(r => r.ExecutionLogs)
+            .Include(c => c.Details)
+            .Where(c => c.DeletedAt == null
+                && c.Status == DucaStatus.Completed
+                && c.RecordEntrance.DeletedAt == null
+                && c.RecordEntrance.ReceptionEntrance != null
+                && c.RecordEntrance.ReceptionEntrance.DeletedAt == null);
 
         if (request.DocumentType.HasValue)
         {
-            query = ApplyStepTwoCompletedFilter(query, request.DocumentType.Value);
-        }
-        else
-        {
-            query = query.Where(r =>
-                (r.ReceptionEntrance!.DocumentType == DocumentType.DUCA &&
-                 r.EntranceDucats.Any(d => d.DeletedAt == null) &&
-                 r.EntranceDucats.Where(d => d.DeletedAt == null).All(d => d.Status == DucaStatus.Completed)) ||
-                (r.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration &&
-                 r.CustomsDeclarations != null &&
-                 r.CustomsDeclarations.Details != null));
+            if (request.DocumentType.Value == DocumentType.DUCA)
+                customsQuery = customsQuery.Where(_ => false);
+            else if (request.DocumentType.Value == DocumentType.CustomsDeclaration)
+                ducatsQuery = ducatsQuery.Where(_ => false);
         }
 
         if (!string.IsNullOrWhiteSpace(request.DriverName))
         {
             var driverFilter = request.DriverName.Trim().ToLower().Replace(" ", "");
-            query = query.Where(r => r.ReceptionEntrance!.DriverName.ToLower().Replace(" ", "").Contains(driverFilter));
+            ducatsQuery = ducatsQuery.Where(d => d.RecordEntrance.ReceptionEntrance!.DriverName.ToLower().Replace(" ", "").Contains(driverFilter));
+            customsQuery = customsQuery.Where(c => c.RecordEntrance.ReceptionEntrance!.DriverName.ToLower().Replace(" ", "").Contains(driverFilter));
         }
 
         if (!string.IsNullOrWhiteSpace(request.PlateNumber))
         {
             var plateFilter = request.PlateNumber.Trim().ToLower().Replace(" ", "");
-            query = query.Where(r => r.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
+            ducatsQuery = ducatsQuery.Where(d => d.RecordEntrance.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
+            customsQuery = customsQuery.Where(c => c.RecordEntrance.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
         }
 
         if (!string.IsNullOrWhiteSpace(request.DocumentNumber))
         {
             var docFilter = request.DocumentNumber.Trim().ToLower().Replace(" ", "");
-            query = query.Where(r =>
-                r.EntranceDucats.Any(d => d.DucatNumber.ToLower().Replace(" ", "").Contains(docFilter)) ||
-                (r.CustomsDeclarations != null &&
-                 r.CustomsDeclarations.CustomsDeclarationNumber.ToLower().Replace(" ", "").Contains(docFilter)));
+            ducatsQuery = ducatsQuery.Where(d => d.DucatNumber.ToLower().Replace(" ", "").Contains(docFilter));
+            customsQuery = customsQuery.Where(c => c.CustomsDeclarationNumber.ToLower().Replace(" ", "").Contains(docFilter));
         }
 
-        var totalCount = await query.CountAsync(cancellationToken);
-
-        var entities = await query
-            .OrderByDescending(r => r.CreatedAt)
-            .Skip((request.PageNumber - 1) * request.PageSize)
-            .Take(request.PageSize)
+        var ducats = await ducatsQuery
+            .Where(d => !assignedDucatIds.Contains(d.Id))
             .ToListAsync(cancellationToken);
 
-        var receptionStepCode = await GetReceptionStepCodeAsync(_unitOfWork, cancellationToken);
+        var customs = await customsQuery
+            .Where(c => !assignedCustomsIds.Contains(c.Id))
+            .ToListAsync(cancellationToken);
 
-        var data = entities.Select(r => MapPendingItem(r, receptionStepCode)).ToList();
+        var items = new List<PendingDocumentItemDto>();
 
-        return new PagedWarehouseAssignmentsDto<PendingAssignmentItemDto>
+        foreach (var ducat in ducats)
+        {
+            var reception = ducat.RecordEntrance;
+            items.Add(new PendingDocumentItemDto
+            {
+                Id = ducat.Id,
+                ReceptionId = reception.Id,
+                DocumentType = DocumentType.DUCA,
+                DocumentNumber = ducat.DucatNumber,
+                ServiceOrderCode = ducat.ServiceOrderCode,
+                MerchandiseName = ducat.RegistryDetail?.MerchandiseName,
+                TotalBultos = ducat.RegistryDetail?.TotalBultos,
+                TotalWeight = ducat.RegistryDetail?.TotalWeight,
+                PlateNumber = reception.ReceptionEntrance!.PlateNumber,
+                DriverName = reception.ReceptionEntrance.DriverName,
+                ContainerNumber = reception.DucatRegistry?.ContainerNumber,
+                ArrivalDate = reception.ExecutionLogs
+                    .FirstOrDefault(l => l.WorkflowStepDefinitionCode == receptionStepCode)?.StartDate,
+                ArrivalTime = reception.ExecutionLogs
+                    .FirstOrDefault(l => l.WorkflowStepDefinitionCode == receptionStepCode)?.StartTime
+            });
+        }
+
+        foreach (var declaration in customs)
+        {
+            var reception = declaration.RecordEntrance;
+            items.Add(new PendingDocumentItemDto
+            {
+                Id = declaration.Id,
+                ReceptionId = reception.Id,
+                DocumentType = DocumentType.CustomsDeclaration,
+                DocumentNumber = declaration.CustomsDeclarationNumber,
+                ServiceOrderCode = declaration.ServiceOrderCode,
+                MerchandiseName = declaration.Details?.Product,
+                TotalBultos = declaration.Details?.Packages,
+                TotalWeight = null,
+                PlateNumber = reception.ReceptionEntrance!.PlateNumber,
+                DriverName = reception.ReceptionEntrance.DriverName,
+                ContainerNumber = declaration.Details?.ContainerNumber,
+                ArrivalDate = reception.ExecutionLogs
+                    .FirstOrDefault(l => l.WorkflowStepDefinitionCode == receptionStepCode)?.StartDate,
+                ArrivalTime = reception.ExecutionLogs
+                    .FirstOrDefault(l => l.WorkflowStepDefinitionCode == receptionStepCode)?.StartTime
+            });
+        }
+
+        var ordered = items
+            .OrderByDescending(i => i.ArrivalDate ?? DateOnly.MinValue)
+            .ThenByDescending(i => i.ArrivalTime ?? TimeOnly.MinValue)
+            .ToList();
+
+        var totalCount = ordered.Count;
+        var data = ordered
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+
+        return new PagedWarehouseAssignmentsDto<PendingDocumentItemDto>
         {
             Data = data,
             TotalCount = totalCount,
             PageNumber = request.PageNumber,
             PageSize = request.PageSize
-        };
-    }
-
-    private static IQueryable<RecordEntrance> ApplyStepTwoCompletedFilter(
-        IQueryable<RecordEntrance> source,
-        DocumentType documentType)
-    {
-        return documentType switch
-        {
-            DocumentType.DUCA => source.Where(r =>
-                r.ReceptionEntrance!.DocumentType == DocumentType.DUCA &&
-                r.EntranceDucats.Any(d => d.DeletedAt == null) &&
-                r.EntranceDucats.Where(d => d.DeletedAt == null).All(d => d.Status == DucaStatus.Completed)),
-            DocumentType.CustomsDeclaration => source.Where(r =>
-                r.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration &&
-                r.CustomsDeclarations != null &&
-                r.CustomsDeclarations.Details != null),
-            _ => source.Where(_ => false)
         };
     }
 
@@ -118,38 +175,6 @@ public class GetPendingAssignmentsHandler(IUnitOfWork unitOfWork, IErrorManager 
 
         return receptionStep?.Code ?? WorkflowStepCodes.Reception;
     }
-
-    internal static PendingAssignmentItemDto MapPendingItem(RecordEntrance record, string receptionStepCode)
-    {
-        var reception = record.ReceptionEntrance!;
-        var isDuca = reception.DocumentType == DocumentType.DUCA;
-        var activeDucats = record.EntranceDucats.Where(d => d.DeletedAt == null).ToList();
-
-        var arrivalLog = record.ExecutionLogs
-            .FirstOrDefault(l => l.WorkflowStepDefinitionCode == receptionStepCode);
-
-        return new PendingAssignmentItemDto
-        {
-            Id = record.Id,
-            PlateNumber = reception.PlateNumber,
-            DriverName = reception.DriverName,
-            DocumentType = reception.DocumentType,
-            DocumentNumber = isDuca
-                ? (activeDucats.Count > 0 ? activeDucats.First().DucatNumber : null)
-                : record.CustomsDeclarations?.CustomsDeclarationNumber,
-            ContainerNumber = isDuca
-                ? record.DucatRegistry?.ContainerNumber
-                : record.CustomsDeclarations?.Details?.ContainerNumber,
-            ArrivalDate = arrivalLog?.StartDate,
-            ArrivalTime = arrivalLog?.StartTime,
-            TotalDocuments = isDuca
-                ? activeDucats.Count
-                : (record.CustomsDeclarations != null ? 1 : 0),
-            CompletedDocuments = isDuca
-                ? activeDucats.Count(d => d.Status == DucaStatus.Completed)
-                : (record.CustomsDeclarations?.Details != null ? 1 : 0)
-        };
-    }
 }
 
 public class GetWarehouseAssignmentsHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
@@ -162,67 +187,77 @@ public class GetWarehouseAssignmentsHandler(IUnitOfWork unitOfWork, IErrorManage
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        var query = _unitOfWork.RecordEntrance.Entities
+        var query = _unitOfWork.WarehouseAssignments.Entities
             .AsNoTracking()
-            .Include(r => r.ReceptionEntrance!)
-            .Include(r => r.Assignment!)
-                .ThenInclude(a => a.Warehouse)
-            .Include(r => r.Assignment!)
-                .ThenInclude(a => a.Section)
-            .Include(r => r.Assignment!)
-                .ThenInclude(a => a.Rack)
-            .Include(r => r.Assignment!)
-                .ThenInclude(a => a.Lot)
-            .Include(r => r.UnloadingDetails!)
+            .Include(a => a.Warehouse)
+            .Include(a => a.Section)
+            .Include(a => a.Rack)
+            .Include(a => a.Lot)
+            .Include(a => a.EntranceDucat!)
+                .ThenInclude(d => d.RecordEntrance!)
+                    .ThenInclude(r => r.ReceptionEntrance)
+            .Include(a => a.CustomsDeclaration!)
+                .ThenInclude(c => c.RecordEntrance!)
+                    .ThenInclude(r => r.ReceptionEntrance)
+            .Include(a => a.UnloadingDetails!)
                 .ThenInclude(u => u.CrewAssignments)
-            .Include(r => r.UnloadingDetails!)
+            .Include(a => a.UnloadingDetails!)
                 .ThenInclude(u => u.MachineryAssignments)
-            .Include(r => r.ExecutionLogs)
-            .Where(r => r.ReceptionEntrance != null
-                && r.ReceptionEntrance.DeletedAt == null
-                && r.DeletedAt == null
-                && r.Assignment != null
-                && r.Assignment.DeletedAt == null);
+            .Where(a => a.DeletedAt == null
+                && (a.EntranceDucatId != null || a.CustomsDeclarationId != null));
 
         if (!string.IsNullOrWhiteSpace(request.DriverName))
         {
             var driverFilter = request.DriverName.Trim().ToLower().Replace(" ", "");
-            query = query.Where(r => r.ReceptionEntrance!.DriverName.ToLower().Replace(" ", "").Contains(driverFilter));
+            query = query.Where(a =>
+                (a.EntranceDucat != null && a.EntranceDucat.RecordEntrance.ReceptionEntrance!.DriverName.ToLower().Replace(" ", "").Contains(driverFilter)) ||
+                (a.CustomsDeclaration != null && a.CustomsDeclaration.RecordEntrance.ReceptionEntrance!.DriverName.ToLower().Replace(" ", "").Contains(driverFilter)));
         }
 
         if (!string.IsNullOrWhiteSpace(request.PlateNumber))
         {
             var plateFilter = request.PlateNumber.Trim().ToLower().Replace(" ", "");
-            query = query.Where(r => r.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
+            query = query.Where(a =>
+                (a.EntranceDucat != null && a.EntranceDucat.RecordEntrance.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter)) ||
+                (a.CustomsDeclaration != null && a.CustomsDeclaration.RecordEntrance.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter)));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
 
         var entities = await query
-            .OrderByDescending(r => r.Assignment!.AssignedAt)
+            .OrderByDescending(a => a.AssignedAt)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
 
-        var data = entities.Select(record =>
+        var data = entities.Select(a =>
         {
-            var assignment = record.Assignment!;
+            var isDuca = a.EntranceDucat != null;
+            var document = isDuca ? (object)a.EntranceDucat! : (object)a.CustomsDeclaration!;
+            var reception = isDuca
+                ? a.EntranceDucat!.RecordEntrance
+                : a.CustomsDeclaration!.RecordEntrance;
+
             return new WarehouseAssignmentListItemDto
             {
-                ReceptionId = record.Id,
-                PlateNumber = record.ReceptionEntrance!.PlateNumber,
-                DriverName = record.ReceptionEntrance.DriverName,
-                DocumentType = record.ReceptionEntrance.DocumentType,
-                WarehouseName = assignment.Warehouse.WarehouseName,
-                WarehouseType = assignment.Warehouse.WarehouseType,
-                SectionCode = assignment.Section?.Code,
-                RackCode = assignment.Rack?.Code,
-                LotCode = assignment.Lot?.Code,
-                AssignedAt = assignment.AssignedAt,
-                IsCompleted = record.ExecutionLogs.Any(l =>
-                    l.WorkflowStepDefinitionCode == WarehouseAssignmentRules.AssignmentStepCode && l.EndDate != null),
-                CrewCount = record.UnloadingDetails?.CrewAssignments.Sum(c => c.PersonaCount) ?? 0,
-                MachineryCount = record.UnloadingDetails?.MachineryAssignments.Count ?? 0
+                Id = a.Id,
+                ReceptionId = reception.Id,
+                DocumentId = isDuca ? a.EntranceDucatId!.Value : a.CustomsDeclarationId!.Value,
+                DocumentType = isDuca ? DocumentType.DUCA : DocumentType.CustomsDeclaration,
+                DocumentNumber = isDuca
+                    ? a.EntranceDucat!.DucatNumber
+                    : a.CustomsDeclaration!.CustomsDeclarationNumber,
+                PlateNumber = reception.ReceptionEntrance!.PlateNumber,
+                DriverName = reception.ReceptionEntrance.DriverName,
+                WarehouseName = a.Warehouse.WarehouseName,
+                WarehouseType = a.Warehouse.WarehouseType,
+                SectionCode = a.Section?.Code,
+                RackCode = a.Rack?.Code,
+                LotCode = a.Lot?.Code,
+                AssignedAt = a.AssignedAt,
+                IsCompleted = a.UnloadingDetails != null && a.UnloadingDetails.UnloadingEndTime != null,
+                CrewCount = a.UnloadingDetails?.CrewAssignments.Sum(c => c.PersonaCount) ?? 0,
+                MachineryCount = a.UnloadingDetails?.MachineryAssignments.Count ?? 0
             };
         }).ToList();
 
@@ -234,12 +269,4 @@ public class GetWarehouseAssignmentsHandler(IUnitOfWork unitOfWork, IErrorManage
             PageSize = request.PageSize
         };
     }
-}
-
-public class PagedWarehouseAssignmentsDto<T>
-{
-    public List<T> Data { get; set; } = [];
-    public int TotalCount { get; set; }
-    public int PageNumber { get; set; }
-    public int PageSize { get; set; }
 }

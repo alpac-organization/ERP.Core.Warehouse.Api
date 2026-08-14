@@ -2,26 +2,32 @@ using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Dtos;
 
-public class PendingAssignmentItemDto
+public class PendingDocumentItemDto
 {
     public Guid Id { get; set; }
+    public Guid ReceptionId { get; set; }
+    public DocumentType DocumentType { get; set; }
+    public string DocumentNumber { get; set; } = null!;
+    public string? ServiceOrderCode { get; set; }
+    public string? MerchandiseName { get; set; }
+    public int? TotalBultos { get; set; }
+    public decimal? TotalWeight { get; set; }
     public string PlateNumber { get; set; } = null!;
     public string DriverName { get; set; } = null!;
-    public DocumentType DocumentType { get; set; }
-    public string? DocumentNumber { get; set; }
     public string? ContainerNumber { get; set; }
     public DateOnly? ArrivalDate { get; set; }
     public TimeOnly? ArrivalTime { get; set; }
-    public int TotalDocuments { get; set; }
-    public int CompletedDocuments { get; set; }
 }
 
 public class WarehouseAssignmentListItemDto
 {
+    public Guid Id { get; set; }
     public Guid ReceptionId { get; set; }
+    public Guid DocumentId { get; set; }
+    public DocumentType DocumentType { get; set; }
+    public string DocumentNumber { get; set; } = null!;
     public string PlateNumber { get; set; } = null!;
     public string DriverName { get; set; } = null!;
-    public DocumentType DocumentType { get; set; }
     public string WarehouseName { get; set; } = null!;
     public WarehouseType WarehouseType { get; set; }
     public string? SectionCode { get; set; }
@@ -35,7 +41,20 @@ public class WarehouseAssignmentListItemDto
 
 public class WarehouseAssignmentDetailDto
 {
-    public PendingAssignmentItemDto Reception { get; set; } = null!;
+    public Guid Id { get; set; }
+    public Guid ReceptionId { get; set; }
+    public DocumentType DocumentType { get; set; }
+    public string DocumentNumber { get; set; } = null!;
+    public string? ServiceOrderCode { get; set; }
+    public string? MerchandiseName { get; set; }
+    public int? TotalBultos { get; set; }
+    public decimal? TotalWeight { get; set; }
+    public string? Remitente { get; set; }
+    public string PlateNumber { get; set; } = null!;
+    public string DriverName { get; set; } = null!;
+    public string? ContainerNumber { get; set; }
+    public DateOnly? ArrivalDate { get; set; }
+    public TimeOnly? ArrivalTime { get; set; }
     public WarehouseAssignmentDto? Assignment { get; set; }
     public UnloadingDetailsDto? UnloadingDetails { get; set; }
     public UnloadingCrewDto? Crew { get; set; }
@@ -141,4 +160,12 @@ public class WarehouseStaffDto
     public string FullName { get; set; } = null!;
     public string? Role { get; set; }
     public bool IsActive { get; set; }
+}
+
+public class PagedWarehouseAssignmentsDto<T>
+{
+    public List<T> Data { get; set; } = [];
+    public int TotalCount { get; set; }
+    public int PageNumber { get; set; }
+    public int PageSize { get; set; }
 }

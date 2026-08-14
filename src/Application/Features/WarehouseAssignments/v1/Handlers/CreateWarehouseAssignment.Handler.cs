@@ -19,29 +19,34 @@ public class CreateWarehouseAssignmentHandler(IUnitOfWork unitOfWork, IErrorMana
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        var recordEntrance = await _unitOfWork.RecordEntrance.Entities
-            .Include(r => r.ReceptionEntrance!)
-            .Include(r => r.EntranceDucats)
-            .Include(r => r.CustomsDeclarations!)
-                .ThenInclude(cd => cd.Details)
-            .Include(r => r.Assignment)
-            .FirstOrDefaultAsync(r => r.Id == request.ReceptionId && r.DeletedAt == null, cancellationToken);
+        var context = await WarehouseDocumentLookup.FindDocumentAsync(
+            _unitOfWork, request.DocumentId, request.DocumentType, cancellationToken);
 
-        if (recordEntrance == null || recordEntrance.ReceptionEntrance == null)
+        if (context == null || context.RecordEntrance.ReceptionEntrance == null)
         {
             return _errorManager.ThrowBadRequest<bool>(
-                "El registro de recepción no fue encontrado o ya ha sido eliminado.",
-                "ERP:RECEPTION_NOT_FOUND");
+                "El documento no fue encontrado o ya ha sido eliminado.",
+                "ERP:DOCUMENT_NOT_FOUND");
         }
 
-        if (recordEntrance.Assignment != null)
+        var alreadyAssigned = await _unitOfWork.WarehouseAssignments.Entities
+            .AnyAsync(a => a.DeletedAt == null &&
+                (request.DocumentType == DocumentType.DUCA
+                    ? a.EntranceDucatId == request.DocumentId
+                    : a.CustomsDeclarationId == request.DocumentId), cancellationToken);
+
+        if (alreadyAssigned)
         {
             return _errorManager.ThrowBadRequest<bool>(
-                "Esta recepción ya tiene una bodega asignada.",
+                "Este documento ya tiene una bodega asignada.",
                 "ERP:WAREHOUSE_ALREADY_ASSIGNED");
         }
 
-        if (!WarehouseAssignmentRules.IsStepTwoCompleted(recordEntrance))
+        var stepTwoCompleted = request.DocumentType == DocumentType.DUCA
+            ? WarehouseAssignmentRules.IsDocumentStepTwoCompleted(context.Ducat!)
+            : WarehouseAssignmentRules.IsDocumentStepTwoCompleted(context.CustomsDeclaration!);
+
+        if (!stepTwoCompleted)
         {
             return _errorManager.ThrowBadRequest<bool>(
                 "El documento aún no está completado en el paso de registro de mercadería.",
@@ -59,12 +64,13 @@ public class CreateWarehouseAssignmentHandler(IUnitOfWork unitOfWork, IErrorMana
                 "ERP:WAREHOUSE_NOT_FOUND");
         }
 
-        var allowedType = WarehouseAssignmentRules.AllowedWarehouseType(recordEntrance.ReceptionEntrance.DocumentType);
-        if (warehouse.WarehouseType != allowedType)
+        if (!WarehouseAssignmentRules.IsWarehouseTypeAllowed(warehouse.WarehouseType, request.DocumentType))
         {
-            var typeLabel = allowedType == WarehouseType.Fiscal ? "fiscal" : "general";
+            var allowedLabel = request.DocumentType == DocumentType.CustomsDeclaration
+                ? "general"
+                : "fiscal, galerón techado, patio de contenedores o predio abierto";
             return _errorManager.ThrowBadRequest<bool>(
-                $"Este tipo de documento solo puede asignarse a bodegas de tipo {typeLabel}.",
+                $"Este tipo de documento solo puede asignarse a bodegas de tipo {allowedLabel}.",
                 "ERP:WAREHOUSE_TYPE_NOT_ALLOWED");
         }
 
@@ -262,7 +268,9 @@ public class CreateWarehouseAssignmentHandler(IUnitOfWork unitOfWork, IErrorMana
         var assignment = new WarehouseAssignmentEntity
         {
             Id = Guid.NewGuid(),
-            RecordEntranceId = recordEntrance.Id,
+            RecordEntranceId = context.RecordEntrance.Id,
+            EntranceDucatId = request.DocumentType == DocumentType.DUCA ? context.DocumentId : null,
+            CustomsDeclarationId = request.DocumentType == DocumentType.CustomsDeclaration ? context.DocumentId : null,
             WarehouseId = warehouse.Id,
             SectionId = effectiveSectionId,
             RackId = rack.Id,
@@ -275,7 +283,7 @@ public class CreateWarehouseAssignmentHandler(IUnitOfWork unitOfWork, IErrorMana
 
         var executionLog = await _unitOfWork.StepExecutionLogs.Entities
             .FirstOrDefaultAsync(l =>
-                l.RecordEntranceId == recordEntrance.Id &&
+                l.RecordEntranceId == context.RecordEntrance.Id &&
                 l.WorkflowStepDefinitionCode == WarehouseAssignmentRules.AssignmentStepCode,
                 cancellationToken);
 
@@ -284,7 +292,7 @@ public class CreateWarehouseAssignmentHandler(IUnitOfWork unitOfWork, IErrorMana
             executionLog = new StepExecutionLogs
             {
                 Id = Guid.NewGuid(),
-                RecordEntranceId = recordEntrance.Id,
+                RecordEntranceId = context.RecordEntrance.Id,
                 WorkflowStepDefinitionCode = WarehouseAssignmentRules.AssignmentStepCode,
                 StartDate = today,
                 StartTime = now,
@@ -296,7 +304,7 @@ public class CreateWarehouseAssignmentHandler(IUnitOfWork unitOfWork, IErrorMana
             await _unitOfWork.StepExecutionLogs.InsertExecutionLog(executionLog);
         }
 
-        recordEntrance.CurrentStepCode = WarehouseAssignmentRules.AssignmentStepCode;
+        context.RecordEntrance.CurrentStepCode = WarehouseAssignmentRules.AssignmentStepCode;
 
         await _unitOfWork.WarehouseAssignments.InsertWarehouseAssignment(assignment);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

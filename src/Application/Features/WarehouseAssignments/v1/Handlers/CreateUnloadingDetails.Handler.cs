@@ -1,10 +1,12 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Database.Domain.Entities.Warehouse;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Commands;
+using WarehouseAssignmentEntity = ERP.Core.Database.Domain.Entities.Warehouse.WarehouseAssignments;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Handlers;
 
@@ -16,37 +18,40 @@ public class CreateUnloadingDetailsHandler(IUnitOfWork unitOfWork, IErrorManager
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        var recordEntrance = await _unitOfWork.RecordEntrance.Entities
-            .Include(r => r.Assignment)
-            .Include(r => r.UnloadingDetails)
-            .FirstOrDefaultAsync(r => r.Id == request.ReceptionId && r.DeletedAt == null, cancellationToken);
+        var context = await WarehouseDocumentLookup.FindDocumentAsync(
+            _unitOfWork, request.DocumentId, request.DocumentType, cancellationToken);
 
-        if (recordEntrance == null)
+        if (context == null)
         {
             return _errorManager.ThrowBadRequest<bool>(
-                "El registro de recepción no fue encontrado o ya ha sido eliminado.",
-                "ERP:RECEPTION_NOT_FOUND");
+                "El documento no fue encontrado o ya ha sido eliminado.",
+                "ERP:DOCUMENT_NOT_FOUND");
         }
 
-        if (recordEntrance.Assignment == null)
+        var assignment = await GetAssignmentForDocumentAsync(request, cancellationToken);
+
+        if (assignment == null)
         {
             return _errorManager.ThrowBadRequest<bool>(
                 "Debe asignar una bodega antes de registrar los detalles de descarga.",
                 "ERP:WAREHOUSE_ASSIGNMENT_REQUIRED");
         }
 
-        if (recordEntrance.UnloadingDetails != null)
+        var existingDetails = await _unitOfWork.UnloadingDetails.Entities
+            .AnyAsync(u => u.WarehouseAssignmentsId == assignment.Id && u.DeletedAt == null, cancellationToken);
+
+        if (existingDetails)
         {
             return _errorManager.ThrowBadRequest<bool>(
-                "Los detalles de descarga de esta recepción ya fueron registrados.",
+                "Los detalles de descarga de este documento ya fueron registrados.",
                 "ERP:UNLOADING_DETAILS_ALREADY_EXISTS");
         }
 
         var unloadingDetails = new UnloadingDetails
         {
             Id = Guid.NewGuid(),
-            RecordEntranceId = recordEntrance.Id,
-            WarehouseAssignmentsId = recordEntrance.Assignment.Id,
+            RecordEntranceId = context.RecordEntrance.Id,
+            WarehouseAssignmentsId = assignment.Id,
             UnloadingStartTime = request.UnloadingStartTime,
             UnloadingEndTime = null,
             WarehouseChiefUserId = request.WarehouseChiefUserId,
@@ -58,6 +63,26 @@ public class CreateUnloadingDetailsHandler(IUnitOfWork unitOfWork, IErrorManager
 
         return true;
     }
+
+    internal static async Task<WarehouseAssignmentEntity?> GetAssignmentForDocumentAsync(
+        IUnitOfWork unitOfWork,
+        Guid documentId,
+        DocumentType documentType,
+        CancellationToken cancellationToken)
+    {
+        return await unitOfWork.WarehouseAssignments.Entities
+            .FirstOrDefaultAsync(a => a.DeletedAt == null &&
+                (documentType == DocumentType.DUCA
+                    ? a.EntranceDucatId == documentId
+                    : a.CustomsDeclarationId == documentId), cancellationToken);
+    }
+
+    private async Task<WarehouseAssignmentEntity?> GetAssignmentForDocumentAsync(
+        CreateUnloadingDetailsCommand request,
+        CancellationToken cancellationToken)
+    {
+        return await GetAssignmentForDocumentAsync(_unitOfWork, request.DocumentId, request.DocumentType, cancellationToken);
+    }
 }
 
 public class CreateUnloadingCrewHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
@@ -68,18 +93,9 @@ public class CreateUnloadingCrewHandler(IUnitOfWork unitOfWork, IErrorManager er
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        var recordEntrance = await _unitOfWork.RecordEntrance.Entities
-            .Include(r => r.UnloadingDetails)
-            .FirstOrDefaultAsync(r => r.Id == request.ReceptionId && r.DeletedAt == null, cancellationToken);
+        var unloadingDetails = await GetUnloadingDetailsAsync(request, cancellationToken);
 
-        if (recordEntrance == null)
-        {
-            return _errorManager.ThrowBadRequest<bool>(
-                "El registro de recepción no fue encontrado o ya ha sido eliminado.",
-                "ERP:RECEPTION_NOT_FOUND");
-        }
-
-        if (recordEntrance.UnloadingDetails == null)
+        if (unloadingDetails == null)
         {
             return _errorManager.ThrowBadRequest<bool>(
                 "Debe registrar primero los detalles de descarga para asignar la cuadrilla.",
@@ -96,7 +112,7 @@ public class CreateUnloadingCrewHandler(IUnitOfWork unitOfWork, IErrorManager er
         var crewAssignment = new UnloadingCrewAssignments
         {
             Id = Guid.NewGuid(),
-            UnloadingDetailsId = recordEntrance.UnloadingDetails.Id,
+            UnloadingDetailsId = unloadingDetails.Id,
             AssignedAt = NicaraguaClock.Now,
             PersonaCount = request.PersonaCount,
             Tecerizada = request.Tecerizada
@@ -106,6 +122,29 @@ public class CreateUnloadingCrewHandler(IUnitOfWork unitOfWork, IErrorManager er
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return true;
+    }
+
+    internal static async Task<UnloadingDetails?> GetUnloadingDetailsAsync(
+        IUnitOfWork unitOfWork,
+        Guid documentId,
+        DocumentType documentType,
+        CancellationToken cancellationToken)
+    {
+        var assignment = await CreateUnloadingDetailsHandler.GetAssignmentForDocumentAsync(
+            unitOfWork, documentId, documentType, cancellationToken);
+
+        if (assignment == null) return null;
+
+        return await unitOfWork.UnloadingDetails.Entities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.WarehouseAssignmentsId == assignment.Id && u.DeletedAt == null, cancellationToken);
+    }
+
+    private async Task<UnloadingDetails?> GetUnloadingDetailsAsync(
+        CreateUnloadingCrewCommand request,
+        CancellationToken cancellationToken)
+    {
+        return await GetUnloadingDetailsAsync(_unitOfWork, request.DocumentId, request.DocumentType, cancellationToken);
     }
 }
 
@@ -117,18 +156,9 @@ public class CreateUnloadingMachineryHandler(IUnitOfWork unitOfWork, IErrorManag
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        var recordEntrance = await _unitOfWork.RecordEntrance.Entities
-            .Include(r => r.UnloadingDetails)
-            .FirstOrDefaultAsync(r => r.Id == request.ReceptionId && r.DeletedAt == null, cancellationToken);
+        var unloadingDetails = await GetUnloadingDetailsAsync(request, cancellationToken);
 
-        if (recordEntrance == null)
-        {
-            return _errorManager.ThrowBadRequest<bool>(
-                "El registro de recepción no fue encontrado o ya ha sido eliminado.",
-                "ERP:RECEPTION_NOT_FOUND");
-        }
-
-        if (recordEntrance.UnloadingDetails == null)
+        if (unloadingDetails == null)
         {
             return _errorManager.ThrowBadRequest<bool>(
                 "Debe registrar primero los detalles de descarga para asignar maquinaria.",
@@ -156,7 +186,7 @@ public class CreateUnloadingMachineryHandler(IUnitOfWork unitOfWork, IErrorManag
         var machineryAssignment = new UnloadingMachineryAssignments
         {
             Id = Guid.NewGuid(),
-            UnloadingDetailsId = recordEntrance.UnloadingDetails.Id,
+            UnloadingDetailsId = unloadingDetails.Id,
             MachineryCode = machinery.Id,
             StartTime = request.StartTime,
             EndTime = null,
@@ -167,5 +197,13 @@ public class CreateUnloadingMachineryHandler(IUnitOfWork unitOfWork, IErrorManag
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return true;
+    }
+
+    private async Task<UnloadingDetails?> GetUnloadingDetailsAsync(
+        CreateUnloadingMachineryCommand request,
+        CancellationToken cancellationToken)
+    {
+        return await CreateUnloadingCrewHandler.GetUnloadingDetailsAsync(
+            _unitOfWork, request.DocumentId, request.DocumentType, cancellationToken);
     }
 }

@@ -30,8 +30,8 @@ public class GetAvailableWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager
 
         if (request.DocumentType.HasValue)
         {
-            var allowedType = WarehouseAssignmentRules.AllowedWarehouseType(request.DocumentType.Value);
-            warehousesQuery = warehousesQuery.Where(w => w.WarehouseType == allowedType);
+            var allowedTypes = WarehouseAssignmentRules.AllowedWarehouseTypes(request.DocumentType.Value);
+            warehousesQuery = warehousesQuery.Where(w => allowedTypes.Contains(w.WarehouseType));
         }
 
         var warehouses = await warehousesQuery.ToListAsync(cancellationToken);

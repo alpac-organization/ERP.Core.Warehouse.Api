@@ -7,7 +7,6 @@ using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Commands;
-using ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Handlers;
 
 namespace ERP.Core.Warehouse.Api.Controllers.WarehouseAssignments;
 
@@ -17,10 +16,10 @@ public class WarehouseAssignmentsController(IMediator _mediator) : ApiController
 {
     [Tags("Asignación de Bodega")]
     [HttpGet("companies/{company_id}/modules/{module_code}/warehouse-assignments/pending")]
-    [ProducesResponseType(typeof(PagedWarehouseAssignmentsDto<PendingAssignmentItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedWarehouseAssignmentsDto<PendingDocumentItemDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<PagedWarehouseAssignmentsDto<PendingAssignmentItemDto>> GetPendingAssignmentsAsync(
+    public async Task<PagedWarehouseAssignmentsDto<PendingDocumentItemDto>> GetPendingAssignmentsAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
         [FromQuery] string? driver_name,
@@ -105,14 +104,15 @@ public class WarehouseAssignmentsController(IMediator _mediator) : ApiController
     }
 
     [Tags("Asignación de Bodega")]
-    [HttpGet("companies/{company_id}/modules/{module_code}/warehouse-assignments/{reception_id}")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/warehouse-assignments/documents/{document_id}")]
     [ProducesResponseType(typeof(WarehouseAssignmentDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<WarehouseAssignmentDetailDto> GetWarehouseAssignmentDetailAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
-        [FromRoute] Guid reception_id,
+        [FromRoute] Guid document_id,
+        [FromQuery] DocumentType document_type,
         CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
@@ -123,7 +123,8 @@ public class WarehouseAssignmentsController(IMediator _mediator) : ApiController
             CompanyId = company_id,
             ModuleCode = module_code,
             UserId = userId,
-            ReceptionId = reception_id
+            DocumentId = document_id,
+            DocumentType = document_type
         }, cancellationToken);
     }
 
@@ -170,21 +171,23 @@ public class WarehouseAssignmentsController(IMediator _mediator) : ApiController
     }
 
     [Tags("Asignación de Bodega")]
-    [HttpPost("companies/{company_id}/modules/{module_code}/receptions/{reception_id}/warehouse-assignment")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/warehouse-assignments/documents/{document_id}/assignment")]
     [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<OkObjectResult> CreateWarehouseAssignmentAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
-        [FromRoute] Guid reception_id,
+        [FromRoute] Guid document_id,
+        [FromQuery] DocumentType document_type,
         [FromBody] CreateWarehouseAssignmentCommand command,
         CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
         Guid.TryParse(userIdStr, out var userId);
 
-        command.ReceptionId = reception_id;
+        command.DocumentId = document_id;
+        command.DocumentType = document_type;
         command.UserId = userId;
         command.CompanyId = company_id;
         command.ModuleCode = module_code;
@@ -194,21 +197,23 @@ public class WarehouseAssignmentsController(IMediator _mediator) : ApiController
     }
 
     [Tags("Asignación de Bodega")]
-    [HttpPost("companies/{company_id}/modules/{module_code}/receptions/{reception_id}/unloading-details")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/warehouse-assignments/documents/{document_id}/unloading-details")]
     [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<OkObjectResult> CreateUnloadingDetailsAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
-        [FromRoute] Guid reception_id,
+        [FromRoute] Guid document_id,
+        [FromQuery] DocumentType document_type,
         [FromBody] CreateUnloadingDetailsCommand command,
         CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
         Guid.TryParse(userIdStr, out var userId);
 
-        command.ReceptionId = reception_id;
+        command.DocumentId = document_id;
+        command.DocumentType = document_type;
         command.UserId = userId;
         command.CompanyId = company_id;
         command.ModuleCode = module_code;
@@ -218,21 +223,23 @@ public class WarehouseAssignmentsController(IMediator _mediator) : ApiController
     }
 
     [Tags("Asignación de Bodega")]
-    [HttpPost("companies/{company_id}/modules/{module_code}/receptions/{reception_id}/unloading-crew")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/warehouse-assignments/documents/{document_id}/unloading-crew")]
     [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<OkObjectResult> CreateUnloadingCrewAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
-        [FromRoute] Guid reception_id,
+        [FromRoute] Guid document_id,
+        [FromQuery] DocumentType document_type,
         [FromBody] CreateUnloadingCrewCommand command,
         CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
         Guid.TryParse(userIdStr, out var userId);
 
-        command.ReceptionId = reception_id;
+        command.DocumentId = document_id;
+        command.DocumentType = document_type;
         command.UserId = userId;
         command.CompanyId = company_id;
         command.ModuleCode = module_code;
@@ -242,21 +249,23 @@ public class WarehouseAssignmentsController(IMediator _mediator) : ApiController
     }
 
     [Tags("Asignación de Bodega")]
-    [HttpPost("companies/{company_id}/modules/{module_code}/receptions/{reception_id}/unloading-machinery")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/warehouse-assignments/documents/{document_id}/unloading-machinery")]
     [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<OkObjectResult> CreateUnloadingMachineryAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
-        [FromRoute] Guid reception_id,
+        [FromRoute] Guid document_id,
+        [FromQuery] DocumentType document_type,
         [FromBody] CreateUnloadingMachineryCommand command,
         CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
         Guid.TryParse(userIdStr, out var userId);
 
-        command.ReceptionId = reception_id;
+        command.DocumentId = document_id;
+        command.DocumentType = document_type;
         command.UserId = userId;
         command.CompanyId = company_id;
         command.ModuleCode = module_code;
@@ -266,14 +275,15 @@ public class WarehouseAssignmentsController(IMediator _mediator) : ApiController
     }
 
     [Tags("Asignación de Bodega")]
-    [HttpPost("companies/{company_id}/modules/{module_code}/receptions/{reception_id}/complete-assignment")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/warehouse-assignments/documents/{document_id}/complete-assignment")]
     [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<OkObjectResult> CompleteWarehouseAssignmentAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
-        [FromRoute] Guid reception_id,
+        [FromRoute] Guid document_id,
+        [FromQuery] DocumentType document_type,
         CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
@@ -281,7 +291,8 @@ public class WarehouseAssignmentsController(IMediator _mediator) : ApiController
 
         var command = new CompleteWarehouseAssignmentCommand
         {
-            ReceptionId = reception_id,
+            DocumentId = document_id,
+            DocumentType = document_type,
             UserId = userId,
             CompanyId = company_id,
             ModuleCode = module_code

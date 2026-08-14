@@ -1,12 +1,11 @@
 using MediatR;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Dtos;
-using ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Handlers;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Queries;
 
-public class GetPendingAssignmentsQuery : BaseRequest, IRequest<PagedWarehouseAssignmentsDto<PendingAssignmentItemDto>>
+public class GetPendingAssignmentsQuery : BaseRequest, IRequest<PagedWarehouseAssignmentsDto<PendingDocumentItemDto>>
 {
     public string? DriverName { get; set; }
     public string? PlateNumber { get; set; }
@@ -26,7 +25,8 @@ public class GetWarehouseAssignmentsQuery : BaseRequest, IRequest<PagedWarehouse
 
 public class GetWarehouseAssignmentDetailQuery : BaseRequest, IRequest<WarehouseAssignmentDetailDto>
 {
-    public Guid ReceptionId { get; set; }
+    public Guid DocumentId { get; set; }
+    public DocumentType DocumentType { get; set; }
 }
 
 public class GetAvailableWarehousesQuery : BaseRequest, IRequest<List<AvailableWarehouseDto>>

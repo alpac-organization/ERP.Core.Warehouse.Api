@@ -2,8 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Warehouse;
-using ERP.Core.Warehouse.Api.Application.Commons.Constants;
 using ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Queries;
 using WarehouseAssignmentEntity = ERP.Core.Database.Domain.Entities.Warehouse.WarehouseAssignments;
@@ -20,48 +20,58 @@ public class GetWarehouseAssignmentDetailHandler(IUnitOfWork unitOfWork, IErrorM
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        var recordEntrance = await _unitOfWork.RecordEntrance.Entities
-            .AsNoTracking()
-            .Include(r => r.ReceptionEntrance!)
-            .Include(r => r.EntranceDucats)
-            .Include(r => r.DucatRegistry)
-            .Include(r => r.CustomsDeclarations!)
-                .ThenInclude(cd => cd.Details)
-            .Include(r => r.ExecutionLogs)
-            .Include(r => r.Assignment!)
-                .ThenInclude(a => a.Warehouse)
-            .Include(r => r.Assignment!)
-                .ThenInclude(a => a.Section)
-            .Include(r => r.Assignment!)
-                .ThenInclude(a => a.Rack)
-            .Include(r => r.Assignment!)
-                .ThenInclude(a => a.Lot)
-            .Include(r => r.Assignment!)
-                .ThenInclude(a => a.LotPosition)
-            .Include(r => r.Assignment!)
-                .ThenInclude(a => a.RackPosition)
-            .Include(r => r.UnloadingDetails!)
-                .ThenInclude(u => u.CrewAssignments)
-            .Include(r => r.UnloadingDetails!)
-                .ThenInclude(u => u.MachineryAssignments)
-                    .ThenInclude(m => m.Machinery)
-            .FirstOrDefaultAsync(r => r.Id == request.ReceptionId && r.DeletedAt == null, cancellationToken);
+        var context = await WarehouseDocumentLookup.FindDocumentAsync(
+            _unitOfWork, request.DocumentId, request.DocumentType, cancellationToken);
 
-        if (recordEntrance == null || recordEntrance.ReceptionEntrance == null)
+        if (context == null || context.RecordEntrance.ReceptionEntrance == null)
         {
             return _errorManager.ThrowNotFound<WarehouseAssignmentDetailDto>(
-                "El registro de recepción no fue encontrado o ya ha sido eliminado.",
-                "ERP:RECEPTION_NOT_FOUND");
+                "El documento no fue encontrado o ya ha sido eliminado.",
+                "ERP:DOCUMENT_NOT_FOUND");
         }
 
+        var assignment = await _unitOfWork.WarehouseAssignments.Entities
+            .AsNoTracking()
+            .Include(a => a.Warehouse)
+            .Include(a => a.Section)
+            .Include(a => a.Rack)
+            .Include(a => a.Lot)
+            .Include(a => a.LotPosition)
+            .Include(a => a.RackPosition)
+            .Include(a => a.UnloadingDetails!)
+                .ThenInclude(u => u.CrewAssignments)
+            .Include(a => a.UnloadingDetails!)
+                .ThenInclude(u => u.MachineryAssignments)
+                    .ThenInclude(m => m.Machinery)
+            .FirstOrDefaultAsync(a => a.DeletedAt == null &&
+                (request.DocumentType == DocumentType.DUCA
+                    ? a.EntranceDucatId == request.DocumentId
+                    : a.CustomsDeclarationId == request.DocumentId), cancellationToken);
+
+        var reception = context.RecordEntrance.ReceptionEntrance!;
         var receptionStepCode = await GetPendingAssignmentsHandler.GetReceptionStepCodeAsync(_unitOfWork, cancellationToken);
+        var arrivalLog = context.RecordEntrance.ExecutionLogs
+            .FirstOrDefault(l => l.WorkflowStepDefinitionCode == receptionStepCode);
 
         var detail = new WarehouseAssignmentDetailDto
         {
-            Reception = GetPendingAssignmentsHandler.MapPendingItem(recordEntrance, receptionStepCode),
-            Assignment = recordEntrance.Assignment == null ? null : MapAssignment(recordEntrance.Assignment),
-            UnloadingDetails = recordEntrance.UnloadingDetails == null ? null : MapUnloadingDetails(recordEntrance.UnloadingDetails),
-            Crew = recordEntrance.UnloadingDetails?.CrewAssignments
+            Id = context.DocumentId,
+            ReceptionId = context.RecordEntrance.Id,
+            DocumentType = context.DocumentType,
+            DocumentNumber = WarehouseDocumentLookup.GetDocumentNumber(context),
+            ServiceOrderCode = WarehouseDocumentLookup.GetServiceOrderCode(context),
+            MerchandiseName = WarehouseDocumentLookup.GetMerchandiseName(context),
+            TotalBultos = WarehouseDocumentLookup.GetTotalBultos(context),
+            TotalWeight = WarehouseDocumentLookup.GetTotalWeight(context),
+            Remitente = WarehouseDocumentLookup.GetRemitente(context),
+            PlateNumber = reception.PlateNumber,
+            DriverName = reception.DriverName,
+            ContainerNumber = WarehouseDocumentLookup.GetContainerNumber(context),
+            ArrivalDate = arrivalLog?.StartDate,
+            ArrivalTime = arrivalLog?.StartTime,
+            Assignment = assignment == null ? null : MapAssignment(assignment),
+            UnloadingDetails = assignment?.UnloadingDetails == null ? null : MapUnloadingDetails(assignment.UnloadingDetails),
+            Crew = assignment?.UnloadingDetails?.CrewAssignments
                 .OrderByDescending(c => c.AssignedAt)
                 .Select(c => new UnloadingCrewDto
                 {
@@ -71,7 +81,7 @@ public class GetWarehouseAssignmentDetailHandler(IUnitOfWork unitOfWork, IErrorM
                     AssignedAt = c.AssignedAt
                 })
                 .FirstOrDefault(),
-            Machinery = recordEntrance.UnloadingDetails?.MachineryAssignments
+            Machinery = assignment?.UnloadingDetails?.MachineryAssignments
                 .Select(m => new UnloadingMachineryDto
                 {
                     Id = m.Id,

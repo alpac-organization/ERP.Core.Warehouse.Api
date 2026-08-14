@@ -7,28 +7,32 @@ public static class WarehouseAssignmentRules
 {
     public const string AssignmentStepCode = "ASWB";
 
-    public static bool IsStepTwoCompleted(RecordEntrance record)
+    public static bool IsDocumentStepTwoCompleted(EntranceDucats ducat)
     {
-        if (record.ReceptionEntrance == null) return false;
-
-        return record.ReceptionEntrance.DocumentType switch
-        {
-            DocumentType.DUCA => record.EntranceDucats.Any(d => d.DeletedAt == null)
-                && record.EntranceDucats.Where(d => d.DeletedAt == null)
-                    .All(d => d.Status == DucaStatus.Completed),
-            DocumentType.CustomsDeclaration => record.CustomsDeclarations != null
-                && record.CustomsDeclarations.Details != null,
-            _ => false
-        };
+        return ducat.Status == DucaStatus.Completed;
     }
 
-    public static WarehouseType AllowedWarehouseType(DocumentType documentType)
+    public static bool IsDocumentStepTwoCompleted(CustomsDeclarations declaration)
+    {
+        return declaration.Status == DucaStatus.Completed;
+    }
+
+    /// <summary>
+    /// Las declaraciones aduaneras solo pueden ir a bodegas tipo General.
+    /// Las ducas pueden ir a cualquier tipo de bodega excepto General y Granel.
+    /// </summary>
+    public static List<WarehouseType> AllowedWarehouseTypes(DocumentType documentType)
     {
         return documentType switch
         {
-            DocumentType.DUCA => WarehouseType.Fiscal,
-            DocumentType.CustomsDeclaration => WarehouseType.General,
-            _ => WarehouseType.General
+            DocumentType.CustomsDeclaration => [WarehouseType.General],
+            DocumentType.DUCA => [WarehouseType.Fiscal, WarehouseType.GaleronTechado, WarehouseType.PatioContenedores, WarehouseType.PredioAbierto],
+            _ => []
         };
+    }
+
+    public static bool IsWarehouseTypeAllowed(WarehouseType warehouseType, DocumentType documentType)
+    {
+        return AllowedWarehouseTypes(documentType).Contains(warehouseType);
     }
 }
