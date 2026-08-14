@@ -7,7 +7,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Comman
     public class SendPurchaseRequestToManagementReviewCommand : BaseRequest, IRequest<bool>
     {
         [JsonIgnore]
-        public Guid PurchaseRequestId { get; set; }
+        public Guid RequisitionAccountingReviewId { get; set; }
+        public bool IsApproved { get; set; }
         public string? Comments { get; set; }
     }
 }

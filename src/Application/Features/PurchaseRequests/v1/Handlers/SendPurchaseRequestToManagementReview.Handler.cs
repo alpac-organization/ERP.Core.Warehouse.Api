@@ -26,60 +26,71 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return _errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:INVALID_ACCESS");
             }
 
-            var purchaseRequest = await _unitOfWork.PurchaseRequests.Entities
-                .Include(pur => pur.ManagementReview)
-                .Include(pur => pur.PurchaseRequestItems)
-                    .ThenInclude(item => item.Quotations)
-                .Where(pur => pur.IsActive)
-                .Where(pur => pur.Id == request.PurchaseRequestId)
+            var requisitionPending = await _unitOfWork.RequisitionAccountingReviews.Entities
+                .Where(req => req.Id == request.RequisitionAccountingReviewId)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (purchaseRequest is null)
+            if (requisitionPending is null)
             {
-                return _errorManager.ThrowNotFound<bool>("La solicitud de compra no fue encontrada", "ERP:PURCHASE_REQUEST_NOT_FOUND");
-            }
-            
-            //Si la solicitud fue rechazada por contabilidad queda en estado rechazado y no puede enviarse a gerencia
-            if (purchaseRequest.RequestStatus != PurchaseRequestStatus.Approved)
-            {
-                return _errorManager.ThrowBadRequest<bool>("La solicitud de compra debe estar aprobada para enviarse a revisión de gerencia", "ERP:PURCHASE_REQUEST_NOT_APPROVED");
+                return _errorManager.ThrowBadRequest<bool>("No se encontro la solicitud pendiente para enviar a revición", "ERP:NOT_FOUND");
             }
 
-            //Solicitud enviada a gerencia
-            if (purchaseRequest.ManagementReview is not null)
+            if (requisitionPending.Status != AccountingReviewStatus.Pending)
             {
-                return _errorManager.ThrowBadRequest<bool>("La solicitud de compra ya fue enviada a revisión", "ERP:REVIEW_ALREADY_EXISTS");
+                return _errorManager.ThrowBadRequest<bool>("Esta solicitud ya ha sido rechazada, no se puede aprobar", "ERP:NOT_FOUND");
             }
 
-            var items = await _unitOfWork.PurchaseRequestItems.Entities
-                .Include(item => item.Quotations)
-                .Where(item => item.PurchaseRequestId == purchaseRequest.Id)
-                .ToListAsync(cancellationToken);
-
-            foreach (var item in items)
+            if(request.IsApproved)
             {
-                var activeQuotations = item.Quotations
-                    .Where(quo => quo.IsActive)
-                    .ToList();
+                var purchaseRequest = await _unitOfWork.PurchaseRequests.Entities
+                    .Include(pur => pur.ManagementReview)
+                    .Include(pur => pur.PurchaseRequestItems)
+                        .ThenInclude(item => item.Quotations)
+                    .Where(pur => pur.IsActive)
+                    .Where(pur => pur.Id == requisitionPending.PurchaseRequestId)
+                    .FirstOrDefaultAsync(cancellationToken);
 
-                if (activeQuotations.Count < 2)
+                if (purchaseRequest is null)
                 {
-                    return _errorManager.ThrowBadRequest<bool>("Todos los productos solicitados deben tener al menos dos cotizaciones activas", "ERP:ITEMS_WITHOUT_TWO_QUOTATIONS");
+                    return _errorManager.ThrowNotFound<bool>("La solicitud de compra no fue encontrada", "ERP:PURCHASE_REQUEST_NOT_FOUND");
                 }
 
-                if (activeQuotations.Count(quo => quo.IsAcceptedForPurchase) != 1)
+                //Solicitud enviada a gerencia
+                if (purchaseRequest.ManagementReview is not null)
                 {
-                    return _errorManager.ThrowBadRequest<bool>("Todos los productos solicitados deben tener una única cotización aceptada para compra", "ERP:ITEM_WITHOUT_ACCEPTED_QUOTATION");
+                    return _errorManager.ThrowBadRequest<bool>("La solicitud de compra ya fue enviada a revisión", "ERP:REVIEW_ALREADY_EXISTS");
                 }
+
+                var items = await _unitOfWork.PurchaseRequestItems.Entities
+                    .Include(item => item.Quotations)
+                    .Where(item => item.PurchaseRequestId == purchaseRequest.Id)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var item in items)
+                {
+                    var activeQuotations = item.Quotations
+                        .Where(quo => quo.IsActive)
+                        .ToList();
+
+                    if (activeQuotations.Count < 2)
+                    {
+                        return _errorManager.ThrowBadRequest<bool>("Todos los productos solicitados deben tener al menos dos cotizaciones activas", "ERP:ITEMS_WITHOUT_TWO_QUOTATIONS");
+                    }
+
+                    if (activeQuotations.Count(quo => quo.IsAcceptedForPurchase) != 1)
+                    {
+                        return _errorManager.ThrowBadRequest<bool>("Todos los productos solicitados deben tener una única cotización aceptada para compra", "ERP:ITEM_WITHOUT_ACCEPTED_QUOTATION");
+                    }
+                }
+
+                var requisitionManagementReviewEntity = RequisitionManagementReviewMapper.ToRequisitionManagementReviewEntity(request, access.User.Id, requisitionPending.PurchaseRequestId);
+                await _unitOfWork.RequisitionManagementReviews.RegisterRequisitionManagementReview(requisitionManagementReviewEntity);
             }
-
-            var requisitionManagementReviewEntity = RequisitionManagementReviewMapper.ToRequisitionManagementReviewEntity(request, access.User.Id);
-
-            await _unitOfWork.RequisitionManagementReviews.RegisterRequisitionManagementReview(requisitionManagementReviewEntity);
-
-            purchaseRequest.RequestStatus = PurchaseRequestStatus.Revision;
-
-            await _unitOfWork.PurchaseRequests.UpdateAsync(purchaseRequest);
+            else
+            {
+                requisitionPending.Status = AccountingReviewStatus.Rejected;
+                await _unitOfWork.RequisitionAccountingReviews.UpdateAsync(requisitionPending);
+            }
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 

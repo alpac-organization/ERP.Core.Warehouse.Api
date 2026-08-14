@@ -17,7 +17,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
                 .NotEqual(Guid.Empty)
                 .WithMessage("El id de la empresa es requerido.");
 
-            RuleFor(x => x.PurchaseRequestId)
+            RuleFor(x => x.RequisitionAccountingReviewId)
                 .NotEqual(Guid.Empty)
                 .WithMessage("El identificador de la solicitud de compra no es válido.");
 

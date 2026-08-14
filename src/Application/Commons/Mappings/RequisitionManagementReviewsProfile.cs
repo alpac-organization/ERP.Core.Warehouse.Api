@@ -20,14 +20,14 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 
     public static class RequisitionManagementReviewMapper
     {
-        public static RequisitionManagementReview ToRequisitionManagementReviewEntity(this Commands.SendPurchaseRequestToManagementReviewCommand request, Guid sentByUserId)
+        public static RequisitionManagementReview ToRequisitionManagementReviewEntity(this Commands.SendPurchaseRequestToManagementReviewCommand request, Guid sentByUserId, Guid purchaseRequestId)
         {
             return new RequisitionManagementReview()
             {
                 Id                = Guid.NewGuid(),
                 Status            = ManagementReviewStatus.Pending,
                 Comments          = request.Comments,
-                PurchaseRequestId = request.PurchaseRequestId,
+                PurchaseRequestId = purchaseRequestId,
                 SentByUserId      = sentByUserId,
                 SentToReviewAt    = DateOnly.FromDateTime(DateTime.Now)
             };

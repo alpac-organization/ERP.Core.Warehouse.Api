@@ -7,6 +7,7 @@ using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Queries;
+using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Controllers.RequisitionAccountingReviews
 {
@@ -57,6 +58,25 @@ namespace ERP.Core.Warehouse.Api.Controllers.RequisitionAccountingReviews
                 UserId = Guid.Parse(userIdStr ?? ""),
                 ModuleCode = module_code
             });
+        }
+
+        [Tags("Solicitudes de compras")] 
+        [HttpPost("companies/{company_id}/modules/{module_code}/requisition-accounting-reviews/{requisition_accounting_review_id}/send-management-review")]      
+        [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
+        public async Task<NoContentResult> SendPurchaseRequestToManagementReviewAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid requisition_accounting_review_id, [FromBody] SendPurchaseRequestToManagementReviewCommand payload)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            payload.CompanyId = company_id;
+            payload.ModuleCode = module_code;
+            payload.UserId = Guid.Parse(userIdStr ?? "");
+            payload.RequisitionAccountingReviewId = requisition_accounting_review_id;
+
+            await _mediator.Send(payload);
+            
+            return NoContent();
         }
     }
 }
