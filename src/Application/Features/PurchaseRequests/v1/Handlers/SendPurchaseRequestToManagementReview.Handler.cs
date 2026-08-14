@@ -83,7 +83,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     }
                 }
 
-                var requisitionManagementReviewEntity = RequisitionManagementReviewMapper.ToRequisitionManagementReviewEntity(request, access.User.Id);
+                var requisitionManagementReviewEntity = RequisitionManagementReviewMapper.ToRequisitionManagementReviewEntity(request, access.User.Id, requisitionPending.PurchaseRequestId);
                 await _unitOfWork.RequisitionManagementReviews.RegisterRequisitionManagementReview(requisitionManagementReviewEntity);
             }
             else
