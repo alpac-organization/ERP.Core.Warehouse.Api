@@ -5,6 +5,7 @@ using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
 using Commands = ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
@@ -33,35 +34,16 @@ public class WarehouseProfile : Profile
         CreateMap<Racks, RackDto>()
             .ForMember(dest => dest.RackId, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.UsageProfile, opt => opt.MapFrom(src => src.UsageProfile.ToString()))
-            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()));
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
+            .ForMember(dest => dest.TotalPositions, opt => opt.MapFrom(src => src.Positions.Count))
+            .ForMember(dest => dest.OccupiedPositions, opt => opt.MapFrom(src => src.Positions.Count(p => p.CurrentStock.Any())));
+
+        CreateMap<RackPositions, RackPositionDto>()
+            .ForMember(dest => dest.PositionId, opt => opt.MapFrom(src => src.Id));
 
         CreateMap<Racks, RackSummaryDto>()
             .ForMember(dest => dest.RackId, opt => opt.MapFrom(src => src.Id));
 
-        CreateMap<Racks, RackFlatDto>()
-            .ForMember(dest => dest.UsageProfile, opt => opt.MapFrom(src => src.UsageProfile.ToString()))
-            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()));
-
-        CreateMap<IGrouping<int, RackFlatDto>, LevelCapacityDto>()
-            .ForMember(dest => dest.LevelNumber, opt => opt.MapFrom(src => src.Key))
-            .ForMember(dest => dest.RacksCount, opt => opt.MapFrom(src => src.Count()))
-            .ForMember(dest => dest.UsedLengthMetres, opt => opt.MapFrom(src => src.Sum(r => r.LengthMetres)))
-            .ForMember(dest => dest.AvailableLengthMetres, opt => opt.MapFrom((src, _, _, ctx) =>
-                (decimal)ctx.Items["SectionLength"] - src.Sum(r => r.LengthMetres)));
-
-        CreateMap<IGrouping<string, RackFlatDto>, RackStatusGroupDto>()
-            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Key))
-            .ForMember(dest => dest.Count, opt => opt.MapFrom(src => src.Count()));
-
-        CreateMap<IGrouping<string, RackFlatDto>, RackUsageProfileGroupDto>()
-            .ForMember(dest => dest.UsageProfile, opt => opt.MapFrom(src => src.Key))
-            .ForMember(dest => dest.Count, opt => opt.MapFrom(src => src.Count()));
-
-        CreateMap<IGrouping<RackDimensionKey, RackFlatDto>, RackDimensionGroupDto>()
-            .ForMember(dest => dest.WidthMetres, opt => opt.MapFrom(src => src.Key.WidthMetres))
-            .ForMember(dest => dest.LengthMetres, opt => opt.MapFrom(src => src.Key.LengthMetres))
-            .ForMember(dest => dest.HeightMetres, opt => opt.MapFrom(src => src.Key.HeightMetres))
-            .ForMember(dest => dest.Count, opt => opt.MapFrom(src => src.Count()));
         #endregion
 
         #region Lots
@@ -183,11 +165,14 @@ public static class SectionMapper
 #region Racks
 public static class RackMapper
 {
-    public static Racks ToRackEntity(this Commands.RegisterRackCommand command)
+    private const int RackPositionCodePadLength = 2;
+    public static Racks ToRackEntity(this RegisterRackCommand command)
     {
+        var rackId = Guid.NewGuid();
+
         return new()
         {
-            Id = Guid.NewGuid(),
+            Id = rackId,
             SectionId = command.SectionId,
             Code = command.Code.Trim(),
             WidthMetres = command.WidthMetres,
@@ -199,12 +184,13 @@ public static class RackMapper
             MaxPulleys = command.MaxPulleys,
             Status = command.Status,
             UnavailableReason = command.UnavailableReason,
-            StatusChangedAt = NicaraguaClock.Now
+            StatusChangedAt = NicaraguaClock.Now,
+            Positions = BuildRackPositions(rackId, command.MaxPulleys)
         };
     }
 
     public static List<Racks> ToRackEntities(
-        this Commands.RegisterRacksBulkCommand command,
+        this RegisterRacksBulkCommand command,
         string shelfCode,
         int nextDepositNumber,
         IReadOnlyDictionary<int, int> lastRowByLevel)
@@ -220,9 +206,11 @@ public static class RackMapper
 
             for (var row = startingRow; row <= lastRow; row++)
             {
+                var rackId = Guid.NewGuid();
+
                 racks.Add(new Racks
                 {
-                    Id = Guid.NewGuid(),
+                    Id = rackId,
                     SectionId = command.SectionId,
                     Code = $"{shelfCode}-D{depositNumber}",
                     WidthMetres = level.WidthMetres,
@@ -234,7 +222,8 @@ public static class RackMapper
                     MaxPulleys = level.MaxPulleys,
                     Status = level.Status,
                     UnavailableReason = level.UnavailableReason,
-                    StatusChangedAt = now
+                    StatusChangedAt = now,
+                    Positions = BuildRackPositions(rackId, level.MaxPulleys)
                 });
 
                 depositNumber++;
@@ -243,23 +232,37 @@ public static class RackMapper
 
         return racks;
     }
+
+    private static List<RackPositions> BuildRackPositions(Guid rackId, int maxPulleys)
+    {
+        return Enumerable.Range(1, maxPulleys)
+            .Select(positionNumber => new RackPositions
+            {
+                Id = Guid.NewGuid(),
+                RackId = rackId,
+                PositionNumber = positionNumber,
+                PositionCode = positionNumber.ToString().PadLeft(RackPositionCodePadLength, '0'),
+                IsBlocked = false
+            })
+            .ToList();
+    }
 }
 
 public static class RackDtoMapper
 {
-    public static Commands.RegisterRacksBulkCommand ToCommand(
+    public static RegisterRacksBulkCommand ToCommand(
         this RegisterRacksBulkDto dto,
         Guid sectionId,
         Guid userId,
         Guid companyId,
         string moduleCode)
     {
-        return new Commands.RegisterRacksBulkCommand
+        return new RegisterRacksBulkCommand
         {
             SectionId = sectionId,
             ShelfCode = dto.ShelfCode,
             StartingDepositNumber = dto.StartingDepositNumber,
-            Levels = dto.Levels.Select(l => new Commands.RackLevelSpec
+            Levels = [.. dto.Levels.Select(l => new RackLevelSpec
             {
                 LevelNumber = l.LevelNumber,
                 RacksCount = l.RacksCount,
@@ -270,12 +273,35 @@ public static class RackDtoMapper
                 MaxPulleys = l.MaxPulleys,
                 Status = l.Status,
                 UnavailableReason = l.UnavailableReason
-            }).ToList(),
+            })],
             UserId = userId,
             CompanyId = companyId,
             ModuleCode = moduleCode
         };
     }
+
+    public static GetRacksBySectionQuery ToQuery(
+        this Guid sectionId,
+        Guid userId,
+        Guid companyId,
+        string moduleCode,
+        int? levelNumber,
+        RackStatus? status,
+        RackUsageProfile? usageProfile,
+        decimal? widthMetres,
+        decimal? lengthMetres,
+        decimal? heightMetres) => new()
+        {
+            SectionId = sectionId,
+            LevelNumber = levelNumber,
+            Status = status,
+            WidthMetres = widthMetres,
+            LengthMetres = lengthMetres,
+            HeightMetres = heightMetres,
+            UserId = userId,
+            CompanyId = companyId,
+            ModuleCode = moduleCode
+        };
 }
 #endregion
 

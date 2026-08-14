@@ -17,6 +17,10 @@ public class RackDto
     public string? Status { get; set; }
     public string? UnavailableReason { get; set; }
     public DateTime? StatusChangedAt { get; set; }
+
+    public int TotalPositions { get; set; }
+    public int OccupiedPositions { get; set; }
+    public List<RackPositionDto> Positions { get; set; } = [];
 }
 
 public class RegisterRacksBulkDto
@@ -48,7 +52,7 @@ public class RegisterRacksBulkResultDto
     public int TotalRequested { get; set; }
     public int TotalCreated { get; set; }
     public List<LevelCapacityDto> LevelCapacity { get; set; } = [];
-    public List<RackSummaryDto> Racks { get; set; } = [];
+    // public List<RackSummaryDto> Racks { get; set; } = [];
 }
 
 public class RackSummaryDto
@@ -57,6 +61,7 @@ public class RackSummaryDto
     public string Code { get; set; } = null!;
     public int LevelNumber { get; set; }
     public int RowNumber { get; set; }
+    public RackStatus Status { get; set; }
 }
 
 public class LevelCapacityDto
@@ -67,45 +72,18 @@ public class LevelCapacityDto
     public decimal AvailableLengthMetres { get; set; }
 }
 
-public class RackDimensionGroupDto
-{
-    public decimal WidthMetres { get; set; }
-    public decimal LengthMetres { get; set; }
-    public decimal? HeightMetres { get; set; }
-    public int Count { get; set; }
-}
-
-public class RackStatusGroupDto
-{
-    public string Status { get; set; } = null!;
-    public int Count { get; set; }
-}
-
-public class RackUsageProfileGroupDto
-{
-    public string UsageProfile { get; set; } = null!;
-    public int Count { get; set; }
-}
-
-public class RackSectionSummaryDto
+public class RackSectionFilterResultDto
 {
     public Guid SectionId { get; set; }
-    public decimal SectionLengthMetres { get; set; }
     public int TotalRacksCount { get; set; }
-    public List<LevelCapacityDto> LevelsCapacity { get; set; } = [];
-    public List<RackStatusGroupDto> StatusBreakdown { get; set; } = [];
-    public List<RackUsageProfileGroupDto> UsageProfileBreakdown { get; set; } = [];
-    public List<RackDimensionGroupDto> DimensionGroups { get; set; } = [];
+    public List<RackSummaryDto> Racks { get; set; } = [];
 }
 
-public class RackFlatDto
+public class RackPositionDto
 {
-    public int LevelNumber { get; set; }
-    public decimal WidthMetres { get; set; }
-    public decimal LengthMetres { get; set; }
-    public decimal? HeightMetres { get; set; }
-    public string Status { get; set; } = null!;
-    public string UsageProfile { get; set; } = null!;
+    public Guid PositionId { get; set; }
+    public int PositionNumber { get; set; }
+    public string PositionCode { get; set; } = null!;
+    public bool IsBlocked { get; set; }
+    public string? BlockReason { get; set; }
 }
-
-public record RackDimensionKey(decimal WidthMetres, decimal LengthMetres, decimal? HeightMetres);

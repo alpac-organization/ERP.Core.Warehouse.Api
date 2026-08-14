@@ -6,6 +6,7 @@ using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
+using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Controllers.Warehouses;
 
@@ -42,23 +43,53 @@ public class RacksController(IMediator mediator) : ApiControllerBase
     }
 
     [Tags("Racks")]
-    [HttpGet("companies/{company_id}/modules/{module_code}/sections/{section_id}/racks/summary")]
-    [ProducesResponseType(typeof(RackSectionSummaryDto), StatusCodes.Status200OK)]
+    [HttpGet("companies/{company_id}/modules/{module_code}/sections/{section_id}/racks")]
+    [ProducesResponseType(typeof(RackSectionFilterResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetRackSectionSummaryAsync(
+    public async Task<IActionResult> GetRacksBySectionAsync(
     [FromRoute] Guid company_id,
     [FromRoute] string module_code,
     [FromRoute] Guid section_id,
+    [FromQuery] int? level_number,
+    [FromQuery] RackStatus? status,
+    [FromQuery] RackUsageProfile? usage_profile,
+    [FromQuery] decimal? width_metres,
+    [FromQuery] decimal? length_metres,
+    [FromQuery] decimal? height_metres,
     CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
         if (!Guid.TryParse(userIdStr, out var userId))
             return Unauthorized();
 
-        var query = new GetRackSectionSummaryQuery
+        var query = section_id.ToQuery(
+        userId, company_id, module_code,
+        level_number, status, usage_profile,
+        width_metres, length_metres, height_metres);
+
+        var response = await mediator.Send(query, cancellationToken);
+        return Ok(response);
+    }
+
+    [Tags("Racks")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/racks/{rack_id}")]
+    [ProducesResponseType(typeof(RackDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetRackByIdAsync(
+    [FromRoute] Guid company_id,
+    [FromRoute] string module_code,
+    [FromRoute] Guid rack_id,
+    CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        if (!Guid.TryParse(userIdStr, out var userId))
+            return Unauthorized();
+
+        var query = new GetRackByIdQuery
         {
-            SectionId = section_id,
+            RackId = rack_id,
             UserId = userId,
             CompanyId = company_id,
             ModuleCode = module_code
