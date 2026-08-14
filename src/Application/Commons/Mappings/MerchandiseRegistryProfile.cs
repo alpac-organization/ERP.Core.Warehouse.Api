@@ -15,13 +15,13 @@ public class MerchandiseRegistryProfile : Profile
 
         // ==== 1. Lista de registros ====
         CreateMap<RecordEntrance, MerchandiseRegistryListItemDto>()
-            .ForMember(d => d.PlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.PlateNumber))
+            // .ForMember(d => d.PlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.PlateNumber))
             .ForMember(d => d.DriverName, o => o.MapFrom(s => s.ReceptionEntrance!.DriverName))
             .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType))
-            .ForMember(d => d.ContainerNumber, o => o.MapFrom(s =>
-                s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration
-                    ? s.CustomsDeclarations!.Details!.ContainerNumber
-                    : (s.DucatRegistry != null ? s.DucatRegistry.ContainerNumber : null)))
+            // .ForMember(d => d.ContainerNumber, o => o.MapFrom(s =>
+            //     s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration
+            //         ? s.CustomsDeclarations!.Details!.ContainerNumber
+            //         : (s.DucatRegistry != null ? s.DucatRegistry.ContainerNumber : null)))
             .ForMember(d => d.Status, o => o.MapFrom(s =>
                 s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration
                     ? (s.CustomsDeclarations != null ? s.CustomsDeclarations.Status : (DucaStatus?)null)
@@ -110,19 +110,19 @@ public class MerchandiseRegistryProfile : Profile
         // ==== 5. Bloque de recepción ====
         CreateMap<RecordEntrance, MerchandiseReceptionDetailDto>()
             .ForMember(d => d.CountryOfOrigin, o => o.MapFrom(s => s.ReceptionEntrance!.CountryOfOrigin))
-            .ForMember(d => d.Aduana, o => o.MapFrom(s => s.ReceptionEntrance!.Aduana))
-            .ForMember(d => d.PlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.PlateNumber))
-            .ForMember(d => d.TrailerChassis, o => o.MapFrom(s => s.ReceptionEntrance!.TrailerChassis))
+            // .ForMember(d => d.Aduana, o => o.MapFrom(s => s.ReceptionEntrance!.Aduana))
+            // .ForMember(d => d.PlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.PlateNumber))
+            // .ForMember(d => d.TrailerChassis, o => o.MapFrom(s => s.ReceptionEntrance!.TrailerChassis))
             .ForMember(d => d.DriverLicense, o => o.MapFrom(s => s.ReceptionEntrance!.DriverLicense))
             .ForMember(d => d.Transportista, o => o.MapFrom(s => s.ReceptionEntrance!.Transportista))
             .ForMember(d => d.TransportUnitId, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitId))
             .ForMember(d => d.TransportUnitName, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnit != null ? s.ReceptionEntrance!.TransportUnit.Name : null))
             .ForMember(d => d.DriverName, o => o.MapFrom(s => s.ReceptionEntrance!.DriverName))
             .ForMember(d => d.SealNumber, o => o.MapFrom(s => s.ReceptionEntrance!.SealNumber))
-            .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType))
-            .ForMember(d => d.TransportUnitExitDate, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitExitDate))
-            .ForMember(d => d.TransportUnitExitTime, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitExitTime))
-            .ForMember(d => d.ContainerNumber, o => o.MapFrom(s => ResolveContainerNumber(s)));
+            .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType));
+            // .ForMember(d => d.TransportUnitExitDate, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitExitDate))
+            // .ForMember(d => d.TransportUnitExitTime, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitExitTime))
+            // .ForMember(d => d.ContainerNumber, o => o.MapFrom(s => ResolveContainerNumber(s)));
 
         // ==== 6. Log de registro de mercancía (Workflow Step Execution Log) ====
         CreateMap<RecordEntrance, MerchandiseRegistrationLogDto>()
@@ -147,12 +147,12 @@ public class MerchandiseRegistryProfile : Profile
 
     // ==== RESOLUCIÓN DE CAMPOS COMPARTIDOS (evita duplicar el ternario en varios bloques) ====
 
-    private static string? ResolveContainerNumber(RecordEntrance s)
-    {
-        return s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration
-            ? s.CustomsDeclarations?.Details?.ContainerNumber
-            : s.DucatRegistry?.ContainerNumber;
-    }
+    // private static string? ResolveContainerNumber(RecordEntrance s)
+    // {
+    //     return s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration
+    //         ? s.CustomsDeclarations?.Details?.ContainerNumber
+    //         : s.DucatRegistry?.ContainerNumber;
+    // }
 
     private static string ResolveReceptionStepCode(RecordEntrance s)
     {

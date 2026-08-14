@@ -58,15 +58,14 @@ public class CreateReceptionEntranceValidator : AbstractValidator<CreateReceptio
             .NotEmpty().WithMessage("El país de procedencia es obligatorio.")
             .MaximumLength(50).WithMessage("El país de procedencia no puede exceder 50 caracteres.");
 
-        RuleFor(x => x.Aduana)
-            .NotEmpty().WithMessage("La Aduana de ingreso es obligatoria.")
-            .MaximumLength(50).WithMessage("La Aduana no puede exceder 50 caracteres.");
+        RuleFor(x => x.CustomBranchId)
+            .NotEqual(Guid.Empty).WithMessage("La Aduana de ingreso es obligatoria.");
 
-        RuleFor(x => x.PlateNumber)
+        RuleFor(x => x.VehiclePlateNumber)
             .NotEmpty().WithMessage("El número de placa es obligatorio.")
             .MaximumLength(30).WithMessage("El número de placa no puede exceder 30 caracteres.");
 
-        RuleFor(x => x.TrailerChassis)
+        RuleFor(x => x.VehicleChassisNumber)
             .NotEmpty().WithMessage("El número de chasis/remolque es obligatorio.")
             .MaximumLength(30).WithMessage("El número de chasis/remolque no puede exceder 30 caracteres.");
 

@@ -14,14 +14,15 @@ public record CreateReceptionEntranceDto
     public string? ContainerNumber { get; set; }
 
     public string CountryOfOrigin { get; set; } = string.Empty;
-    public string Aduana { get; set; } = string.Empty;
-    public string PlateNumber { get; set; } = string.Empty;
-    public string TrailerChassis { get; set; } = string.Empty;
+    public Guid CustomBranchId { get; set; }
+    public string VehiclePlateNumber { get; set; } = string.Empty;
+    public string VehicleChassisNumber { get; set; } = string.Empty;
     public string DriverLicense { get; set; } = string.Empty;
     public string Transportista { get; set; } = string.Empty;
     public Guid TransportUnitId { get; set; }
     public string DriverName { get; set; } = string.Empty;
     public string SealNumber { get; set; } = string.Empty;
+    public string? SealEvidence { get; set; }
 
     public DateOnly StartDate { get; set; }
     public TimeOnly StartTime { get; set; }

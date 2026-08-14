@@ -54,11 +54,11 @@ public class GetPendingAssignmentsHandler(IUnitOfWork unitOfWork, IErrorManager 
             query = query.Where(r => r.ReceptionEntrance!.DriverName.ToLower().Replace(" ", "").Contains(driverFilter));
         }
 
-        if (!string.IsNullOrWhiteSpace(request.PlateNumber))
-        {
-            var plateFilter = request.PlateNumber.Trim().ToLower().Replace(" ", "");
-            query = query.Where(r => r.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
-        }
+        // if (!string.IsNullOrWhiteSpace(request.PlateNumber))
+        // {
+        //     var plateFilter = request.PlateNumber.Trim().ToLower().Replace(" ", "");
+        //     query = query.Where(r => r.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
+        // }
 
         if (!string.IsNullOrWhiteSpace(request.DocumentNumber))
         {
@@ -131,15 +131,15 @@ public class GetPendingAssignmentsHandler(IUnitOfWork unitOfWork, IErrorManager 
         return new PendingAssignmentItemDto
         {
             Id = record.Id,
-            PlateNumber = reception.PlateNumber,
+            // PlateNumber = reception.PlateNumber,
             DriverName = reception.DriverName,
             DocumentType = reception.DocumentType,
             DocumentNumber = isDuca
                 ? (activeDucats.Count > 0 ? activeDucats.First().DucatNumber : null)
                 : record.CustomsDeclarations?.CustomsDeclarationNumber,
-            ContainerNumber = isDuca
-                ? record.DucatRegistry?.ContainerNumber
-                : record.CustomsDeclarations?.Details?.ContainerNumber,
+            // ContainerNumber = isDuca
+            //     ? record.DucatRegistry?.ContainerNumber
+            //     : record.CustomsDeclarations?.Details?.ContainerNumber,
             ArrivalDate = arrivalLog?.StartDate,
             ArrivalTime = arrivalLog?.StartTime,
             TotalDocuments = isDuca
@@ -190,11 +190,11 @@ public class GetWarehouseAssignmentsHandler(IUnitOfWork unitOfWork, IErrorManage
             query = query.Where(r => r.ReceptionEntrance!.DriverName.ToLower().Replace(" ", "").Contains(driverFilter));
         }
 
-        if (!string.IsNullOrWhiteSpace(request.PlateNumber))
-        {
-            var plateFilter = request.PlateNumber.Trim().ToLower().Replace(" ", "");
-            query = query.Where(r => r.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
-        }
+        // if (!string.IsNullOrWhiteSpace(request.PlateNumber))
+        // {
+        //     var plateFilter = request.PlateNumber.Trim().ToLower().Replace(" ", "");
+        //     query = query.Where(r => r.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
+        // }
 
         var totalCount = await query.CountAsync(cancellationToken);
 
@@ -210,9 +210,9 @@ public class GetWarehouseAssignmentsHandler(IUnitOfWork unitOfWork, IErrorManage
             return new WarehouseAssignmentListItemDto
             {
                 ReceptionId = record.Id,
-                PlateNumber = record.ReceptionEntrance!.PlateNumber,
-                DriverName = record.ReceptionEntrance.DriverName,
-                DocumentType = record.ReceptionEntrance.DocumentType,
+                // PlateNumber = record.ReceptionEntrance!.PlateNumber,
+                // DriverName = record.ReceptionEntrance.DriverName,
+                // DocumentType = record.ReceptionEntrance.DocumentType,
                 WarehouseName = assignment.Warehouse.WarehouseName,
                 WarehouseType = assignment.Warehouse.WarehouseType,
                 SectionCode = assignment.Section?.Code,

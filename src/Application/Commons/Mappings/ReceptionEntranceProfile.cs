@@ -5,8 +5,10 @@ using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
+using ReceptionEntranceEntity = ERP.Core.Database.Domain.Entities.Warehouse.ReceptionEntrance;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+
 public static class ReceptionEntranceMapper
 {
     public static CreateReceptionEntranceCommand ToCommand(
@@ -31,14 +33,15 @@ public static class ReceptionEntranceMapper
             ContainerNumber = dto.ContainerNumber?.SanitizeCode(),
 
             CountryOfOrigin = dto.CountryOfOrigin.SanitizeAlphanumeric(),
-            Aduana = dto.Aduana.SanitizeAlphanumeric(),
-            PlateNumber = dto.PlateNumber.SanitizeCode(),
-            TrailerChassis = dto.TrailerChassis.SanitizeCode(),
+            CustomBranchId = dto.CustomBranchId,
+            VehiclePlateNumber = dto.VehiclePlateNumber.SanitizeCode(),
+            VehicleChassisNumber = dto.VehicleChassisNumber.SanitizeCode(),
             DriverLicense = dto.DriverLicense.SanitizeCode(),
             Transportista = dto.Transportista.SanitizeAlphanumeric(),
             TransportUnitId = dto.TransportUnitId,
             DriverName = dto.DriverName.SanitizeAlphanumeric(),
             SealNumber = dto.SealNumber.SanitizeCode(),
+            SealEvidence = dto.SealEvidence,
             StartDate = dto.StartDate,
             StartTime = dto.StartTime
         };
@@ -119,9 +122,9 @@ public static class ReceptionEntranceMapper
             Id = Guid.NewGuid(),
             RecordEntranceId = recordEntranceId,
             CountryOfOrigin = command.CountryOfOrigin,
-            Aduana = command.Aduana,
-            PlateNumber = command.PlateNumber,
-            TrailerChassis = command.TrailerChassis,
+            // Aduana = command.Aduana,
+            // PlateNumber = command.PlateNumber,
+            // TrailerChassis = command.TrailerChassis,
             DriverLicense = command.DriverLicense,
             Transportista = command.Transportista,
             TransportUnitId = command.TransportUnitId,
@@ -150,7 +153,7 @@ public static class ReceptionEntranceMapper
             Packages = command.Packages!.Value,
             Customer = command.Customer!.Trim(),
             Product = command.Product!.Trim(),
-            ContainerNumber = command.ContainerNumber!.Trim()
+            // ContainerNumber = command.ContainerNumber!.Trim()
         };
     }
 
@@ -217,20 +220,85 @@ public class ReceptionEntranceProfile : Profile
 {
     public ReceptionEntranceProfile()
     {
+        //Mapeo para crear reception
+        CreateMap<CreateReceptionEntranceCommand, RecordEntrance>()
+            .ForMember(d => d.Id, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["RecordEntranceId"]))
+            .ForMember(d => d.CurrentStepCode, o => o.MapFrom((src, dest, destMember, ctx) => (string)ctx.Items["StepCode"]))
+            .ForMember(d => d.Status, o => o.MapFrom(_ => RecordEntranceStatus.Queue))
+            .ForMember(d => d.ClosedAtDate, o => o.Ignore())
+            .ForMember(d => d.ClosedAtTime, o => o.Ignore())
+            .ForMember(d => d.IsConsolidated, o => o.MapFrom((src, dest, destMember, ctx) => (bool)ctx.Items["IsConsolidated"]));
+
+        CreateMap<CreateReceptionEntranceCommand, ReceptionEntranceEntity>()
+            .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
+            .ForMember(d => d.RecordEntranceId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["RecordEntranceId"]))
+            .ForMember(d => d.CountryOfOrigin, o => o.MapFrom(s => s.CountryOfOrigin))
+            .ForMember(d => d.CustomBranchId, o => o.MapFrom(s => s.CustomBranchId))
+            .ForMember(d => d.VehiclePlateNumber, o => o.MapFrom(s => s.VehiclePlateNumber))
+            .ForMember(d => d.VehicleChassisNumber, o => o.MapFrom(s => s.VehicleChassisNumber))
+            .ForMember(d => d.ContainerNumber, o => o.MapFrom(s => s.ContainerNumber)) // 👈 corregido, ahora sí se mapea
+            .ForMember(d => d.DriverLicense, o => o.MapFrom(s => s.DriverLicense))
+            .ForMember(d => d.Transportista, o => o.MapFrom(s => s.Transportista))
+            .ForMember(d => d.TransportUnitId, o => o.MapFrom(s => s.TransportUnitId))
+            .ForMember(d => d.DriverName, o => o.MapFrom(s => s.DriverName))
+            .ForMember(d => d.SealNumber, o => o.MapFrom(s => s.SealNumber))
+            .ForMember(d => d.SealEvidence, o => o.MapFrom(s => s.SealEvidence ?? "{}"))
+            .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.DocumentType))
+            .ForMember(d => d.TransportUnit, o => o.Ignore())
+            .ForMember(d => d.CustomsBranches, o => o.Ignore())
+            .ForMember(d => d.RecordEntrance, o => o.Ignore())
+            .ForMember(d => d.VehicleExitDate, o => o.Ignore())
+            .ForMember(d => d.VehicleExitTime, o => o.Ignore())
+            .ForMember(d => d.ContainerExitDate, o => o.Ignore())
+            .ForMember(d => d.ContainerExitTime, o => o.Ignore())
+            .ForMember(d => d.UpdatedByUserId, o => o.Ignore())
+            .ForMember(d => d.UpdatedByUserName, o => o.Ignore())
+            .ForMember(d => d.UpdatedDate, o => o.Ignore())
+            .ForMember(d => d.UpdatedTime, o => o.Ignore());
+
+        CreateMap<CreateReceptionEntranceCommand, CustomsDeclarations>()
+            .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
+            .ForMember(d => d.RecordEntranceId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["RecordEntranceId"]))
+            .ForMember(d => d.CustomsDeclarationNumber, o => o.MapFrom(s => s.CustomsDeclarationNumber!.Trim()));
+
+        CreateMap<CreateReceptionEntranceCommand, CustomsDeclarationDetails>()
+            .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
+            .ForMember(d => d.CustomsDeclarationId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["CustomsDeclarationId"]))
+            .ForMember(d => d.Packages, o => o.MapFrom(s => s.Packages!.Value))
+            .ForMember(d => d.Customer, o => o.MapFrom(s => s.Customer!.Trim()))
+            .ForMember(d => d.Product, o => o.MapFrom(s => s.Product!.Trim()));
+
+        CreateMap<string, EntranceDucats>()
+            .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
+            .ForMember(d => d.DucatNumber, o => o.MapFrom(s => s.Trim().Replace(" ", "")))
+            .ForMember(d => d.RecordEntranceId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["RecordEntranceId"]))
+            .ForMember(d => d.Status, o => o.MapFrom(_ => DucaStatus.Pending));
+
+        CreateMap<CreateReceptionEntranceCommand, StepExecutionLogs>()
+            .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
+            .ForMember(d => d.RecordEntranceId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["RecordEntranceId"]))
+            .ForMember(d => d.WorkflowStepDefinitionCode, o => o.MapFrom((src, dest, destMember, ctx) => (string)ctx.Items["StepCode"]))
+            .ForMember(d => d.StartDate, o => o.MapFrom(s => s.StartDate))
+            .ForMember(d => d.StartTime, o => o.MapFrom(s => s.StartTime))
+            .ForMember(d => d.EndDate, o => o.MapFrom((src, dest, destMember, ctx) => (DateOnly)ctx.Items["EndDate"]))
+            .ForMember(d => d.EndTime, o => o.MapFrom((src, dest, destMember, ctx) => (TimeOnly)ctx.Items["EndTime"]))
+            .ForMember(d => d.ProcessedByUserId, o => o.MapFrom(s => s.UserId.ToString()))
+            .ForMember(d => d.ProcessedByUserName, o => o.MapFrom((src, dest, destMember, ctx) => (string)ctx.Items["ProcessedByUserName"]));
+
         // 1. Mapeo para lista paginada (usado con .ProjectTo)
         string receptionStepCode = null!;
 
         CreateMap<RecordEntrance, ReceptionEntranceListItemDto>()
-            .ForMember(d => d.PlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.PlateNumber))
+            // .ForMember(d => d.PlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.PlateNumber))
             .ForMember(d => d.DriverName, o => o.MapFrom(s => s.ReceptionEntrance!.DriverName))
             .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType))
             .ForMember(d => d.ArrivalTime, o => o.MapFrom(s => s.ExecutionLogs
                 .Where(l => l.WorkflowStepDefinitionCode == receptionStepCode)
-                .Select(l => l.StartTime).FirstOrDefault()))
-            .ForMember(d => d.VehicleStatus, o => o.MapFrom(s =>
-            (s.ReceptionEntrance!.TransportUnitExitDate != null && s.ReceptionEntrance!.TransportUnitExitTime != null)
-            ? VehicleStatus.Exited
-            : VehicleStatus.OnSite));
+                .Select(l => l.StartTime).FirstOrDefault()));
+        // .ForMember(d => d.VehicleStatus, o => o.MapFrom(s =>
+        // (s.ReceptionEntrance!.TransportUnitExitDate != null && s.ReceptionEntrance!.TransportUnitExitTime != null)
+        // ? VehicleStatus.Exited
+        // : VehicleStatus.OnSite));
 
         // 2. Mapeos para los detalles hijos
         CreateMap<EntranceDucats, EntranceDucatDetailItemDto>();
@@ -239,8 +307,8 @@ public class ReceptionEntranceProfile : Profile
             .ForMember(d => d.CustomsDecarationNumber, o => o.MapFrom(s => s.CustomsDeclarationNumber))
             .ForMember(d => d.Packages, o => o.MapFrom(s => s.Details != null ? s.Details.Packages : (int?)null))
             .ForMember(d => d.Customer, o => o.MapFrom(s => s.Details != null ? s.Details.Customer : null))
-            .ForMember(d => d.Product, o => o.MapFrom(s => s.Details != null ? s.Details.Product : null))
-            .ForMember(d => d.ContainerNumber, o => o.MapFrom(s => s.Details != null ? s.Details.ContainerNumber : null));
+            .ForMember(d => d.Product, o => o.MapFrom(s => s.Details != null ? s.Details.Product : null));
+        // .ForMember(d => d.ContainerNumber, o => o.MapFrom(s => s.Details != null ? s.Details.ContainerNumber : null));
 
         CreateMap<StepExecutionLogs, ExecutionLogDetailDto>()
             .ForMember(d => d.DurationTotalSeconds, o => o.MapFrom(s =>
@@ -258,9 +326,9 @@ public class ReceptionEntranceProfile : Profile
         // 3. Mapeo para el Detalle Completo
         CreateMap<RecordEntrance, ReceptionEntranceDetailDto>()
             .ForMember(d => d.CountryOfOrigin, o => o.MapFrom(s => s.ReceptionEntrance!.CountryOfOrigin))
-            .ForMember(d => d.Aduana, o => o.MapFrom(s => s.ReceptionEntrance!.Aduana))
-            .ForMember(d => d.PlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.PlateNumber))
-            .ForMember(d => d.TrailerChassis, o => o.MapFrom(s => s.ReceptionEntrance!.TrailerChassis))
+            // .ForMember(d => d.Aduana, o => o.MapFrom(s => s.ReceptionEntrance!.Aduana))
+            // .ForMember(d => d.PlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.PlateNumber))
+            // .ForMember(d => d.TrailerChassis, o => o.MapFrom(s => s.ReceptionEntrance!.TrailerChassis))
             .ForMember(d => d.DriverLicense, o => o.MapFrom(s => s.ReceptionEntrance!.DriverLicense))
             .ForMember(d => d.Transportista, o => o.MapFrom(s => s.ReceptionEntrance!.Transportista))
             .ForMember(d => d.TransportUnitId, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitId))
@@ -268,8 +336,8 @@ public class ReceptionEntranceProfile : Profile
             .ForMember(d => d.DriverName, o => o.MapFrom(s => s.ReceptionEntrance!.DriverName))
             .ForMember(d => d.SealNumber, o => o.MapFrom(s => s.ReceptionEntrance!.SealNumber))
             .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType))
-            .ForMember(d => d.TransportUnitExitDate, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitExitDate))
-            .ForMember(d => d.TransportUnitExitTime, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitExitTime))
+            // .ForMember(d => d.TransportUnitExitDate, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitExitDate))
+            // .ForMember(d => d.TransportUnitExitTime, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitExitTime))
             .ForMember(d => d.UpdatedByUserName, o => o.MapFrom(s => s.ReceptionEntrance!.UpdatedByUserName))
             .ForMember(d => d.UpdatedDate, o => o.MapFrom(s => s.ReceptionEntrance!.UpdatedDate))
             .ForMember(d => d.UpdatedTime, o => o.MapFrom(s => s.ReceptionEntrance!.UpdatedTime))

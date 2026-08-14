@@ -186,7 +186,7 @@ public class UpdateReceptionEntranceHandler(
                 if (request.Packages != null) declaration.Details.Packages = request.Packages.Value;
                 if (request.Customer != null) declaration.Details.Customer = request.Customer;
                 if (request.Product != null) declaration.Details.Product = request.Product;
-                if (request.ContainerNumber != null) declaration.Details.ContainerNumber = request.ContainerNumber;
+                // if (request.ContainerNumber != null) declaration.Details.ContainerNumber = request.ContainerNumber;
             }
         }
         #endregion
@@ -197,9 +197,9 @@ public class UpdateReceptionEntranceHandler(
             var reception = recordEntrance.ReceptionEntrance;
 
             if (request.CountryOfOrigin != null) reception.CountryOfOrigin = request.CountryOfOrigin;
-            if (request.Aduana != null) reception.Aduana = request.Aduana;
-            if (request.PlateNumber != null) reception.PlateNumber = request.PlateNumber;
-            if (request.TrailerChassis != null) reception.TrailerChassis = request.TrailerChassis;
+            // if (request.Aduana != null) reception.Aduana = request.Aduana;
+            // if (request.PlateNumber != null) reception.PlateNumber = request.PlateNumber;
+            // if (request.TrailerChassis != null) reception.TrailerChassis = request.TrailerChassis;
             if (request.DriverLicense != null) reception.DriverLicense = request.DriverLicense;
             if (request.Transportista != null) reception.Transportista = request.Transportista;
             if (request.TransportUnitId != null) reception.TransportUnitId = request.TransportUnitId.Value;

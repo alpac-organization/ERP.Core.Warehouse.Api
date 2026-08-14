@@ -88,11 +88,11 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
             query = query.Where(r => r.ReceptionEntrance!.DriverName.ToLower().Contains(driverFilter));
         }
 
-        if (!string.IsNullOrWhiteSpace(request.PlateNumber))
-        {
-            var plateFilter = request.PlateNumber.Trim().ToLower().Replace(" ", "");
-            query = query.Where(r => r.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
-        }
+        // if (!string.IsNullOrWhiteSpace(request.PlateNumber))
+        // {
+        //     var plateFilter = request.PlateNumber.Trim().ToLower().Replace(" ", "");
+        //     query = query.Where(r => r.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
+        // }
 
         if (request.DocumentType.HasValue)
             query = query.Where(r => r.ReceptionEntrance!.DocumentType == request.DocumentType.Value);
@@ -132,15 +132,15 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
                 l.StartDate <= statsTargetDate));
 
         var totalOnSite = await recepcionadosQuery
-            .Where(r => r.ReceptionEntrance == null ||
-                    r.ReceptionEntrance.TransportUnitExitDate == null ||
-                    r.ReceptionEntrance.TransportUnitExitTime == null)
+            // .Where(r => r.ReceptionEntrance == null ||
+            //         r.ReceptionEntrance.TransportUnitExitDate == null ||
+            //         r.ReceptionEntrance.TransportUnitExitTime == null)
             .CountAsync(cancellationToken);
 
         var totalExits = await recepcionadosQuery
-            .Where(r => r.ReceptionEntrance != null &&
-                        r.ReceptionEntrance.TransportUnitExitDate != null &&
-                        r.ReceptionEntrance.TransportUnitExitTime != null)
+            // .Where(r => r.ReceptionEntrance != null &&
+            //             r.ReceptionEntrance.TransportUnitExitDate != null &&
+            //             r.ReceptionEntrance.TransportUnitExitTime != null)
             .CountAsync(cancellationToken);
         #endregion
 
