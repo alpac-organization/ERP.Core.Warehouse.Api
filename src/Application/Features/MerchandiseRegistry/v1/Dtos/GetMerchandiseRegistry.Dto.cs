@@ -13,6 +13,7 @@ public class MerchandiseRegistryListItemDto
     public DocumentType DocumentType { get; set; }
     public int TotalDocuments { get; set; }
     public int CompletedDocuments { get; set; }
+    public DucaStatus? Status { get; set; }
 }
 
 public class GetMerchandiseRegistryDto
@@ -63,7 +64,7 @@ public class MerchandiseCustomsDeclarationDetailDto
 
     public Guid? ServiceOrderId { get; set; }
     public string? ServiceOrderCode { get; set; }
-    public DucaStatus Sstatis { get; set; }
+    public DucaStatus Status { get; set; }
 }
 
 public class GetMerchandiseRegistryDetailDto

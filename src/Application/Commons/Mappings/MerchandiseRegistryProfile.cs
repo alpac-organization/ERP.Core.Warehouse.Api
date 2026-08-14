@@ -22,15 +22,14 @@ public class MerchandiseRegistryProfile : Profile
                 s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration
                     ? s.CustomsDeclarations!.Details!.ContainerNumber
                     : (s.DucatRegistry != null ? s.DucatRegistry.ContainerNumber : null)))
-                    ? s.CustomsDeclarations!.Details!.ContainerNumber
-            : (s.DucatRegistry != null ? s.DucatRegistry.ContainerNumber : null)))
-l            .ForMember(d => d.ArrivalDate, o => o.MapFrom(s => s.ExecutionLogs
+            .ForMember(d => d.Status, o => o.MapFrom(s =>
+                s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration
+                    ? (s.CustomsDeclarations != null ? s.CustomsDeclarations.Status : (DucaStatus?)null)
+                    : (s.DucatRegistry != null ? s.DucatRegistry.Status : (DucaStatus?)null)))
+            .ForMember(d => d.ArrivalDate, o => o.MapFrom(s => s.ExecutionLogs
                 .Where(l => l.WorkflowStepDefinitionCode == receptionStepCode)
                 .Select(l => l.StartDate).First()))
             .ForMember(d => d.ArrivalTime, o => o.MapFrom(s => s.ExecutionLogs
-                .Where(l => l.WorkflowStepDefinitionCode == receptionStepCode)
-                .Select(l => l.StartTime).First()))
-            .ForMember(d => d.Duca, o => o.MapFrom(s => s.ExecutionLogs
                 .Where(l => l.WorkflowStepDefinitionCode == receptionStepCode)
                 .Select(l => l.StartTime).First()))
             .ForMember(d => d.TotalDocuments, o => o.MapFrom(s =>
@@ -78,7 +77,7 @@ l            .ForMember(d => d.ArrivalDate, o => o.MapFrom(s => s.ExecutionLogs
             .ForMember(d => d.Empresa, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.Empresa : null))
             .ForMember(d => d.GeneralObservations, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.GeneralObservations : null))
             .ForMember(d => d.IsInTransit, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.IsInTransit : (bool?)null))
-            .ForMember(d => d.Status, o => o.MapFrom(s => s.DucatRegistry != null ? s. : DucaStatus.Pending))
+            .ForMember(d => d.Status, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.Status : DucaStatus.Pending))
 
             // Datos de creación / registro
             .ForMember(d => d.RegisteredByUserName, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.RegisteredByUserName : null))

@@ -162,13 +162,14 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
         #endregion
 
         #region 2. Validacion de Mercaderia
-        var merchandiseExists = await _unitOfWork.Merchandises.Entities
-            .AnyAsync(p => p.Id == request.MerchandiseId && p.DeletedAt == null, cancellationToken);
+        var merchandise = await _unitOfWork.Merchandises.Entities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == request.MerchandiseId && p.DeletedAt == null, cancellationToken);
 
-        if (!merchandiseExists)
+        if (merchandise == null)
             return _errorManager.ThrowBadRequest<bool>(
                 "La mercadería indicada no existe en el sistema.",
-                "ERP:PRODUCT_NOT_FOUND");
+                "ERP:MERCHANDISE_NOT_FOUND");
         #endregion
 
         #region 2.b Validacion de orden de servicio
@@ -222,6 +223,7 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
         var registryDetail = mapper.Map<DucatRegistryDetails>(request);
         registryDetail.RecordEntranceId = recordEntrance.DucatRegistry!.Id;
         registryDetail.EntranceDucatId = entranceDucat.Id;
+        registryDetail.MerchandiseName = merchandise.MerchandiseName;
         registryDetail.RegisteredByUserId = request.UserId.ToString();
         registryDetail.RegisteredByUserName = currentUserName;
         registryDetail.RegisteredStartDate = request.RegisteredStartDate;
