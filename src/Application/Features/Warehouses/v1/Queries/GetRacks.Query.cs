@@ -11,6 +11,7 @@ public class GetRacksBySectionQuery : BaseRequest, IRequest<RackSectionFilterRes
 
     public int? LevelNumber { get; set; }
     public RackStatus? Status { get; set; }
+    public RackUsageProfile? UsageProfile { get; set; }
     public decimal? WidthMetres { get; set; }
     public decimal? LengthMetres { get; set; }
     public decimal? HeightMetres { get; set; }

@@ -36,6 +36,9 @@ public class GetRacksBySectionHandler(IUnitOfWork unitOfWork, IErrorManager erro
         if (request.Status.HasValue)
             query = query.Where(r => r.Status == request.Status.Value);
 
+        if (request.UsageProfile.HasValue)
+            query = query.Where(r => r.UsageProfile == request.UsageProfile.Value);
+
         if (request.WidthMetres.HasValue)
             query = query.Where(r => r.WidthMetres == request.WidthMetres.Value);
 
