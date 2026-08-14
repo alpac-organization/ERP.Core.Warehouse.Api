@@ -169,7 +169,7 @@ public class RegisterRacksBulkHandler(IUnitOfWork unitOfWork, IErrorManager erro
             SectionLengthMetres = section.LengthMetres,
             TotalRequested = racksToCreate.Count,
             TotalCreated = racksToCreate.Count,
-            Racks = _mapper.Map<List<RackSummaryDto>>(racksToCreate),
+            // Racks = _mapper.Map<List<RackSummaryDto>>(racksToCreate),
             LevelCapacity = levelsCapacity
         };
     }
