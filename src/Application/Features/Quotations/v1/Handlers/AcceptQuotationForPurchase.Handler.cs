@@ -41,6 +41,19 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                 .Where(quo => quo.IsActive)
                 .ToListAsync(cancellationToken);
 
+            //Cada producto solicitado debe tener al menos dos cotizaciones activas para poder aceptar una para compra
+            if (itemQuotations.Count < 2)
+            {
+                return _errorManager.ThrowBadRequest<bool>("El producto solicitado debe tener al menos dos cotizaciones para aceptar una para compra", "ERP:NOT_ENOUGH_QUOTATIONS");
+            }
+
+            //La cotización ya se encuentra aceptada para compra
+            if (quotation.IsAcceptedForPurchase)
+            {
+                return true;
+            }
+
+            //Solo una cotización puede estar aceptada para compra por producto solicitado
             foreach (var itemQuotation in itemQuotations)
             {
                 itemQuotation.IsAcceptedForPurchase = itemQuotation.Id == request.QuotationId;
