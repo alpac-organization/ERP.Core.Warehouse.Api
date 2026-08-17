@@ -1,19 +1,22 @@
-
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Commons.Constants;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
+using ReceptionEntranceEntity = ERP.Core.Database.Domain.Entities.Warehouse.ReceptionEntrance;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
 
 public class CreateReceptionEntranceHandler(
     IUnitOfWork unitOfWork,
-    IErrorManager errorManager)
+    IErrorManager errorManager,
+    IMapper mapper)
     : BaseValidatorHandler<CreateReceptionEntranceCommand, bool>(unitOfWork, errorManager)
 {
     public override async Task<bool> Handle(CreateReceptionEntranceCommand request, CancellationToken cancellationToken)
@@ -98,12 +101,11 @@ public class CreateReceptionEntranceHandler(
             .AnyAsync(r =>
                 r.CreatedAt >= startOfToday && r.CreatedAt < endOfToday &&
                 r.CountryOfOrigin.Trim().ToLower() == request.CountryOfOrigin.Trim().ToLower() &&
-                // r.Aduana.Trim().ToLower() == request.Aduana.Trim().ToLower() &&
-                // r.PlateNumber.Trim().ToLower() == request.PlateNumber.Trim().ToLower() &&
-                // r.TrailerChassis.Trim().ToLower() == request.TrailerChassis.Trim().ToLower() &&
+                r.CustomBranchId == request.CustomBranchId &&
+                r.VehiclePlateNumber.Trim().ToLower() == request.VehiclePlateNumber.Trim().ToLower() &&
+                r.VehicleChassisNumber.Trim().ToLower() == request.VehicleChassisNumber.Trim().ToLower() &&
                 r.DriverLicense.Trim().ToLower() == request.DriverLicense.Trim().ToLower() &&
                 r.Transportista.Trim().ToLower() == request.Transportista.Trim().ToLower() &&
-                // r.TransportUnitId == request.TransportUnitId &&
                 r.DriverName.Trim().ToLower() == request.DriverName.Trim().ToLower() &&
                 r.SealNumber.Trim().ToLower() == request.SealNumber.Trim().ToLower(),
                 cancellationToken);
@@ -138,9 +140,24 @@ public class CreateReceptionEntranceHandler(
 
         var processedByUserName = user.Fullname ?? user.UserName ?? request.UserId.ToString();
 
-        var recordEntrance = request.ToRecordEntranceEntity(recordEntranceId, isConsolidated, currentStepCode);
-        var receptionEntrance = request.ToReceptionEntranceEntity(recordEntranceId);
-        var executionLog = request.ToStepExecutionLogEntity(recordEntranceId, systemEndDate, systemEndTime, currentStepCode, processedByUserName);
+        var recordEntrance = mapper.Map<RecordEntrance>(request, opts =>
+        {
+            opts.Items["RecordEntranceId"] = recordEntranceId;
+            opts.Items["StepCode"] = currentStepCode;
+            opts.Items["IsConsolidated"] = isConsolidated;
+        });
+
+        var receptionEntrance = mapper.Map<ReceptionEntranceEntity>(request, opts =>
+            opts.Items["RecordEntranceId"] = recordEntranceId);
+
+        var executionLog = mapper.Map<StepExecutionLogs>(request, opts =>
+        {
+            opts.Items["RecordEntranceId"] = recordEntranceId;
+            opts.Items["StepCode"] = currentStepCode;
+            opts.Items["EndDate"] = systemEndDate;
+            opts.Items["EndTime"] = systemEndTime;
+            opts.Items["ProcessedByUserName"] = processedByUserName;
+        });
 
         await _unitOfWork.RecordEntrance.InsertRecordEntrance(recordEntrance);
         await _unitOfWork.ReceptionEntrance.InsertReceptionEntrance(receptionEntrance);
@@ -156,10 +173,12 @@ public class CreateReceptionEntranceHandler(
         }
         else
         {
-            var customsDeclaration = request.ToCustomsDeclarationEntity(recordEntranceId);
+            var customsDeclaration = mapper.Map<CustomsDeclarations>(request, opts =>
+                opts.Items["RecordEntranceId"] = recordEntranceId);
             await _unitOfWork.CustomsDeclarations.RegisterCustomsDeclarations(customsDeclaration);
 
-            var customsDeclarationDetails = request.ToCustomsDeclarationDetailsEntity(customsDeclaration.Id);
+            var customsDeclarationDetails = mapper.Map<CustomsDeclarationDetails>(request, opts =>
+                opts.Items["CustomsDeclarationId"] = customsDeclaration.Id);
             await _unitOfWork.CustomsDeclarationDetails.RegisterCustomsDeclarationDetails(customsDeclarationDetails);
         }
 

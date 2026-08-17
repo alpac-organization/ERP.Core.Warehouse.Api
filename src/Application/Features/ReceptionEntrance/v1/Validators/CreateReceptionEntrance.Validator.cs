@@ -36,6 +36,11 @@ public class CreateReceptionEntranceValidator : AbstractValidator<CreateReceptio
             RuleFor(x => x.ContainerNumber)
                 .NotEmpty().WithMessage("El número de contenedor es obligatorio.")
                 .MaximumLength(30).WithMessage("El número de contenedor no puede exceder 30 caracteres.");
+
+            // Validación cruzada: no debe traer datos de DUCA
+            RuleFor(x => x.DucatNumbers)
+                .Must(list => list == null || list.Count == 0)
+                .WithMessage("No se deben enviar números de DUCA cuando el tipo de documento es Declaración Aduanera.");
         });
 
         When(x => x.DocumentType == DocumentType.DUCA, () =>
@@ -46,6 +51,27 @@ public class CreateReceptionEntranceValidator : AbstractValidator<CreateReceptio
             RuleForEach(x => x.DucatNumbers)
                 .NotEmpty().WithMessage("El número de DUCA no puede estar vacío.")
                 .MaximumLength(100).WithMessage("El número de DUCA no puede exceder 100 caracteres.");
+
+            // Validación cruzada: no debe traer datos de Declaración Aduanera
+            RuleFor(x => x.CustomsDeclarationNumber)
+                .Must(v => string.IsNullOrWhiteSpace(v))
+                .WithMessage("No se debe enviar número de declaración aduanera cuando el tipo de documento es DUCA.");
+
+            RuleFor(x => x.Packages)
+                .Must(v => v == null)
+                .WithMessage("No se debe enviar cantidad de bultos cuando el tipo de documento es DUCA.");
+
+            RuleFor(x => x.Customer)
+                .Must(v => string.IsNullOrWhiteSpace(v))
+                .WithMessage("No se debe enviar cliente cuando el tipo de documento es DUCA.");
+
+            RuleFor(x => x.Product)
+                .Must(v => string.IsNullOrWhiteSpace(v))
+                .WithMessage("No se debe enviar producto cuando el tipo de documento es DUCA.");
+
+            RuleFor(x => x.ContainerNumber)
+                .NotEmpty().WithMessage("El número de contenedor es obligatorio.")
+                .MaximumLength(30).WithMessage("El número de contenedor no puede exceder 30 caracteres.");
         });
 
         RuleFor(x => x.StartDate)
@@ -58,15 +84,14 @@ public class CreateReceptionEntranceValidator : AbstractValidator<CreateReceptio
             .NotEmpty().WithMessage("El país de procedencia es obligatorio.")
             .MaximumLength(50).WithMessage("El país de procedencia no puede exceder 50 caracteres.");
 
-        RuleFor(x => x.Aduana)
-            .NotEmpty().WithMessage("La Aduana de ingreso es obligatoria.")
-            .MaximumLength(50).WithMessage("La Aduana no puede exceder 50 caracteres.");
+        RuleFor(x => x.CustomBranchId)
+            .NotEqual(Guid.Empty).WithMessage("La Aduana de ingreso es obligatoria.");
 
-        RuleFor(x => x.PlateNumber)
+        RuleFor(x => x.VehiclePlateNumber)
             .NotEmpty().WithMessage("El número de placa es obligatorio.")
             .MaximumLength(30).WithMessage("El número de placa no puede exceder 30 caracteres.");
 
-        RuleFor(x => x.TrailerChassis)
+        RuleFor(x => x.VehicleChassisNumber)
             .NotEmpty().WithMessage("El número de chasis/remolque es obligatorio.")
             .MaximumLength(30).WithMessage("El número de chasis/remolque no puede exceder 30 caracteres.");
 
@@ -78,8 +103,8 @@ public class CreateReceptionEntranceValidator : AbstractValidator<CreateReceptio
             .NotEmpty().WithMessage("La empresa transportista es requerida.")
             .MaximumLength(100).WithMessage("La empresa transportista no puede exceder 100 caracteres.");
 
-        RuleFor(x => x.TransportUnitId)
-            .NotEqual(Guid.Empty).WithMessage("La unidad de transporte es obligatoria.");
+        RuleFor(x => x.TransportUnit)
+            .IsInEnum().WithMessage("La unidad de transporte es obligatoria.");
 
         RuleFor(x => x.DriverName)
             .NotEmpty().WithMessage("El nombre del conductor es obligatorio.")

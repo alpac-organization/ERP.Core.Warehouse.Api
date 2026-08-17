@@ -5,8 +5,10 @@ using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
+using ERP.Core.Warehouse.Api.Application.Commons.Constants;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queries;
+using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
 
@@ -14,24 +16,24 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
     : BaseValidatorHandler<GetReceptionEntrancesQuery, GetReceptionEntrancesDto>(unitOfWork, errorManager)
 {
     public readonly IMapper _mapper = mapper;
+
     public override async Task<GetReceptionEntrancesDto> Handle(GetReceptionEntrancesQuery request, CancellationToken cancellationToken)
     {
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        #region 1. Busqueda de Code
-        var receptionStep = await _unitOfWork.WorkflowStepDefinitions.Entities
-            .OrderBy(x => x.ExecutionOrder)
-            .FirstOrDefaultAsync(cancellationToken);
+        #region 1. Validar que el paso de Recepción esté configurado
+        var stepIsConfigured = await _unitOfWork.WorkflowStepDefinitions.Entities
+            .AnyAsync(x => x.Code == WorkflowStepCodes.Reception, cancellationToken);
 
-        if (receptionStep == null)
+        if (!stepIsConfigured)
         {
             return _errorManager.ThrowInternalError<GetReceptionEntrancesDto>(
-                "No se encontró una configuración para el flujo de trabajo (WorkflowStepDefinition). Contacte al administrador.",
+                $"No se encontró la configuración del paso '{WorkflowStepCodes.Reception}' en WorkflowStepDefinitions. Contacte al administrador.",
                 "ERP:WORKFLOW_NOT_CONFIGURED");
         }
 
-        var receptionStepCode = receptionStep.Code;
+        var receptionStepCode = WorkflowStepCodes.Reception;
         #endregion
 
         var statsTargetDate = request.StartDate.HasValue
@@ -45,28 +47,27 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
                 l.WorkflowStepDefinitionCode == receptionStepCode) &&
                 r.ReceptionEntrance != null &&
                 r.ReceptionEntrance.DeletedAt == null);
-        
-        bool hasSearchFilters = 
+
+        bool hasSearchFilters =
             !string.IsNullOrWhiteSpace(request.DriverName) ||
             !string.IsNullOrWhiteSpace(request.PlateNumber) ||
             request.DocumentType.HasValue ||
             !string.IsNullOrWhiteSpace(request.DocumentNumber) ||
             !string.IsNullOrWhiteSpace(request.DucatNumber) ||
             request.DucatId.HasValue;
-        
+
         bool hasExplicitDate = request.StartDate.HasValue || request.EndDate.HasValue;
 
         if (hasExplicitDate)
         {
-            //fecha explicita: se respeta el rango indicado sin importar otros filtros
             var rangeStart = request.StartDate.HasValue
                 ? DateOnly.FromDateTime(request.StartDate.Value)
                 : DateOnly.FromDateTime(request.EndDate!.Value);
 
             var rangeEnd = request.EndDate.HasValue
-                ?DateOnly.FromDateTime(request.EndDate.Value)
+                ? DateOnly.FromDateTime(request.EndDate.Value)
                 : rangeStart;
-            
+
             query = query.Where(r => r.ExecutionLogs.Any(l =>
                 l.WorkflowStepDefinitionCode == receptionStepCode &&
                 l.StartDate >= rangeStart &&
@@ -80,8 +81,6 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
                 l.StartDate == today));
         }
 
-        // else: hay filtros de busqueda pero no fecha explicita
-
         if (!string.IsNullOrWhiteSpace(request.DriverName))
         {
             var driverFilter = request.DriverName.Trim().ToLower();
@@ -91,7 +90,7 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
         if (!string.IsNullOrWhiteSpace(request.PlateNumber))
         {
             var plateFilter = request.PlateNumber.Trim().ToLower().Replace(" ", "");
-            // query = query.Where(r => r.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
+            query = query.Where(r => r.ReceptionEntrance!.VehiclePlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
         }
 
         if (request.DocumentType.HasValue)
@@ -116,8 +115,7 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
             query = query.Where(r => r.EntranceDucats.Any(d => d.Id == request.DucatId.Value));
         #endregion
 
-
-        #region 3. Stats del dia (Filtro de busqueda)
+        #region 3. Stats del dia (independiente del filtro de busqueda)
         var totalEntries = await _unitOfWork.RecordEntrance.Entities
             .AsNoTracking()
             .Where(r => r.ExecutionLogs.Any(l =>
@@ -131,20 +129,35 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
                 l.WorkflowStepDefinitionCode == receptionStepCode &&
                 l.StartDate <= statsTargetDate));
 
-        // var totalOnSite = await recepcionadosQuery
-        //     .Where(r => r.ReceptionEntrance == null ||
-        //             r.ReceptionEntrance.TransportUnitExitDate == null ||
-        //             r.ReceptionEntrance.TransportUnitExitTime == null)
-        //     .CountAsync(cancellationToken);
+        var totalOnSite = await recepcionadosQuery
+            .Where(r => r.ReceptionEntrance == null ||
+                (r.ReceptionEntrance.TransportUnit == TransportUnit.Van &&
+                    (r.ReceptionEntrance.VehicleExitDate == null || r.ReceptionEntrance.VehicleExitTime == null)) ||
+                (r.ReceptionEntrance.TransportUnit == TransportUnit.Container &&
+                    (r.ReceptionEntrance.VehicleExitDate == null || r.ReceptionEntrance.VehicleExitTime == null ||
+                    r.ReceptionEntrance.ContainerExitDate == null || r.ReceptionEntrance.ContainerExitTime == null)))
+            .CountAsync(cancellationToken);
 
-        // var totalExits = await recepcionadosQuery
-        //     .Where(r => r.ReceptionEntrance != null &&
-        //                 r.ReceptionEntrance.TransportUnitExitDate != null &&
-        //                 r.ReceptionEntrance.TransportUnitExitTime != null)
-        //     .CountAsync(cancellationToken);
+        var totalExits = await recepcionadosQuery
+            .Where(r => r.ReceptionEntrance != null &&
+                        r.ReceptionEntrance.VehicleExitDate != null &&
+                        r.ReceptionEntrance.VehicleExitTime != null)
+            .CountAsync(cancellationToken);
+
+        var totalContainersOnSite = await recepcionadosQuery
+            .Where(r => r.ReceptionEntrance != null &&
+                        r.ReceptionEntrance.TransportUnit == TransportUnit.Container &&
+                        (r.ReceptionEntrance.ContainerExitDate == null || r.ReceptionEntrance.ContainerExitTime == null))
+            .CountAsync(cancellationToken);
+
+        var totalContainersExited = await recepcionadosQuery
+            .Where(r => r.ReceptionEntrance != null &&
+                        r.ReceptionEntrance.TransportUnit == TransportUnit.Container &&
+                        r.ReceptionEntrance.ContainerExitDate != null && r.ReceptionEntrance.ContainerExitTime != null)
+            .CountAsync(cancellationToken);
         #endregion
 
-        #region 4. Conteo
+        #region 4. Conteo y proyección (AutoMapper ProjectTo)
         var totalCount = await query.CountAsync(cancellationToken);
 
         var data = await query
@@ -164,15 +177,16 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
             Stats = new ReceptionEntranceStatsDto
             {
                 TotalEntries = totalEntries,
-                // TotalOnSite = totalOnSite,
-                // TotalExists = totalExits
-
+                TotalOnSite = totalOnSite,
+                TotalExists = totalExits,
+                TotalContainerOnSite = totalContainersOnSite,
+                TotalContainerExited = totalContainersExited
             }
         };
     }
 }
 
-#region Obtener con Detaller
+#region Obtener con Detalle
 public class GetReceptionEntranceDetailHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
     : BaseValidatorHandler<GetReceptionEntranceDetailQuery, ReceptionEntranceDetailDto>(unitOfWork, errorManager)
 {
@@ -184,10 +198,23 @@ public class GetReceptionEntranceDetailHandler(IUnitOfWork unitOfWork, IErrorMan
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
+        #region 1. Validar que el paso de Recepción esté configurado
+        var stepIsConfigured = await _unitOfWork.WorkflowStepDefinitions.Entities
+            .AnyAsync(x => x.Code == WorkflowStepCodes.Reception, cancellationToken);
+
+        if (!stepIsConfigured)
+        {
+            return _errorManager.ThrowInternalError<ReceptionEntranceDetailDto>(
+                $"No se encontró la configuración del paso '{WorkflowStepCodes.Reception}' en WorkflowStepDefinitions. Contacte al administrador.",
+                "ERP:WORKFLOW_NOT_CONFIGURED");
+        }
+        #endregion
+
+        #region 2. Carga del registro con sus relaciones
         var recordEntrance = await _unitOfWork.RecordEntrance.Entities
             .AsNoTracking()
             .Include(r => r.ReceptionEntrance!)
-                .ThenInclude(re => re.TransportUnit)
+                .ThenInclude(re => re.CustomsBranches)
             .Include(r => r.EntranceDucats.Where(d => d.DeletedAt == null))
             .Include(r => r.CustomsDeclarations!)
                 .ThenInclude(cd => cd.Details)
@@ -202,41 +229,12 @@ public class GetReceptionEntranceDetailHandler(IUnitOfWork unitOfWork, IErrorMan
                 "El registro de recepción no fue encontrado o ya ha sido eliminado.",
                 "ERP:RECEPTION_NOT_FOUND");
         }
-
-        #region Buscar el step de recepcion para calcular duracion
-        var receptionStep = await _unitOfWork.WorkflowStepDefinitions.Entities
-            .OrderBy(x => x.ExecutionOrder)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (receptionStep == null)
-        {
-            return _errorManager.ThrowInternalError<ReceptionEntranceDetailDto>(
-            "No se encontró una configuración para el flujo de trabajo (WorkflowStepDefinition). Contacte al administrador.",
-            "ERP:WORKFLOW_NOT_CONFIGURED");
-        }
+        #endregion
 
         return _mapper.Map<ReceptionEntranceDetailDto>(recordEntrance, opts =>
         {
-            opts.Items["receptionStepCode"] = receptionStep.Code;
+            opts.Items["receptionStepCode"] = WorkflowStepCodes.Reception;
         });
-        #endregion
-    }
-}
-#endregion
-
-#region Obtener vehiculos
-public class GetTransportUnitsHandlers(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
-    : BaseValidatorHandler<GetTreansportUnitsQuery, List<TransportUnitListItemDto>>(unitOfWork, errorManager)
-{
-    private readonly IMapper _mapper = mapper;
-
-    public override async Task<List<TransportUnitListItemDto>> Handle(GetTreansportUnitsQuery request, CancellationToken cancellationToken)
-    {
-        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
-        
-        if (!access.IsSuccess) return access.ErrorResponse!;
-
-        return [];
     }
 }
 #endregion

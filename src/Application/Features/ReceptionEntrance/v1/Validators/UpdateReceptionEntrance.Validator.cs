@@ -1,6 +1,6 @@
 using System.Data;
-using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 using FluentValidation;
+using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Validators;
 
@@ -27,20 +27,24 @@ public class UpdateReceptionEntranceValidator : AbstractValidator<UpdateReceptio
             .MaximumLength(50).WithMessage("El país de procedencia no puede exceder 50 caracteres.")
             .When(x => x.CountryOfOrigin is not null);
 
-        RuleFor(x => x.Aduana)
-            .NotEmpty().WithMessage("La Aduana de ingreso es obligatoria.")
-            .MaximumLength(50).WithMessage("La Aduana no puede exceder 50 caracteres.")
-            .When(x => x.Aduana is not null);
+        RuleFor(x => x.CustomBranchId)
+            .NotEqual(Guid.Empty).WithMessage("La Aduana de ingreso no es válida.")
+            .When(x => x.CustomBranchId is not null);
 
-        RuleFor(x => x.PlateNumber)
+        RuleFor(x => x.VehiclePlateNumber)
             .NotEmpty().WithMessage("El número de placa es obligatorio.")
             .MaximumLength(30).WithMessage("El número de placa no puede exceder 30 caracteres.")
-            .When(x => x.PlateNumber is not null);
+            .When(x => x.VehiclePlateNumber is not null);
 
-        RuleFor(x => x.TrailerChassis)
+        RuleFor(x => x.VehicleChassisNumber)
             .NotEmpty().WithMessage("El número de chasis/remolque es obligatorio.")
             .MaximumLength(30).WithMessage("El número de chasis/remolque no puede exceder 30 caracteres.")
-            .When(x => x.TrailerChassis is not null);
+            .When(x => x.VehicleChassisNumber is not null);
+
+        RuleFor(x => x.ContainerNumber)
+            .NotEmpty().WithMessage("El número de contenedor es obligatorio.")
+            .MaximumLength(30).WithMessage("El número de contenedor no puede exceder 30 caracteres.")
+            .When(x => x.ContainerNumber is not null);
 
         RuleFor(x => x.DriverLicense)
             .NotEmpty().WithMessage("La licencia del conductor es obligatoria.")
@@ -52,9 +56,9 @@ public class UpdateReceptionEntranceValidator : AbstractValidator<UpdateReceptio
             .MaximumLength(100).WithMessage("La empresa transportista no puede exceder 100 caracteres.")
             .When(x => x.Transportista is not null);
 
-        RuleFor(x => x.TransportUnitId)
-            .NotEqual(Guid.Empty).WithMessage("La unidad de transporte no es válida.")
-            .When(x => x.TransportUnitId is not null);
+        RuleFor(x => x.TransportUnit)
+            .IsInEnum().WithMessage("La unidad de transporte no es válida.")
+            .When(x => x.TransportUnit is not null);
 
         RuleFor(x => x.DriverName)
             .NotEmpty().WithMessage("El nombre del conductor es obligatorio.")
@@ -84,11 +88,6 @@ public class UpdateReceptionEntranceValidator : AbstractValidator<UpdateReceptio
             .NotEmpty().WithMessage("El producto es obligatorio.")
             .MaximumLength(100).WithMessage("El producto no puede exceder 100 caracteres.")
             .When(x => x.Product is not null);
-
-        RuleFor(x => x.ContainerNumber)
-            .NotEmpty().WithMessage("El número de contenedor es obligatorio.")
-            .MaximumLength(30).WithMessage("El número de contenedor no puede exceder 30 caracteres.")
-            .When(x => x.ContainerNumber is not null);
 
         RuleForEach(x => x.Ducats)
             .ChildRules(ducat =>
@@ -121,12 +120,13 @@ public class UpdateReceptionEntranceValidator : AbstractValidator<UpdateReceptio
             .Must(x =>
                 x.Ducats is not null ||
                 x.CountryOfOrigin is not null ||
-                x.Aduana is not null ||
-                x.PlateNumber is not null ||
-                x.TrailerChassis is not null ||
+                x.CustomBranchId is not null ||
+                x.VehiclePlateNumber is not null ||
+                x.VehicleChassisNumber is not null ||
+                x.ContainerNumber is not null ||
                 x.DriverLicense is not null ||
                 x.Transportista is not null ||
-                x.TransportUnitId is not null ||
+                x.TransportUnit is not null ||
                 x.DriverName is not null ||
                 x.SealNumber is not null ||
                 HasAnyCustomsField(x))
@@ -137,6 +137,5 @@ public class UpdateReceptionEntranceValidator : AbstractValidator<UpdateReceptio
         x.CustomsDeclarationNumber is not null ||
         x.Packages is not null ||
         x.Customer is not null ||
-        x.Product is not null ||
-        x.ContainerNumber is not null;
+        x.Product is not null;
 }
