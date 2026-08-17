@@ -91,7 +91,7 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
         if (!string.IsNullOrWhiteSpace(request.PlateNumber))
         {
             var plateFilter = request.PlateNumber.Trim().ToLower().Replace(" ", "");
-            query = query.Where(r => r.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
+            // query = query.Where(r => r.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
         }
 
         if (request.DocumentType.HasValue)
@@ -131,17 +131,17 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
                 l.WorkflowStepDefinitionCode == receptionStepCode &&
                 l.StartDate <= statsTargetDate));
 
-        var totalOnSite = await recepcionadosQuery
-            .Where(r => r.ReceptionEntrance == null ||
-                    r.ReceptionEntrance.TransportUnitExitDate == null ||
-                    r.ReceptionEntrance.TransportUnitExitTime == null)
-            .CountAsync(cancellationToken);
+        // var totalOnSite = await recepcionadosQuery
+        //     .Where(r => r.ReceptionEntrance == null ||
+        //             r.ReceptionEntrance.TransportUnitExitDate == null ||
+        //             r.ReceptionEntrance.TransportUnitExitTime == null)
+        //     .CountAsync(cancellationToken);
 
-        var totalExits = await recepcionadosQuery
-            .Where(r => r.ReceptionEntrance != null &&
-                        r.ReceptionEntrance.TransportUnitExitDate != null &&
-                        r.ReceptionEntrance.TransportUnitExitTime != null)
-            .CountAsync(cancellationToken);
+        // var totalExits = await recepcionadosQuery
+        //     .Where(r => r.ReceptionEntrance != null &&
+        //                 r.ReceptionEntrance.TransportUnitExitDate != null &&
+        //                 r.ReceptionEntrance.TransportUnitExitTime != null)
+        //     .CountAsync(cancellationToken);
         #endregion
 
         #region 4. Conteo
@@ -164,8 +164,8 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
             Stats = new ReceptionEntranceStatsDto
             {
                 TotalEntries = totalEntries,
-                TotalOnSite = totalOnSite,
-                TotalExists = totalExits
+                // TotalOnSite = totalOnSite,
+                // TotalExists = totalExits
 
             }
         };
@@ -233,15 +233,10 @@ public class GetTransportUnitsHandlers(IUnitOfWork unitOfWork, IErrorManager err
     public override async Task<List<TransportUnitListItemDto>> Handle(GetTreansportUnitsQuery request, CancellationToken cancellationToken)
     {
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+        
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        var transportUnits = await _unitOfWork.TransportUnit.Entities
-            .AsNoTracking()
-            .Where(t => t.DeletedAt == null)
-            .OrderBy(t => t.Name)
-            .ToListAsync(cancellationToken);
-
-        return _mapper.Map<List<TransportUnitListItemDto>>(transportUnits);
+        return [];
     }
 }
 #endregion

@@ -43,12 +43,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             }
 
             var purchaseRequestEntity = PurchaseRequestMapper.ToPurchaseRequestEntity(request, code, areaId);
-
             await _unitOfWork.PurchaseRequests.RegisterPurchaseRequest(purchaseRequestEntity);
 
             foreach (var product in request.PurchaseRequestItems)
             {
-                //Registrar productos solicitados en la requisición.
                 var requestedProductEntity = PurchaseRequestMapper.ToRequestedProductEntity(product, purchaseRequestEntity.Id);
                 await _unitOfWork.PurchaseRequestItems.RegisterPurchaseRequestItem(requestedProductEntity);
             }

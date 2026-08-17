@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
+
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Commons.Constants;
@@ -10,8 +11,7 @@ using ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Querie
 
 namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Handlers;
 
-public class GetPendingAssignmentsHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
-    : BaseValidatorHandler<GetPendingAssignmentsQuery, PagedWarehouseAssignmentsDto<PendingAssignmentItemDto>>(unitOfWork, errorManager)
+public class GetPendingAssignmentsHandler(IUnitOfWork unitOfWork, IErrorManager errorManager) : BaseValidatorHandler<GetPendingAssignmentsQuery, PagedWarehouseAssignmentsDto<PendingAssignmentItemDto>>(unitOfWork, errorManager)
 {
     public override async Task<PagedWarehouseAssignmentsDto<PendingAssignmentItemDto>> Handle(
         GetPendingAssignmentsQuery request,
@@ -57,7 +57,7 @@ public class GetPendingAssignmentsHandler(IUnitOfWork unitOfWork, IErrorManager 
         if (!string.IsNullOrWhiteSpace(request.PlateNumber))
         {
             var plateFilter = request.PlateNumber.Trim().ToLower().Replace(" ", "");
-            query = query.Where(r => r.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
+            // query = query.Where(r => r.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
         }
 
         if (!string.IsNullOrWhiteSpace(request.DocumentNumber))
@@ -131,15 +131,15 @@ public class GetPendingAssignmentsHandler(IUnitOfWork unitOfWork, IErrorManager 
         return new PendingAssignmentItemDto
         {
             Id = record.Id,
-            PlateNumber = reception.PlateNumber,
+            // PlateNumber = reception.PlateNumber,
             DriverName = reception.DriverName,
             DocumentType = reception.DocumentType,
             DocumentNumber = isDuca
                 ? (activeDucats.Count > 0 ? activeDucats.First().DucatNumber : null)
                 : record.CustomsDeclarations?.CustomsDeclarationNumber,
-            ContainerNumber = isDuca
-                ? record.DucatRegistry?.ContainerNumber
-                : record.CustomsDeclarations?.Details?.ContainerNumber,
+            // ContainerNumber = isDuca
+            //     ? record.DucatRegistry?.ContainerNumber
+            //     : record.CustomsDeclarations?.Details?.ContainerNumber,
             ArrivalDate = arrivalLog?.StartDate,
             ArrivalTime = arrivalLog?.StartTime,
             TotalDocuments = isDuca
@@ -193,7 +193,7 @@ public class GetWarehouseAssignmentsHandler(IUnitOfWork unitOfWork, IErrorManage
         if (!string.IsNullOrWhiteSpace(request.PlateNumber))
         {
             var plateFilter = request.PlateNumber.Trim().ToLower().Replace(" ", "");
-            query = query.Where(r => r.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
+            // query = query.Where(r => r.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -210,9 +210,9 @@ public class GetWarehouseAssignmentsHandler(IUnitOfWork unitOfWork, IErrorManage
             return new WarehouseAssignmentListItemDto
             {
                 ReceptionId = record.Id,
-                PlateNumber = record.ReceptionEntrance!.PlateNumber,
-                DriverName = record.ReceptionEntrance.DriverName,
-                DocumentType = record.ReceptionEntrance.DocumentType,
+                // PlateNumber = record.ReceptionEntrance!.PlateNumber,
+                // DriverName = record.ReceptionEntrance.DriverName,
+                // DocumentType = record.ReceptionEntrance.DocumentType,
                 WarehouseName = assignment.Warehouse.WarehouseName,
                 WarehouseType = assignment.Warehouse.WarehouseType,
                 SectionCode = assignment.Section?.Code,

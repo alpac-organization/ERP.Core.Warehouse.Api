@@ -72,7 +72,7 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
         var now = TimeOnly.FromDateTime(nowNica);
 
         var ducatRegistry = mapper.Map<DucatRegistry>(request);
-        ducatRegistry.ContainerNumber = sanitizedContainerNumber;
+        // ducatRegistry.ContainerNumber = sanitizedContainerNumber;
         ducatRegistry.RegisteredByUserId = request.UserId.ToString();
         ducatRegistry.RegisteredByUserName = registeredByUserName;
         ducatRegistry.RegisteredStartDate = request.RegisteredStartDate;

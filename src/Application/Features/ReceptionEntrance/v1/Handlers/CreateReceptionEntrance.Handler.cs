@@ -98,12 +98,12 @@ public class CreateReceptionEntranceHandler(
             .AnyAsync(r =>
                 r.CreatedAt >= startOfToday && r.CreatedAt < endOfToday &&
                 r.CountryOfOrigin.Trim().ToLower() == request.CountryOfOrigin.Trim().ToLower() &&
-                r.Aduana.Trim().ToLower() == request.Aduana.Trim().ToLower() &&
-                r.PlateNumber.Trim().ToLower() == request.PlateNumber.Trim().ToLower() &&
-                r.TrailerChassis.Trim().ToLower() == request.TrailerChassis.Trim().ToLower() &&
+                // r.Aduana.Trim().ToLower() == request.Aduana.Trim().ToLower() &&
+                // r.PlateNumber.Trim().ToLower() == request.PlateNumber.Trim().ToLower() &&
+                // r.TrailerChassis.Trim().ToLower() == request.TrailerChassis.Trim().ToLower() &&
                 r.DriverLicense.Trim().ToLower() == request.DriverLicense.Trim().ToLower() &&
                 r.Transportista.Trim().ToLower() == request.Transportista.Trim().ToLower() &&
-                r.TransportUnitId == request.TransportUnitId &&
+                // r.TransportUnitId == request.TransportUnitId &&
                 r.DriverName.Trim().ToLower() == request.DriverName.Trim().ToLower() &&
                 r.SealNumber.Trim().ToLower() == request.SealNumber.Trim().ToLower(),
                 cancellationToken);
