@@ -31,10 +31,3 @@ public class GetReceptionEntranceDetailQuery : IRequest<ReceptionEntranceDetailD
     public Guid UserId { get; set; }
     public Guid RecordId { get; set; }
 }
-
-public class GetTreansportUnitsQuery : IRequest<List<TransportUnitListItemDto>>
-{
-    public Guid CompanyId { get; set; }
-    public string ModuleCode { get; set; } = string.Empty;
-    public Guid UserId { get; set; }
-}

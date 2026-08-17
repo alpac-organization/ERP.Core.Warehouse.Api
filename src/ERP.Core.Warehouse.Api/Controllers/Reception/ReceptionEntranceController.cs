@@ -6,9 +6,7 @@ using ERP.Core.Infrastructure.Attributes;
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
-using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queries;
-using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Controllers.Reception;
 
@@ -160,27 +158,6 @@ public class ReceptionEntranceController(IMediator _mediator) : ApiControllerBas
         var response = await _mediator.Send(command, cancellationToken);
 
         return Ok(response);
-    }
-
-
-    [Tags("Control de Acceso")]
-    [HttpGet("companies/{company_id}/modules/{module_code}/transport-units")]
-    [ProducesResponseType(typeof(List<TransportUnitListItemDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<List<TransportUnitListItemDto>> GetTransportUnitsAsync(
-        [FromRoute] Guid company_id,
-        [FromRoute] string module_code,
-        CancellationToken cancellationToken)
-    {
-        var userIdStr = HttpContext.Items["UserId"] as string;
-        Guid.TryParse(userIdStr, out var userId);
-
-        return await _mediator.Send(new GetTreansportUnitsQuery
-        {
-            CompanyId = company_id,
-            ModuleCode = module_code,
-            UserId = userId
-        }, cancellationToken);
     }
 
     [Tags("Control de Acceso")]
