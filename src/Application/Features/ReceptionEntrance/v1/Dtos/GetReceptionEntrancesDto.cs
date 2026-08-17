@@ -67,6 +67,7 @@ public class ReceptionEntranceDetailDto
     public TransportUnit TransportUnit { get; set; }
     public string DriverName { get; set; } = string.Empty;
     public string SealNumber { get; set; } = string.Empty;
+    public SealEvidenceDto? SealEvidence { get; set; }
     public DocumentType DocumentType { get; set; }
 
     public DateOnly? VehicleExitDate { get; set; }

@@ -1,6 +1,7 @@
 using MediatR;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 
@@ -27,7 +28,7 @@ public class CreateReceptionEntranceCommand : BaseRequest, IRequest<bool>
     public TransportUnit TransportUnit { get; set; }
     public string DriverName { get; set; } = string.Empty;
     public string SealNumber { get; set; } = string.Empty;
-    public string? SealEvidence { get; set; }
+    public SealEvidenceDto? SealEvidence { get; set; }
 
     public DateOnly StartDate { get; set; }
     public TimeOnly StartTime { get; set; }
