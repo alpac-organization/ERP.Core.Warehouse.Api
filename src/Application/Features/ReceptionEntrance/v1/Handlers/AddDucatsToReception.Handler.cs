@@ -47,7 +47,7 @@ public class AddDucatsToReceptionHandler(
                         cancellationToken);
 
         if (hasAdvanced)
-            return _errorManager.ThrowInternalError<bool>(
+            return _errorManager.ThrowBadRequest<bool>(
                 "No es posible agregar DUCA's porque el expediente ya avanzó a un paso posterior del proceso.",
                 "ERP:RECORD_ALREADY_ADVANCED");
         #endregion

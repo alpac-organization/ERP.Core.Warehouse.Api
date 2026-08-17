@@ -134,9 +134,23 @@ public static class ReceptionEntranceMapper
             UserId = userId,
             CompanyId = companyId,
             ModuleCode = moduleCode,
+            ExitVehicle = dto?.ExitVehicle ?? false,
+            ExitContainer = dto?.ExitContainer ?? false,
             ExitDate = dto?.ExitDate,
             ExitTime = dto?.ExitTime
         };
+    }
+
+    public static void ApplyVehicleExit(this ReceptionEntranceEntity entity, DateOnly exitDate, TimeOnly exitTime)
+    {
+        entity.VehicleExitDate = exitDate;
+        entity.VehicleExitTime = exitTime;
+    }
+
+    public static void ApplyContainerExit(this ReceptionEntranceEntity entity, DateOnly exitDate, TimeOnly exitTime)
+    {
+        entity.ContainerExitDate = exitDate;
+        entity.ContainerExitTime = exitTime;
     }
 
     public static RecordEntrance ToRecordEntranceEntity(
@@ -299,12 +313,6 @@ public class ReceptionEntranceProfile : Profile
             .ForMember(d => d.Customer, o => o.MapFrom(s => s.Customer!.Trim()))
             .ForMember(d => d.Product, o => o.MapFrom(s => s.Product!.Trim()));
 
-        CreateMap<string, EntranceDucats>()
-            .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
-            .ForMember(d => d.DucatNumber, o => o.MapFrom(s => s.Trim().Replace(" ", "")))
-            .ForMember(d => d.RecordEntranceId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["RecordEntranceId"]))
-            .ForMember(d => d.Status, o => o.MapFrom(_ => DucaStatus.Pending));
-
         CreateMap<CreateReceptionEntranceCommand, StepExecutionLogs>()
             .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
             .ForMember(d => d.RecordEntranceId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["RecordEntranceId"]))
@@ -359,7 +367,7 @@ public class ReceptionEntranceProfile : Profile
         // 3. Mapeo para el Detalle Completo
         CreateMap<RecordEntrance, ReceptionEntranceDetailDto>()
             .ForMember(d => d.CountryOfOrigin, o => o.MapFrom(s => s.ReceptionEntrance!.CountryOfOrigin))
-            .ForMember(d => d.Aduana, o => o.MapFrom(s =>
+            .ForMember(d => d.CustomBranch, o => o.MapFrom(s =>
                 s.ReceptionEntrance!.CustomsBranches != null ? s.ReceptionEntrance!.CustomsBranches.Name : string.Empty))
             .ForMember(d => d.PlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.VehiclePlateNumber))
             .ForMember(d => d.TrailerChassis, o => o.MapFrom(s => s.ReceptionEntrance!.VehicleChassisNumber))
@@ -370,8 +378,10 @@ public class ReceptionEntranceProfile : Profile
             .ForMember(d => d.DriverName, o => o.MapFrom(s => s.ReceptionEntrance!.DriverName))
             .ForMember(d => d.SealNumber, o => o.MapFrom(s => s.ReceptionEntrance!.SealNumber))
             .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType))
-            .ForMember(d => d.TransportUnitExitDate, o => o.MapFrom(s => s.ReceptionEntrance!.VehicleExitDate))
-            .ForMember(d => d.TransportUnitExitTime, o => o.MapFrom(s => s.ReceptionEntrance!.VehicleExitTime))
+            .ForMember(d => d.VehicleExitDate, o => o.MapFrom(s => s.ReceptionEntrance!.VehicleExitDate))
+            .ForMember(d => d.VehicleExitTime, o => o.MapFrom(s => s.ReceptionEntrance!.VehicleExitTime))
+            .ForMember(d => d.ContainerExitDate, o => o.MapFrom(s => s.ReceptionEntrance!.ContainerExitDate))
+            .ForMember(d => d.ContainerExitTime, o => o.MapFrom(s => s.ReceptionEntrance!.ContainerExitTime))
             .ForMember(d => d.UpdatedByUserName, o => o.MapFrom(s => s.ReceptionEntrance!.UpdatedByUserName))
             .ForMember(d => d.UpdatedDate, o => o.MapFrom(s => s.ReceptionEntrance!.UpdatedDate))
             .ForMember(d => d.UpdatedTime, o => o.MapFrom(s => s.ReceptionEntrance!.UpdatedTime))

@@ -58,7 +58,7 @@ public class ReceptionEntranceDetailDto
     public bool IsConsolidated { get; set; }
 
     public string CountryOfOrigin { get; set; } = string.Empty;
-    public string Aduana { get; set; } = string.Empty;
+    public string CustomBranch { get; set; } = string.Empty;
     public string PlateNumber { get; set; } = string.Empty;
     public string TrailerChassis { get; set; } = string.Empty;
     public string ContainerNumber { get; set; } = string.Empty;
@@ -68,8 +68,12 @@ public class ReceptionEntranceDetailDto
     public string DriverName { get; set; } = string.Empty;
     public string SealNumber { get; set; } = string.Empty;
     public DocumentType DocumentType { get; set; }
-    public DateOnly? TransportUnitExitDate { get; set; }
-    public TimeOnly? TransportUnitExitTime { get; set; }
+
+    public DateOnly? VehicleExitDate { get; set; }
+    public TimeOnly? VehicleExitTime { get; set; }
+    public DateOnly? ContainerExitDate { get; set; }
+    public TimeOnly? ContainerExitTime { get; set; }
+
     public string? UpdatedByUserName { get; set; }
     public DateOnly? UpdatedDate { get; set; }
     public TimeOnly? UpdatedTime { get; set; }

@@ -1,6 +1,6 @@
+using FluentValidation;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
-using FluentValidation;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Validators;
 
@@ -14,10 +14,14 @@ public class ExitVehicleValidator : AbstractValidator<ExitVehicleCommand>
         RuleFor(x => x.ReceptionId)
             .NotEqual(Guid.Empty).WithMessage("Debe indicar la recepción a la que se le registrará la salida.");
 
+        RuleFor(x => x)
+            .Must(x => x.ExitVehicle || x.ExitContainer)
+            .WithMessage("Debe indicar al menos un tipo de salida (vehículo o contenedor).");
+
         When(x => x.ExitDate.HasValue, () =>
         {
             RuleFor(x => x.ExitDate!.Value)
-                .LessThanOrEqualTo(DateOnly.FromDateTime(NicaraguaClock.Now))
+                .LessThanOrEqualTo(NicaraguaClock.Today)
                 .WithMessage("La fecha de salida no puede ser una fecha futura.");
         });
 
