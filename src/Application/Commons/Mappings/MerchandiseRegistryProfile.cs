@@ -135,7 +135,7 @@ public class MerchandiseRegistryProfile : Profile
             // .ForMember(d => d.TransportUnitExitDate, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitExitDate))
             // .ForMember(d => d.TransportUnitExitTime, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitExitTime))
             // .ForMember(d => d.ContainerNumber, o => o.MapFrom(s => ResolveContainerNumber(s)));
-            .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType));
+            // .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType));
             // .ForMember(d => d.TransportUnitExitDate, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitExitDate))
             // .ForMember(d => d.TransportUnitExitTime, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitExitTime))
             // .ForMember(d => d.ContainerNumber, o => o.MapFrom(s => ResolveContainerNumber(s)));
