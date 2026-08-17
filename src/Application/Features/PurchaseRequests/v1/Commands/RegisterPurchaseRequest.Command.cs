@@ -8,9 +8,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Comman
     {
         public Guid? AreaId { get; set; }
         public Guid BranchId { get; set; }
-        public DateOnly RequestDate { get; set; }
         public string? Observations { get; set; }
+
+        public PriorityLevel? PriorityLevel { get; set; }
+        public DestinationRequest Destination { get; set; }
         public PurchaseRequestType RequestType { get; set; }
+
         public List<PurchaseRequestItem> PurchaseRequestItems { get; set; } = [];
     }
 
@@ -24,5 +27,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Comman
 
         public string? Description { get; set; }
         public string? Justification { get; set; }
+        public string? AdditionalData { get; set; }
     }
 }

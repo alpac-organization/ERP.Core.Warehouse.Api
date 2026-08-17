@@ -1,4 +1,5 @@
 using FluentValidation;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Validators
@@ -30,9 +31,25 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
                 .IsInEnum()
                 .WithMessage("El tipo de solicitud no es válido.");
 
+            RuleFor(x => x.Destination)
+                .IsInEnum()
+                .WithMessage("El destino de la solicitud no es válido.");
+
             RuleFor(x => x.Observations)
                 .MaximumLength(1000)
                 .WithMessage("Las observaciones no puede exceder los 1000 caracteres.");
+
+            RuleFor(x => x.PriorityLevel)
+                .Must(priority => priority.HasValue
+                    && priority.Value != PriorityLevel.None
+                    && Enum.IsDefined(priority.Value))
+                .When(x => x.RequestType == PurchaseRequestType.Requisition)
+                .WithMessage("Debe especificar un nivel de prioridad válido cuando el tipo de solicitud es Requisición.");
+
+            RuleFor(x => x.PriorityLevel)
+                .Must(priority => !priority.HasValue || priority.Value == PriorityLevel.None)
+                .When(x => x.RequestType != PurchaseRequestType.Requisition)
+                .WithMessage("El nivel de prioridad solo puede especificarse cuando el tipo de solicitud es Requisición.");
 
             RuleFor(x => x.PurchaseRequestItems)
                 .NotEmpty()

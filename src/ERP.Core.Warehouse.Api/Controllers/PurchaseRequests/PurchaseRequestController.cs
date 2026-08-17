@@ -40,27 +40,31 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
         public async Task<PagedResponse<PurchaseRequestDto>> GetPurchaseRequestAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
-            [FromQuery] Guid? branch_id = null,
+            [FromQuery] Guid? branch_id                   = null,
+            [FromQuery] string? code                      = null,
             [FromQuery] PurchaseRequestType? request_type = null,
-            [FromQuery] string? code = null,
-            [FromQuery] PurchaseRequestStatus? status = null,
-            [FromQuery] int page_number = 1,
-            [FromQuery] int page_size  = 10
+            [FromQuery] PriorityLevel? priority_Level     = null,
+            [FromQuery] DestinationRequest? destination   = null,
+            [FromQuery] PurchaseRequestStatus? status     = null,
+            [FromQuery] int page_number                   = 1,
+            [FromQuery] int page_size                     = 10
         )
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
             return await _mediator.Send(new GetPurchaseRequestsQuery()
             {
-                BranchId = branch_id,
-                CompanyId = company_id,
-                Code = code,
-                Status = status,
-                ModuleCode = module_code,
-                RequestType = request_type,
-                UserId = Guid.Parse(userIdStr ?? ""),
-                PageNumber = page_number,
-                PageSize = page_size,
+                BranchId      = branch_id,
+                CompanyId     = company_id,
+                Code          = code,
+                Status        = status,
+                ModuleCode    = module_code,
+                RequestType   = request_type,
+                Destination   = destination,
+                PriorityLevel = priority_Level,
+                PageNumber    = page_number,
+                PageSize      = page_size,
+                UserId        = Guid.Parse(userIdStr ?? ""),
             });
         }
 
