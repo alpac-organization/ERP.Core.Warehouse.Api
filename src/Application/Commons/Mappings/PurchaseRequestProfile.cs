@@ -37,14 +37,22 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             {
                 AreaId              = areaId,
                 Code                = codeGenerated,
-                RegisteredByUserId  = command.UserId,
                 BranchId            = command.BranchId,
+                
+                UserRevisionId      = null,
+                RegisteredByUserId  = command.UserId,
+                
                 RequestType         = command.RequestType,
+                Destination         = command.Destination,
+                PriorityLevel       = command.PriorityLevel ?? PriorityLevel.Normal,
+
                 Observations        = command.Observations,
                 RequestStatus       = PurchaseRequestStatus.Pending,
                 Id                  = Guid.NewGuid(),
+                
                 IsActive            = true,
-                RequestDate         = DateOnly.FromDateTime(DateTime.UtcNow)
+                RequestDate         = DateOnly.FromDateTime(DateTime.UtcNow),
+                RevisionDate        = null
             };
         }
 

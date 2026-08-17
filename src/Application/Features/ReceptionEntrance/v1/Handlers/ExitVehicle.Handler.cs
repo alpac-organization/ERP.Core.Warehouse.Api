@@ -30,18 +30,18 @@ public class ExitVehicleHandler(IUnitOfWork unitOfWork, IErrorManager errorManag
         }
         #endregion
 
-        #region 2. Validar que no tenga salida ya registrada
-        if (recordEntrance.ReceptionEntrance.TransportUnitExitDate != null)
-            return _errorManager.ThrowBadRequest<bool>(
-                "Este vehículo ya tiene una salida registrada.",
-                "ERP:VEHICLE_EXIT_ALREADY_REGISTERED");
-        #endregion
+        // #region 2. Validar que no tenga salida ya registrada
+        // if (recordEntrance.ReceptionEntrance.TransportUnitExitDate != null)
+        //     return _errorManager.ThrowBadRequest<bool>(
+        //         "Este vehículo ya tiene una salida registrada.",
+        //         "ERP:VEHICLE_EXIT_ALREADY_REGISTERED");
+        // #endregion
 
         #region 3. Registrar salida
         var nowNica = NicaraguaClock.Now;
 
-        recordEntrance.ReceptionEntrance.TransportUnitExitDate = request.ExitDate ?? DateOnly.FromDateTime(nowNica);
-        recordEntrance.ReceptionEntrance.TransportUnitExitTime = request.ExitTime ?? TimeOnly.FromDateTime(nowNica);
+        // recordEntrance.ReceptionEntrance.TransportUnitExitDate = request.ExitDate ?? DateOnly.FromDateTime(nowNica);
+        // recordEntrance.ReceptionEntrance.TransportUnitExitTime = request.ExitTime ?? TimeOnly.FromDateTime(nowNica);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         #endregion
