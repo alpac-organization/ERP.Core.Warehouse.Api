@@ -64,12 +64,13 @@ public static class ReceptionEntranceMapper
             }).ToList(),
 
             CountryOfOrigin = dto.CountryOfOrigin?.SanitizeAlphanumeric(),
-            Aduana = dto.Aduana?.SanitizeAlphanumeric(),
-            PlateNumber = dto.PlateNumber?.SanitizeCode(),
-            TrailerChassis = dto.TrailerChassis?.SanitizeCode(),
+            CustomBranchId = dto.CustomBranchId,
+            VehiclePlateNumber = dto.VehiclePlateNumber?.SanitizeCode(),
+            VehicleChassisNumber = dto.VehicleChassisNumber?.SanitizeCode(),
+            ContainerNumber = dto.ContainerNumber?.SanitizeCode(),
             DriverLicense = dto.DriverLicense?.SanitizeCode(),
             Transportista = dto.Transportista?.SanitizeAlphanumeric(),
-            TransportUnitId = dto.TransportUnitId,
+            TransportUnit = dto.TransportUnit,
             DriverName = dto.DriverName?.SanitizeAlphanumeric(),
             SealNumber = dto.SealNumber?.SanitizeCode(),
 
@@ -77,10 +78,51 @@ public static class ReceptionEntranceMapper
             Packages = dto.Packages,
             Customer = dto.Customer?.SanitizeAlphanumeric(),
             Product = dto.Product?.SanitizeAlphanumeric(),
-            ContainerNumber = dto.ContainerNumber?.SanitizeCode(),
         };
     }
 
+    public static void ApplyUpdate(
+        this ReceptionEntranceEntity entity,
+        UpdateReceptionEntranceCommand command,
+        string updatedByUserId,
+        string updatedByUserName,
+        DateOnly updatedDate,
+        TimeOnly updatedTime)
+    {
+        if (command.CountryOfOrigin != null) entity.CountryOfOrigin = command.CountryOfOrigin;
+        if (command.CustomBranchId != null) entity.CustomBranchId = command.CustomBranchId.Value;
+        if (command.VehiclePlateNumber != null) entity.VehiclePlateNumber = command.VehiclePlateNumber;
+        if (command.VehicleChassisNumber != null) entity.VehicleChassisNumber = command.VehicleChassisNumber;
+        if (command.ContainerNumber != null) entity.ContainerNumber = command.ContainerNumber;
+        if (command.DriverLicense != null) entity.DriverLicense = command.DriverLicense;
+        if (command.Transportista != null) entity.Transportista = command.Transportista;
+        if (command.TransportUnit != null) entity.TransportUnit = command.TransportUnit.Value;
+        if (command.DriverName != null) entity.DriverName = command.DriverName;
+        if (command.SealNumber != null) entity.SealNumber = command.SealNumber;
+
+        entity.UpdatedByUserId = updatedByUserId;
+        entity.UpdatedByUserName = updatedByUserName;
+        entity.UpdatedDate = updatedDate;
+        entity.UpdatedTime = updatedTime;
+    }
+
+    public static void ApplyUpdate(this CustomsDeclarations declaration, UpdateReceptionEntranceCommand command)
+    {
+        if (command.CustomsDeclarationNumber != null)
+            declaration.CustomsDeclarationNumber = command.CustomsDeclarationNumber.Trim();
+    }
+
+    public static void ApplyUpdate(this CustomsDeclarationDetails details, UpdateReceptionEntranceCommand command)
+    {
+        if (command.Packages != null) details.Packages = command.Packages.Value;
+        if (command.Customer != null) details.Customer = command.Customer;
+        if (command.Product != null) details.Product = command.Product;
+    }
+
+    public static void ApplyUpdate(this EntranceDucats ducat, string newDucatNumber)
+    {
+        ducat.DucatNumber = newDucatNumber;
+    }
 
     public static ExitVehicleCommand ToExitVehicleCommand(
         this ExitVehicleDto dto,
@@ -152,7 +194,6 @@ public static class ReceptionEntranceMapper
             Packages = command.Packages!.Value,
             Customer = command.Customer!.Trim(),
             Product = command.Product!.Trim(),
-            // ContainerNumber = command.ContainerNumber!.Trim()
         };
     }
 
