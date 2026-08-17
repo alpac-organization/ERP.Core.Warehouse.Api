@@ -38,13 +38,13 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 AreaId              = areaId,
                 Code                = codeGenerated,
                 BranchId            = command.BranchId,
-                
+
                 UserRevisionId      = null,
                 RegisteredByUserId  = command.UserId,
                 
                 RequestType         = command.RequestType,
                 Destination         = command.Destination,
-                PriorityLevel       = command.PriorityLevel ?? PriorityLevel.Normal,
+                PriorityLevel       = command.PriorityLevel ?? PriorityLevel.None,
 
                 Observations        = command.Observations,
                 RequestStatus       = PurchaseRequestStatus.Pending,
