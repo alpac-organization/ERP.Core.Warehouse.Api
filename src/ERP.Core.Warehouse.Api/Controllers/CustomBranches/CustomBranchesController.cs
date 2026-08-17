@@ -12,7 +12,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.CustomBranches;
 [HasToken]
 [ApiVersion("1.0")]
 [Route("api/v1/")]
-public class CustomBranchesController(IMediator _mediator, IMapper _mapper) : ApiControllerBase
+public class CustomBranchesController(IMediator _mediator) : ApiControllerBase
 {
     [Tags("Aduanas")]
     [HttpGet("companies/{company_id}/modules/{module_code}/customs-branches")]

@@ -24,7 +24,7 @@ public class CreateReceptionEntranceCommand : BaseRequest, IRequest<bool>
     public string VehicleChassisNumber { get; set; } = string.Empty;
     public string DriverLicense { get; set; } = string.Empty;
     public string Transportista { get; set; } = string.Empty;
-    public Guid TransportUnitId { get; set; }
+    public TransportUnit TransportUnit { get; set; }
     public string DriverName { get; set; } = string.Empty;
     public string SealNumber { get; set; } = string.Empty;
     public string? SealEvidence { get; set; }

@@ -160,27 +160,6 @@ public class ReceptionEntranceController(IMediator _mediator) : ApiControllerBas
         return Ok(response);
     }
 
-
-    [Tags("Control de Acceso")]
-    [HttpGet("companies/{company_id}/modules/{module_code}/transport-units")]
-    [ProducesResponseType(typeof(List<TransportUnitListItemDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<List<TransportUnitListItemDto>> GetTransportUnitsAsync(
-        [FromRoute] Guid company_id,
-        [FromRoute] string module_code,
-        CancellationToken cancellationToken)
-    {
-        var userIdStr = HttpContext.Items["UserId"] as string;
-        Guid.TryParse(userIdStr, out var userId);
-
-        return await _mediator.Send(new GetTreansportUnitsQuery
-        {
-            CompanyId = company_id,
-            ModuleCode = module_code,
-            UserId = userId
-        }, cancellationToken);
-    }
-
     [Tags("Control de Acceso")]
     [HttpPost("companies/{company_id}/modules/{module_code}/receptions/{reception_id}/exit")]
     [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]

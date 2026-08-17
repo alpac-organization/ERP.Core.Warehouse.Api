@@ -2,20 +2,17 @@ using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 
-public enum VehicleStatus
-{
-    OnSite = 1,
-    Exited = 2
-}
 public class ReceptionEntranceListItemDto
 {
     public Guid Id { get; set; }
     public string PlateNumber { get; set; } = string.Empty;
+    public string ContainerNumber { get; set; } = string.Empty;
     public string DriverName { get; set; } = string.Empty;
     public DocumentType DocumentType { get; set; }
     public TimeOnly ArrivalTime { get; set; }
     public RecordEntranceStatus Status { get; set; }
-    public VehicleStatus VehicleStatus { get; set; }
+    public bool VehicleExited { get; set; }
+    public bool ContainerExited { get; set; }
 }
 
 public class GetReceptionEntrancesDto
@@ -67,8 +64,7 @@ public class ReceptionEntranceDetailDto
     public string TrailerChassis { get; set; } = string.Empty;
     public string DriverLicense { get; set; } = string.Empty;
     public string Transportista { get; set; } = string.Empty;
-    public Guid TransportUnitId { get; set; }
-    public string? TransportUnitName { get; set; }
+    public TransportUnit TransportUnit { get; set; }
     public string DriverName { get; set; } = string.Empty;
     public string SealNumber { get; set; } = string.Empty;
     public DocumentType DocumentType { get; set; }
@@ -88,10 +84,12 @@ public class ReceptionEntranceStatsDto
     public int TotalEntries { get; set; }
     public int TotalOnSite { get; set; }
     public int TotalExists { get; set; }
+    public int TotalContainerOnSite { get; set; }
+    public int TotalContainerExited { get; set; }
 }
 
-public class TransportUnitListItemDto
+public static class TransportUnitNames
 {
-    public Guid Id { get; set; }
-    public string Name { get; set; } = string.Empty;
+    public const string Contenedor = "Contenedor";
+    public const string Furgon = "Furgón";
 }

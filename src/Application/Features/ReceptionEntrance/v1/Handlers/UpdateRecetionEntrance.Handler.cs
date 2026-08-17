@@ -202,7 +202,7 @@ public class UpdateReceptionEntranceHandler(
             // if (request.TrailerChassis != null) reception.TrailerChassis = request.TrailerChassis;
             if (request.DriverLicense != null) reception.DriverLicense = request.DriverLicense;
             if (request.Transportista != null) reception.Transportista = request.Transportista;
-            if (request.TransportUnitId != null) reception.TransportUnitId = request.TransportUnitId.Value;
+            // if (request.TransportUnitId != null) reception.TransportUnitId = request.TransportUnitId.Value;
             if (request.DriverName != null) reception.DriverName = request.DriverName;
             if (request.SealNumber != null) reception.SealNumber = request.SealNumber;
 

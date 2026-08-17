@@ -105,7 +105,7 @@ public class CreateReceptionEntranceHandler(
                 r.VehicleChassisNumber.Trim().ToLower() == request.VehicleChassisNumber.Trim().ToLower() &&
                 r.DriverLicense.Trim().ToLower() == request.DriverLicense.Trim().ToLower() &&
                 r.Transportista.Trim().ToLower() == request.Transportista.Trim().ToLower() &&
-                r.TransportUnitId == request.TransportUnitId &&
+                // r.TransportUnitId == request.TransportUnitId &&
                 r.DriverName.Trim().ToLower() == request.DriverName.Trim().ToLower() &&
                 r.SealNumber.Trim().ToLower() == request.SealNumber.Trim().ToLower(),
                 cancellationToken);

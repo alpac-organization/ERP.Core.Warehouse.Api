@@ -115,8 +115,8 @@ public class MerchandiseRegistryProfile : Profile
             // .ForMember(d => d.TrailerChassis, o => o.MapFrom(s => s.ReceptionEntrance!.TrailerChassis))
             .ForMember(d => d.DriverLicense, o => o.MapFrom(s => s.ReceptionEntrance!.DriverLicense))
             .ForMember(d => d.Transportista, o => o.MapFrom(s => s.ReceptionEntrance!.Transportista))
-            .ForMember(d => d.TransportUnitId, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitId))
-            .ForMember(d => d.TransportUnitName, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnit != null ? s.ReceptionEntrance!.TransportUnit.Name : null))
+            // .ForMember(d => d.TransportUnitId, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitId))
+            // .ForMember(d => d.TransportUnitName, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnit != null ? s.ReceptionEntrance!.TransportUnit.Name : null))
             .ForMember(d => d.DriverName, o => o.MapFrom(s => s.ReceptionEntrance!.DriverName))
             .ForMember(d => d.SealNumber, o => o.MapFrom(s => s.ReceptionEntrance!.SealNumber))
             .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType));
