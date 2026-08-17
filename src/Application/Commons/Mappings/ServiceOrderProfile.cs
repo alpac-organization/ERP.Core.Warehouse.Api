@@ -17,5 +17,7 @@ public class ServiceOrderProfile : Profile
 
         CreateMap<ServiceOrder, CreateServiceOrderResponse>()
             .ForCtorParam(nameof(CreateServiceOrderResponse.ServiceOrderId), opt => opt.MapFrom(src => src.Id));
-    }
+
+        CreateMap<ServiceOrder, ServiceOrderDto>()
+            .ForMember(dest => dest.ServiceOrderId, opt => opt.MapFrom(src => src.Id));    }
 }
