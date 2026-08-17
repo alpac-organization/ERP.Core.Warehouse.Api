@@ -52,6 +52,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     .Where(pur => pur.AreaId == request.AreaId);
             }
 
+            if (request.PriorityLevel.HasValue)
+            {
+                purchaseRequestsQuery = purchaseRequestsQuery
+                    .Where(pur => pur.PriorityLevel == request.PriorityLevel);
+            }
+
+            if (request.Destination.HasValue)
+            {
+                purchaseRequestsQuery = purchaseRequestsQuery
+                    .Where(pur => pur.Destination == request.Destination);
+            }
+
             if (!string.IsNullOrEmpty(request.Code))
             {
                 purchaseRequestsQuery = purchaseRequestsQuery
