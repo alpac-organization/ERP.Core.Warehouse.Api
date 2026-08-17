@@ -10,7 +10,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Querie
         public string? Code { get; set; }
         public Guid? AreaId { get; set; }
         public Guid? BranchId { get; set; }
+
+        public PriorityLevel? PriorityLevel { get; set; }
         public PurchaseRequestStatus? Status { get; set; }
+        public DestinationRequest? Destination { get; set; }
         public PurchaseRequestType? RequestType { get; set; }
 
         public int PageSize { get; set; }
