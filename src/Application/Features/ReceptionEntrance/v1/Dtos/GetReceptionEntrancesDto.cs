@@ -38,7 +38,6 @@ public class CustomsDeclarationDetailDto
     public int? Packages { get; set; }
     public string? Customer { get; set; }
     public string? Product { get; set; }
-    public string? ContainerNumber { get; set; }
 }
 
 public class ExecutionLogDetailDto
@@ -62,6 +61,7 @@ public class ReceptionEntranceDetailDto
     public string Aduana { get; set; } = string.Empty;
     public string PlateNumber { get; set; } = string.Empty;
     public string TrailerChassis { get; set; } = string.Empty;
+    public string ContainerNumber { get; set; } = string.Empty;
     public string DriverLicense { get; set; } = string.Empty;
     public string Transportista { get; set; } = string.Empty;
     public TransportUnit TransportUnit { get; set; }

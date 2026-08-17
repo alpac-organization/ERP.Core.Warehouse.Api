@@ -342,7 +342,6 @@ public class ReceptionEntranceProfile : Profile
             .ForMember(d => d.Packages, o => o.MapFrom(s => s.Details != null ? s.Details.Packages : (int?)null))
             .ForMember(d => d.Customer, o => o.MapFrom(s => s.Details != null ? s.Details.Customer : null))
             .ForMember(d => d.Product, o => o.MapFrom(s => s.Details != null ? s.Details.Product : null));
-        // .ForMember(d => d.ContainerNumber, o => o.MapFrom(s => s.Details != null ? s.Details.ContainerNumber : null));
 
         CreateMap<StepExecutionLogs, ExecutionLogDetailDto>()
             .ForMember(d => d.DurationTotalSeconds, o => o.MapFrom(s =>
@@ -364,6 +363,7 @@ public class ReceptionEntranceProfile : Profile
                 s.ReceptionEntrance!.CustomsBranches != null ? s.ReceptionEntrance!.CustomsBranches.Name : string.Empty))
             .ForMember(d => d.PlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.VehiclePlateNumber))
             .ForMember(d => d.TrailerChassis, o => o.MapFrom(s => s.ReceptionEntrance!.VehicleChassisNumber))
+            .ForMember(d => d.ContainerNumber, o => o.MapFrom(s => s.ReceptionEntrance!.ContainerNumber))
             .ForMember(d => d.DriverLicense, o => o.MapFrom(s => s.ReceptionEntrance!.DriverLicense))
             .ForMember(d => d.Transportista, o => o.MapFrom(s => s.ReceptionEntrance!.Transportista))
             .ForMember(d => d.TransportUnit, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnit))
