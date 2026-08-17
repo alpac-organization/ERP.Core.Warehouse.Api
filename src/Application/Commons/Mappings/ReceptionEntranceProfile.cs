@@ -11,6 +11,37 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 
 public static class ReceptionEntranceMapper
 {
+    #region Helpers - Seal Evidence Conversion
+
+    public static SealEvidenceDto? ToSealEvidenceDto(this string? sealEvidenceJson)
+    {
+        if (string.IsNullOrWhiteSpace(sealEvidenceJson) || sealEvidenceJson == "{}")
+            return null;
+
+        try
+        {
+            return JsonSerializer.Deserialize<SealEvidenceDto>(
+                sealEvidenceJson,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    public static string ToJsonOrEmpty(this SealEvidenceDto? sealEvidence)
+    {
+        if (sealEvidence == null || string.IsNullOrWhiteSpace(sealEvidence.ImageBase64))
+            return "{}";
+
+        return JsonSerializer.Serialize(sealEvidence);
+    }
+
+    #endregion
+
+    #region Create Endpoint
+
     public static CreateReceptionEntranceCommand ToCommand(
         this CreateReceptionEntranceDto dto,
         Guid userId,
@@ -47,30 +78,9 @@ public static class ReceptionEntranceMapper
         };
     }
 
-    public static SealEvidenceDto? ToSealEvidenceDto(this string? sealEvidenceJson)
-    {
-        if (string.IsNullOrWhiteSpace(sealEvidenceJson) || sealEvidenceJson == "{}")
-            return null;
+    #endregion
 
-        try
-        {
-            return JsonSerializer.Deserialize<SealEvidenceDto>(
-                sealEvidenceJson,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-    }
-
-    public static string ToJsonOrEmpty(this SealEvidenceDto? sealEvidence)
-    {
-        if (sealEvidence == null || string.IsNullOrWhiteSpace(sealEvidence.ImageBase64))
-            return "{}";
-
-        return JsonSerializer.Serialize(sealEvidence);
-    }
+    #region Update Endpoint
 
     public static UpdateReceptionEntranceCommand ToUpdateCommand(
         this UpdateReceptionEntranceDto dto,
@@ -150,6 +160,42 @@ public static class ReceptionEntranceMapper
         ducat.DucatNumber = newDucatNumber;
     }
 
+    #endregion
+
+    #region Add DUCA Endpoint
+
+    public static AddDucatsToReceptionCommand ToAddDucatsCommand(
+        this AddDucatsToReceptionDto dto,
+        Guid receptionId,
+        Guid userId,
+        Guid companyId,
+        string moduleCode)
+    {
+        return new()
+        {
+            ReceptionId = receptionId,
+            UserId = userId,
+            CompanyId = companyId,
+            ModuleCode = moduleCode,
+            DucatNumbers = dto.DucatNumbers.SanitizeCodeList()
+        };
+    }
+
+    public static EntranceDucats ToEntranceDucaEntity(this string ducatNumber, Guid recordEntranceId)
+    {
+        return new()
+        {
+            Id = Guid.NewGuid(),
+            DucatNumber = ducatNumber.Trim().Replace(" ", ""),
+            RecordEntranceId = recordEntranceId,
+            Status = DucaStatus.Pending
+        };
+    }
+
+    #endregion
+
+    #region Exit Endpoint
+
     public static ExitVehicleCommand ToExitVehicleCommand(
         this ExitVehicleDto dto,
         Guid receptionId, Guid userId, Guid companyId, string moduleCode)
@@ -179,120 +225,15 @@ public static class ReceptionEntranceMapper
         entity.ContainerExitTime = exitTime;
     }
 
-    public static RecordEntrance ToRecordEntranceEntity(
-        this CreateReceptionEntranceCommand command,
-        Guid recordEntranceId,
-        bool isConsolidated,
-        string stepCode)
-    {
-        return new()
-        {
-            Id = recordEntranceId,
-            CurrentStepCode = stepCode,
-            Status = RecordEntranceStatus.Queue,
-            ClosedAtDate = null,
-            ClosedAtTime = null,
-            IsConsolidated = isConsolidated
-        };
-    }
-
-    public static ReceptionEntrance ToReceptionEntranceEntity(this CreateReceptionEntranceCommand command, Guid recordEntranceId)
-    {
-        return new()
-        {
-            Id = Guid.NewGuid(),
-            RecordEntranceId = recordEntranceId,
-            CountryOfOrigin = command.CountryOfOrigin,
-            // Aduana = command.Aduana,
-            // PlateNumber = command.PlateNumber,
-            // TrailerChassis = command.TrailerChassis,
-            DriverLicense = command.DriverLicense,
-            Transportista = command.Transportista,
-            TransportUnit = command.TransportUnit,
-            DriverName = command.DriverName,
-            SealNumber = command.SealNumber,
-            DocumentType = command.DocumentType
-        };
-    }
-
-    public static CustomsDeclarations ToCustomsDeclarationEntity(this CreateReceptionEntranceCommand command, Guid recordEntranceId)
-    {
-        return new()
-        {
-            Id = Guid.NewGuid(),
-            RecordEntranceId = recordEntranceId,
-            CustomsDeclarationNumber = command.CustomsDeclarationNumber!.Trim()
-        };
-    }
-
-    public static CustomsDeclarationDetails ToCustomsDeclarationDetailsEntity(this CreateReceptionEntranceCommand command, Guid customsDeclarationId)
-    {
-        return new()
-        {
-            Id = Guid.NewGuid(),
-            CustomsDeclarationId = customsDeclarationId,
-            Packages = command.Packages!.Value,
-            Customer = command.Customer!.Trim(),
-            Product = command.Product!.Trim(),
-        };
-    }
-
-    public static EntranceDucats ToEntranceDucaEntity(this string ducatNumber, Guid recordEntranceId)
-    {
-        return new()
-        {
-            Id = Guid.NewGuid(),
-            DucatNumber = ducatNumber.Trim().Replace(" ", ""),
-            RecordEntranceId = recordEntranceId,
-            Status = DucaStatus.Pending
-        };
-    }
-
-    public static AddDucatsToReceptionCommand ToAddDucatsCommand(
-        this AddDucatsToReceptionDto dto,
-        Guid receptionId,
-        Guid userId,
-        Guid companyId,
-        string moduleCode)
-    {
-        return new()
-        {
-            ReceptionId = receptionId,
-            UserId = userId,
-            CompanyId = companyId,
-            ModuleCode = moduleCode,
-            DucatNumbers = dto.DucatNumbers.SanitizeCodeList()
-        };
-    }
-
-    public static StepExecutionLogs ToStepExecutionLogEntity(
-        this CreateReceptionEntranceCommand command,
-        Guid recordEntranceId,
-        DateOnly endDate,
-        TimeOnly endTime,
-        string stepCode,
-        string processedByUserame)
-    {
-        return new()
-        {
-            Id = Guid.NewGuid(),
-            RecordEntranceId = recordEntranceId,
-            WorkflowStepDefinitionCode = stepCode,
-            StartDate = command.StartDate,
-            StartTime = command.StartTime,
-            EndDate = endDate,
-            EndTime = endTime,
-            ProcessedByUserId = command.UserId.ToString(),
-            ProcessedByUserName = processedByUserame
-        };
-    }
+    #endregion
 }
 
 public class ReceptionEntranceProfile : Profile
 {
     public ReceptionEntranceProfile()
     {
-        //Mapeo para crear reception
+        #region Create Endpoint
+
         CreateMap<CreateReceptionEntranceCommand, RecordEntrance>()
             .ForMember(d => d.Id, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["RecordEntranceId"]))
             .ForMember(d => d.CurrentStepCode, o => o.MapFrom((src, dest, destMember, ctx) => (string)ctx.Items["StepCode"]))
@@ -350,7 +291,10 @@ public class ReceptionEntranceProfile : Profile
             .ForMember(d => d.ProcessedByUserId, o => o.MapFrom(s => s.UserId.ToString()))
             .ForMember(d => d.ProcessedByUserName, o => o.MapFrom((src, dest, destMember, ctx) => (string)ctx.Items["ProcessedByUserName"]));
 
-        // 1. Mapeo para lista paginada (usado con .ProjectTo)
+        #endregion
+
+        #region List Endpoint
+
         string receptionStepCode = null!;
 
         CreateMap<RecordEntrance, ReceptionEntranceListItemDto>()
@@ -368,7 +312,10 @@ public class ReceptionEntranceProfile : Profile
                     ? (bool?)(s.ReceptionEntrance!.ContainerExitDate != null && s.ReceptionEntrance!.ContainerExitTime != null)
                     : null));
 
-        // 2. Mapeos para los detalles hijos
+        #endregion
+
+        #region Detail Endpoint
+
         CreateMap<EntranceDucats, EntranceDucatDetailItemDto>();
 
         CreateMap<CustomsDeclarations, CustomsDeclarationDetailDto>()
@@ -390,7 +337,6 @@ public class ReceptionEntranceProfile : Profile
                     (s.EndDate.Value.ToDateTime(s.EndTime.Value) - s.StartDate.ToDateTime(s.StartTime)).Seconds)
                 : null));
 
-        // 3. Mapeo para el Detalle Completo
         CreateMap<RecordEntrance, ReceptionEntranceDetailDto>()
             .ForMember(d => d.CountryOfOrigin, o => o.MapFrom(s => s.ReceptionEntrance!.CountryOfOrigin))
             .ForMember(d => d.CustomBranch, o => o.MapFrom(s =>
@@ -427,5 +373,7 @@ public class ReceptionEntranceProfile : Profile
                 }
                 return null;
             }));
+
+        #endregion
     }
 }

@@ -4,6 +4,7 @@ using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
+using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Commons.Constants;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
@@ -105,7 +106,6 @@ public class CreateReceptionEntranceHandler(
                 r.VehicleChassisNumber.Trim().ToLower() == request.VehicleChassisNumber.Trim().ToLower() &&
                 r.DriverLicense.Trim().ToLower() == request.DriverLicense.Trim().ToLower() &&
                 r.Transportista.Trim().ToLower() == request.Transportista.Trim().ToLower() &&
-                // r.TransportUnitId == request.TransportUnitId &&
                 r.DriverName.Trim().ToLower() == request.DriverName.Trim().ToLower() &&
                 r.SealNumber.Trim().ToLower() == request.SealNumber.Trim().ToLower(),
                 cancellationToken);
@@ -166,8 +166,7 @@ public class CreateReceptionEntranceHandler(
         if (isDuca)
         {
             var ducatEntities = request.DucatNumbers
-                .Select(ducatNumber => mapper.Map<EntranceDucats>(ducatNumber, opts =>
-                    opts.Items["RecordEntranceId"] = recordEntranceId))
+                .Select(ducatNumber => ducatNumber.ToEntranceDucaEntity(recordEntranceId))
                 .ToList();
 
             await _unitOfWork.EntranceDucats.InsertEntranceDucatsRange(ducatEntities);
