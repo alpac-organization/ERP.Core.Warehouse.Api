@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
@@ -12,7 +13,9 @@ public class ReceptionEntranceListItemDto
     public TimeOnly ArrivalTime { get; set; }
     public RecordEntranceStatus Status { get; set; }
     public bool VehicleExited { get; set; }
-    public bool ContainerExited { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? ContainerExited { get; set; }
 }
 
 public class GetReceptionEntrancesDto

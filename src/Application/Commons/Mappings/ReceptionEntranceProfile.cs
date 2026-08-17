@@ -365,8 +365,8 @@ public class ReceptionEntranceProfile : Profile
                 s.ReceptionEntrance!.VehicleExitDate != null && s.ReceptionEntrance!.VehicleExitTime != null))
             .ForMember(d => d.ContainerExited, o => o.MapFrom(s =>
                 s.ReceptionEntrance!.TransportUnit == TransportUnit.Container
-                    ? s.ReceptionEntrance!.ContainerExitDate != null && s.ReceptionEntrance!.ContainerExitTime != null
-                    : s.ReceptionEntrance!.VehicleExitDate != null && s.ReceptionEntrance!.VehicleExitTime != null));
+                    ? (bool?)(s.ReceptionEntrance!.ContainerExitDate != null && s.ReceptionEntrance!.ContainerExitTime != null)
+                    : null));
 
         // 2. Mapeos para los detalles hijos
         CreateMap<EntranceDucats, EntranceDucatDetailItemDto>();

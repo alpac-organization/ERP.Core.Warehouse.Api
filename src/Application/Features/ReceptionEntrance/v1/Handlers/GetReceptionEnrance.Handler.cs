@@ -131,8 +131,11 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
 
         var totalOnSite = await recepcionadosQuery
             .Where(r => r.ReceptionEntrance == null ||
-                    r.ReceptionEntrance.VehicleExitDate == null ||
-                    r.ReceptionEntrance.VehicleExitTime == null)
+                (r.ReceptionEntrance.TransportUnit == TransportUnit.Van &&
+                    (r.ReceptionEntrance.VehicleExitDate == null || r.ReceptionEntrance.VehicleExitTime == null)) ||
+                (r.ReceptionEntrance.TransportUnit == TransportUnit.Container &&
+                    (r.ReceptionEntrance.VehicleExitDate == null || r.ReceptionEntrance.VehicleExitTime == null ||
+                    r.ReceptionEntrance.ContainerExitDate == null || r.ReceptionEntrance.ContainerExitTime == null)))
             .CountAsync(cancellationToken);
 
         var totalExits = await recepcionadosQuery
@@ -176,7 +179,7 @@ public class GetReceptionEntrancesHandler(IUnitOfWork unitOfWork, IErrorManager 
                 TotalEntries = totalEntries,
                 TotalOnSite = totalOnSite,
                 TotalExists = totalExits,
-                TotalContainerOnSite =  totalContainersOnSite,
+                TotalContainerOnSite = totalContainersOnSite,
                 TotalContainerExited = totalContainersExited
             }
         };
