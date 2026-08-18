@@ -221,7 +221,6 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
         var now = TimeOnly.FromDateTime(nowNica);
 
         var registryDetail = mapper.Map<DucatRegistryDetails>(request);
-        registryDetail.RecordEntranceId = recordEntrance.DucatRegistry!.Id;
         registryDetail.EntranceDucatId = entranceDucat.Id;
         registryDetail.MerchandiseName = merchandise.MerchandiseName;
         registryDetail.RegisteredByUserId = request.UserId.ToString();
