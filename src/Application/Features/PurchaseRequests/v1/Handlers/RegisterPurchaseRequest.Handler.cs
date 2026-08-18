@@ -1,18 +1,25 @@
 using Microsoft.Extensions.Logging;
 using ERP.Core.Application.Commons.Interfaces;
-
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Services;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
-
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
+using System.Text.Json;
+using ERP.Core.Database.Domain.Entities.Shopping;
+using ERP.Core.Application.Commons.Interfaces.AWS;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
-    public class RegisterPurchaseRequestHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, ICodeGenerator _codeGenerator, ILogger<RegisterPurchaseRequestHandler> _logger) :  BaseValidatorHandler<RegisterPurchaseRequestCommand, bool>(_unitOfWork, _errorManager)
+    public class RegisterPurchaseRequestHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, ICodeGenerator _codeGenerator, IS3StorageService _s3StorageService, ILogger<RegisterPurchaseRequestHandler> _logger) : BaseValidatorHandler<RegisterPurchaseRequestCommand, bool>(_unitOfWork, _errorManager)
     {
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+            PropertyNameCaseInsensitive = true
+        };
+
         public override async Task<bool> Handle(RegisterPurchaseRequestCommand request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode!, cancellationToken);
@@ -34,7 +41,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 areaId = request.AreaId.Value;
             }
 
-            //Generar codigo solicitud
             var (isSucceded, code) = await _codeGenerator.GenerateUniqueCodeToPurchaseRequest(request.RequestType, request.BranchId);
 
             if (!isSucceded)
@@ -47,8 +53,28 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
             foreach (var product in request.PurchaseRequestItems)
             {
-                var requestedProductEntity = PurchaseRequestMapper.ToRequestedProductEntity(product, purchaseRequestEntity.Id);
-                await _unitOfWork.PurchaseRequestItems.RegisterPurchaseRequestItem(requestedProductEntity);
+                var purchaseRequestItemEntity = PurchaseRequestMapper.ToPurchaseRequestItemEntity(product, purchaseRequestEntity.Id);
+
+                if (!string.IsNullOrWhiteSpace(purchaseRequestItemEntity.AdditionalData))
+                {
+                    var additionalData = JsonSerializer.Deserialize<PurchaseRequestItemAdditionalData>(purchaseRequestItemEntity.AdditionalData, JsonOptions);
+
+                    if (additionalData?.ImagesProductToChanged is { Count: > 0 })
+                    {
+                        var uploadedUrls = new List<string>();
+
+                        foreach (var base64Image in additionalData.ImagesProductToChanged)
+                        {
+                            var imageUrl = await _s3StorageService.UploadImageAsync("Compras", "SolicitudesCompras", base64Image, cancellationToken);
+                            uploadedUrls.Add(imageUrl);
+                        }
+                        
+                        additionalData.ImagesProductToChanged = uploadedUrls;
+                        purchaseRequestItemEntity.AdditionalData = JsonSerializer.Serialize(additionalData, JsonOptions);
+                    }
+                }
+
+                await _unitOfWork.PurchaseRequestItems.RegisterPurchaseRequestItem(purchaseRequestItemEntity);
             }
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
