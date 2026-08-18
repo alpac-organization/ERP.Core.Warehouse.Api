@@ -6,6 +6,8 @@ using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
+using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Controllers.Warehouses
 {
@@ -39,24 +41,33 @@ namespace ERP.Core.Warehouse.Api.Controllers.Warehouses
 
         [Tags("Almacenes")]
         [HttpGet("companies/{company_id}/modules/{module_code}/warehouse")]
-        [ProducesResponseType(typeof(List<WarehouseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PagedResponse<WarehouseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<List<WarehouseDto>> GetWarehouseAsync(
+        public async Task<PagedResponse<WarehouseDto>> GetWarehouseAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
-        [FromQuery] string? branch_code,
-        CancellationToken cancellationToken)
+        [FromQuery] string? branch_code = null,
+        [FromQuery] string? warehouse_code = null,
+        [FromQuery] WarehouseType? warehouse_type = null,
+        [FromQuery] bool? is_active = null,
+        [FromQuery] int page_number = 1,
+        [FromQuery] int page_size = 10,
+        CancellationToken cancellationToken = default)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
             Guid.TryParse(userIdStr, out var userId);
-
             return await _mediator.Send(new GetWarehousesQuery()
             {
                 CompanyId = company_id,
                 ModuleCode = module_code,
+                BranchCode = branch_code,
+                WarehouseCode = warehouse_code,
+                WarehouseType = warehouse_type,
+                IsActive = is_active,
+                PageNumber = page_number,
+                PageSize = page_size,
                 UserId = userId,
-                BranchCode = branch_code
             }, cancellationToken);
         }
     }

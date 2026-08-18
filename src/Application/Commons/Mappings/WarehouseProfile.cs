@@ -18,7 +18,7 @@ public class WarehouseProfile : Profile
         .ForMember(dest => dest.WarehouseId, opt => opt.MapFrom(src => src.Id))
         .ForMember(dest => dest.WarehouseCode, opt => opt.MapFrom(src => src.Code))
         .ForMember(dest => dest.WarehouseName, opt => opt.MapFrom(src => src.WarehouseName))
-        .ForMember(dest => dest.WarehouseType, opt => opt.MapFrom(src => src.WarehouseType.ToString()))
+        .ForMember(dest => dest.WarehouseType, opt => opt.MapFrom(src => src.WarehouseType))
         .ForMember(dest => dest.SubWarehouses, opt => opt.MapFrom(src => src.SubWarehouses));
 
         #region Sections
