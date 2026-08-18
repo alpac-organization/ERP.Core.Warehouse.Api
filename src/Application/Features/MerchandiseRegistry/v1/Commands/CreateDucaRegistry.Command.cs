@@ -6,8 +6,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Com
 public class CreateDucatRegistryCommand : BaseRequest, IRequest<bool>
 {
     public Guid ReceptionId { get; set; }
-    public string ContainerNumber { get; set; } = string.Empty;
-    public string Empresa { get; set; } = string.Empty;
+    public Guid ShippingCompanyId { get; set; }
     public string? GeneralObservations { get; set; } = string.Empty;
     public bool IsInTransit { get; set; }
     public DateOnly? RegisteredStartDate { get; set; }

@@ -1,7 +1,7 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using System.Text.RegularExpressions;
 using ERP.Core.Database.Domain.Enums;
+using System.Text.RegularExpressions;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
@@ -9,6 +9,7 @@ using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Commons.Constants;
 namespace ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Handlers;
 
 public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
@@ -45,15 +46,18 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
                 "ERP:DUCAT_REGISTRY_ALREADY_EXISTS");
         }
 
-        var sanitizedContainerNumber = SanitizeAlphanumeric(request.ContainerNumber);
+        var shippingCompany = await _unitOfWork.ShippingComapanies.Entities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(sr => sr.Id == request.ShippingCompanyId && sr.DeletedAt == null, cancellationToken);
 
-        if (string.IsNullOrEmpty(sanitizedContainerNumber))
+        if (shippingCompany == null)
         {
             return _errorManager.ThrowBadRequest<bool>(
-                "El número de contenedor debe contener al menos un caracter alfanumérico.",
-                "ERP:INVALID_CONTAINER_NUMBER");
+                "La naviera indicada no existe en el sistema.",
+                "ERP:SHIPPING_COMPANY_NOT_FOUND");
         }
 
+        // Buscar usuario actual
         var user = await _unitOfWork.Users.Entities
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
@@ -66,13 +70,12 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
         }
         var registeredByUserName = user.Fullname ?? user.UserName ?? request.UserId.ToString();
 
-
-        var nowNica = NicaraguaClock.Now;
-        var today = DateOnly.FromDateTime(nowNica);
-        var now = TimeOnly.FromDateTime(nowNica);
+        // obtener fecha y hora actual de nicaragua
+        var today = NicaraguaClock.Today;
+        var now = NicaraguaClock.TimeNow;
 
         var ducatRegistry = mapper.Map<DucatRegistry>(request);
-        // ducatRegistry.ContainerNumber = sanitizedContainerNumber;
+        ducatRegistry.RecordEntranceId = recordEntrance.Id;
         ducatRegistry.RegisteredByUserId = request.UserId.ToString();
         ducatRegistry.RegisteredByUserName = registeredByUserName;
         ducatRegistry.RegisteredStartDate = request.RegisteredStartDate;
@@ -82,7 +85,7 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
         ducatRegistry.Status = DucaStatus.Pending;
 
         var executionLog = await _unitOfWork.StepExecutionLogs.Entities
-            .FirstOrDefaultAsync(l => l.RecordEntranceId == recordEntrance.Id && l.WorkflowStepDefinitionCode == MerchandiseRegistrationSteps.Duca, cancellationToken);
+            .FirstOrDefaultAsync(l => l.RecordEntranceId == recordEntrance.Id && l.WorkflowStepDefinitionCode == WorkflowStepCodes.Merchandise, cancellationToken);
 
         if (executionLog == null)
         {
@@ -90,7 +93,7 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
             {
                 Id = Guid.NewGuid(),
                 RecordEntranceId = recordEntrance.Id,
-                WorkflowStepDefinitionCode = MerchandiseRegistrationSteps.Duca,
+                WorkflowStepDefinitionCode = WorkflowStepCodes.Merchandise,
                 StartDate = request.RegisteredStartDate ?? today,
                 StartTime = request.RegisteredStartTime ?? now,
                 EndDate = null,
@@ -101,17 +104,14 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
             await _unitOfWork.StepExecutionLogs.InsertExecutionLog(executionLog);
         }
 
+        // actualizar el paso actual de RecordEntrance
         recordEntrance.CurrentStepCode = MerchandiseRegistrationSteps.Duca;
 
+        // Guardado del Registry
         await _unitOfWork.DucatRegistries.RegisterDucatRegistry(ducatRegistry);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return true;
-    }
-    private static string SanitizeAlphanumeric(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
-        return Regex.Replace(value, "[^a-zA-Z0-9]", "").ToUpperInvariant();
     }
 }
 

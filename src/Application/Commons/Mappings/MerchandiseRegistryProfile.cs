@@ -267,6 +267,9 @@ public class DucatRegistryProfile : Profile
         CreateMap<CreateDucatRegistryCommand, DucatRegistry>()
             .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
             .ForMember(d => d.RecordEntranceId, o => o.MapFrom(s => s.ReceptionId))
+            .ForMember(d => d.ShippingCompanyId, o => o.MapFrom(s => s.ShippingCompanyId))
+            .ForMember(d => d.GeneralObservations, o => o.MapFrom(s => s.GeneralObservations))
+            .ForMember(d => d.IsInTransit, o => o.MapFrom(s => s.IsInTransit))
             .ForMember(d => d.RegisteredByUserId, o => o.Ignore())
             .ForMember(d => d.RegisteredByUserName, o => o.Ignore())
             .ForMember(d => d.RegisteredStartDate, o => o.Ignore())
@@ -276,7 +279,12 @@ public class DucatRegistryProfile : Profile
             .ForMember(d => d.UpdatedByUserId, o => o.Ignore())
             .ForMember(d => d.UpdatedByUserName, o => o.Ignore())
             .ForMember(d => d.UpdatedDate, o => o.Ignore())
-            .ForMember(d => d.UpdatedTime, o => o.Ignore());
+            .ForMember(d => d.UpdatedTime, o => o.Ignore())
+            .ForMember(d => d.Status, o => o.Ignore())
+            .ForMember(d => d.Details, o => o.Ignore())
+            .ForMember(d => d.RecordEntrance, o => o.Ignore())
+            .ForMember(d => d.ShippingCompany, o => o.Ignore());
+
     }
 }
 
@@ -295,8 +303,7 @@ public static class DucatRegistryMapper
             UserId = userId,
             CompanyId = companyId,
             ModuleCode = moduleCode,
-            ContainerNumber = dto.ContainerNumber,
-            Empresa = dto.Empresa,
+            ShippingCompanyId = dto.ShippingCompanyId,
             GeneralObservations = dto.GeneralObservations,
             IsInTransit = dto.IsInTransit,
             RegisteredStartDate = dto.RegisteredStartDate,

@@ -13,13 +13,8 @@ public class CreateDucatRegistryValidator : AbstractValidator<CreateDucatRegistr
         RuleFor(x => x.ReceptionId)
             .NotEqual(Guid.Empty).WithMessage("El identificador de recepción es obligatorio.");
 
-        RuleFor(x => x.ContainerNumber)
-            .NotEmpty().WithMessage("El número de contenedor es obligatorio.")
-            .MaximumLength(50).WithMessage("El número de contenedor no puede superar los 50 caracteres.");
-
-        RuleFor(x => x.Empresa)
-            .NotEmpty().WithMessage("La naviera/empresa es obligatoria.")
-            .MaximumLength(150).WithMessage("La naviera/empresa no puede superar los 150 caracteres.");
+        RuleFor(x => x.ShippingCompanyId)
+            .NotEqual(Guid.Empty).WithMessage("La naviera es obligatoria.");
 
         RuleFor(x => x.GeneralObservations)
             .MaximumLength(1000).WithMessage("Las observaciones generales no pueden superar los 1000 caracteres.");
