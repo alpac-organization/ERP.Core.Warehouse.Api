@@ -87,22 +87,21 @@ public class GetMerchandiseRegistryDetailDto
 public class MerchandiseReceptionDetailDto
 {
     public string CountryOfOrigin { get; set; } = string.Empty;
-    public string CustomBranch { get; set; } = null!;
+    public string CustomBranch { get; set; } = string.Empty;
     public string VehiclePlateNumber { get; set; } = string.Empty;
     public string VehicleChassisNumber { get; set; } = string.Empty;
     public string? ContainerNumber { get; set; }
     public string DriverLicense { get; set; } = string.Empty;
     public string Transportista { get; set; } = string.Empty;
-    public Guid TransportUnitId { get; set; }
-    public string? TransportUnitName { get; set; }
     public string DriverName { get; set; } = string.Empty;
     public string SealNumber { get; set; } = string.Empty;
+    public string SealEvidence { get; set; } = string.Empty;
     public DocumentType DocumentType { get; set; }
+    public TransportUnit TransportUnit { get; set; }
     public DateOnly? VehicleExitDate { get; set; }
     public TimeOnly? VehicleExitTime { get; set; }
     public DateOnly? ContainerExitDate { get; set; }
     public TimeOnly? ContainerExitTime { get; set; }
-
 }
 
 public class MerchandiseRegistrationLogDto

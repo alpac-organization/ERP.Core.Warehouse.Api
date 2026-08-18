@@ -40,6 +40,7 @@ public class MerchandiseRegistryProfile : Profile
 
         // ==== 2. Detalle de un DUCA (item hijo) ====
         CreateMap<EntranceDucats, MerchandiseDucatDetailDto>()
+            .ForMember(d => d.Type, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.Type : (DucaType?)null))
             .ForMember(d => d.MerchandiseId, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.MerchandiseId : (Guid?)null))
             .ForMember(d => d.MerchandiseName, o => o.MapFrom(s => s.RegistryDetail != null && s.RegistryDetail.Merchandise != null ? s.RegistryDetail.Merchandise.MerchandiseName : null))
             .ForMember(d => d.TotalBultos, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.TotalBultos : (int?)null))
@@ -71,7 +72,8 @@ public class MerchandiseRegistryProfile : Profile
 
         // ==== 3. Bloque DUCA (Dato General + lista de ducats) ====
         CreateMap<RecordEntrance, MerchandiseDucaRegistryDetailDto>()
-            .ForMember(d => d.ShippingCompanyId, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.ShippingCompany : null))
+            .ForMember(d => d.ShippingCompanyId, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.ShippingCompanyId : (Guid?)null))
+            .ForMember(d => d.SippingCompanyName, o => o.MapFrom(s => s.DucatRegistry != null && s.DucatRegistry.ShippingCompany != null ? s.DucatRegistry.ShippingCompany.Name : null))
             .ForMember(d => d.GeneralObservations, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.GeneralObservations : null))
             .ForMember(d => d.IsInTransit, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.IsInTransit : (bool?)null))
             .ForMember(d => d.Status, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.Status : DucaStatus.Pending))
@@ -107,30 +109,21 @@ public class MerchandiseRegistryProfile : Profile
         // ==== 5. Bloque de recepción ====
         CreateMap<RecordEntrance, MerchandiseReceptionDetailDto>()
             .ForMember(d => d.CountryOfOrigin, o => o.MapFrom(s => s.ReceptionEntrance!.CountryOfOrigin))
-            // .ForMember(d => d.Aduana, o => o.MapFrom(s => s.ReceptionEntrance!.Aduana))
-            // .ForMember(d => d.PlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.PlateNumber))
-            // .ForMember(d => d.TrailerChassis, o => o.MapFrom(s => s.ReceptionEntrance!.TrailerChassis))
-            // .ForMember(d => d.DriverLicense, o => o.MapFrom(s => s.ReceptionEntrance!.DriverLicense))
-            // .ForMember(d => d.Transportista, o => o.MapFrom(s => s.ReceptionEntrance!.Transportista))
-            // .ForMember(d => d.TransportUnitId, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitId))
-            // .ForMember(d => d.TransportUnitName, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnit != null ? s.ReceptionEntrance!.TransportUnit.Name : null))
-            // .ForMember(d => d.Aduana, o => o.MapFrom(s => s.ReceptionEntrance!.Aduana))
-            // .ForMember(d => d.PlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.PlateNumber))
-            // .ForMember(d => d.TrailerChassis, o => o.MapFrom(s => s.ReceptionEntrance!.TrailerChassis))
+            .ForMember(d => d.CustomBranch, o => o.MapFrom(s => s.ReceptionEntrance!.CustomsBranches != null ? s.ReceptionEntrance!.CustomsBranches.Name : string.Empty))
+            .ForMember(d => d.VehiclePlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.VehiclePlateNumber))
+            .ForMember(d => d.VehicleChassisNumber, o => o.MapFrom(s => s.ReceptionEntrance!.VehicleChassisNumber))
+            .ForMember(d => d.ContainerNumber, o => o.MapFrom(s => s.ReceptionEntrance!.ContainerNumber))
             .ForMember(d => d.DriverLicense, o => o.MapFrom(s => s.ReceptionEntrance!.DriverLicense))
             .ForMember(d => d.Transportista, o => o.MapFrom(s => s.ReceptionEntrance!.Transportista))
-            // .ForMember(d => d.TransportUnitId, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitId))
-            // .ForMember(d => d.TransportUnitName, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnit != null ? s.ReceptionEntrance!.TransportUnit.Name : null))
             .ForMember(d => d.DriverName, o => o.MapFrom(s => s.ReceptionEntrance!.DriverName))
             .ForMember(d => d.SealNumber, o => o.MapFrom(s => s.ReceptionEntrance!.SealNumber))
-            .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType));
-            // .ForMember(d => d.TransportUnitExitDate, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitExitDate))
-            // .ForMember(d => d.TransportUnitExitTime, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitExitTime))
-            // .ForMember(d => d.ContainerNumber, o => o.MapFrom(s => ResolveContainerNumber(s)));
-            // .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType));
-            // .ForMember(d => d.TransportUnitExitDate, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitExitDate))
-            // .ForMember(d => d.TransportUnitExitTime, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnitExitTime))
-            // .ForMember(d => d.ContainerNumber, o => o.MapFrom(s => ResolveContainerNumber(s)));
+            .ForMember(d => d.SealEvidence, o => o.MapFrom(s => s.ReceptionEntrance!.SealEvidence))
+            .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType))
+            .ForMember(d => d.TransportUnit, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnit))
+            .ForMember(d => d.VehicleExitDate, o => o.MapFrom(s => s.ReceptionEntrance!.VehicleExitDate))
+            .ForMember(d => d.VehicleExitTime, o => o.MapFrom(s => s.ReceptionEntrance!.VehicleExitTime))
+            .ForMember(d => d.ContainerExitDate, o => o.MapFrom(s => s.ReceptionEntrance!.ContainerExitDate))
+            .ForMember(d => d.ContainerExitTime, o => o.MapFrom(s => s.ReceptionEntrance!.ContainerExitTime));
 
         // ==== 6. Log de registro de mercancía (Workflow Step Execution Log) ====
         CreateMap<RecordEntrance, MerchandiseRegistrationLogDto>()
