@@ -1,9 +1,9 @@
 using AutoMapper;
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Commands;
-using ERP.Core.Database.Domain.Entities.Catalogs;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 
@@ -15,18 +15,10 @@ public class MerchandiseRegistryProfile : Profile
 
         // ==== 1. Lista de registros ====
         CreateMap<RecordEntrance, MerchandiseRegistryListItemDto>()
-            // .ForMember(d => d.PlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.PlateNumber))
-            // .ForMember(d => d.PlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.PlateNumber))
+            .ForMember(d => d.VehiclePlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.VehiclePlateNumber))
             .ForMember(d => d.DriverName, o => o.MapFrom(s => s.ReceptionEntrance!.DriverName))
             .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType))
-            // .ForMember(d => d.ContainerNumber, o => o.MapFrom(s =>
-            //     s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration
-            //         ? s.CustomsDeclarations!.Details!.ContainerNumber
-            //         : (s.DucatRegistry != null ? s.DucatRegistry.ContainerNumber : null)))
-            // .ForMember(d => d.ContainerNumber, o => o.MapFrom(s =>
-            //     s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration
-            //         ? s.CustomsDeclarations!.Details!.ContainerNumber
-            //         : (s.DucatRegistry != null ? s.DucatRegistry.ContainerNumber : null)))
+            .ForMember(d => d.ContainerNumber, o => o.MapFrom(s => s.ReceptionEntrance!.ContainerNumber))
             .ForMember(d => d.Status, o => o.MapFrom(s =>
                 s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration
                     ? (s.CustomsDeclarations != null ? s.CustomsDeclarations.Status : (DucaStatus?)null)
@@ -52,8 +44,8 @@ public class MerchandiseRegistryProfile : Profile
             .ForMember(d => d.MerchandiseName, o => o.MapFrom(s => s.RegistryDetail != null && s.RegistryDetail.Merchandise != null ? s.RegistryDetail.Merchandise.MerchandiseName : null))
             .ForMember(d => d.TotalBultos, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.TotalBultos : (int?)null))
             .ForMember(d => d.TotalWeight, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.TotalWeight : (decimal?)null))
-            .ForMember(d => d.ProductDescription, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.ProductDescription : null))
-            .ForMember(d => d.Remitente, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.Remitente : null))
+            .ForMember(d => d.MerchandiseDescription, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.MerchandiseDescription : null))
+            .ForMember(d => d.Sender, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.Sender : null))
             .ForMember(d => d.DestinationAreaObservation, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.DestinationAreaObservation : null))
             .ForMember(d => d.Status, o => o.MapFrom(s => s.Status))
 
@@ -79,7 +71,7 @@ public class MerchandiseRegistryProfile : Profile
 
         // ==== 3. Bloque DUCA (Dato General + lista de ducats) ====
         CreateMap<RecordEntrance, MerchandiseDucaRegistryDetailDto>()
-            .ForMember(d => d.Empresa, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.Empresa : null))
+            .ForMember(d => d.ShippingCompanyId, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.ShippingCompany : null))
             .ForMember(d => d.GeneralObservations, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.GeneralObservations : null))
             .ForMember(d => d.IsInTransit, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.IsInTransit : (bool?)null))
             .ForMember(d => d.Status, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.Status : DucaStatus.Pending))
@@ -329,7 +321,7 @@ public class DucatRegistryDetailProfile : Profile
     {
         CreateMap<CreateDucatRegistryDetailCommand, DucatRegistryDetails>()
             .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
-            .ForMember(d => d.RecordEntranceId, o => o.Ignore())
+            // .ForMember(d => d.RecordEntranceId, o => o.Ignore())
             .ForMember(d => d.EntranceDucatId, o => o.Ignore())
             .ForMember(d => d.RegisteredByUserId, o => o.Ignore())
             .ForMember(d => d.RegisteredByUserName, o => o.Ignore())

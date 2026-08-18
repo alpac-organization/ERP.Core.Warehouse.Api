@@ -62,11 +62,11 @@ public class GetMerchandiseRegistryHandler(IUnitOfWork unitOfWork, IErrorManager
             query = query.Where(r => r.ReceptionEntrance!.DriverName.ToLower().Replace(" ", "").Contains(driverFilter));
         }
         
-        // if (!string.IsNullOrWhiteSpace(request.PlateNumber))
-        // {
-        //     var plateFilter = request.PlateNumber.Trim().ToLower().Replace(" ", "");
-        //     query = query.Where(r => r.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
-        // }
+        if (!string.IsNullOrWhiteSpace(request.VehiclePlateNumber))
+        {
+            var plateFilter = request.VehiclePlateNumber.Trim().ToLower().Replace(" ", "");
+            query = query.Where(r => r.ReceptionEntrance!.VehiclePlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
+        }
 
         if (request.DocumentType.HasValue)
             query = query.Where(r => r.ReceptionEntrance!.DocumentType == request.DocumentType.Value);
@@ -133,7 +133,10 @@ public class GetMerchandiseRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorM
             .AsNoTracking()
             .Include(r => r.ReceptionEntrance!)
                 .ThenInclude(re => re.TransportUnit)
+            .Include(r => r.ReceptionEntrance!)
+                .ThenInclude(re => re.CustomsBranches)
             .Include(r => r.DucatRegistry!)
+                .ThenInclude(dr => dr.ShippingCompany)
             .Include(r => r.CustomsDeclarations!)
                 .ThenInclude(cd => cd.Details)
             .FirstOrDefaultAsync(r => r.Id == request.ReceptionId && r.DeletedAt == null, cancellationToken);
