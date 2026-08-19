@@ -147,21 +147,6 @@ public class MerchandiseRegistryProfile : Profile
                 s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration ? s.CustomsDeclarations : null));
     }
 
-    // ==== RESOLUCIÓN DE CAMPOS COMPARTIDOS (evita duplicar el ternario en varios bloques) ====
-
-    // private static string? ResolveContainerNumber(RecordEntrance s)
-    // {
-    //     return s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration
-    //         ? s.CustomsDeclarations?.Details?.ContainerNumber
-    //         : s.DucatRegistry?.ContainerNumber;
-    // }
-    // private static string? ResolveContainerNumber(RecordEntrance s)
-    // {
-    //     return s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration
-    //         ? s.CustomsDeclarations?.Details?.ContainerNumber
-    //         : s.DucatRegistry?.ContainerNumber;
-    // }
-
     private static string ResolveReceptionStepCode(RecordEntrance s)
     {
         return s.ReceptionEntrance?.DocumentType == DocumentType.CustomsDeclaration
@@ -172,15 +157,6 @@ public class MerchandiseRegistryProfile : Profile
     private static StepExecutionLogs? ResolveMerchandiseLog(RecordEntrance s)
     {
         var stepCode = ResolveReceptionStepCode(s);
-        return s.ExecutionLogs.FirstOrDefault(l => l.WorkflowStepDefinitionCode == stepCode);
-    }
-
-    // ⚠️ PENDIENTE DE CONFIRMAR: antes, "receptionStepCode" nunca se asignaba (bug),
-    // por lo que este filtro nunca encontraba coincidencias. Necesito saber cuál es
-    // el código real del paso de "llegada del vehículo" para reemplazar el placeholder.
-    private static StepExecutionLogs? ResolveArrivalLog(RecordEntrance s)
-    {
-        var stepCode = ResolveReceptionStepCode(s); // TODO: confirmar si es el mismo paso que MerchandiseRegistration o uno distinto
         return s.ExecutionLogs.FirstOrDefault(l => l.WorkflowStepDefinitionCode == stepCode);
     }
 
