@@ -35,23 +35,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Handlers
                     "El cliente indicado no existe.",
                     "ERP:CUSTOMER_NOT_FOUND");
 
-            // 3.b Validar que no exista una OS abierta para el mismo cliente en la misma sucursal
-            var today = NicaraguaClock.Today;
-
-            var hasOpenOrder = await _unitOfWork.ServiceOrders.Entities
-                .AnyAsync(so =>
-                    so.CustomerId == request.CustomerId &&
-                    (so.Status == OSStatus.Pending || so.Status == OSStatus.InProgress) &&
-                    DateOnly.FromDateTime(so.CreatedAt.AddHours(-6)) == today,
-                    cancellationToken);
-
-            if (hasOpenOrder)
-            {
-                return _errorManager.ThrowBadRequest<CreateServiceOrderResponse>(
-                    "El cliente ya tiene una orden de servicio abierta para el día de hoy.",
-                    "ERP:CUSTOMER_HAS_OPEN_SERVICE_ORDER");
-            }
-
             // 4. Generación del Code (Autogenerado según requerimiento)
             var todayStr = DateTime.UtcNow.ToString("yyyyMMdd");
             var codePrefix = $"OS-{branch.BranchCode}-{todayStr}-";
