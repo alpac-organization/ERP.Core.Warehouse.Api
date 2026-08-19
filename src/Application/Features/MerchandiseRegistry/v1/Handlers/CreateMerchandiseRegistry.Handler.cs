@@ -1,11 +1,11 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using System.Text.RegularExpressions;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using ERP.Core.Warehouse.Api.Application.Commons.Constants;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Commands;
@@ -45,15 +45,18 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
                 "ERP:DUCAT_REGISTRY_ALREADY_EXISTS");
         }
 
-        var sanitizedContainerNumber = SanitizeAlphanumeric(request.ContainerNumber);
+        var shippingCompany = await _unitOfWork.ShippingComapanies.Entities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(sr => sr.Id == request.ShippingCompanyId && sr.DeletedAt == null, cancellationToken);
 
-        if (string.IsNullOrEmpty(sanitizedContainerNumber))
+        if (shippingCompany == null)
         {
             return _errorManager.ThrowBadRequest<bool>(
-                "El número de contenedor debe contener al menos un caracter alfanumérico.",
-                "ERP:INVALID_CONTAINER_NUMBER");
+                "La naviera indicada no existe en el sistema.",
+                "ERP:SHIPPING_COMPANY_NOT_FOUND");
         }
 
+        // Buscar usuario actual
         var user = await _unitOfWork.Users.Entities
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
@@ -66,13 +69,12 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
         }
         var registeredByUserName = user.Fullname ?? user.UserName ?? request.UserId.ToString();
 
-
-        var nowNica = NicaraguaClock.Now;
-        var today = DateOnly.FromDateTime(nowNica);
-        var now = TimeOnly.FromDateTime(nowNica);
+        // obtener fecha y hora actual de nicaragua
+        var today = NicaraguaClock.Today;
+        var now = NicaraguaClock.TimeNow;
 
         var ducatRegistry = mapper.Map<DucatRegistry>(request);
-        // ducatRegistry.ContainerNumber = sanitizedContainerNumber;
+        ducatRegistry.RecordEntranceId = recordEntrance.Id;
         ducatRegistry.RegisteredByUserId = request.UserId.ToString();
         ducatRegistry.RegisteredByUserName = registeredByUserName;
         ducatRegistry.RegisteredStartDate = request.RegisteredStartDate;
@@ -82,7 +84,7 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
         ducatRegistry.Status = DucaStatus.Pending;
 
         var executionLog = await _unitOfWork.StepExecutionLogs.Entities
-            .FirstOrDefaultAsync(l => l.RecordEntranceId == recordEntrance.Id && l.WorkflowStepDefinitionCode == MerchandiseRegistrationSteps.Duca, cancellationToken);
+            .FirstOrDefaultAsync(l => l.RecordEntranceId == recordEntrance.Id && l.WorkflowStepDefinitionCode == WorkflowStepCodes.Merchandise, cancellationToken);
 
         if (executionLog == null)
         {
@@ -90,7 +92,7 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
             {
                 Id = Guid.NewGuid(),
                 RecordEntranceId = recordEntrance.Id,
-                WorkflowStepDefinitionCode = MerchandiseRegistrationSteps.Duca,
+                WorkflowStepDefinitionCode = WorkflowStepCodes.Merchandise,
                 StartDate = request.RegisteredStartDate ?? today,
                 StartTime = request.RegisteredStartTime ?? now,
                 EndDate = null,
@@ -101,17 +103,14 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
             await _unitOfWork.StepExecutionLogs.InsertExecutionLog(executionLog);
         }
 
+        // actualizar el paso actual de RecordEntrance
         recordEntrance.CurrentStepCode = MerchandiseRegistrationSteps.Duca;
 
+        // Guardado del Registry
         await _unitOfWork.DucatRegistries.RegisterDucatRegistry(ducatRegistry);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return true;
-    }
-    private static string SanitizeAlphanumeric(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
-        return Regex.Replace(value, "[^a-zA-Z0-9]", "").ToUpperInvariant();
     }
 }
 
@@ -159,6 +158,11 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
             return _errorManager.ThrowBadRequest<bool>(
                 "Este DUCA ya tiene un detalle registrado. Use la edición para modificarlo.",
                 "ERP:DUCAT_DETAIL_ALREADY_EXISTS");
+            
+        if (entranceDucat.ServiceOrderId != null)
+            return _errorManager.ThrowBadRequest<bool>(
+                "Este DUCA ya tiene una orden de servicio asignada.",
+                "ERP:DUCAT_SERVICE_ORDER_ALREADY_ASSIGNED");
         #endregion
 
         #region 2. Validacion de Mercaderia
@@ -173,11 +177,6 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
         #endregion
 
         #region 2.b Validacion de orden de servicio
-        if (entranceDucat.ServiceOrderId != null)
-            return _errorManager.ThrowBadRequest<bool>(
-                "Este DUCA ya tiene una orden de servicio asignada.",
-            "ERP:DUCAT_SERVICE_ORDER_ALREADY_ASSIGNED");
-
         var serviceOrder = await _unitOfWork.ServiceOrders.Entities
             .AsNoTracking()
             .FirstOrDefaultAsync(so => so.Id == request.ServiceOrderId && so.DeletedAt == null, cancellationToken);
@@ -185,21 +184,18 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
         if (serviceOrder == null)
             return _errorManager.ThrowBadRequest<bool>(
                 "La orden de servicio indicada no existe.",
-            "ERP:SERVICE_ORDER_NOT_FOUND");
+                "ERP:SERVICE_ORDER_NOT_FOUND");
 
-        // ¿Otro documento usa esta misma OS?
         var serviceOrderAlreadyUsed = await _unitOfWork.EntranceDucats.Entities
             .AnyAsync(d => d.ServiceOrderId == request.ServiceOrderId && d.DeletedAt == null, cancellationToken)
-            || await _unitOfWork.CustomsDeclarations.Entities
-            .AnyAsync(c => c.ServiceOrderId == request.ServiceOrderId && c.DeletedAt == null, cancellationToken);
+                || await _unitOfWork.CustomsDeclarations.Entities
+                    .AnyAsync(c => c.ServiceOrderId == request.ServiceOrderId && c.DeletedAt == null, cancellationToken);
 
         if (serviceOrderAlreadyUsed)
             return _errorManager.ThrowBadRequest<bool>(
             "La orden de servicio indicada ya está asignada a otro documento.",
             "ERP:SERVICE_ORDER_ALREADY_IN_USE");
 
-        entranceDucat.ServiceOrderId = serviceOrder.Id;
-        entranceDucat.ServiceOrderCode = serviceOrder.Code;
         #endregion
 
         #region 3. Usuario actual
@@ -216,11 +212,11 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
         #endregion
 
         #region 4. Registro del detalle
-        var nowNica = NicaraguaClock.Now;
-        var today = DateOnly.FromDateTime(nowNica);
-        var now = TimeOnly.FromDateTime(nowNica);
+        var today = NicaraguaClock.Today;
+        var now = NicaraguaClock.TimeNow;
 
         var registryDetail = mapper.Map<DucatRegistryDetails>(request);
+        registryDetail.DucatRegistryId = recordEntrance.DucatRegistry!.Id;
         registryDetail.EntranceDucatId = entranceDucat.Id;
         registryDetail.MerchandiseName = merchandise.MerchandiseName;
         registryDetail.RegisteredByUserId = request.UserId.ToString();
@@ -231,9 +227,8 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
         registryDetail.RegisteredEndTime = now;
 
         await _unitOfWork.DucatRegistryDetails.RegisterDucatRegistryDetails(registryDetail);
-        #endregion
-
-        #region 5. Completar el DUCA
+        entranceDucat.ServiceOrderId = serviceOrder.Id;
+        entranceDucat.ServiceOrderCode = serviceOrder.Code;
         entranceDucat.Status = DucaStatus.Completed;
         #endregion
 
@@ -247,7 +242,7 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
             var executionLog = await _unitOfWork.StepExecutionLogs.Entities
                 .FirstOrDefaultAsync(l =>
                     l.RecordEntranceId == recordEntrance.Id &&
-                    l.WorkflowStepDefinitionCode == MerchandiseRegistrationSteps.Duca,
+                    l.WorkflowStepDefinitionCode == WorkflowStepCodes.Merchandise,
                     cancellationToken);
 
             if (executionLog != null)

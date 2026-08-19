@@ -11,7 +11,7 @@ public class GetMerchandiseRegistryQuery : IRequest<GetMerchandiseRegistryDto>
     public Guid UserId { get; set; }
 
     public string? DriverName { get; set; }
-    public string? PlateNumber { get; set; }
+    public string? VehiclePlateNumber { get; set; }
     public DocumentType? DocumentType { get; set; }
     public string? DocumentNumber { get; set; }
     public string? DucatNumber { get; set; }
