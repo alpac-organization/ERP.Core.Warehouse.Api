@@ -56,7 +56,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             };
         }
 
-        public static PurchaseRequestItem ToRequestedProductEntity(this Commands.PurchaseRequestItem command, Guid purchaseRequestId)
+        public static PurchaseRequestItem ToPurchaseRequestItemEntity(this Commands.PurchaseRequestItem command, Guid purchaseRequestId)
         {
             return new()
             {
@@ -69,6 +69,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 UnitMeasureId     = command.UnitMeasureId,
                 Justification     = command.Justification,
                 Description       = command.Description,
+                AdditionalData    = command.AdditionalData
             };
         }
     }
