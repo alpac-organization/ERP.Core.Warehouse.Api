@@ -5,43 +5,12 @@ using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 using ReceptionEntranceEntity = ERP.Core.Database.Domain.Entities.Warehouse.ReceptionEntrance;
-using System.Text.Json;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 
 public static class ReceptionEntranceMapper
 {
-    #region Helpers - Seal Evidence Conversion
-
-    public static SealEvidenceDto? ToSealEvidenceDto(this string? sealEvidenceJson)
-    {
-        if (string.IsNullOrWhiteSpace(sealEvidenceJson) || sealEvidenceJson == "{}")
-            return null;
-
-        try
-        {
-            return JsonSerializer.Deserialize<SealEvidenceDto>(
-                sealEvidenceJson,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-    }
-
-    public static string ToJsonOrEmpty(this SealEvidenceDto? sealEvidence)
-    {
-        if (sealEvidence == null || string.IsNullOrWhiteSpace(sealEvidence.ImageBase64))
-            return "{}";
-
-        return JsonSerializer.Serialize(sealEvidence);
-    }
-
-    #endregion
-
     #region Create Endpoint
-
     public static CreateReceptionEntranceCommand ToCommand(
         this CreateReceptionEntranceDto dto,
         Guid userId,
@@ -72,7 +41,7 @@ public static class ReceptionEntranceMapper
             TransportUnit = dto.TransportUnit,
             DriverName = dto.DriverName.SanitizeAlphanumeric(),
             SealNumber = dto.SealNumber.SanitizeCode(),
-            SealEvidence = dto.SealEvidence,
+            EvidenceBase64 = dto.EvidenceBase64,
             StartDate = dto.StartDate,
             StartTime = dto.StartTime
         };
@@ -255,7 +224,8 @@ public class ReceptionEntranceProfile : Profile
             .ForMember(d => d.TransportUnit, o => o.MapFrom(s => s.TransportUnit))
             .ForMember(d => d.DriverName, o => o.MapFrom(s => s.DriverName))
             .ForMember(d => d.SealNumber, o => o.MapFrom(s => s.SealNumber))
-            .ForMember(d => d.SealEvidence, o => o.MapFrom(s => s.SealEvidence.ToJsonOrEmpty()))
+            .ForMember(d => d.EvidenceUrls, o => o.MapFrom((src, dest, destMember, ctx) => (List<string>)ctx.Items["EvidenceUrls"]))
+            .ForMember(d => d.DeletedEvidenceUrls, o => o.Ignore())
             .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.DocumentType))
             .ForMember(d => d.CustomsBranches, o => o.Ignore())
             .ForMember(d => d.RecordEntrance, o => o.Ignore())
@@ -349,7 +319,7 @@ public class ReceptionEntranceProfile : Profile
             .ForMember(d => d.TransportUnit, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnit))
             .ForMember(d => d.DriverName, o => o.MapFrom(s => s.ReceptionEntrance!.DriverName))
             .ForMember(d => d.SealNumber, o => o.MapFrom(s => s.ReceptionEntrance!.SealNumber))
-            .ForMember(d => d.SealEvidence, o => o.MapFrom(s => s.ReceptionEntrance!.SealEvidence.ToSealEvidenceDto()))
+            .ForMember(d => d.EvidenceUrls, o => o.MapFrom(s => s.ReceptionEntrance!.EvidenceUrls))
             .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType))
             .ForMember(d => d.VehicleExitDate, o => o.MapFrom(s => s.ReceptionEntrance!.VehicleExitDate))
             .ForMember(d => d.VehicleExitTime, o => o.MapFrom(s => s.ReceptionEntrance!.VehicleExitTime))

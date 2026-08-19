@@ -10,13 +10,15 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 using ReceptionEntranceEntity = ERP.Core.Database.Domain.Entities.Warehouse.ReceptionEntrance;
+using ERP.Core.Application.Commons.Interfaces.AWS;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
 
 public class CreateReceptionEntranceHandler(
     IUnitOfWork unitOfWork,
     IErrorManager errorManager,
-    IMapper mapper)
+    IMapper mapper,
+    IS3StorageService s3StorageService)
     : BaseValidatorHandler<CreateReceptionEntranceCommand, bool>(unitOfWork, errorManager)
 {
     public override async Task<bool> Handle(CreateReceptionEntranceCommand request, CancellationToken cancellationToken)
@@ -140,6 +142,7 @@ public class CreateReceptionEntranceHandler(
 
         var processedByUserName = user.Fullname ?? user.UserName ?? request.UserId.ToString();
 
+        // Mapeo de entidades con EvidenceUrls vacío
         var recordEntrance = mapper.Map<RecordEntrance>(request, opts =>
         {
             opts.Items["RecordEntranceId"] = recordEntranceId;
@@ -148,7 +151,10 @@ public class CreateReceptionEntranceHandler(
         });
 
         var receptionEntrance = mapper.Map<ReceptionEntranceEntity>(request, opts =>
-            opts.Items["RecordEntranceId"] = recordEntranceId);
+        {
+            opts.Items["RecordEntranceId"] = recordEntranceId;
+            opts.Items["EvidenceUrls"] = new List<string>();  // Iniciar vacío
+        });
 
         var executionLog = mapper.Map<StepExecutionLogs>(request, opts =>
         {
@@ -159,6 +165,7 @@ public class CreateReceptionEntranceHandler(
             opts.Items["ProcessedByUserName"] = processedByUserName;
         });
 
+        // Paso 1: Insertar en BD con EvidenceUrls vacío
         await _unitOfWork.RecordEntrance.InsertRecordEntrance(recordEntrance);
         await _unitOfWork.ReceptionEntrance.InsertReceptionEntrance(receptionEntrance);
         await _unitOfWork.StepExecutionLogs.InsertExecutionLog(executionLog);
@@ -182,7 +189,24 @@ public class CreateReceptionEntranceHandler(
             await _unitOfWork.CustomsDeclarationDetails.RegisterCustomsDeclarationDetails(customsDeclarationDetails);
         }
 
+        // PRIMER SaveChanges: Guardar todo en BD sin evidencia
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Paso 2: Subir imágenes a S3
+        if (request.EvidenceBase64 != null && request.EvidenceBase64.Count > 0)
+        {
+            var evidenceUrls = (await s3StorageService.UploadImagesAsync(
+                module: "warehouse",
+                section: "reception-evidence",
+                base64Images: request.EvidenceBase64,
+                cancellationToken: cancellationToken)).ToList();
+
+            // Paso 3: Actualizar entidad con las URLs
+            receptionEntrance.EvidenceUrls = evidenceUrls;
+
+            // SEGUNDO SaveChanges: Actualizar con las URLs de evidencia
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
         #endregion
 
         return true;

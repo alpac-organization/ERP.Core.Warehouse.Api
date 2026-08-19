@@ -113,5 +113,9 @@ public class CreateReceptionEntranceValidator : AbstractValidator<CreateReceptio
         RuleFor(x => x.SealNumber)
             .NotEmpty().WithMessage("El número de marchamo es obligatorio.")
             .MaximumLength(50).WithMessage("El número de marchamo no puede exceder 50 caracteres.");
+
+        RuleFor(x => x.EvidenceBase64)
+            .NotEmpty().WithMessage("La imagen de evidencia no puede estar vacía.")
+            .When(x => x.EvidenceBase64 != null && x.EvidenceBase64.Count > 0);
     }
 }
