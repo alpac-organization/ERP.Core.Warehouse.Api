@@ -142,70 +142,105 @@ public class CreateReceptionEntranceHandler(
 
         var processedByUserName = user.Fullname ?? user.UserName ?? request.UserId.ToString();
 
-        // Mapeo de entidades con EvidenceUrls vacío
-        var recordEntrance = mapper.Map<RecordEntrance>(request, opts =>
+        var evidenceUrls = new List<string>();
+
+        try
         {
-            opts.Items["RecordEntranceId"] = recordEntranceId;
-            opts.Items["StepCode"] = currentStepCode;
-            opts.Items["IsConsolidated"] = isConsolidated;
-        });
+            // PASO 1: Subir imágenes a S3 PRIMERO
+            if (request.EvidenceBase64 != null && request.EvidenceBase64.Count > 0)
+            {
+                evidenceUrls = (await s3StorageService.UploadImagesAsync(
+                    module: "warehouse",
+                    section: "reception-evidence",
+                    base64Images: request.EvidenceBase64,
+                    cancellationToken: cancellationToken)).ToList();
+            }
 
-        var receptionEntrance = mapper.Map<ReceptionEntranceEntity>(request, opts =>
-        {
-            opts.Items["RecordEntranceId"] = recordEntranceId;
-            opts.Items["EvidenceUrls"] = new List<string>();  // Iniciar vacío
-        });
+            // PASO 2: Mapear entidades con las URLs de evidencia
+            var contextItems = new Dictionary<string, object>
+            {
+                ["RecordEntranceId"] = recordEntranceId,
+                ["StepCode"] = currentStepCode,
+                ["IsConsolidated"] = isConsolidated,
+                ["EndDate"] = systemEndDate,
+                ["EndTime"] = systemEndTime,
+                ["ProcessedByUserName"] = processedByUserName,
+                ["EvidenceUrls"] = evidenceUrls
+            };
 
-        var executionLog = mapper.Map<StepExecutionLogs>(request, opts =>
-        {
-            opts.Items["RecordEntranceId"] = recordEntranceId;
-            opts.Items["StepCode"] = currentStepCode;
-            opts.Items["EndDate"] = systemEndDate;
-            opts.Items["EndTime"] = systemEndTime;
-            opts.Items["ProcessedByUserName"] = processedByUserName;
-        });
+            var recordEntrance = mapper.Map<RecordEntrance>(request, opts =>
+            {
+                foreach (var item in contextItems)
+                {
+                    opts.Items[item.Key] = item.Value;
+                }
+            });
 
-        // Paso 1: Insertar en BD con EvidenceUrls vacío
-        await _unitOfWork.RecordEntrance.InsertRecordEntrance(recordEntrance);
-        await _unitOfWork.ReceptionEntrance.InsertReceptionEntrance(receptionEntrance);
-        await _unitOfWork.StepExecutionLogs.InsertExecutionLog(executionLog);
+            var receptionEntrance = mapper.Map<ReceptionEntranceEntity>(request, opts =>
+            {
+                foreach (var item in contextItems)
+                {
+                    opts.Items[item.Key] = item.Value;
+                }
+            });
 
-        if (isDuca)
-        {
-            var ducatEntities = request.DucatNumbers
-                .Select(ducatNumber => ducatNumber.ToEntranceDucaEntity(recordEntranceId))
-                .ToList();
+            var executionLog = mapper.Map<StepExecutionLogs>(request, opts =>
+            {
+                foreach (var item in contextItems)
+                {
+                    opts.Items[item.Key] = item.Value;
+                }
+            });
 
-            await _unitOfWork.EntranceDucats.InsertEntranceDucatsRange(ducatEntities);
-        }
-        else
-        {
-            var customsDeclaration = mapper.Map<CustomsDeclarations>(request, opts =>
-                opts.Items["RecordEntranceId"] = recordEntranceId);
-            await _unitOfWork.CustomsDeclarations.RegisterCustomsDeclarations(customsDeclaration);
+            // PASO 3: Insertar en BD
+            await _unitOfWork.RecordEntrance.InsertRecordEntrance(recordEntrance);
+            await _unitOfWork.ReceptionEntrance.InsertReceptionEntrance(receptionEntrance);
+            await _unitOfWork.StepExecutionLogs.InsertExecutionLog(executionLog);
 
-            var customsDeclarationDetails = mapper.Map<CustomsDeclarationDetails>(request, opts =>
-                opts.Items["CustomsDeclarationId"] = customsDeclaration.Id);
-            await _unitOfWork.CustomsDeclarationDetails.RegisterCustomsDeclarationDetails(customsDeclarationDetails);
-        }
+            if (isDuca)
+            {
+                var ducatEntities = request.DucatNumbers
+                    .Select(ducatNumber => ducatNumber.ToEntranceDucaEntity(recordEntranceId))
+                    .ToList();
 
-        // PRIMER SaveChanges: Guardar todo en BD sin evidencia
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                await _unitOfWork.EntranceDucats.InsertEntranceDucatsRange(ducatEntities);
+            }
+            else
+            {
+                var customsDeclaration = mapper.Map<CustomsDeclarations>(request, opts =>
+                {
+                    opts.Items["RecordEntranceId"] = recordEntranceId;
+                });
 
-        // Paso 2: Subir imágenes a S3
-        if (request.EvidenceBase64 != null && request.EvidenceBase64.Count > 0)
-        {
-            var evidenceUrls = (await s3StorageService.UploadImagesAsync(
-                module: "warehouse",
-                section: "reception-evidence",
-                base64Images: request.EvidenceBase64,
-                cancellationToken: cancellationToken)).ToList();
+                await _unitOfWork.CustomsDeclarations.RegisterCustomsDeclarations(customsDeclaration);
 
-            // Paso 3: Actualizar entidad con las URLs
-            receptionEntrance.EvidenceUrls = evidenceUrls;
+                var customsDeclarationDetails = mapper.Map<CustomsDeclarationDetails>(request, opts =>
+                {
+                    opts.Items["CustomsDeclarationId"] = customsDeclaration.Id;
+                });
 
-            // SEGUNDO SaveChanges: Actualizar con las URLs de evidencia
+                await _unitOfWork.CustomsDeclarationDetails.RegisterCustomsDeclarationDetails(customsDeclarationDetails);
+            }
+
+            // PASO 4: Guardar en BD
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception)
+        {
+            // Si falla la BD, eliminar imágenes de S3 (compensación)
+            if (evidenceUrls.Count > 0)
+            {
+                try
+                {
+                    await s3StorageService.DeleteImagesAsync(evidenceUrls, cancellationToken);
+                }
+                catch
+                {
+                    // Si S3 también falla, las imágenes quedarán huérfanas
+                }
+            }
+
+            throw;
         }
         #endregion
 
