@@ -6,13 +6,15 @@ using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
+using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Controllers.Warehouses;
 
 [HasToken]
 [ApiVersion("1.0")]
 [Route("api/v1/")]
-public class LotsController(IMediator mediator) : ApiControllerBase
+public class LotsController(IMediator _mediator) : ApiControllerBase
 {
     [Tags("Tramos")]
     [HttpPost("companies/{company_id}/modules/{module_code}/sections/{section_id}/lots")]
@@ -31,36 +33,40 @@ public class LotsController(IMediator mediator) : ApiControllerBase
             return Unauthorized();
 
         var command = dto.ToCommand(section_id, userId, company_id, module_code);
-        var response = await mediator.Send(command, cancellationToken);
+        var response = await _mediator.Send(command, cancellationToken);
         return Ok(response);
     }
 
     #region Get Lots By Section
     [Tags("Tramos")]
     [HttpGet("companies/{company_id}/modules/{module_code}/sections/{section_id}/lots")]
-    [ProducesResponseType(typeof(List<LotListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<LotListItemDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetLotsBySectionAsync(
+    public async Task<PagedResponse<LotListItemDto>> GetLotsBySectionAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
         [FromRoute] Guid section_id,
-        CancellationToken cancellationToken)
+        [FromQuery] string? code = null,
+        [FromQuery] RackStatus? status = null,
+        [FromQuery] int page_number = 1,
+        [FromQuery] int page_size = 10,
+        CancellationToken cancellationToken = default)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
-        if (!Guid.TryParse(userIdStr, out var userId))
-            return Unauthorized();
+        Guid.TryParse(userIdStr, out var userId);
 
-        var query = new GetLotsBySectionQuery
+        return await _mediator.Send(new GetLotsBySectionQuery
         {
             SectionId = section_id,
+            Code = code,
+            RackStatus = status,
             UserId = userId,
             CompanyId = company_id,
-            ModuleCode = module_code
-        };
-
-        var response = await mediator.Send(query, cancellationToken);
-        return Ok(response);
+            ModuleCode = module_code,
+            PageNumber = page_number,
+            PageSize = page_size
+        }, cancellationToken);
     }
     #endregion
 
@@ -90,7 +96,7 @@ public class LotsController(IMediator mediator) : ApiControllerBase
             ModuleCode = module_code
         };
 
-        var response = await mediator.Send(query, cancellationToken);
+        var response = await _mediator.Send(query, cancellationToken);
         return Ok(response);
     }
     #endregion
