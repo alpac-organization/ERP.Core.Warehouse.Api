@@ -62,11 +62,11 @@ public class GetMerchandiseRegistryHandler(IUnitOfWork unitOfWork, IErrorManager
             query = query.Where(r => r.ReceptionEntrance!.DriverName.ToLower().Replace(" ", "").Contains(driverFilter));
         }
         
-        // if (!string.IsNullOrWhiteSpace(request.PlateNumber))
-        // {
-        //     var plateFilter = request.PlateNumber.Trim().ToLower().Replace(" ", "");
-        //     query = query.Where(r => r.ReceptionEntrance!.PlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
-        // }
+        if (!string.IsNullOrWhiteSpace(request.VehiclePlateNumber))
+        {
+            var plateFilter = request.VehiclePlateNumber.Trim().ToLower().Replace(" ", "");
+            query = query.Where(r => r.ReceptionEntrance!.VehiclePlateNumber.ToLower().Replace(" ", "").Contains(plateFilter));
+        }
 
         if (request.DocumentType.HasValue)
             query = query.Where(r => r.ReceptionEntrance!.DocumentType == request.DocumentType.Value);
@@ -132,8 +132,12 @@ public class GetMerchandiseRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorM
         var recordEntrance = await _unitOfWork.RecordEntrance.Entities
             .AsNoTracking()
             .Include(r => r.ReceptionEntrance!)
-                .ThenInclude(re => re.TransportUnit)
+                .ThenInclude(re => re.CustomsBranches)
             .Include(r => r.DucatRegistry!)
+                .ThenInclude(dr => dr.ShippingCompany)
+            .Include(r => r.DucatRegistry!)
+                .ThenInclude(dr => dr.Details)
+                .ThenInclude(dr => dr.Merchandise)
             .Include(r => r.CustomsDeclarations!)
                 .ThenInclude(cd => cd.Details)
             .FirstOrDefaultAsync(r => r.Id == request.ReceptionId && r.DeletedAt == null, cancellationToken);
@@ -152,11 +156,13 @@ public class GetMerchandiseRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorM
             .Where(l => l.RecordEntranceId == recordEntrance.Id && l.DeletedAt == null)
             .Include(d => d.RegistryDetail!)
                 .ThenInclude(rd => rd.Merchandise)
+            .Include(d => d.ServiceOrder)
             .ToListAsync(cancellationToken);
 
         recordEntrance.ExecutionLogs = await _unitOfWork.StepExecutionLogs.Entities
             .AsNoTracking()
             .Where(l => l.RecordEntranceId == recordEntrance.Id)
+            .OrderBy(l => l.CreatedAt)
             .ToListAsync(cancellationToken);
 
         return _mapper.Map<GetMerchandiseRegistryDetailDto>(recordEntrance);
