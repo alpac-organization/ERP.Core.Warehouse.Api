@@ -5,7 +5,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Dto
 public class MerchandiseRegistryListItemDto
 {
     public Guid Id { get; set; }
-    public string PlateNumber { get; set; } = string.Empty;
+    public string VehiclePlateNumber { get; set; } = string.Empty;
     public string DriverName { get; set; } = string.Empty;
     public string? ContainerNumber { get; set; }
     public DateOnly ArrivalDate { get; set; }
@@ -30,13 +30,14 @@ public class MerchandiseDucatDetailDto
     public Guid Id { get; set; }
     public string DucatNumber { get; set; } = string.Empty;
     public DucaStatus Status { get; set; }
+    public DucaType Type { get; set; }
 
     public Guid? MerchandiseId { get; set; }
     public string? MerchandiseName { get; set; }
     public int? TotalBultos { get; set; }
     public decimal? TotalWeight { get; set; }
-    public string? ProductDescription { get; set; }
-    public string? Remitente { get; set; }
+    public string? MerchandiseDescription { get; set; }
+    public string? Sender { get; set; }
     public string? DestinationAreaObservation { get; set; }
 
     public Guid? ServiceOrderId { get; set; }
@@ -86,20 +87,21 @@ public class GetMerchandiseRegistryDetailDto
 public class MerchandiseReceptionDetailDto
 {
     public string CountryOfOrigin { get; set; } = string.Empty;
-    public string Aduana { get; set; } = string.Empty;
-    public string PlateNumber { get; set; } = string.Empty;
-    public string TrailerChassis { get; set; } = string.Empty;
+    public string CustomBranch { get; set; } = string.Empty;
+    public string VehiclePlateNumber { get; set; } = string.Empty;
+    public string VehicleChassisNumber { get; set; } = string.Empty;
+    public string? ContainerNumber { get; set; }
     public string DriverLicense { get; set; } = string.Empty;
     public string Transportista { get; set; } = string.Empty;
-    public Guid TransportUnitId { get; set; }
-    public string? TransportUnitName { get; set; }
     public string DriverName { get; set; } = string.Empty;
     public string SealNumber { get; set; } = string.Empty;
+    public string SealEvidence { get; set; } = string.Empty;
     public DocumentType DocumentType { get; set; }
-    public DateOnly? TransportUnitExitDate { get; set; }
-    public TimeOnly? TransportUnitExitTime { get; set; }
-    public string? ContainerNumber { get; set; }
-
+    public TransportUnit TransportUnit { get; set; }
+    public DateOnly? VehicleExitDate { get; set; }
+    public TimeOnly? VehicleExitTime { get; set; }
+    public DateOnly? ContainerExitDate { get; set; }
+    public TimeOnly? ContainerExitTime { get; set; }
 }
 
 public class MerchandiseRegistrationLogDto
@@ -116,7 +118,8 @@ public class MerchandiseRegistrationLogDto
 
 public class MerchandiseDucaRegistryDetailDto
 {
-    public string? Empresa { get; set; } // naviera
+    public Guid? ShippingCompanyId { get; set; } // naviera
+    public string? SippingCompanyName { get; set; }
     public string? GeneralObservations { get; set; }
     public bool? IsInTransit { get; set; }
 

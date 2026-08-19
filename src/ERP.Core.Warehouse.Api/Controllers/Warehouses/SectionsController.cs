@@ -6,6 +6,8 @@ using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
+using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Controllers.Warehouses;
 
@@ -41,14 +43,20 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
 
     [Tags("Secciones")]
     [HttpGet("companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}/sections")]
-    [ProducesResponseType(typeof(List<SectionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<SectionDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<List<SectionDto>> GetSectionsAsync(
+    public async Task<PagedResponse<SectionDto>> GetSectionsAsync(
     [FromRoute] Guid company_id,
     [FromRoute] string module_code,
     [FromRoute] Guid warehouse_id,
-    CancellationToken cancellationToken)
+    [FromQuery] string? section_code = null,
+    [FromQuery] SectionType? section_type = null,
+    [FromQuery] SectionStorageType? section_storage_type = null,
+    [FromQuery] bool? is_active = null,
+    [FromQuery] int page_number = 1,
+    [FromQuery] int page_size = 10,
+    CancellationToken cancellationToken = default)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
         Guid.TryParse(userIdStr, out var userId);
@@ -58,7 +66,13 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
             CompanyId = company_id,
             ModuleCode = module_code,
             UserId = userId,
-            WarehouseId = warehouse_id
+            WarehouseId = warehouse_id,
+            SectionType = section_type,
+            SectionStorageType = section_storage_type,
+            IsActive = is_active,
+            SectionCode = section_code,
+            PageNumber = page_number,
+            PageSize = page_size,
         }, cancellationToken);
     }
 

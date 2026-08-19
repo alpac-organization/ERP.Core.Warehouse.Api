@@ -5,8 +5,7 @@ using ERP.Core.Warehouse.Api.Infrastructure.Services;
 using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Infrastructure.Services;
-using ERP.Core.Database.Application.Commons.Interfaces.Repositories.Shopping;
-using ERP.Core.Database.Infrastructure.Persistence.Repositories.Shopping;
+using ERP.Core.Infrastructure;
 
 namespace ERP.Core.Warehouse.Api.Infrastructure
 {
@@ -16,12 +15,11 @@ namespace ERP.Core.Warehouse.Api.Infrastructure
         {
             // services.AddJobScheduling();
             services.AddErpDatabaseServices(configuration);
-            
-            services.AddScoped<IQuotesRepository, QuotesRepository>();
-            // services.AddScoped<IErrorManager, ErrorManager>();
 
+            services.AddErpCoreServices(configuration);
             services.AddScoped<IErrorManager, ErrorManager>();
             services.AddHttpClient<IScaleServices, ScaleServices>();
+
 
             return services;
         }
