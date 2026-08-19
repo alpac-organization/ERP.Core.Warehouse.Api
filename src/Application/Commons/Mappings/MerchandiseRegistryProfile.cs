@@ -4,6 +4,7 @@ using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 
@@ -321,8 +322,17 @@ public class DucatRegistryDetailProfile : Profile
     {
         CreateMap<CreateDucatRegistryDetailCommand, DucatRegistryDetails>()
             .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
-            // .ForMember(d => d.RecordEntranceId, o => o.Ignore())
+            .ForMember(d => d.DucatRegistryId, o => o.Ignore())
             .ForMember(d => d.EntranceDucatId, o => o.Ignore())
+            .ForMember(d => d.MerchandiseId, o => o.MapFrom(s => s.MerchandiseId))
+            .ForMember(d => d.MerchandiseName, o => o.Ignore())
+            .ForMember(d => d.Type, o => o.MapFrom(s => s.Type))
+            .ForMember(d => d.TotalBultos, o => o.MapFrom(s => s.TotalBultos))
+            .ForMember(d => d.TotalWeight, o => o.MapFrom(s => s.TotalWeight))
+            .ForMember(d => d.MerchandiseDescription, o => o.MapFrom(s => s.MerchandiseDescription))
+            .ForMember(d => d.Sender, o => o.MapFrom(s => s.Sender))
+            .ForMember(d => d.DestinationAreaObservation, o => o.MapFrom(s => s.DestinationAreaObservation))
+
             .ForMember(d => d.RegisteredByUserId, o => o.Ignore())
             .ForMember(d => d.RegisteredByUserName, o => o.Ignore())
             .ForMember(d => d.RegisteredStartDate, o => o.Ignore())
@@ -332,7 +342,10 @@ public class DucatRegistryDetailProfile : Profile
             .ForMember(d => d.UpdatedByUserId, o => o.Ignore())
             .ForMember(d => d.UpdatedByUserName, o => o.Ignore())
             .ForMember(d => d.UpdatedDate, o => o.Ignore())
-            .ForMember(d => d.UpdatedTime, o => o.Ignore());
+            .ForMember(d => d.UpdatedTime, o => o.Ignore())
+            .ForMember(d => d.DucatRegistry, o => o.Ignore())
+            .ForMember(d => d.EntranceDucat, o => o.Ignore())
+            .ForMember(d => d.Merchandise, o => o.Ignore());
     }
 }
 
@@ -355,11 +368,12 @@ public static class DucatRegistryDetailMapper
             CompanyId = companyId,
             ModuleCode = moduleCode,
             MerchandiseId = dto.MerchandiseId,
+            Type = dto.Type,
             TotalBultos = dto.TotalBultos,
             TotalWeight = dto.TotalWeight,
-            ProductDescription = dto.ProductDescription,
-            Remitente = dto.Remitente,
-            DestinationAreaObservation = dto.DestinationAreaObservation,
+            MerchandiseDescription = dto.MerchandiseDescription.SanitizeAlphanumeric(),
+            Sender = dto.Sender.SanitizeAlphanumeric(),
+            DestinationAreaObservation = dto.DestinationAreaObservation.SanitizeAlphanumeric(),
             RegisteredStartDate = dto.RegisteredStartDate,
             RegisteredStartTime = dto.RegisteredStartTime
         };

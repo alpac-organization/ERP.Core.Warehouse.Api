@@ -42,6 +42,9 @@ public class CreateDucaRegistryDetailValidator : AbstractValidator<CreateDucatRe
  
         RuleFor(x => x.MerchandiseId)
             .NotEqual(Guid.Empty).WithMessage("El producto es obligatorio.");
+        
+        RuleFor(x => x.ServiceOrderId)
+            .NotEqual(Guid.Empty).WithMessage("La Orden de Servicio es obligatoria.");
  
         RuleFor(x => x.TotalBultos)
             .GreaterThan(0).WithMessage("La cantidad de bultos debe ser mayor a cero (0).");
@@ -49,12 +52,12 @@ public class CreateDucaRegistryDetailValidator : AbstractValidator<CreateDucatRe
         RuleFor(x => x.TotalWeight)
             .GreaterThan(0).WithMessage("El peso total debe ser mayor a cero (0).");
  
-        RuleFor(x => x.Remitente)
+        RuleFor(x => x.Sender)
             .NotEmpty().WithMessage("El remitente es obligatorio.")
             .MaximumLength(200).WithMessage("El remitente no puede superar los 200 caracteres.");
  
-        RuleFor(x => x.ProductDescription)
-            .MaximumLength(500).WithMessage("La descripción del producto no puede superar los 500 caracteres.");
+        RuleFor(x => x.MerchandiseDescription)
+            .MaximumLength(500).WithMessage("La descripción de la Mercadería no puede superar los 500 caracteres.");
  
         RuleFor(x => x.DestinationAreaObservation)
             .MaximumLength(500)
