@@ -2,9 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using AutoMapper;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
+using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
+using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
-using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
+using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
 
@@ -33,18 +35,50 @@ public class GetLotByIdHandler(IUnitOfWork unitOfWork, IErrorManager errorManage
 
 #region Get Lots por Section
 public class GetLotsBySectionHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
-    : BaseValidatorHandler<GetLotsBySectionQuery, List<LotListItemDto>>(unitOfWork, errorManager)
+    : BaseValidatorHandler<GetLotsBySectionQuery, PagedResponse<LotListItemDto>>(unitOfWork, errorManager)
 {
-    private readonly IMapper _mapper = mapper;
-
-    public override async Task<List<LotListItemDto>> Handle(GetLotsBySectionQuery request, CancellationToken cancellationToken)
+    public override async Task<PagedResponse<LotListItemDto>> Handle(
+        GetLotsBySectionQuery request,
+        CancellationToken cancellationToken)
     {
-        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
-        if (!access.IsSuccess) return [];
+        var access = await ValidateAccessAsync(
+            request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
 
-        return await _mapper.ProjectTo<LotListItemDto>(
-                _unitOfWork.Lots.Entities.Where(l => l.SectionId == request.SectionId))
+        if (!access.IsSuccess)
+            return access.ErrorResponse!;
+
+        var queryLots = _unitOfWork.Lots.Entities
+            .AsNoTracking()
+            .Where(lot => lot.DeletedAt == null && lot.SectionId == request.SectionId);
+
+        queryLots = ApplyFilters(queryLots, request);
+
+        var totalRecords = await queryLots.CountAsync(cancellationToken);
+
+        var lots = await queryLots
+            .OrderBy(lot => lot.Code)
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
             .ToListAsync(cancellationToken);
+
+        return new PagedResponse<LotListItemDto>(
+            mapper.Map<List<LotListItemDto>>(lots),
+            request.PageNumber,
+            request.PageSize,
+            totalRecords);
+    }
+
+    private static IQueryable<Lots> ApplyFilters(
+        IQueryable<Lots> query,
+        GetLotsBySectionQuery request)
+    {
+        if (!string.IsNullOrWhiteSpace(request.Code))
+            query = query.Where(lot => lot.Code == request.Code);
+
+        if (request.RackStatus.HasValue)
+            query = query.Where(lot => lot.Status == request.RackStatus.Value);
+
+        return query;
     }
 }
 #endregion

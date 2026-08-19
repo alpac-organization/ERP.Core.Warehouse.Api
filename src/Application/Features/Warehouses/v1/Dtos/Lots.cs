@@ -75,7 +75,7 @@ public class LotListItemDto
     public string? Code { get; set; }
     public decimal WidthMetres { get; set; }
     public decimal LengthMetres { get; set; }
-    public string? Status { get; set; }
+    public RackStatus? Status { get; set; }
     public int TotalPositions { get; set; }
     public int OccupiedPositions { get; set; }
 }
