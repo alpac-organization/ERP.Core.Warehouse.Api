@@ -6,6 +6,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Comman
 {
     public class RegisterPurchaseRequestCommand : BaseRequest, IRequest<bool>
     {
+        public List<RegisterPurchaseRequest> PurchaseRequests { get; set;} =  [];
+    }
+
+    public class RegisterPurchaseRequest
+    {
         public Guid? AreaId { get; set; }
         public Guid BranchId { get; set; }
         public string? Observations { get; set; }
