@@ -44,7 +44,7 @@ public class DeleteReceptionEntranceHandler(
                 "ERP:RECORD_ALREADY_ADVANCED");
         }
 
-        // 3. Mover solo las imágenes ACTIVAS a la papelera de S3
+        // 3. Obtener las URLs activas para mover a papelera
         var activeEvidenceUrls = recordEntrance.ReceptionEntrance?.EvidenceUrls ?? [];
 
         var urlsToMove = activeEvidenceUrls
@@ -52,58 +52,53 @@ public class DeleteReceptionEntranceHandler(
             .Distinct()
             .ToList();
 
-        if (urlsToMove.Count > 0)
+        try
         {
-            await s3StorageService.MoveImagesAsync(
-                sourceUrls: urlsToMove,
-                Module: S3Sections.Module,
-                sourceSection: S3Sections.ReceptionEvidence,
-                destinationSection: S3Sections.ReceptionEvidenceDeleted,
-                cancellationToken: cancellationToken);
-        }
-
-        // 4. Soft delete de ReceptionEntrance
-        if (recordEntrance.ReceptionEntrance != null)
-        {
-            // Mover las URLs activas al historial de eliminadas
-            var deletedUrls = recordEntrance.ReceptionEntrance.DeletedEvidenceUrls ?? [];
-            deletedUrls.AddRange(activeEvidenceUrls);
-            recordEntrance.ReceptionEntrance.DeletedEvidenceUrls = deletedUrls.Distinct().ToList();
-
-            // Vaciar solo las activas
-            recordEntrance.ReceptionEntrance.EvidenceUrls = [];
-
-            recordEntrance.ReceptionEntrance.DeletedAt = NicaraguaClock.Now;
-        }
-
-        // 5. Soft delete de EntranceDucats
-        foreach (var ducat in recordEntrance.EntranceDucats)
-        {
-            ducat.DeletedAt = NicaraguaClock.Now;
-        }
-
-        // 6. Soft delete de CustomsDeclarations y sus Details
-        if (recordEntrance.CustomsDeclarations != null)
-        {
-            recordEntrance.CustomsDeclarations.DeletedAt = NicaraguaClock.Now;
-
-            if (recordEntrance.CustomsDeclarations.Details != null)
+            // 4. Soft delete de ReceptionEntrance
+            if (recordEntrance.ReceptionEntrance != null)
             {
-                recordEntrance.CustomsDeclarations.Details.DeletedAt = NicaraguaClock.Now;
+                var deletedUrls = recordEntrance.ReceptionEntrance.DeletedEvidenceUrls ?? [];
+                deletedUrls.AddRange(activeEvidenceUrls);
+                recordEntrance.ReceptionEntrance.DeletedEvidenceUrls = deletedUrls.Distinct().ToList();
+                recordEntrance.ReceptionEntrance.EvidenceUrls = [];
+                recordEntrance.ReceptionEntrance.DeletedAt = NicaraguaClock.Now;
+            }
+
+            // ... resto de soft deletes ...
+
+            // 9. Guardar en BD PRIMERO
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // 10. Después de BD exitosa, mover imágenes a papelera de S3
+            if (urlsToMove.Count > 0)
+            {
+                var movedUrls = (await s3StorageService.MoveImagesAsync(
+                    sourceUrls: urlsToMove,
+                    Module: S3Sections.Module,
+                    sourceSection: S3Sections.ReceptionEvidence,
+                    destinationSection: S3Sections.ReceptionEvidenceDeleted,
+                    cancellationToken: cancellationToken)).ToList();
+
+                // 11. ACTUALIZAR las URLs en BD con las nuevas URLs de papelera
+                if (movedUrls.Count > 0 && recordEntrance.ReceptionEntrance != null)
+                {
+                    var updatedDeletedUrls = recordEntrance.ReceptionEntrance.DeletedEvidenceUrls ?? [];
+
+                    // Reemplazar URLs originales por las movidas
+                    updatedDeletedUrls.RemoveAll(url => urlsToMove.Contains(url));
+                    updatedDeletedUrls.AddRange(movedUrls);
+
+                    recordEntrance.ReceptionEntrance.DeletedEvidenceUrls = updatedDeletedUrls.Distinct().ToList();
+
+                    // Guardar la actualización de URLs
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+                }
             }
         }
-
-        // 7. Soft delete de StepExecutionLogs
-        foreach (var log in recordEntrance.ExecutionLogs)
+        catch (Exception)
         {
-            log.DeletedAt = NicaraguaClock.Now;
+            throw;
         }
-
-        // 8. Soft delete de RecordEntrance
-        recordEntrance.DeletedAt = NicaraguaClock.Now;
-
-        // 9. Guardar cambios
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return true;
     }

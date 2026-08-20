@@ -18,7 +18,7 @@ public class PermanentDeleteEvidenceHandler(
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        // 1. Buscar el ReceptionEntrance para obtener las URLs (incluyendo soft deleted)
+        // 1. Buscar el ReceptionEntrance para obtener las URLs
         var receptionEntrance = await _unitOfWork.ReceptionEntrance.Entities
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(r => r.RecordEntranceId == request.ReceptionId, cancellationToken);
@@ -30,20 +30,12 @@ public class PermanentDeleteEvidenceHandler(
                 "ERP:RECEPTION_NOT_FOUND");
         }
 
-        // 2. Obtener todas las URLs de evidencia (activas + eliminadas)
-        var allUrls = new List<string>();
+        // 2. Guardar copia de las URLs originales
+        var originalEvidenceUrls = receptionEntrance.EvidenceUrls?.ToList() ?? [];
+        var originalDeletedEvidenceUrls = receptionEntrance.DeletedEvidenceUrls?.ToList() ?? [];
 
-        if (receptionEntrance.EvidenceUrls != null)
-        {
-            allUrls.AddRange(receptionEntrance.EvidenceUrls);
-        }
+        var allUrls = originalEvidenceUrls.Concat(originalDeletedEvidenceUrls).Distinct().ToList();
 
-        if (receptionEntrance.DeletedEvidenceUrls != null)
-        {
-            allUrls.AddRange(receptionEntrance.DeletedEvidenceUrls);
-        }
-
-        // 3. Verificar que haya imágenes para eliminar
         if (allUrls.Count == 0)
         {
             return _errorManager.ThrowBadRequest<bool>(
@@ -51,16 +43,28 @@ public class PermanentDeleteEvidenceHandler(
                 "ERP:NO_EVIDENCE_FOUND");
         }
 
-        // 4. Eliminar imágenes de S3 (definitivo)
-        await s3StorageService.DeleteImagesAsync(allUrls.Distinct(), cancellationToken);
+        try
+        {
+            // 3. Limpiar campos en BD PRIMERO
+            receptionEntrance.EvidenceUrls = [];
+            receptionEntrance.DeletedEvidenceUrls = [];
 
-        // 5. Limpiar los campos de la BD
-        receptionEntrance.EvidenceUrls = [];
-        receptionEntrance.DeletedEvidenceUrls = [];
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        // 6. Guardar cambios
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+            // 4. Después de BD exitosa, eliminar imágenes de S3
+            await s3StorageService.DeleteImagesAsync(allUrls, cancellationToken);
 
-        return true;
+            return true;
+        }
+        catch (Exception)
+        {
+            // Si S3 falla, restaurar las URLs en BD
+            receptionEntrance.EvidenceUrls = originalEvidenceUrls;
+            receptionEntrance.DeletedEvidenceUrls = originalDeletedEvidenceUrls;
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            throw;
+        }
     }
 }
