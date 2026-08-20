@@ -198,7 +198,7 @@ public class UpdateReceptionEntranceHandler(
         }
         #endregion
 
-        #region 5. Actualización de Evidencia (mover a papelera + agregar nuevas)
+        #region 5. Actualización de Evidencia (eliminar permanente + agregar nuevas)
         if (request.EvidenceToDelete != null || request.EvidenceToAdd != null)
         {
             var receptionEntrance = recordEntrance.ReceptionEntrance;
@@ -213,7 +213,6 @@ public class UpdateReceptionEntranceHandler(
             var currentEvidenceUrls = receptionEntrance.EvidenceUrls ?? [];
             var currentDeletedEvidenceUrls = receptionEntrance.DeletedEvidenceUrls ?? [];
             var urlsToDelete = new List<string>();
-            var movedUrls = new List<string>();
             var newUrls = new List<string>();
 
             // 5.a Validar URLs a eliminar
@@ -236,17 +235,19 @@ public class UpdateReceptionEntranceHandler(
                 // 5.b Actualizar BD PRIMERO
                 if (urlsToDelete.Count > 0)
                 {
+                    // Quitar URLs activas
                     receptionEntrance.EvidenceUrls = currentEvidenceUrls
                         .Where(url => !urlsToDelete.Contains(url))
                         .ToList();
 
+                    // Agregar URLs eliminadas al historial
                     currentDeletedEvidenceUrls.AddRange(urlsToDelete);
-                    receptionEntrance.DeletedEvidenceUrls = currentDeletedEvidenceUrls;
+                    receptionEntrance.DeletedEvidenceUrls = currentDeletedEvidenceUrls.Distinct().ToList();
                 }
 
+                // 5.c Subir nuevas imágenes a S3
                 if (request.EvidenceToAdd != null && request.EvidenceToAdd.Count > 0)
                 {
-                    // Subir nuevas imágenes a S3 primero (porque necesitamos las URLs para BD)
                     newUrls = (await s3StorageService.UploadImagesAsync(
                         module: S3Sections.Module,
                         section: S3Sections.ReceptionEvidence,
@@ -258,30 +259,13 @@ public class UpdateReceptionEntranceHandler(
                     receptionEntrance.EvidenceUrls = currentEvidenceUrls;
                 }
 
-                // Guardar en BD
+                // 5.d Guardar en BD
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-                // 5.c Después de BD exitosa, mover imágenes eliminadas a papelera de S3
+                // 5.e Después de BD exitosa, ELIMINAR PERMANENTEMENTE las imágenes de S3
                 if (urlsToDelete.Count > 0)
                 {
-                    movedUrls = (await s3StorageService.MoveImagesAsync(
-                        sourceUrls: urlsToDelete,
-                        Module: S3Sections.Module,
-                        sourceSection: S3Sections.ReceptionEvidence,
-                        destinationSection: S3Sections.ReceptionEvidenceDeleted,
-                        cancellationToken: cancellationToken)).ToList();
-
-                    // Actualizar URLs en BD con las nuevas URLs de papelera
-                    if (movedUrls.Count > 0)
-                    {
-                        var updatedDeletedUrls = receptionEntrance.DeletedEvidenceUrls ?? [];
-                        // Reemplazar URLs originales por las movidas
-                        updatedDeletedUrls.RemoveAll(url => urlsToDelete.Contains(url));
-                        updatedDeletedUrls.AddRange(movedUrls);
-                        receptionEntrance.DeletedEvidenceUrls = updatedDeletedUrls;
-
-                        await _unitOfWork.SaveChangesAsync(cancellationToken);
-                    }
+                    await s3StorageService.DeleteImagesAsync(urlsToDelete, cancellationToken);
                 }
             }
             catch (Exception)
@@ -303,6 +287,7 @@ public class UpdateReceptionEntranceHandler(
             }
         }
         #endregion
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return true;
