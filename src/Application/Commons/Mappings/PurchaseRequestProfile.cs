@@ -31,7 +31,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 
     public static class PurchaseRequestMapper
     {
-        public static PurchaseRequest ToPurchaseRequestEntity(this Commands.RegisterPurchaseRequestCommand command, string codeGenerated, Guid areaId)
+        public static PurchaseRequest ToPurchaseRequestEntity(this Commands.RegisterPurchaseRequest command, string codeGenerated, Guid areaId, Guid userId)
         {
             return new()
             {
@@ -40,7 +40,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 BranchId            = command.BranchId,
 
                 UserRevisionId      = null,
-                RegisteredByUserId  = command.UserId,
+                RegisteredByUserId  = userId,
                 
                 RequestType         = command.RequestType,
                 Destination         = command.Destination,

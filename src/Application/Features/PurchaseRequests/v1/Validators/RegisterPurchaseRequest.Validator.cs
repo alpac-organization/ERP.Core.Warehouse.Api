@@ -1,13 +1,13 @@
-using FluentValidation;
 using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
+using FluentValidation;
 
-namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Validators
+namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands
 {
-    public class RegisterPurchaseRequestValidator : AbstractValidator<RegisterPurchaseRequestCommand>
+    public class RegisterPurchaseRequestCommandValidator : AbstractValidator<RegisterPurchaseRequestCommand>
     {
-        public RegisterPurchaseRequestValidator()
+        public RegisterPurchaseRequestCommandValidator()
         {
+
             RuleFor(x => x.UserId)
                 .NotEmpty().WithMessage("El identificador de usuario es obligatorio.")
                 .NotEqual(Guid.Empty)
@@ -22,6 +22,19 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
                 .NotEmpty()
                 .WithMessage("El código del módulo no puede estar vacío.");
 
+            RuleFor(x => x.PurchaseRequests)
+                .NotEmpty()
+                .WithMessage("Debe agregar al menos una solicitud de compra.");
+
+            RuleForEach(x => x.PurchaseRequests)
+                .SetValidator(new RegisterPurchaseRequestValidator());
+        }
+    }
+
+    public class RegisterPurchaseRequestValidator : AbstractValidator<RegisterPurchaseRequest>
+    {
+        public RegisterPurchaseRequestValidator()
+        {
             RuleFor(x => x.BranchId)
                 .NotEmpty().WithMessage("El id de la sucursal no puede estar vacío.")
                 .NotEqual(Guid.Empty)
