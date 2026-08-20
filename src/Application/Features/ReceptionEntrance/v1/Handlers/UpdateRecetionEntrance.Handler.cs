@@ -232,20 +232,22 @@ public class UpdateReceptionEntranceHandler(
 
             try
             {
-                // 5.b Actualizar BD PRIMERO
+                // PASO 1: COPIAR URLs a DeletedEvidenceUrls (rastro)
                 if (urlsToDelete.Count > 0)
                 {
-                    // Quitar URLs activas
-                    receptionEntrance.EvidenceUrls = currentEvidenceUrls
-                        .Where(url => !urlsToDelete.Contains(url))
-                        .ToList();
-
-                    // Agregar URLs eliminadas al historial
                     currentDeletedEvidenceUrls.AddRange(urlsToDelete);
                     receptionEntrance.DeletedEvidenceUrls = currentDeletedEvidenceUrls.Distinct().ToList();
                 }
 
-                // 5.c Subir nuevas imágenes a S3
+                // PASO 2: LIMPIAR EvidenceUrls
+                if (urlsToDelete.Count > 0)
+                {
+                    receptionEntrance.EvidenceUrls = currentEvidenceUrls
+                        .Where(url => !urlsToDelete.Contains(url))
+                        .ToList();
+                }
+
+                // PASO 3: Subir nuevas imágenes a S3 (si hay)
                 if (request.EvidenceToAdd != null && request.EvidenceToAdd.Count > 0)
                 {
                     newUrls = (await s3StorageService.UploadImagesAsync(
@@ -259,10 +261,10 @@ public class UpdateReceptionEntranceHandler(
                     receptionEntrance.EvidenceUrls = currentEvidenceUrls;
                 }
 
-                // 5.d Guardar en BD
+                // PASO 4: Guardar en BD
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-                // 5.e Después de BD exitosa, ELIMINAR PERMANENTEMENTE las imágenes de S3
+                // PASO 5: Después de BD exitosa, ELIMINAR PERMANENTEMENTE las imágenes de S3
                 if (urlsToDelete.Count > 0)
                 {
                     await s3StorageService.DeleteImagesAsync(urlsToDelete, cancellationToken);
@@ -270,7 +272,6 @@ public class UpdateReceptionEntranceHandler(
             }
             catch (Exception)
             {
-                // Si falla la BD después de subir imágenes nuevas a S3, eliminar las huérfanas
                 if (newUrls.Count > 0)
                 {
                     try
@@ -279,7 +280,6 @@ public class UpdateReceptionEntranceHandler(
                     }
                     catch
                     {
-                        // Si S3 también falla, las imágenes quedarán huérfanas
                     }
                 }
 
@@ -287,7 +287,6 @@ public class UpdateReceptionEntranceHandler(
             }
         }
         #endregion
-
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return true;
