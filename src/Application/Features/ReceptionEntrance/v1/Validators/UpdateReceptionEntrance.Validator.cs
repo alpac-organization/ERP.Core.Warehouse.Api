@@ -70,6 +70,24 @@ public class UpdateReceptionEntranceValidator : AbstractValidator<UpdateReceptio
             .MaximumLength(50).WithMessage("El número de marchamo no puede exceder 50 caracteres.")
             .When(x => x.SealNumber is not null);
 
+        RuleFor(x => x.EvidenceToDelete)
+            .Must(list => list == null || list.Count > 0)
+            .WithMessage("La lista de evidencias a eliminar no puede estar vacía.")
+            .When(x => x.EvidenceToDelete is not null);
+
+        RuleForEach(x => x.EvidenceToDelete)
+            .NotEmpty().WithMessage("La URL de evidencia a eliminar no puede estar vacía.")
+            .When(x => x.EvidenceToDelete is not null);
+
+        RuleFor(x => x.EvidenceToAdd)
+            .Must(list => list == null || (list.Count > 0 && list.Count <= 10))
+            .WithMessage("Debe enviar al menos una imagen y no más de 10 imágenes de evidencia nuevas.")
+            .When(x => x.EvidenceToAdd is not null);
+
+        RuleForEach(x => x.EvidenceToAdd)
+            .NotEmpty().WithMessage("La imagen de evidencia no puede estar vacía.")
+            .When(x => x.EvidenceToAdd is not null);
+
         RuleFor(x => x.CustomsDeclarationNumber)
             .NotEmpty().WithMessage("El número de declaración aduanera es obligatorio.")
             .MaximumLength(30).WithMessage("El número de declaración aduanera no puede exceder 30 caracteres.")
@@ -129,6 +147,8 @@ public class UpdateReceptionEntranceValidator : AbstractValidator<UpdateReceptio
                 x.TransportUnit is not null ||
                 x.DriverName is not null ||
                 x.SealNumber is not null ||
+                x.EvidenceToAdd is not null ||
+                x.EvidenceToDelete is not null ||
                 HasAnyCustomsField(x))
             .WithMessage("Debe incluir al menos un campo para actualizar.");
     }

@@ -8,12 +8,15 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using ERP.Core.Database.Domain.Entities.Catalogs;
+using ERP.Core.Application.Commons.Interfaces.AWS;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
 
 public class UpdateReceptionEntranceHandler(
     IUnitOfWork unitOfWork,
-    IErrorManager errorManager)
+    IErrorManager errorManager,
+    IS3StorageService s3StorageService)
     : BaseValidatorHandler<UpdateReceptionEntranceCommand, bool>(unitOfWork, errorManager)
 {
     public override async Task<bool> Handle(UpdateReceptionEntranceCommand request, CancellationToken cancellationToken)
@@ -195,6 +198,111 @@ public class UpdateReceptionEntranceHandler(
         }
         #endregion
 
+        #region 5. Actualización de Evidencia (mover a papelera + agregar nuevas)
+        if (request.EvidenceToDelete != null || request.EvidenceToAdd != null)
+        {
+            var receptionEntrance = recordEntrance.ReceptionEntrance;
+
+            if (receptionEntrance == null)
+            {
+                return _errorManager.ThrowBadRequest<bool>(
+                    "No se encontró el registro de recepción.",
+                    "ERP:RECEPTION_NOT_FOUND");
+            }
+
+            var currentEvidenceUrls = receptionEntrance.EvidenceUrls ?? [];
+            var currentDeletedEvidenceUrls = receptionEntrance.DeletedEvidenceUrls ?? [];
+            var urlsToDelete = new List<string>();
+            var movedUrls = new List<string>();
+            var newUrls = new List<string>();
+
+            // 5.a Validar URLs a eliminar
+            if (request.EvidenceToDelete != null && request.EvidenceToDelete.Count > 0)
+            {
+                urlsToDelete = request.EvidenceToDelete
+                    .Where(url => currentEvidenceUrls.Contains(url))
+                    .ToList();
+
+                if (urlsToDelete.Count != request.EvidenceToDelete.Count)
+                {
+                    return _errorManager.ThrowBadRequest<bool>(
+                        "Algunas URLs de evidencia no existen en la lista activa.",
+                        "ERP:EVIDENCE_URLS_NOT_FOUND");
+                }
+            }
+
+            try
+            {
+                // 5.b Actualizar BD PRIMERO
+                if (urlsToDelete.Count > 0)
+                {
+                    receptionEntrance.EvidenceUrls = currentEvidenceUrls
+                        .Where(url => !urlsToDelete.Contains(url))
+                        .ToList();
+
+                    currentDeletedEvidenceUrls.AddRange(urlsToDelete);
+                    receptionEntrance.DeletedEvidenceUrls = currentDeletedEvidenceUrls;
+                }
+
+                if (request.EvidenceToAdd != null && request.EvidenceToAdd.Count > 0)
+                {
+                    // Subir nuevas imágenes a S3 primero (porque necesitamos las URLs para BD)
+                    newUrls = (await s3StorageService.UploadImagesAsync(
+                        module: S3Sections.Module,
+                        section: S3Sections.ReceptionEvidence,
+                        base64Images: request.EvidenceToAdd,
+                        cancellationToken: cancellationToken)).ToList();
+
+                    currentEvidenceUrls = receptionEntrance.EvidenceUrls ?? [];
+                    currentEvidenceUrls.AddRange(newUrls);
+                    receptionEntrance.EvidenceUrls = currentEvidenceUrls;
+                }
+
+                // Guardar en BD
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                // 5.c Después de BD exitosa, mover imágenes eliminadas a papelera de S3
+                if (urlsToDelete.Count > 0)
+                {
+                    movedUrls = (await s3StorageService.MoveImagesAsync(
+                        sourceUrls: urlsToDelete,
+                        Module: S3Sections.Module,
+                        sourceSection: S3Sections.ReceptionEvidence,
+                        destinationSection: S3Sections.ReceptionEvidenceDeleted,
+                        cancellationToken: cancellationToken)).ToList();
+
+                    // Actualizar URLs en BD con las nuevas URLs de papelera
+                    if (movedUrls.Count > 0)
+                    {
+                        var updatedDeletedUrls = receptionEntrance.DeletedEvidenceUrls ?? [];
+                        // Reemplazar URLs originales por las movidas
+                        updatedDeletedUrls.RemoveAll(url => urlsToDelete.Contains(url));
+                        updatedDeletedUrls.AddRange(movedUrls);
+                        receptionEntrance.DeletedEvidenceUrls = updatedDeletedUrls;
+
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Si falla la BD después de subir imágenes nuevas a S3, eliminar las huérfanas
+                if (newUrls.Count > 0)
+                {
+                    try
+                    {
+                        await s3StorageService.DeleteImagesAsync(newUrls, cancellationToken);
+                    }
+                    catch
+                    {
+                        // Si S3 también falla, las imágenes quedarán huérfanas
+                    }
+                }
+
+                throw;
+            }
+        }
+        #endregion
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return true;

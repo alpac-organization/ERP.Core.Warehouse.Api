@@ -15,7 +15,7 @@ public record CreateReceptionEntranceDto
     public TransportUnit TransportUnit { get; set; }
     public string DriverName { get; set; } = string.Empty;
     public string SealNumber { get; set; } = string.Empty;
-    public SealEvidenceDto? SealEvidence { get; set; }
+    public List<string> EvidenceBase64 { get; set; } = [];
 
     public List<string> DucatNumbers { get; set; } = [];
 
@@ -26,10 +26,4 @@ public record CreateReceptionEntranceDto
 
     public DateOnly StartDate { get; set; }
     public TimeOnly StartTime { get; set; }
-}
-
-public class SealEvidenceDto
-{
-    public string ImageBase64 { get; set; } = string.Empty;
-    public string ContentType { get; set; } = string.Empty;
 }

@@ -210,23 +210,23 @@ public class GetReceptionEntranceDetailHandler(IUnitOfWork unitOfWork, IErrorMan
         }
         #endregion
 
-        #region 2. Carga del registro con sus relaciones
+        #region 2. Carga del registro con sus relaciones (incluyendo soft deleted)
         var recordEntrance = await _unitOfWork.RecordEntrance.Entities
             .AsNoTracking()
+            .IgnoreQueryFilters()
             .Include(r => r.ReceptionEntrance!)
                 .ThenInclude(re => re.CustomsBranches)
             .Include(r => r.EntranceDucats.Where(d => d.DeletedAt == null))
             .Include(r => r.CustomsDeclarations!)
                 .ThenInclude(cd => cd.Details)
             .Include(r => r.ExecutionLogs)
-            .FirstOrDefaultAsync(r => r.Id == request.RecordId && r.DeletedAt == null, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Id == request.RecordId, cancellationToken);
 
         if (recordEntrance == null
-            || recordEntrance.ReceptionEntrance == null
-            || recordEntrance.ReceptionEntrance.DeletedAt != null)
+            || recordEntrance.ReceptionEntrance == null)
         {
             return _errorManager.ThrowBadRequest<ReceptionEntranceDetailDto>(
-                "El registro de recepción no fue encontrado o ya ha sido eliminado.",
+                "El registro de recepción no fue encontrado.",
                 "ERP:RECEPTION_NOT_FOUND");
         }
         #endregion

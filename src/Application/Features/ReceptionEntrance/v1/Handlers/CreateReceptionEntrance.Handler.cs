@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Entities.Warehouse;
+using ERP.Core.Application.Commons.Interfaces.AWS;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Commons.Constants;
@@ -16,7 +17,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
 public class CreateReceptionEntranceHandler(
     IUnitOfWork unitOfWork,
     IErrorManager errorManager,
-    IMapper mapper)
+    IMapper mapper,
+    IS3StorageService s3StorageService)
     : BaseValidatorHandler<CreateReceptionEntranceCommand, bool>(unitOfWork, errorManager)
 {
     public override async Task<bool> Handle(CreateReceptionEntranceCommand request, CancellationToken cancellationToken)
@@ -140,49 +142,111 @@ public class CreateReceptionEntranceHandler(
 
         var processedByUserName = user.Fullname ?? user.UserName ?? request.UserId.ToString();
 
-        var recordEntrance = mapper.Map<RecordEntrance>(request, opts =>
+        var evidenceUrls = new List<string>();
+
+        try
         {
-            opts.Items["RecordEntranceId"] = recordEntranceId;
-            opts.Items["StepCode"] = currentStepCode;
-            opts.Items["IsConsolidated"] = isConsolidated;
-        });
+            // PASO 1: Subir imágenes a S3 PRIMERO
+            if (request.EvidenceBase64 != null && request.EvidenceBase64.Count > 0)
+            {
+                evidenceUrls = (await s3StorageService.UploadImagesAsync(
+                    module: S3Sections.Module,
+                    section: S3Sections.ReceptionEvidence,
+                    base64Images: request.EvidenceBase64,
+                    cancellationToken: cancellationToken)).ToList();
+            }
 
-        var receptionEntrance = mapper.Map<ReceptionEntranceEntity>(request, opts =>
-            opts.Items["RecordEntranceId"] = recordEntranceId);
+            // PASO 2: Mapear entidades
+            var contextItems = new Dictionary<string, object>
+            {
+                ["RecordEntranceId"] = recordEntranceId,
+                ["StepCode"] = currentStepCode,
+                ["IsConsolidated"] = isConsolidated,
+                ["EndDate"] = systemEndDate,
+                ["EndTime"] = systemEndTime,
+                ["ProcessedByUserName"] = processedByUserName,
+                ["EvidenceUrls"] = evidenceUrls
+            };
 
-        var executionLog = mapper.Map<StepExecutionLogs>(request, opts =>
-        {
-            opts.Items["RecordEntranceId"] = recordEntranceId;
-            opts.Items["StepCode"] = currentStepCode;
-            opts.Items["EndDate"] = systemEndDate;
-            opts.Items["EndTime"] = systemEndTime;
-            opts.Items["ProcessedByUserName"] = processedByUserName;
-        });
+            var recordEntrance = mapper.Map<RecordEntrance>(request, opts =>
+            {
+                foreach (var item in contextItems)
+                {
+                    opts.Items[item.Key] = item.Value;
+                }
+            });
 
-        await _unitOfWork.RecordEntrance.InsertRecordEntrance(recordEntrance);
-        await _unitOfWork.ReceptionEntrance.InsertReceptionEntrance(receptionEntrance);
-        await _unitOfWork.StepExecutionLogs.InsertExecutionLog(executionLog);
+            var receptionEntrance = mapper.Map<ReceptionEntranceEntity>(request, opts =>
+            {
+                foreach (var item in contextItems)
+                {
+                    opts.Items[item.Key] = item.Value;
+                }
+            });
 
-        if (isDuca)
-        {
-            var ducatEntities = request.DucatNumbers
-                .Select(ducatNumber => ducatNumber.ToEntranceDucaEntity(recordEntranceId))
-                .ToList();
+            var executionLog = mapper.Map<StepExecutionLogs>(request, opts =>
+            {
+                foreach (var item in contextItems)
+                {
+                    opts.Items[item.Key] = item.Value;
+                }
+            });
 
-            await _unitOfWork.EntranceDucats.InsertEntranceDucatsRange(ducatEntities);
+            // PASO 3: Insertar en BD
+            await _unitOfWork.RecordEntrance.InsertRecordEntrance(recordEntrance);
+            await _unitOfWork.ReceptionEntrance.InsertReceptionEntrance(receptionEntrance);
+            await _unitOfWork.StepExecutionLogs.InsertExecutionLog(executionLog);
+
+            if (isDuca)
+            {
+                var ducatEntities = request.DucatNumbers
+                    .Select(ducatNumber => ducatNumber.ToEntranceDucaEntity(recordEntranceId))
+                    .ToList();
+
+                await _unitOfWork.EntranceDucats.InsertEntranceDucatsRange(ducatEntities);
+            }
+            else
+            {
+                var customsDeclaration = mapper.Map<CustomsDeclarations>(request, opts =>
+                {
+                    opts.Items["RecordEntranceId"] = recordEntranceId;
+                });
+
+                await _unitOfWork.CustomsDeclarations.RegisterCustomsDeclarations(customsDeclaration);
+
+                var customsDeclarationDetails = mapper.Map<CustomsDeclarationDetails>(request, opts =>
+                {
+                    opts.Items["CustomsDeclarationId"] = customsDeclaration.Id;
+                });
+
+                await _unitOfWork.CustomsDeclarationDetails.RegisterCustomsDeclarationDetails(customsDeclarationDetails);
+            }
+
+            // PASO 4: Guardar en BD
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
-        else
+        catch (Exception)
         {
-            var customsDeclaration = mapper.Map<CustomsDeclarations>(request, opts =>
-                opts.Items["RecordEntranceId"] = recordEntranceId);
-            await _unitOfWork.CustomsDeclarations.RegisterCustomsDeclarations(customsDeclaration);
+            // Verificar si el registro realmente se guardó en BD
+            var recordExists = await _unitOfWork.RecordEntrance.Entities
+                .AsNoTracking()
+                .AnyAsync(r => r.Id == recordEntranceId, cancellationToken);
 
-            var customsDeclarationDetails = mapper.Map<CustomsDeclarationDetails>(request, opts =>
-                opts.Items["CustomsDeclarationId"] = customsDeclaration.Id);
-            await _unitOfWork.CustomsDeclarationDetails.RegisterCustomsDeclarationDetails(customsDeclarationDetails);
+            // Solo eliminar imágenes de S3 si el registro NO existe en BD
+            if (!recordExists && evidenceUrls.Count > 0)
+            {
+                try
+                {
+                    await s3StorageService.DeleteImagesAsync(evidenceUrls, cancellationToken);
+                }
+                catch
+                {
+                    // Si S3 también falla, las imágenes quedarán huérfanas
+                }
+            }
+
+            throw;
         }
-
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
         #endregion
 
         return true;
