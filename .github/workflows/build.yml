@@ -1,30 +1,64 @@
-name: SonarQube
+name: CI - Docker Validation & SonarQube
+
 on:
-    push:
-        branches:
-        - main
-        - develop
-    pull_request:
-        types: [opened, synchronize, reopened]
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
 jobs:
-  build:
+  docker-validate:
+    name: Docker Build & Startup Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: EnvironmentalVariables
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg GH_USER=${{ secrets.GH_USER }} \
+            --build-arg GH_PACKAGE_TOKEN=${{ secrets.GH_PACKAGE_TOKEN }} \
+            -t erp-test .
+
+      # ✅ SMOKE TEST REAL (esto reemplaza todo lo de chromium)
+      - name: Run app and capture logs
+        run: |
+          echo "🚀 Iniciando contenedor..."
+
+          timeout 25s docker run --name test-container erp-test > output.log 2>&1 || true
+
+          echo "📄 Logs capturados:"
+          cat output.log
+
+      - name: Cleanup container
+        run: docker rm -f test-container || true
+
+  sonarqube:
     name: Build and analyze
+    needs: docker-validate
     runs-on: windows-latest
+    environment: EnvironmentalVariables
     steps:
       - name: Set up JDK 17
         uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
         with:
           java-version: 17
-          distribution: 'zulu' # Alternative distribution options are available.
+          distribution: 'zulu'
+
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
       - name: Cache SonarQube Cloud packages
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~\sonar\cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
+
       - name: Cache SonarQube Cloud scanner
         id: cache-sonar-scanner
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
@@ -32,12 +66,24 @@ jobs:
           path: ${{ runner.temp }}\scanner
           key: ${{ runner.os }}-sonar-scanner
           restore-keys: ${{ runner.os }}-sonar-scanner
+
       - name: Install SonarQube Cloud scanner
         if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
         shell: powershell
         run: |
           New-Item -Path ${{ runner.temp }}\scanner -ItemType Directory
           dotnet tool update dotnet-sonarscanner --tool-path ${{ runner.temp }}\scanner
+
+      # Necesario porque los paquetes ERP.Core.* son privados (mismo feed que usa Docker)
+      - name: Setup private NuGet feed
+        shell: powershell
+        run: |
+          dotnet nuget add source "https://nuget.pkg.github.com/alpac-organization/index.json" `
+            -n "github" `
+            -u "${{ secrets.GH_USER }}" `
+            -p "${{ secrets.GH_PACKAGE_TOKEN }}" `
+            --store-password-in-clear-text
+
       - name: Build and analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
