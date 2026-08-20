@@ -80,8 +80,8 @@ public class UpdateReceptionEntranceValidator : AbstractValidator<UpdateReceptio
             .When(x => x.EvidenceToDelete is not null);
 
         RuleFor(x => x.EvidenceToAdd)
-            .Must(list => list == null || list.Count <= 10)
-            .WithMessage("No se permiten más de 10 imágenes de evidencia nuevas.")
+            .Must(list => list == null || (list.Count > 0 && list.Count <= 10))
+            .WithMessage("Debe enviar al menos una imagen y no más de 10 imágenes de evidencia nuevas.")
             .When(x => x.EvidenceToAdd is not null);
 
         RuleForEach(x => x.EvidenceToAdd)
