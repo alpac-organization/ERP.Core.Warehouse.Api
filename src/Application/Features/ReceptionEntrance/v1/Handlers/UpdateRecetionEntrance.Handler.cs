@@ -8,12 +8,15 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using ERP.Core.Database.Domain.Entities.Catalogs;
+using ERP.Core.Application.Commons.Interfaces.AWS;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
 
 public class UpdateReceptionEntranceHandler(
     IUnitOfWork unitOfWork,
-    IErrorManager errorManager)
+    IErrorManager errorManager,
+    IS3StorageService s3StorageService)
     : BaseValidatorHandler<UpdateReceptionEntranceCommand, bool>(unitOfWork, errorManager)
 {
     public override async Task<bool> Handle(UpdateReceptionEntranceCommand request, CancellationToken cancellationToken)
@@ -192,6 +195,69 @@ public class UpdateReceptionEntranceHandler(
                 user?.Fullname ?? user?.UserName ?? request.UserId.ToString(),
                 DateOnly.FromDateTime(nowNica),
                 TimeOnly.FromDateTime(nowNica));
+        }
+        #endregion
+
+        #region 5. Actualización de Evidencia (mover a papelera + agregar nuevas)
+        if (request.EvidenceToDelete != null || request.EvidenceToAdd != null)
+        {
+            var receptionEntrance = recordEntrance.ReceptionEntrance;
+
+            if (receptionEntrance == null)
+            {
+                return _errorManager.ThrowBadRequest<bool>(
+                    "No se encontró el registro de recepción.",
+                    "ERP:RECEPTION_NOT_FOUND");
+            }
+
+            var currentEvidenceUrls = receptionEntrance.EvidenceUrls ?? [];
+            var currentDeletedEvidenceUrls = receptionEntrance.DeletedEvidenceUrls ?? [];
+
+            // 5.a Eliminar imágenes (mover a papelera)
+            if (request.EvidenceToDelete != null && request.EvidenceToDelete.Count > 0)
+            {
+                // Validar que las URLs existan en EvidenceUrls activas
+                var urlsToDelete = request.EvidenceToDelete
+                    .Where(url => currentEvidenceUrls.Contains(url))
+                    .ToList();
+
+                if (urlsToDelete.Count != request.EvidenceToDelete.Count)
+                {
+                    return _errorManager.ThrowBadRequest<bool>(
+                        "Algunas URLs de evidencia no existen en la lista activa.",
+                        "ERP:EVIDENCE_URLS_NOT_FOUND");
+                }
+
+                // Mover en S3 de reception-evidence a reception-evidence-deleted
+                var movedUrls = await s3StorageService.MoveImagesAsync(
+                    sourceUrls: urlsToDelete,
+                    Module: S3Sections.Module,
+                    sourceSection: S3Sections.ReceptionEvidence,
+                    destinationSection: S3Sections.ReceptionEvidenceDeleted,
+                    cancellationToken: cancellationToken);
+
+                // Actualizar listas en BD
+                receptionEntrance.EvidenceUrls = currentEvidenceUrls
+                    .Where(url => !urlsToDelete.Contains(url))
+                    .ToList();
+
+                currentDeletedEvidenceUrls.AddRange(movedUrls);
+                receptionEntrance.DeletedEvidenceUrls = currentDeletedEvidenceUrls;
+            }
+
+            // 5.b Agregar nuevas imágenes
+            if (request.EvidenceToAdd != null && request.EvidenceToAdd.Count > 0)
+            {
+                var newUrls = (await s3StorageService.UploadImagesAsync(
+                    module: S3Sections.Module,
+                    section: S3Sections.ReceptionEvidence,
+                    base64Images: request.EvidenceToAdd,
+                    cancellationToken: cancellationToken)).ToList();
+
+                currentEvidenceUrls = receptionEntrance.EvidenceUrls ?? [];
+                currentEvidenceUrls.AddRange(newUrls);
+                receptionEntrance.EvidenceUrls = currentEvidenceUrls;
+            }
         }
         #endregion
 

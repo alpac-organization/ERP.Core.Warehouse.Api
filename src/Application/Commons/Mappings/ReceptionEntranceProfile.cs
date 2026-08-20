@@ -78,6 +78,8 @@ public static class ReceptionEntranceMapper
             TransportUnit = dto.TransportUnit,
             DriverName = dto.DriverName?.SanitizeAlphanumeric(),
             SealNumber = dto.SealNumber?.SanitizeCode(),
+            EvidenceToDelete = dto.EvidenceToDelete,
+            EvidenceToAdd = dto.EvidenceToAdd,
 
             CustomsDeclarationNumber = dto.CustomsDeclarationNumber?.SanitizeCode(),
             Packages = dto.Packages,

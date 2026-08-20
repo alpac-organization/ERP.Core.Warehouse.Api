@@ -21,6 +21,8 @@ public record UpdateReceptionEntranceDto
     public TransportUnit? TransportUnit { get; set; }
     public string? DriverName { get; set; }
     public string? SealNumber { get; set; }
+    public List<string>? EvidenceToDelete { get; set; }
+    public List<string>? EvidenceToAdd { get; set; }
 
     public string? CustomsDeclarationNumber { get; set; }
     public int? Packages { get; set; }
