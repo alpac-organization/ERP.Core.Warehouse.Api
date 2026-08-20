@@ -5,6 +5,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Valid
 
 public class GetDeletedEvidencesValidator : AbstractValidator<GetDeletedEvidencesQuery>
 {
+    private const int MaxPageSize = 10;
     public GetDeletedEvidencesValidator()
     {
         RuleFor(x => x.UserId)
@@ -21,6 +22,7 @@ public class GetDeletedEvidencesValidator : AbstractValidator<GetDeletedEvidence
             .GreaterThan(0).WithMessage("El número de página debe ser mayor que 0.");
 
         RuleFor(x => x.PageSize)
-            .GreaterThan(0).WithMessage("El tamaño de página debe ser mayor que 0.");
+            .GreaterThan(0).WithMessage("El tamaño de página debe ser mayor que 0.")
+            .LessThanOrEqualTo(MaxPageSize).WithMessage($"El tamaño de página no puede ser mayor que {MaxPageSize}.");
     }
 }
