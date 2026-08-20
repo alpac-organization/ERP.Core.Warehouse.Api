@@ -241,20 +241,20 @@ public class ReceptionEntranceController(IMediator _mediator) : ApiControllerBas
     }
 
     [Tags("Control de Acceso")]
-    [HttpDelete("companies/{company_id}/modules/{module_code}/receptions/{reception_id}/permanent")]
+    [HttpDelete("companies/{company_id}/modules/{module_code}/receptions/{reception_id}/evidence/permanent")]
     [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<OkObjectResult> PermanentDeleteReceptionEntranceAsync(
-    [FromRoute] Guid company_id,
-    [FromRoute] string module_code,
-    [FromRoute] Guid reception_id,
-    CancellationToken cancellationToken)
+    public async Task<OkObjectResult> PermanentDeleteEvidenceAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid reception_id,
+        CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
         Guid.TryParse(userIdStr, out var userId);
 
-        var command = new PermanentDeleteReceptionEntranceCommand
+        var command = new PermanentDeleteEvidenceCommand
         {
             UserId = userId,
             CompanyId = company_id,

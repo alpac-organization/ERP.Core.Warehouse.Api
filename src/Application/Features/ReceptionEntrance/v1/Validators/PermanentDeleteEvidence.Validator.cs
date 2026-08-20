@@ -3,9 +3,9 @@ using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Validators;
 
-public class PermanentDeleteReceptionEntranceValidator : AbstractValidator<PermanentDeleteReceptionEntranceCommand>
+public class PermanentDeleteEvidenceValidator : AbstractValidator<PermanentDeleteEvidenceCommand>
 {
-    public PermanentDeleteReceptionEntranceValidator()
+    public PermanentDeleteEvidenceValidator()
     {
         RuleFor(x => x.UserId)
             .NotEqual(Guid.Empty).WithMessage("No se pudo identificar al usuario autenticado.");
