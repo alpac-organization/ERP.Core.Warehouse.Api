@@ -322,6 +322,9 @@ public class ReceptionEntranceProfile : Profile
             .ForMember(d => d.DriverName, o => o.MapFrom(s => s.ReceptionEntrance!.DriverName))
             .ForMember(d => d.SealNumber, o => o.MapFrom(s => s.ReceptionEntrance!.SealNumber))
             .ForMember(d => d.EvidenceUrls, o => o.MapFrom(s => s.ReceptionEntrance!.EvidenceUrls))
+            .ForMember(d => d.DeletedEvidenceUrls, o => o.MapFrom(s => s.ReceptionEntrance!.DeletedAt != null
+                        ? s.ReceptionEntrance!.DeletedEvidenceUrls
+                        : null))
             .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType))
             .ForMember(d => d.VehicleExitDate, o => o.MapFrom(s => s.ReceptionEntrance!.VehicleExitDate))
             .ForMember(d => d.VehicleExitTime, o => o.MapFrom(s => s.ReceptionEntrance!.VehicleExitTime))
@@ -330,6 +333,8 @@ public class ReceptionEntranceProfile : Profile
             .ForMember(d => d.UpdatedByUserName, o => o.MapFrom(s => s.ReceptionEntrance!.UpdatedByUserName))
             .ForMember(d => d.UpdatedDate, o => o.MapFrom(s => s.ReceptionEntrance!.UpdatedDate))
             .ForMember(d => d.UpdatedTime, o => o.MapFrom(s => s.ReceptionEntrance!.UpdatedTime))
+            .ForMember(d => d.DeletedAt, o => o.MapFrom(s => s.ReceptionEntrance!.DeletedAt))
+            .ForMember(d => d.IsDeleted, o => o.MapFrom(s => s.ReceptionEntrance!.DeletedAt != null))
             .ForMember(d => d.Ducats, o => o.MapFrom(s =>
                 s.ReceptionEntrance!.DocumentType == DocumentType.DUCA
                     ? s.EntranceDucats.Where(d => d.DeletedAt == null)

@@ -71,6 +71,10 @@ public class ReceptionEntranceDetailDto
     public string DriverName { get; set; } = string.Empty;
     public string SealNumber { get; set; } = string.Empty;
     public List<string> EvidenceUrls { get; set; } = [];
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? DeletedEvidenceUrls { get; set; }
+
     public DocumentType DocumentType { get; set; }
 
     public DateOnly? VehicleExitDate { get; set; }
@@ -81,6 +85,14 @@ public class ReceptionEntranceDetailDto
     public string? UpdatedByUserName { get; set; }
     public DateOnly? UpdatedDate { get; set; }
     public TimeOnly? UpdatedTime { get; set; }
+
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DateTime? DeletedAt { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool IsDeleted { get; set; }
+
 
     public List<EntranceDucatDetailItemDto>? Ducats { get; set; }
     public CustomsDeclarationDetailDto? CustomsDeclaration { get; set; }
