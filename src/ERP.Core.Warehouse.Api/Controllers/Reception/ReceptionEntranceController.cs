@@ -214,4 +214,29 @@ public class ReceptionEntranceController(IMediator _mediator) : ApiControllerBas
 
         return Ok(response);
     }
+
+    [Tags("Control de Acceso")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/receptions/deleted-evidences")]
+    [ProducesResponseType(typeof(GetDeletedEvidencesDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<GetDeletedEvidencesDto> GetDeletedEvidencesAsync(
+    [FromRoute] Guid company_id,
+    [FromRoute] string module_code,
+    [FromQuery] int page_number = 1,
+    [FromQuery] int page_size = 10,
+    CancellationToken cancellationToken = default)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        Guid.TryParse(userIdStr, out var userId);
+
+        return await _mediator.Send(new GetDeletedEvidencesQuery
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = userId,
+            PageNumber = page_number,
+            PageSize = page_size
+        }, cancellationToken);
+    }
 }

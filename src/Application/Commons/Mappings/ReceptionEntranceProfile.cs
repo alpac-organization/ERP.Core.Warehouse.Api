@@ -347,5 +347,22 @@ public class ReceptionEntranceProfile : Profile
             }));
 
         #endregion
+
+        #region  Get Deleted
+        // En ReceptionEntranceProfile, agregar:
+        CreateMap<ReceptionEntrance, DeletedEvidenceListItemDto>()
+            .ForMember(d => d.ReceptionId, o => o.MapFrom(s => s.RecordEntranceId))
+            .ForMember(d => d.CountryOfOrigin, o => o.MapFrom(s => s.CountryOfOrigin))
+            .ForMember(d => d.CustomBranch, o => o.MapFrom(s => s.CustomsBranches != null ? s.CustomsBranches.Name : string.Empty))
+            .ForMember(d => d.VehiclePlateNumber, o => o.MapFrom(s => s.VehiclePlateNumber))
+            .ForMember(d => d.VehicleChassisNumber, o => o.MapFrom(s => s.VehicleChassisNumber))
+            .ForMember(d => d.ContainerNumber, o => o.MapFrom(s => s.ContainerNumber))
+            .ForMember(d => d.DriverName, o => o.MapFrom(s => s.DriverName))
+            .ForMember(d => d.DeletedEvidenceUrls, o => o.MapFrom(s => s.DeletedEvidenceUrls ?? new List<string>()))
+            .ForMember(d => d.UpdatedByUserName, o => o.MapFrom(s => s.UpdatedByUserName))
+            .ForMember(d => d.UpdatedDate, o => o.MapFrom(s => s.UpdatedDate))
+            .ForMember(d => d.UpdatedTime, o => o.MapFrom(s => s.UpdatedTime))
+            .ForMember(d => d.DeletedAt, o => o.MapFrom(s => s.DeletedAt));
+        #endregion
     }
 }
