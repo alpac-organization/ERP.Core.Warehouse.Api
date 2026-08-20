@@ -60,7 +60,7 @@ public class WarehouseProfile : Profile
 
       CreateMap<Lots, LotListItemDto>()
           .ForMember(d => d.LotId, o => o.MapFrom(s => s.Id))
-          .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()))
+          .ForMember(d => d.Status, o => o.MapFrom(s => s.Status))
           .ForMember(d => d.TotalPositions, o => o.MapFrom(s => s.Positions.Count))
           .ForMember(d => d.OccupiedPositions, o => o.MapFrom(s => s.Positions.Count(p => p.CurrentStock != null)));
       #endregion
