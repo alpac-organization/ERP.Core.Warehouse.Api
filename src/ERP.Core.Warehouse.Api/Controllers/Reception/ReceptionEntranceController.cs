@@ -239,4 +239,31 @@ public class ReceptionEntranceController(IMediator _mediator) : ApiControllerBas
             PageSize = page_size
         }, cancellationToken);
     }
+
+    [Tags("Control de Acceso")]
+    [HttpDelete("companies/{company_id}/modules/{module_code}/receptions/{reception_id}/permanent")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<OkObjectResult> PermanentDeleteReceptionEntranceAsync(
+    [FromRoute] Guid company_id,
+    [FromRoute] string module_code,
+    [FromRoute] Guid reception_id,
+    CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        Guid.TryParse(userIdStr, out var userId);
+
+        var command = new PermanentDeleteReceptionEntranceCommand
+        {
+            UserId = userId,
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            ReceptionId = reception_id
+        };
+
+        var response = await _mediator.Send(command, cancellationToken);
+
+        return Ok(response);
+    }
 }

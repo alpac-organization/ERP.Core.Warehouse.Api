@@ -1,4 +1,3 @@
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
@@ -10,8 +9,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
 
 public class GetDeletedEvidencesHandler(
     IUnitOfWork unitOfWork,
-    IErrorManager errorManager,
-    IMapper mapper)
+    IErrorManager errorManager)
     : BaseValidatorHandler<GetDeletedEvidencesQuery, GetDeletedEvidencesDto>(unitOfWork, errorManager)
 {
     public override async Task<GetDeletedEvidencesDto> Handle(GetDeletedEvidencesQuery request, CancellationToken cancellationToken)
@@ -19,23 +17,26 @@ public class GetDeletedEvidencesHandler(
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        // Query base: Recepciones con DeletedEvidenceUrls no vacío
+        // Query base: Recepciones con DeletedEvidenceUrls no vacío (incluyendo soft deleted)
         var query = _unitOfWork.ReceptionEntrance.Entities
             .AsNoTracking()
-            .Include(r => r.CustomsBranches)
+            .IgnoreQueryFilters()
             .Where(r => r.DeletedEvidenceUrls != null && r.DeletedEvidenceUrls.Count > 0);
 
         // Conteo total
         var totalCount = await query.CountAsync(cancellationToken);
 
-        // Paginación y proyección
-        var entities = await query
+        // Paginación
+        var data = await query
             .OrderByDescending(r => r.DeletedAt ?? r.CreatedAt)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
+            .Select(r => new DeletedEvidenceListItemDto
+            {
+                RecordEntranceId = r.RecordEntranceId,
+                DeletedEvidenceUrls = r.DeletedEvidenceUrls ?? new List<string>()
+            })
             .ToListAsync(cancellationToken);
-
-        var data = mapper.Map<List<DeletedEvidenceListItemDto>>(entities);
 
         return new GetDeletedEvidencesDto
         {
