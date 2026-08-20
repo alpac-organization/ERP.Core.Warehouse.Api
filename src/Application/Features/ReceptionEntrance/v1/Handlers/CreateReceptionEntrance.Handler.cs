@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Entities.Warehouse;
+using ERP.Core.Application.Commons.Interfaces.AWS;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Commons.Constants;
@@ -10,7 +11,6 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 using ReceptionEntranceEntity = ERP.Core.Database.Domain.Entities.Warehouse.ReceptionEntrance;
-using ERP.Core.Application.Commons.Interfaces.AWS;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
 
@@ -150,13 +150,13 @@ public class CreateReceptionEntranceHandler(
             if (request.EvidenceBase64 != null && request.EvidenceBase64.Count > 0)
             {
                 evidenceUrls = (await s3StorageService.UploadImagesAsync(
-                    module: "warehouse",
-                    section: "reception-evidence",
+                    module: S3Sections.Module,
+                    section: S3Sections.ReceptionEvidence,
                     base64Images: request.EvidenceBase64,
                     cancellationToken: cancellationToken)).ToList();
             }
 
-            // PASO 2: Mapear entidades con las URLs de evidencia
+            // PASO 2: Mapear entidades
             var contextItems = new Dictionary<string, object>
             {
                 ["RecordEntranceId"] = recordEntranceId,
@@ -227,8 +227,13 @@ public class CreateReceptionEntranceHandler(
         }
         catch (Exception)
         {
-            // Si falla la BD, eliminar imágenes de S3 (compensación)
-            if (evidenceUrls.Count > 0)
+            // Verificar si el registro realmente se guardó en BD
+            var recordExists = await _unitOfWork.RecordEntrance.Entities
+                .AsNoTracking()
+                .AnyAsync(r => r.Id == recordEntranceId, cancellationToken);
+
+            // Solo eliminar imágenes de S3 si el registro NO existe en BD
+            if (!recordExists && evidenceUrls.Count > 0)
             {
                 try
                 {
