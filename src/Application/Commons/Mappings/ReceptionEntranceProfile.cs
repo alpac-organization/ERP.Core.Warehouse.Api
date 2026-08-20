@@ -352,12 +352,5 @@ public class ReceptionEntranceProfile : Profile
             }));
 
         #endregion
-
-        #region  Get Deleted
-        // En ReceptionEntranceProfile, agregar:
-        CreateMap<ReceptionEntrance, DeletedEvidenceListItemDto>()
-            .ForMember(d => d.RecordEntranceId, o => o.MapFrom(s => s.RecordEntranceId))
-            .ForMember(d => d.DeletedEvidenceUrls, o => o.MapFrom(s => s.DeletedEvidenceUrls ?? new List<string>()));
-        #endregion
     }
 }
