@@ -280,6 +280,9 @@ public class UpdateReceptionEntranceHandler(
                     }
                     catch
                     {
+                        return _errorManager.ThrowBadRequest<bool>(
+                            "No se lograron eliminar las imágenes",
+                            "ERP:DELETED_EVIDENCE_FAILED");
                     }
                 }
 
