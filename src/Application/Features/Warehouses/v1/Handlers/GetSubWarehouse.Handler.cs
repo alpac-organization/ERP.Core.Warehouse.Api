@@ -6,8 +6,6 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
-using ERP.Core.Database.Domain.Entities.Warehouse;
-using WarehouseEntity = ERP.Core.Database.Domain.Entities.Warehouse.Warehouses;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
 
@@ -24,12 +22,10 @@ public class GetSubWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager error
         if (!access.IsSuccess)
             return access.ErrorResponse!;
 
-        // Query: bodegas que tienen como padre el ParentWarehouseId
         var query = _unitOfWork.Warehouses.Entities
             .AsNoTracking()
             .Where(w => w.ParentWarehouseId == request.ParentWarehouseId);
 
-        // Aplicar filtros adicionales
         if (request.IsActive.HasValue)
             query = query.Where(w => w.IsActive == request.IsActive.Value);
 
@@ -56,8 +52,9 @@ public class GetSubWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager error
         }
 
         var pagedWarehouses = await query
+            .OrderBy(w => w.Code)   // Orden estable para paginación
             .Include(w => w.Capacity)
-            .Include(w => w.Branch)   // opcional, aunque las hijas comparten sucursal
+            .Include(w => w.Branch)
             .Include(w => w.Details)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
@@ -65,7 +62,6 @@ public class GetSubWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager error
 
         var mapped = mapper.Map<List<WarehouseDto>>(pagedWarehouses);
 
-        // Calcular capacidades (opcional)
         foreach (var dto in mapped)
             await FillCapacityAsync(dto, cancellationToken);
 
@@ -101,7 +97,7 @@ public class GetSubWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager error
             {
                 AreaTotal = r.WidthMetres * r.LengthMetres,
                 PositionsCount = r.Positions.Count,
-                OccupiedCount = r.Positions.Count(p => p.CurrentStock.Count > 0)
+                OccupiedCount = r.Positions.Count(p => p.CurrentStock.Any())
             })
             .ToListAsync(cancellationToken);
 

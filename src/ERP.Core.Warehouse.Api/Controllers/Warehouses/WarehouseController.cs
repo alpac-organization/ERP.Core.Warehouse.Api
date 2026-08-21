@@ -57,6 +57,7 @@ public class WarehouseController(IMediator _mediator) : ApiControllerBase
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
         Guid.TryParse(userIdStr, out var userId);
+
         return await _mediator.Send(new GetWarehousesQuery()
         {
             CompanyId = company_id,
@@ -77,19 +78,19 @@ public class WarehouseController(IMediator _mediator) : ApiControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<PagedResponse<WarehouseDto>> GetSubWarehousesAsync(
-            [FromRoute] Guid company_id,
-            [FromRoute] string module_code,
-            [FromRoute] Guid warehouse_id,
-            [FromQuery] string? warehouse_code = null,
-            [FromQuery] bool? is_active = null,
-            [FromQuery] bool? is_owner = null,
-            [FromQuery] string? search = null,
-            [FromQuery] int page_number = 1,
-            [FromQuery] int page_size = 10,
-            CancellationToken cancellationToken = default)
+                [FromRoute] Guid company_id,
+                [FromRoute] string module_code,
+                [FromRoute] Guid warehouse_id,
+                [FromQuery] string? warehouse_code = null,
+                [FromQuery] bool? is_active = null,
+                [FromQuery] bool? is_owner = null,
+                [FromQuery] string? search = null,
+                [FromQuery] int page_number = 1,
+                [FromQuery] int page_size = 10,
+                CancellationToken cancellationToken = default)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
-        Guid.TryParse(userIdStr, out var userId);
+        
         return await _mediator.Send(new GetSubWarehousesQuery()
         {
             CompanyId = company_id,
@@ -101,7 +102,7 @@ public class WarehouseController(IMediator _mediator) : ApiControllerBase
             Search = search,
             PageNumber = page_number,
             PageSize = page_size,
-            UserId = userId,
+            UserId = Guid.Parse(userIdStr ?? ""),
         }, cancellationToken);
     }
 }
