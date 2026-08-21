@@ -109,9 +109,7 @@ public class GetWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager errorMan
 
         var totalRecords = allNodesInOrder.Count;
 
-        var mapped = filteredRoots
-            .Select(root => MapWithChildren(root))
-            .ToList();
+        var mapped = mapper.Map<List<WarehouseDto>>(filteredRoots);
 
         foreach (var root in mapped)
             await FillCapacityAsync(root, cancellationToken);
@@ -183,27 +181,6 @@ public class GetWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager errorMan
         }
 
         return descendants;
-    }
-
-    private WarehouseDto MapWithChildren(WarehouseEntity entity)
-    {
-        ArgumentNullException.ThrowIfNull(entity);
-
-        var dto = mapper.Map<WarehouseDto>(entity);
-
-        if (entity.SubWarehouses != null && entity.SubWarehouses.Any())
-        {
-            dto.SubWarehouses = entity.SubWarehouses
-                .OrderBy(c => c.Code)
-                .Select(c => MapWithChildren(c))
-                .ToList();
-        }
-        else
-        {
-            dto.SubWarehouses = [];
-        }
-
-        return dto;
     }
 
     private async Task FillCapacityAsync(WarehouseDto node, CancellationToken cancellationToken)
