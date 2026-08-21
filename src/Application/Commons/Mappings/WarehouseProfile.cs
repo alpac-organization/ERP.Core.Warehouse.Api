@@ -1,11 +1,11 @@
 using AutoMapper;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Entities.Warehouse;
-using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
-using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
+using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 using Commands = ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
@@ -15,11 +15,23 @@ public class WarehouseProfile : Profile
    public WarehouseProfile()
    {
       CreateMap<Warehouses, WarehouseDto>()
-      .ForMember(dest => dest.WarehouseId, opt => opt.MapFrom(src => src.Id))
-      .ForMember(dest => dest.WarehouseCode, opt => opt.MapFrom(src => src.Code))
-      .ForMember(dest => dest.WarehouseName, opt => opt.MapFrom(src => src.WarehouseName))
-      .ForMember(dest => dest.WarehouseType, opt => opt.MapFrom(src => src.WarehouseType))
-      .ForMember(dest => dest.SubWarehouses, opt => opt.MapFrom(src => src.SubWarehouses));
+         .ConvertUsing((source, _, context) => new WarehouseDto
+         {
+            WarehouseId = source.Id,
+            WarehouseName = source.WarehouseName,
+            WarehouseCode = source.Code,
+            IsActive = source.IsActive,
+            WarehouseType = source.WarehouseType,
+            IsOwner = source.IsOwner,
+            BranchCode = source.Branch?.BranchCode,
+            SectionsCount = source.Sections?.Count ?? 0,
+            Capacity = source.Capacity is null
+               ? null
+               : context.Mapper.Map<WarehouseCapacityDto>(source.Capacity),
+            HasChildren = source.HasChildren
+         });
+
+      CreateMap<WarehouseCapacity, WarehouseCapacityDto>();
 
       #region Sections
       CreateMap<Sections, SectionDto>()
