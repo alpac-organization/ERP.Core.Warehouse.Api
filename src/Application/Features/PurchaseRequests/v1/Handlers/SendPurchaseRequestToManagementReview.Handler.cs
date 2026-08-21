@@ -85,6 +85,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
                 var requisitionManagementReviewEntity = RequisitionManagementReviewMapper.ToRequisitionManagementReviewEntity(request, access.User.Id, requisitionPending.PurchaseRequestId);
                 await _unitOfWork.RequisitionManagementReviews.RegisterRequisitionManagementReview(requisitionManagementReviewEntity);
+
+                requisitionPending.Status = AccountingReviewStatus.Approved;
+                await _unitOfWork.RequisitionAccountingReviews.UpdateAsync(requisitionPending);
             }
             else
             {

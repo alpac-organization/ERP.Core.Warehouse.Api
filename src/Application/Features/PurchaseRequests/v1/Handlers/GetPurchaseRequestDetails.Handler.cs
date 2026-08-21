@@ -21,6 +21,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             }
 
             var purchaseRequest = await _unitOfWork.PurchaseRequests.Entities
+                .Include(pur => pur.UserRevision)
+                    .ThenInclude(user => user.WorkArea)
+                        .ThenInclude(area => area.CostCenters)
+
                 .Include(pur => pur.RegistrationUser)
                     .ThenInclude(user => user.WorkArea)
                         .ThenInclude(area => area.CostCenters)
