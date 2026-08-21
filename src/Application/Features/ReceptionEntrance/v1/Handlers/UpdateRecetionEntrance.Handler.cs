@@ -295,7 +295,9 @@ public class UpdateReceptionEntranceHandler(
                     }
                     catch
                     {
-                        // Si S3 también falla, las imágenes quedarán huérfanas
+                        return _errorManager.ThrowBadRequest<bool>(
+                            "No se lograron eliminar las imágenes",
+                            "ERP:DELETED_EVIDENCE_FAILED");
                     }
                 }
 
