@@ -1,11 +1,12 @@
 using MediatR;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
 
-public class GetWarehousesQuery : BaseRequest, IRequest<PagedResponse<WarehouseDto>>
+public class GetWarehousesQuery : BaseRequest, IPagedQuery, IRequest<PagedResponse<WarehouseDto>>
 {
     public string? BranchCode { get; set; }
     public string? WarehouseCode { get; set; }

@@ -6,10 +6,15 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
+using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
 
-public class GetSubWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
+public class GetSubWarehousesHandler(
+    IUnitOfWork unitOfWork,
+    IErrorManager errorManager,
+    IMapper mapper,
+    IWarehouseCapacityCalculator capacityCalculator)
     : BaseValidatorHandler<GetSubWarehousesQuery, PagedResponse<WarehouseDto>>(unitOfWork, errorManager)
 {
     public override async Task<PagedResponse<WarehouseDto>> Handle(
@@ -52,7 +57,7 @@ public class GetSubWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager error
         }
 
         var pagedWarehouses = await query
-            .OrderBy(w => w.Code)   // Orden estable para paginación
+            .OrderBy(w => w.Code)
             .Include(w => w.Capacity)
             .Include(w => w.Branch)
             .Include(w => w.Details)
@@ -76,49 +81,17 @@ public class GetSubWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager error
     {
         ArgumentNullException.ThrowIfNull(node);
 
-        var occupiedAreaM2 = await CalculateOccupiedAreaAsync(node.WarehouseId, cancellationToken);
+        if (node.Capacity is null)
+            return;
 
-        if (node.Capacity is not null)
-        {
-            var usableArea = node.Capacity.UsableAreaM2 ?? node.Capacity.TotalAreaM2;
-            node.Capacity.OccupiedAreaM2 = occupiedAreaM2;
-            node.Capacity.FreeAreaM2 = usableArea - occupiedAreaM2;
-            node.Capacity.OccupancyPercentage = usableArea > 0
-                ? Math.Round(occupiedAreaM2 / usableArea * 100, 2)
-                : 0;
-        }
-    }
+        var result = await capacityCalculator.CalculateAsync(
+            node.WarehouseId,
+            node.Capacity.TotalAreaM2,
+            node.Capacity.UsableAreaM2,
+            cancellationToken);
 
-    private async Task<decimal> CalculateOccupiedAreaAsync(Guid warehouseId, CancellationToken cancellationToken)
-    {
-        var rackAreas = await _unitOfWork.Racks.Entities
-            .Where(r => r.Section.WarehouseId == warehouseId)
-            .Select(r => new
-            {
-                AreaTotal = r.WidthMetres * r.LengthMetres,
-                PositionsCount = r.Positions.Count,
-                OccupiedCount = r.Positions.Count(p => p.CurrentStock.Any())
-            })
-            .ToListAsync(cancellationToken);
-
-        var lotAreas = await _unitOfWork.Lots.Entities
-            .Where(l => l.Section.WarehouseId == warehouseId)
-            .Select(l => new
-            {
-                AreaTotal = l.WidthMetres * l.LengthMetres,
-                PositionsCount = l.Positions.Count,
-                OccupiedCount = l.Positions.Count(p => p.CurrentStock != null)
-            })
-            .ToListAsync(cancellationToken);
-
-        var occupied = rackAreas
-            .Where(r => r.PositionsCount > 0)
-            .Sum(r => (r.AreaTotal / r.PositionsCount) * r.OccupiedCount);
-
-        occupied += lotAreas
-            .Where(l => l.PositionsCount > 0)
-            .Sum(l => (l.AreaTotal / l.PositionsCount) * l.OccupiedCount);
-
-        return occupied;
+        node.Capacity.OccupiedAreaM2 = result.OccupiedAreaM2;
+        node.Capacity.FreeAreaM2 = result.FreeAreaM2;
+        node.Capacity.OccupancyPercentage = result.OccupancyPercentage;
     }
 }
