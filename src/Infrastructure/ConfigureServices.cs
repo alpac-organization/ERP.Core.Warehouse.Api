@@ -18,9 +18,7 @@ namespace ERP.Core.Warehouse.Api.Infrastructure
 
             services.AddErpCoreServices(configuration);
             services.AddScoped<IErrorManager, ErrorManager>();
-            services.AddHttpClient<IScaleServices, ScaleServices>();
-
-
+            services.AddHttpClient<IScaleServices, ScaleServices>();    
             return services;
         }
     }

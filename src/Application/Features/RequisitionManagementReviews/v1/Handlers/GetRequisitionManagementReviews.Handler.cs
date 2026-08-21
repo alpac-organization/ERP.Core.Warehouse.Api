@@ -25,7 +25,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
             var reviewsQuery = _unitOfWork.RequisitionManagementReviews.Entities
                 .Include(rev => rev.SentByUser)
                 .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(pur => pur.AccountingReview)
+                    .ThenInclude(rev => rev.PurchaseRequestItems)
+                .Include(rev => rev.PurchaseRequest)
+                    .ThenInclude(rev => rev.UserRevision)
+                .Include(rev => rev.PurchaseRequest)
+                    .ThenInclude(rev => rev.RegistrationUser)
                 .AsNoTracking();
 
             if (request.AreaId.HasValue)
