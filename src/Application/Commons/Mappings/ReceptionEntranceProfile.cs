@@ -322,9 +322,10 @@ public class ReceptionEntranceProfile : Profile
             .ForMember(d => d.DriverName, o => o.MapFrom(s => s.ReceptionEntrance!.DriverName))
             .ForMember(d => d.SealNumber, o => o.MapFrom(s => s.ReceptionEntrance!.SealNumber))
             .ForMember(d => d.EvidenceUrls, o => o.MapFrom(s => s.ReceptionEntrance!.EvidenceUrls))
-            .ForMember(d => d.DeletedEvidenceUrls, o => o.MapFrom(s => s.ReceptionEntrance!.DeletedAt != null
-                        ? s.ReceptionEntrance!.DeletedEvidenceUrls
-                        : null))
+            .ForMember(d => d.DeletedEvidenceUrls, o => o.MapFrom(s =>
+                s.ReceptionEntrance!.DeletedEvidenceUrls != null && s.ReceptionEntrance!.DeletedEvidenceUrls.Count > 0
+                    ? s.ReceptionEntrance!.DeletedEvidenceUrls
+                    : null))
             .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType))
             .ForMember(d => d.VehicleExitDate, o => o.MapFrom(s => s.ReceptionEntrance!.VehicleExitDate))
             .ForMember(d => d.VehicleExitTime, o => o.MapFrom(s => s.ReceptionEntrance!.VehicleExitTime))
@@ -351,13 +352,6 @@ public class ReceptionEntranceProfile : Profile
                 return null;
             }));
 
-        #endregion
-
-        #region  Get Deleted
-        // En ReceptionEntranceProfile, agregar:
-        CreateMap<ReceptionEntrance, DeletedEvidenceListItemDto>()
-            .ForMember(d => d.RecordEntranceId, o => o.MapFrom(s => s.RecordEntranceId))
-            .ForMember(d => d.DeletedEvidenceUrls, o => o.MapFrom(s => s.DeletedEvidenceUrls ?? new List<string>()));
         #endregion
     }
 }

@@ -44,13 +44,8 @@ public class DeleteReceptionEntranceHandler(
                 "ERP:RECORD_ALREADY_ADVANCED");
         }
 
-        // 3. Obtener las URLs activas para mover a papelera
+        // 3. Obtener las URLs activas
         var activeEvidenceUrls = recordEntrance.ReceptionEntrance?.EvidenceUrls ?? [];
-
-        var urlsToMove = activeEvidenceUrls
-            .Where(url => url.Contains($"/{S3Sections.ReceptionEvidence}/"))
-            .Distinct()
-            .ToList();
 
         try
         {
@@ -64,35 +59,39 @@ public class DeleteReceptionEntranceHandler(
                 recordEntrance.ReceptionEntrance.DeletedAt = NicaraguaClock.Now;
             }
 
-            // ... resto de soft deletes ...
+            // 5. Soft delete de EntranceDucats
+            foreach (var ducat in recordEntrance.EntranceDucats)
+            {
+                ducat.DeletedAt = NicaraguaClock.Now;
+            }
+
+            // 6. Soft delete de CustomsDeclarations y sus Details
+            if (recordEntrance.CustomsDeclarations != null)
+            {
+                recordEntrance.CustomsDeclarations.DeletedAt = NicaraguaClock.Now;
+
+                if (recordEntrance.CustomsDeclarations.Details != null)
+                {
+                    recordEntrance.CustomsDeclarations.Details.DeletedAt = NicaraguaClock.Now;
+                }
+            }
+
+            // 7. Soft delete de StepExecutionLogs
+            foreach (var log in recordEntrance.ExecutionLogs)
+            {
+                log.DeletedAt = NicaraguaClock.Now;
+            }
+
+            // 8. Soft delete de RecordEntrance
+            recordEntrance.DeletedAt = NicaraguaClock.Now;
 
             // 9. Guardar en BD PRIMERO
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            // 10. Después de BD exitosa, mover imágenes a papelera de S3
-            if (urlsToMove.Count > 0)
+            // 10. Después de BD exitosa, ELIMINAR PERMANENTEMENTE las imágenes de S3
+            if (activeEvidenceUrls.Count > 0)
             {
-                var movedUrls = (await s3StorageService.MoveImagesAsync(
-                    sourceUrls: urlsToMove,
-                    Module: S3Sections.Module,
-                    sourceSection: S3Sections.ReceptionEvidence,
-                    destinationSection: S3Sections.ReceptionEvidenceDeleted,
-                    cancellationToken: cancellationToken)).ToList();
-
-                // 11. ACTUALIZAR las URLs en BD con las nuevas URLs de papelera
-                if (movedUrls.Count > 0 && recordEntrance.ReceptionEntrance != null)
-                {
-                    var updatedDeletedUrls = recordEntrance.ReceptionEntrance.DeletedEvidenceUrls ?? [];
-
-                    // Reemplazar URLs originales por las movidas
-                    updatedDeletedUrls.RemoveAll(url => urlsToMove.Contains(url));
-                    updatedDeletedUrls.AddRange(movedUrls);
-
-                    recordEntrance.ReceptionEntrance.DeletedEvidenceUrls = updatedDeletedUrls.Distinct().ToList();
-
-                    // Guardar la actualización de URLs
-                    await _unitOfWork.SaveChangesAsync(cancellationToken);
-                }
+                await s3StorageService.DeleteImagesAsync(activeEvidenceUrls.Distinct(), cancellationToken);
             }
         }
         catch (Exception)

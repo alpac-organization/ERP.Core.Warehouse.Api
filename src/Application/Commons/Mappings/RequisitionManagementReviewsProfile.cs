@@ -13,8 +13,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             CreateMap<RequisitionManagementReview, RequisitionManagementReviewDto>()
                 .ForMember(dest => dest.RequisitionManagementReviewId, opt => opt.MapFrom(src => src.Id))
-                .ForMember(dest => dest.AccountingReviewComments, opt => opt.MapFrom(src => src.PurchaseRequest.AccountingReview != null ? src.PurchaseRequest.AccountingReview.Comments : null))
-                .ForPath(dest => dest.SentByUserInformation, opt => opt.MapFrom(src => src.SentByUser));
+                .ForPath(dest => dest.SentByUserInformation, opt => opt.MapFrom(src => src.SentByUser))
+                .ForPath(dest => dest.PurchaseRequest, opt => opt.MapFrom(src => src.PurchaseRequest));
         }
     }
 
