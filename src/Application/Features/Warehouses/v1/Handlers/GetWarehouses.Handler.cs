@@ -119,7 +119,7 @@ public class GetWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager errorMan
             {
                 AreaTotal = r.WidthMetres * r.LengthMetres,
                 PositionsCount = r.Positions.Count,
-                OccupiedCount = r.Positions.Count(p => p.CurrentStock.Any())
+                OccupiedCount = r.Positions.Count(p => p.CurrentStock.Count > 0)
             })
             .ToListAsync(cancellationToken);
 
