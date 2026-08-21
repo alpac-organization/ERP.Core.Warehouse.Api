@@ -14,13 +14,10 @@ using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 using ERP.Core.Application.Commons.Interfaces.AWS;
-using ERP.Core.Application.Commons.Interfaces.Firebase;
-using Microsoft.EntityFrameworkCore;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
     public class RegisterPurchaseRequestHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, ICodeGenerator _codeGenerator, IS3StorageService _s3StorageService,
-        // IPushNotificationServices _notificationServices,
         ILogger<RegisterPurchaseRequestHandler> _logger
     ): BaseValidatorHandler<RegisterPurchaseRequestCommand, bool>(_unitOfWork, _errorManager)
     {
@@ -87,53 +84,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     }
                     
                     await _unitOfWork.PurchaseRequestItems.RegisterPurchaseRequestItem(purchaseRequestItemEntity);
-                }
-                
+                }   
             }
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            // var users = await _unitOfWork.UserModules.Entities
-            //     .Include(user => user.Role)
-            //     .Include(user => user.UserProfile)
-            //         .ThenInclude(profile => profile.User)
-
-            //     .Where(userProfile =>  
-            //         userProfile.Role.RoleType == RoleType.Manager || 
-            //         userProfile.Role.RoleType == RoleType.Administrator
-            //     )
-            //     .Where(userProfile => userProfile.ModuleCode == request.ModuleCode)
-            //     .Where(userProfile => userProfile.UserProfile.CompanyId == request.CompanyId)
-            //     .Where(user => user.UserProfile.User.UserStatus == UserStatus.Active)
-            //     .ToListAsync(cancellationToken);
-
-
-            // foreach (var user in users)
-            // {
-            //     try
-            //     {
-
-            //         if (string.IsNullOrEmpty(user.UserProfile.DeviceToken))
-            //         {
-            //             _logger.LogInformation("Esta persona no contiene un token");   
-            //         }
-            //         else
-            //         {
-            //             bool isSend = await _notificationServices.SendAsync(user.UserProfile.DeviceToken, "Nueva Requisición esta aqui", "Maria Helena ha solicitado una requisición", null);
-
-            //             if (isSend)
-            //             {
-                            
-            //             }
-            //         }                
-            //     }
-            //     catch (Exception error)
-            //     {
-
-
-            //     }
-
-            // }
 
             _logger.LogInformation("✅Se registro exitosame la solicitud de compra");
             return true;
