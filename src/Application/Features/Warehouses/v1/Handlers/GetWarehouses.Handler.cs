@@ -6,9 +6,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
-using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Entities.Warehouse;
-
 using WarehouseEntity = ERP.Core.Database.Domain.Entities.Warehouse.Warehouses;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
@@ -26,18 +24,18 @@ public class GetWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager errorMan
         if (!access.IsSuccess)
             return access.ErrorResponse!;
 
-        var warehousesQuery = _unitOfWork.Warehouses.Entities.AsNoTracking();
+        // 1. Query base: solo bodegas raíz (sin padre)
+        var warehousesQuery = _unitOfWork.Warehouses.Entities
+            .AsNoTracking()
+            .Where(w => w.ParentWarehouseId == null);
 
+        // 2. Aplicar filtros
         var filteredQuery = ApplyFilters(warehousesQuery, request);
 
-        var allMatchingWarehouses = await filteredQuery
-            .Include(w => w.Capacity)
-            .Include(w => w.Branch)
-            .ToListAsync(cancellationToken);
+        // 3. Total de registros (para paginación)
+        var totalRecords = await filteredQuery.CountAsync(cancellationToken);
 
-        var matchingIds = allMatchingWarehouses.Select(w => w.Id).ToHashSet();
-
-        if (matchingIds.Count == 0)
+        if (totalRecords == 0)
         {
             return new PagedResponse<WarehouseDto>(
                 [],
@@ -46,73 +44,21 @@ public class GetWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager errorMan
                 0);
         }
 
-        // Obtener TODAS las bodegas necesarias para construir el árbol completo
-        var allNeededIds = new HashSet<Guid>(matchingIds);
-
-        foreach (var id in matchingIds)
-        {
-            var ancestors = await GetAncestorsAsync(id, cancellationToken);
-            foreach (var ancestorId in ancestors)
-                allNeededIds.Add(ancestorId);
-
-            var descendants = await GetAllDescendantsAsync(id, cancellationToken);
-            foreach (var descendantId in descendants)
-                allNeededIds.Add(descendantId);
-        }
-
-        var allWarehouses = await _unitOfWork.Warehouses.Entities
-            .AsNoTracking()
-            .Where(w => allNeededIds.Contains(w.Id))
+        // 4. Obtener la página solicitada (incluyendo datos necesarios)
+        var pagedWarehouses = await filteredQuery
             .Include(w => w.Capacity)
             .Include(w => w.Branch)
-            .ToListAsync(cancellationToken);
-
-        // Construir el árbol completo
-        var warehouseDict = allWarehouses.ToDictionary(w => w.Id);
-        var roots = new List<WarehouseEntity>();
-
-        foreach (var w in allWarehouses)
-            w.SubWarehouses = [];
-
-        foreach (var warehouse in allWarehouses)
-        {
-            if (warehouse.ParentWarehouseId == null)
-            {
-                roots.Add(warehouse);
-            }
-            else if (warehouseDict.TryGetValue(warehouse.ParentWarehouseId.Value, out var parent))
-            {
-                if (!parent.SubWarehouses.Contains(warehouse))
-                    parent.SubWarehouses.Add(warehouse);
-            }
-        }
-
-        // APLANAR EL ÁRBOL: Obtener todos los nodos en orden
-        var allNodesInOrder = new List<WarehouseEntity>();
-        FlattenTree(roots, allNodesInOrder);
-
-        // APLICAR PAGINACIÓN SOBRE LOS NODOS APLANADOS
-        var pagedNodes = allNodesInOrder
+            .Include(w => w.Details)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
-            .ToList();
+            .ToListAsync(cancellationToken);
 
-        // Obtener IDs de los nodos paginados
-        var pagedNodeIds = pagedNodes.Select(n => n.Id).ToHashSet();
+        // 5. Mapear a DTOs (HasChildren se mapea directamente desde la entidad)
+        var mapped = mapper.Map<List<WarehouseDto>>(pagedWarehouses);
 
-        // Filtrar el árbol para mantener solo los nodos paginados y sus ancestros
-        var filteredRoots = roots
-            .Select(root => FilterTreeForPagination(root, pagedNodeIds))
-            .Where(root => root != null)
-            .Select(root => root!)
-            .ToList();
-
-        var totalRecords = allNodesInOrder.Count;
-
-        var mapped = mapper.Map<List<WarehouseDto>>(filteredRoots);
-
-        foreach (var root in mapped)
-            await FillCapacityAsync(root, cancellationToken);
+        // 6. Calcular capacidades (opcional)
+        foreach (var dto in mapped)
+            await FillCapacityAsync(dto, cancellationToken);
 
         return new PagedResponse<WarehouseDto>(
             mapped,
@@ -121,66 +67,31 @@ public class GetWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager errorMan
             totalRecords);
     }
 
-    // Nuevo método para aplanar el árbol
-    private void FlattenTree(List<WarehouseEntity> nodes, List<WarehouseEntity> result)
+    private static IQueryable<WarehouseEntity> ApplyFilters(
+        IQueryable<WarehouseEntity> query,
+        GetWarehousesQuery request)
     {
-        foreach (var node in nodes.OrderBy(n => n.Code))
-        {
-            result.Add(node);
-            if (node.SubWarehouses != null && node.SubWarehouses.Any())
-            {
-                FlattenTree(node.SubWarehouses.ToList(), result);
-            }
-        }
-    }
+        if (request.IsActive.HasValue)
+            query = query.Where(ware => ware.IsActive == request.IsActive.Value);
 
-    private async Task<List<Guid>> GetAncestorsAsync(Guid warehouseId, CancellationToken cancellationToken)
-    {
-        var ancestors = new List<Guid>();
-        var currentId = warehouseId;
+        if (!string.IsNullOrWhiteSpace(request.BranchCode))
+            query = query.Where(ware => ware.Branch.BranchCode == request.BranchCode);
 
-        while (true)
-        {
-            var warehouse = await _unitOfWork.Warehouses.Entities
-                .AsNoTracking()
-                .Where(w => w.Id == currentId)
-                .Select(w => new { w.Id, w.ParentWarehouseId })
-                .FirstOrDefaultAsync(cancellationToken);
+        if (!string.IsNullOrWhiteSpace(request.WarehouseCode))
+            query = query.Where(ware => ware.Code == request.WarehouseCode);
 
-            if (warehouse == null || warehouse.ParentWarehouseId == null)
-                break;
+        if (request.WarehouseType.HasValue)
+            query = query.Where(ware => ware.WarehouseType == request.WarehouseType.Value);
 
-            ancestors.Add(warehouse.ParentWarehouseId.Value);
-            currentId = warehouse.ParentWarehouseId.Value;
-        }
+        if (request.IsOwner.HasValue)
+            query = query.Where(ware => ware.IsOwner == request.IsOwner.Value);
 
-        return ancestors;
-    }
+        if (!string.IsNullOrWhiteSpace(request.Search))
+            query = query.Where(ware =>
+                ware.Code.Contains(request.Search) ||
+                ware.WarehouseName.Contains(request.Search));
 
-    private async Task<List<Guid>> GetAllDescendantsAsync(Guid warehouseId, CancellationToken cancellationToken)
-    {
-        var descendants = new List<Guid>();
-        var queue = new Queue<Guid>();
-        queue.Enqueue(warehouseId);
-
-        while (queue.Count > 0)
-        {
-            var currentId = queue.Dequeue();
-
-            var children = await _unitOfWork.Warehouses.Entities
-                .AsNoTracking()
-                .Where(w => w.ParentWarehouseId == currentId)
-                .Select(w => w.Id)
-                .ToListAsync(cancellationToken);
-
-            foreach (var childId in children)
-            {
-                descendants.Add(childId);
-                queue.Enqueue(childId);
-            }
-        }
-
-        return descendants;
+        return query;
     }
 
     private async Task FillCapacityAsync(WarehouseDto node, CancellationToken cancellationToken)
@@ -198,9 +109,6 @@ public class GetWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager errorMan
                 ? Math.Round(occupiedAreaM2 / usableArea * 100, 2)
                 : 0;
         }
-
-        foreach (var child in node.SubWarehouses)
-            await FillCapacityAsync(child, cancellationToken);
     }
 
     private async Task<decimal> CalculateOccupiedAreaAsync(Guid warehouseId, CancellationToken cancellationToken)
@@ -234,68 +142,5 @@ public class GetWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager errorMan
             .Sum(l => (l.AreaTotal / l.PositionsCount) * l.OccupiedCount);
 
         return occupied;
-    }
-
-    private static IQueryable<WarehouseEntity> ApplyFilters(
-        IQueryable<WarehouseEntity> query,
-        GetWarehousesQuery request)
-    {
-        if (request.IsActive.HasValue)
-            query = query.Where(ware => ware.IsActive == request.IsActive.Value);
-
-        if (!string.IsNullOrWhiteSpace(request.BranchCode))
-            query = query.Where(ware => ware.Branch.BranchCode == request.BranchCode);
-
-        if (!string.IsNullOrWhiteSpace(request.WarehouseCode))
-            query = query.Where(ware => ware.Code == request.WarehouseCode);
-
-        if (request.WarehouseType.HasValue)
-            query = query.Where(ware => ware.WarehouseType == request.WarehouseType.Value);
-
-        if (request.IsOwner.HasValue)
-            query = query.Where(ware => ware.IsOwner == request.IsOwner.Value);
-
-        if (!string.IsNullOrWhiteSpace(request.Search))
-            query = query.Where(ware =>
-                ware.Code.Contains(request.Search) ||
-                ware.WarehouseName.Contains(request.Search));
-
-        return query;
-    }
-
-    private WarehouseEntity? FilterTreeForPagination(
-        WarehouseEntity node,
-        HashSet<Guid> pagedNodeIds)
-    {
-        if (pagedNodeIds.Contains(node.Id))
-            return node;
-
-        var filteredChildren = node.SubWarehouses?
-            .Select(child => FilterTreeForPagination(child, pagedNodeIds))
-            .Where(child => child != null)
-            .Select(child => child!)
-            .ToList() ?? [];
-
-        if (filteredChildren.Count > 0)
-        {
-            return new WarehouseEntity
-            {
-                Id = node.Id,
-                Code = node.Code,
-                WarehouseName = node.WarehouseName,
-                IsActive = node.IsActive,
-                IsOwner = node.IsOwner,
-                WarehouseType = node.WarehouseType,
-                ParentWarehouseId = node.ParentWarehouseId,
-                BranchId = node.BranchId,
-                Branch = node.Branch ?? new Branch(),
-                Capacity = node.Capacity,
-                SubWarehouses = filteredChildren,
-                Details = node.Details ?? new WarehouseDetails(),
-                Sections = node.Sections ?? []
-            };
-        }
-
-        return null;
     }
 }

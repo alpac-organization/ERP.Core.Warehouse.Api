@@ -25,13 +25,10 @@ public class WarehouseProfile : Profile
             IsOwner = source.IsOwner,
             BranchCode = source.Branch?.BranchCode,
             SectionsCount = source.Sections?.Count ?? 0,
-            Level = 0,
             Capacity = source.Capacity is null
                ? null
                : context.Mapper.Map<WarehouseCapacityDto>(source.Capacity),
-            SubWarehouses = source.SubWarehouses is null
-               ? []
-               : context.Mapper.Map<List<WarehouseDto>>(source.SubWarehouses.OrderBy(w => w.Code).ToList())
+            HasChildren = source.HasChildren
          });
 
       CreateMap<WarehouseCapacity, WarehouseCapacityDto>();

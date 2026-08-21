@@ -4,18 +4,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos
     public class WarehouseDto
     {
         public Guid WarehouseId { get; set; }
-        public string? WarehouseName { get; set; }
-        public string? WarehouseCode { get; set; }
+        public string WarehouseName { get; set; } = string.Empty;
+        public string WarehouseCode { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public WarehouseType? WarehouseType { get; set; }
-
         public bool IsOwner { get; set; }
         public string? BranchCode { get; set; }
         public int SectionsCount { get; set; }
-        public int Level { get; set; }
-
         public WarehouseCapacityDto? Capacity { get; set; }
-        public List<WarehouseDto> SubWarehouses { get; set; } = [];
+        public bool HasChildren { get; set; }
     }
 
     public class WarehouseCapacityDto
