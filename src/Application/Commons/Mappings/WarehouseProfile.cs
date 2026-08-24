@@ -65,7 +65,8 @@ public class WarehouseProfile : Profile
          .ForMember(dest => dest.PositionNumber, opt => opt.MapFrom(src => src.PositionNumber))
          .ForMember(dest => dest.PositionCode, opt => opt.MapFrom(src => src.PositionCode))
          .ForMember(dest => dest.IsBlocked, opt => opt.MapFrom(src => src.IsBlocked))
-         .ForMember(dest => dest.BlockReason, opt => opt.MapFrom(src => src.BlockReason));
+         .ForMember(dest => dest.BlockReason, opt => opt.MapFrom(src => src.BlockReason))
+         .ForMember(dest => dest.IsOccupied, opt => opt.MapFrom(src => src.IsOccupied));
       #endregion
 
       #region Lots
@@ -312,7 +313,9 @@ public static class RackDtoMapper
        RackUsageProfile? usageProfile,
        decimal? widthMetres,
        decimal? lengthMetres,
-       decimal? heightMetres) => new()
+       decimal? heightMetres,
+       int pageNumber,
+       int pageSize) => new()
        {
           SectionId = sectionId,
           LevelNumber = levelNumber,
@@ -321,6 +324,8 @@ public static class RackDtoMapper
           WidthMetres = widthMetres,
           LengthMetres = lengthMetres,
           HeightMetres = heightMetres,
+          PageNumber = pageNumber,
+          PageSize = pageSize,
           UserId = userId,
           CompanyId = companyId,
           ModuleCode = moduleCode

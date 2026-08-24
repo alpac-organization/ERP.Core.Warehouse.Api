@@ -72,13 +72,6 @@ public class LevelCapacityDto
     public decimal AvailableLengthMetres { get; set; }
 }
 
-public class RackSectionFilterResultDto
-{
-    public Guid SectionId { get; set; }
-    public int TotalRacksCount { get; set; }
-    public List<RackListDto> Racks { get; set; } = [];
-}
-
 public class RackPositionDto
 {
     public Guid PositionId { get; set; }
@@ -86,6 +79,7 @@ public class RackPositionDto
     public string PositionCode { get; set; } = null!;
     public bool IsBlocked { get; set; }
     public string? BlockReason { get; set; }
+    public bool IsOccupied { get; set; }
 }
 
 public class RackListDto
