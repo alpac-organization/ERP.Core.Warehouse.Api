@@ -90,7 +90,7 @@ public class WarehouseController(IMediator _mediator) : ApiControllerBase
                 CancellationToken cancellationToken = default)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
-        
+
         return await _mediator.Send(new GetSubWarehousesQuery()
         {
             CompanyId = company_id,
@@ -103,6 +103,30 @@ public class WarehouseController(IMediator _mediator) : ApiControllerBase
             PageNumber = page_number,
             PageSize = page_size,
             UserId = Guid.Parse(userIdStr ?? ""),
+        }, cancellationToken);
+    }
+
+    [Tags("Almacenes")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}")]
+    [ProducesResponseType(typeof(WarehouseDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<WarehouseDetailDto> GetWarehouseByIdAsync(
+    [FromRoute] Guid company_id,
+    [FromRoute] string module_code,
+    [FromRoute] Guid warehouse_id,
+    CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        Guid.TryParse(userIdStr, out var userId);
+
+        return await _mediator.Send(new GetWarehouseByIdQuery()
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            WarehouseId = warehouse_id,
+            UserId = userId
         }, cancellationToken);
     }
 }

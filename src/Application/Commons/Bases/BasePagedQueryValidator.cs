@@ -1,27 +1,14 @@
 using FluentValidation;
-using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
+using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Bases;
 
-public abstract class BasePagedQueryValidator<TQuery> : AbstractValidator<TQuery>
+public abstract class BasePagedQueryValidator<TQuery> : BaseRequestValidator<TQuery>
     where TQuery : BaseRequest, IPagedQuery
 {
     protected BasePagedQueryValidator(int maxPageSize = 10)
     {
-        RuleFor(x => x.CompanyId)
-            .NotEmpty()
-            .WithMessage("El id de la empresa no puede estar vacío.")
-            .NotEqual(Guid.Empty).WithMessage("El id de la empresa es requerido");
-
-        RuleFor(x => x.ModuleCode)
-            .NotEmpty()
-            .WithMessage("El codigo de modulo es requerido.");
-
-        RuleFor(x => x.UserId)
-            .NotEmpty().WithMessage("El id de usuario es requerido.")
-            .NotEqual(Guid.Empty).WithMessage("No se pudo identificar al usuario autenticado.");
-
         RuleFor(x => x)
             .Must(x => ((long)x.PageNumber - 1) * x.PageSize <= int.MaxValue)
             .When(x => x.PageNumber > 0 && x.PageSize > 0)
