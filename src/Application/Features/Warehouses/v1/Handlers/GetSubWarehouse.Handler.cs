@@ -45,53 +45,7 @@ public class GetSubWarehousesHandler(
                 w.Code.Contains(request.Search) ||
                 w.WarehouseName.Contains(request.Search));
 
-        var totalRecords = await query.CountAsync(cancellationToken);
-
-        if (totalRecords == 0)
-        {
-            return new PagedResponse<WarehouseDto>(
-                [],
-                request.PageNumber,
-                request.PageSize,
-                0);
-        }
-
-        var pagedWarehouses = await query
-            .OrderBy(w => w.Code)
-            .Include(w => w.Capacity)
-            .Include(w => w.Branch)
-            .Include(w => w.Details)
-            .Skip((request.PageNumber - 1) * request.PageSize)
-            .Take(request.PageSize)
-            .ToListAsync(cancellationToken);
-
-        var mapped = mapper.Map<List<WarehouseDto>>(pagedWarehouses);
-
-        foreach (var dto in mapped)
-            await FillCapacityAsync(dto, cancellationToken);
-
-        return new PagedResponse<WarehouseDto>(
-            mapped,
-            request.PageNumber,
-            request.PageSize,
-            totalRecords);
-    }
-
-    private async Task FillCapacityAsync(WarehouseDto node, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(node);
-
-        if (node.Capacity is null)
-            return;
-
-        var result = await capacityCalculator.CalculateAsync(
-            node.WarehouseId,
-            node.Capacity.TotalAreaM2,
-            node.Capacity.UsableAreaM2,
-            cancellationToken);
-
-        node.Capacity.OccupiedAreaM2 = result.OccupiedAreaM2;
-        node.Capacity.FreeAreaM2 = result.FreeAreaM2;
-        node.Capacity.OccupancyPercentage = result.OccupancyPercentage;
+        return await WarehousePagedQuery.ExecuteAsync(
+            query.OrderBy(w => w.Code), request, mapper, capacityCalculator, cancellationToken);
     }
 }

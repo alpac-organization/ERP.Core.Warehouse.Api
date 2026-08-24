@@ -7,7 +7,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Bases;
 public abstract class BasePagedQueryValidator<TQuery> : AbstractValidator<TQuery>
     where TQuery : BaseRequest, IPagedQuery
 {
-    protected BasePagedQueryValidator()
+    protected BasePagedQueryValidator(int maxPageSize = 10)
     {
         RuleFor(x => x.CompanyId)
             .NotEmpty()
@@ -35,7 +35,7 @@ public abstract class BasePagedQueryValidator<TQuery> : AbstractValidator<TQuery
         RuleFor(x => x.PageSize)
             .GreaterThan(0)
             .WithMessage("El tamaño de página debe ser mayor a cero (0).")
-            .LessThanOrEqualTo(10)
-            .WithMessage("El tamaño de página no puede exceder 10 registros.");
+            .LessThanOrEqualTo(maxPageSize)
+            .WithMessage($"El tamaño de página no puede exceder {maxPageSize} registros.");
     }
 }
