@@ -30,6 +30,21 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
             _logger.LogInformation("🚀Iniciando proceso de registro de almacen.");
 
             var warehouseEntity = request.ToWarehouseEntity();
+
+            warehouseEntity.HasChildren = false;
+
+            if (request.ParentWarehouseId.HasValue)
+            {
+                var parentId = request.ParentWarehouseId.Value;
+                var parentWarehouse = await _unitOfWork.Warehouses.Entities
+                    .FirstOrDefaultAsync(w => w.Id == parentId, cancellationToken);
+
+                if (parentWarehouse == null)
+                    return _errorManager.ThrowNotFound<bool>($"No se encontró el almacén padre con ID {parentId}", "ERP:02");
+
+                if (!parentWarehouse.HasChildren)
+                    parentWarehouse.HasChildren = true;
+            }
             
             await _unitOfWork.Warehouses.RegisterWarehouse(warehouseEntity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
