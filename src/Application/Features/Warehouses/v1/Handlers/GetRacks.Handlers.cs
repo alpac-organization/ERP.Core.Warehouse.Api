@@ -6,31 +6,37 @@ using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
 using AutoMapper.QueryableExtensions;
 using AutoMapper;
+using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
 
-public class GetRacksBySectionHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
-    : BaseValidatorHandler<GetRacksBySectionQuery, RackSectionFilterResultDto>(unitOfWork, errorManager)
+public class GetRacksBySectionHandler(
+    IUnitOfWork unitOfWork,
+    IErrorManager errorManager,
+    IMapper mapper)
+    : BaseValidatorHandler<GetRacksBySectionQuery, PagedResponse<RackListDto>>(unitOfWork, errorManager)
 {
     private readonly IMapper _mapper = mapper;
 
-    public override async Task<RackSectionFilterResultDto> Handle(GetRacksBySectionQuery request, CancellationToken cancellationToken)
+    public override async Task<PagedResponse<RackListDto>> Handle(
+        GetRacksBySectionQuery request,
+        CancellationToken cancellationToken)
     {
-        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+        var access = await ValidateAccessAsync(
+            request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
         var section = await _unitOfWork.Sections.Entities
             .FirstOrDefaultAsync(s => s.Id == request.SectionId && s.IsActive, cancellationToken);
-
         if (section is null)
-            return _errorManager.ThrowBadRequest<RackSectionFilterResultDto>(
+            return _errorManager.ThrowBadRequest<PagedResponse<RackListDto>>(
                 "La sección indicada no existe o no está activa.",
                 "ERP:SECTION_NOT_FOUND");
 
         var query = _unitOfWork.Racks.Entities
             .Where(r => r.SectionId == request.SectionId);
 
-        // Aplicar filtros (igual que antes)
+        // Aplicar filtros
         if (request.LevelNumber.HasValue)
             query = query.Where(r => r.LevelNumber == request.LevelNumber.Value);
         if (request.Status.HasValue)
@@ -44,41 +50,20 @@ public class GetRacksBySectionHandler(IUnitOfWork unitOfWork, IErrorManager erro
         if (request.HeightMetres.HasValue)
             query = query.Where(r => r.HeightMetres == request.HeightMetres.Value);
 
+        var totalRecords = await query.CountAsync(cancellationToken);
+
         var racks = await query
             .OrderBy(r => r.LevelNumber)
             .ThenBy(r => r.RowNumber)
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
             .ProjectTo<RackListDto>(_mapper.ConfigurationProvider)
             .ToListAsync(cancellationToken);
 
-        return new RackSectionFilterResultDto
-        {
-            SectionId = request.SectionId,
-            TotalRacksCount = racks.Count,
-            Racks = racks
-        };
-    }
-}
-
-public class GetRackByIdHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
-    : BaseValidatorHandler<GetRackByIdQuery, RackDto>(unitOfWork, errorManager)
-{
-    private readonly IMapper _mapper = mapper;
-
-    public override async Task<RackDto> Handle(GetRackByIdQuery request, CancellationToken cancellationToken)
-    {
-        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
-        if (!access.IsSuccess) return access.ErrorResponse!;
-
-        var rack = await _unitOfWork.Racks.Entities
-            .Where(r => r.Id == request.RackId)
-            .ProjectTo<RackDto>(_mapper.ConfigurationProvider)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (rack is null)
-            return _errorManager.ThrowBadRequest<RackDto>(
-                "El rack indicado no existe.",
-                "ERP:RACK_NOT_FOUND");
-
-        return rack;
+        return new PagedResponse<RackListDto>(
+            racks,
+            request.PageNumber,
+            request.PageSize,
+            totalRecords);
     }
 }

@@ -41,19 +41,6 @@ public class WarehouseProfile : Profile
       #endregion
 
       #region Racks
-      CreateMap<Racks, RackDto>()
-          .ForMember(dest => dest.RackId, opt => opt.MapFrom(src => src.Id))
-          .ForMember(dest => dest.UsageProfile, opt => opt.MapFrom(src => src.UsageProfile.ToString()))
-          .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
-          .ForMember(dest => dest.TotalPositions, opt => opt.MapFrom(src => src.Positions.Count))
-          .ForMember(dest => dest.OccupiedPositions, opt => opt.MapFrom(src => src.Positions.Count(p => p.CurrentStock.Any())));
-
-      CreateMap<RackPositions, RackPositionDto>()
-          .ForMember(dest => dest.PositionId, opt => opt.MapFrom(src => src.Id));
-
-      CreateMap<Racks, RackSummaryDto>()
-          .ForMember(dest => dest.RackId, opt => opt.MapFrom(src => src.Id));
-
       CreateMap<Racks, RackListDto>()
          .ForMember(dest => dest.RackId, opt => opt.MapFrom(src => src.Id))
          .ForMember(dest => dest.TotalPositions, opt => opt.MapFrom(src => src.Positions.Count))
@@ -65,7 +52,8 @@ public class WarehouseProfile : Profile
          .ForMember(dest => dest.PositionNumber, opt => opt.MapFrom(src => src.PositionNumber))
          .ForMember(dest => dest.PositionCode, opt => opt.MapFrom(src => src.PositionCode))
          .ForMember(dest => dest.IsBlocked, opt => opt.MapFrom(src => src.IsBlocked))
-         .ForMember(dest => dest.BlockReason, opt => opt.MapFrom(src => src.BlockReason));
+         .ForMember(dest => dest.BlockReason, opt => opt.MapFrom(src => src.BlockReason))
+         .ForMember(dest => dest.IsOccupied, opt => opt.MapFrom(src => src.IsOccupied));
       #endregion
 
       #region Lots
@@ -312,7 +300,9 @@ public static class RackDtoMapper
        RackUsageProfile? usageProfile,
        decimal? widthMetres,
        decimal? lengthMetres,
-       decimal? heightMetres) => new()
+       decimal? heightMetres,
+       int pageNumber,
+       int pageSize) => new()
        {
           SectionId = sectionId,
           LevelNumber = levelNumber,
@@ -321,6 +311,8 @@ public static class RackDtoMapper
           WidthMetres = widthMetres,
           LengthMetres = lengthMetres,
           HeightMetres = heightMetres,
+          PageNumber = pageNumber,
+          PageSize = pageSize,
           UserId = userId,
           CompanyId = companyId,
           ModuleCode = moduleCode
