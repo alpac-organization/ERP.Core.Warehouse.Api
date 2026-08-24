@@ -1,11 +1,12 @@
 using MediatR;
 using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
+using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
 
-public class GetRacksBySectionQuery : BaseRequest, IRequest<PagedResponse<RackListDto>>
+public class GetRacksBySectionQuery : BaseRequest, IPagedQuery, IRequest<PagedResponse<RackListDto>>
 {
     public Guid SectionId { get; set; }
 
@@ -16,6 +17,6 @@ public class GetRacksBySectionQuery : BaseRequest, IRequest<PagedResponse<RackLi
     public decimal? LengthMetres { get; set; }
     public decimal? HeightMetres { get; set; }
 
-    public int PageNumber { get; set; }
-    public int PageSize { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
 }

@@ -41,19 +41,6 @@ public class WarehouseProfile : Profile
       #endregion
 
       #region Racks
-      CreateMap<Racks, RackDto>()
-          .ForMember(dest => dest.RackId, opt => opt.MapFrom(src => src.Id))
-          .ForMember(dest => dest.UsageProfile, opt => opt.MapFrom(src => src.UsageProfile.ToString()))
-          .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
-          .ForMember(dest => dest.TotalPositions, opt => opt.MapFrom(src => src.Positions.Count))
-          .ForMember(dest => dest.OccupiedPositions, opt => opt.MapFrom(src => src.Positions.Count(p => p.CurrentStock.Any())));
-
-      CreateMap<RackPositions, RackPositionDto>()
-          .ForMember(dest => dest.PositionId, opt => opt.MapFrom(src => src.Id));
-
-      CreateMap<Racks, RackSummaryDto>()
-          .ForMember(dest => dest.RackId, opt => opt.MapFrom(src => src.Id));
-
       CreateMap<Racks, RackListDto>()
          .ForMember(dest => dest.RackId, opt => opt.MapFrom(src => src.Id))
          .ForMember(dest => dest.TotalPositions, opt => opt.MapFrom(src => src.Positions.Count))
