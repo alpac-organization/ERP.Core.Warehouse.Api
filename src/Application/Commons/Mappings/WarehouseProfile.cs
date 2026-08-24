@@ -54,6 +54,18 @@ public class WarehouseProfile : Profile
       CreateMap<Racks, RackSummaryDto>()
           .ForMember(dest => dest.RackId, opt => opt.MapFrom(src => src.Id));
 
+      CreateMap<Racks, RackListDto>()
+         .ForMember(dest => dest.RackId, opt => opt.MapFrom(src => src.Id))
+         .ForMember(dest => dest.TotalPositions, opt => opt.MapFrom(src => src.Positions.Count))
+         .ForMember(dest => dest.OccupiedPositions, opt => opt.MapFrom(src => src.Positions.Count(p => p.IsOccupied)))
+         .ForMember(dest => dest.Positions, opt => opt.MapFrom(src => src.Positions.OrderBy(p => p.PositionNumber)));
+
+      CreateMap<RackPositions, RackPositionDto>()
+         .ForMember(dest => dest.PositionId, opt => opt.MapFrom(src => src.Id))
+         .ForMember(dest => dest.PositionNumber, opt => opt.MapFrom(src => src.PositionNumber))
+         .ForMember(dest => dest.PositionCode, opt => opt.MapFrom(src => src.PositionCode))
+         .ForMember(dest => dest.IsBlocked, opt => opt.MapFrom(src => src.IsBlocked))
+         .ForMember(dest => dest.BlockReason, opt => opt.MapFrom(src => src.BlockReason));
       #endregion
 
       #region Lots

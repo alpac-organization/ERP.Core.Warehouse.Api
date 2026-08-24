@@ -30,28 +30,24 @@ public class GetRacksBySectionHandler(IUnitOfWork unitOfWork, IErrorManager erro
         var query = _unitOfWork.Racks.Entities
             .Where(r => r.SectionId == request.SectionId);
 
+        // Aplicar filtros (igual que antes)
         if (request.LevelNumber.HasValue)
             query = query.Where(r => r.LevelNumber == request.LevelNumber.Value);
-
         if (request.Status.HasValue)
             query = query.Where(r => r.Status == request.Status.Value);
-
         if (request.UsageProfile.HasValue)
             query = query.Where(r => r.UsageProfile == request.UsageProfile.Value);
-
         if (request.WidthMetres.HasValue)
             query = query.Where(r => r.WidthMetres == request.WidthMetres.Value);
-
         if (request.LengthMetres.HasValue)
             query = query.Where(r => r.LengthMetres == request.LengthMetres.Value);
-
         if (request.HeightMetres.HasValue)
             query = query.Where(r => r.HeightMetres == request.HeightMetres.Value);
 
         var racks = await query
             .OrderBy(r => r.LevelNumber)
             .ThenBy(r => r.RowNumber)
-            .ProjectTo<RackSummaryDto>(_mapper.ConfigurationProvider)
+            .ProjectTo<RackListDto>(_mapper.ConfigurationProvider)
             .ToListAsync(cancellationToken);
 
         return new RackSectionFilterResultDto
