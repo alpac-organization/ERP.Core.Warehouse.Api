@@ -28,6 +28,7 @@ public class GetWarehouseByIdHandler(
 
         var warehouse = await _unitOfWork.Warehouses.Entities
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(w => w.Capacity)
             .Include(w => w.Branch)
             .Include(w => w.Details)

@@ -112,21 +112,24 @@ public class WarehouseController(IMediator _mediator) : ApiControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<WarehouseDetailDto> GetWarehouseByIdAsync(
+    public async Task<IActionResult> GetWarehouseByIdAsync(
     [FromRoute] Guid company_id,
     [FromRoute] string module_code,
     [FromRoute] Guid warehouse_id,
     CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
-        Guid.TryParse(userIdStr, out var userId);
+        if (!Guid.TryParse(userIdStr, out var userId))
+            return Unauthorized();
 
-        return await _mediator.Send(new GetWarehouseByIdQuery()
+        var response = await _mediator.Send(new GetWarehouseByIdQuery()
         {
             CompanyId = company_id,
             ModuleCode = module_code,
             WarehouseId = warehouse_id,
             UserId = userId
         }, cancellationToken);
+
+        return Ok(response);
     }
 }
