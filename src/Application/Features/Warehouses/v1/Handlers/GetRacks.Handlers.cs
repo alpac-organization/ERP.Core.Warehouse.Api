@@ -4,7 +4,6 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
-using AutoMapper.QueryableExtensions;
 using AutoMapper;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 
@@ -34,6 +33,7 @@ public class GetRacksBySectionHandler(
                 "ERP:SECTION_NOT_FOUND");
 
         var query = _unitOfWork.Racks.Entities
+            .AsNoTracking()
             .Where(r => r.SectionId == request.SectionId);
 
         // Aplicar filtros
@@ -57,11 +57,13 @@ public class GetRacksBySectionHandler(
             .ThenBy(r => r.RowNumber)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
-            .ProjectTo<RackListDto>(_mapper.ConfigurationProvider)
+            .Include(rack => rack.Positions)
             .ToListAsync(cancellationToken);
 
+        var rackItems = _mapper.Map<List<RackListDto>>(racks);
+
         return new PagedResponse<RackListDto>(
-            racks,
+            rackItems,
             request.PageNumber,
             request.PageSize,
             totalRecords);
