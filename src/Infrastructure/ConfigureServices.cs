@@ -1,12 +1,16 @@
-using ERP.Core.Database.Infrastructure;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using ERP.Core.Warehouse.Api.Infrastructure.Services;
-using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
 using ERP.Core.Application.Commons.Interfaces;
-using ERP.Core.Infrastructure.Services;
+using Microsoft.Extensions.DependencyInjection;
+
 using ERP.Core.Infrastructure;
+using ERP.Core.Infrastructure.Services;
+
+using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Database.Infrastructure;
+
+using ERP.Core.Warehouse.Api.Infrastructure.Services;
 using ERP.Core.Warehouse.Api.Application.Commons.Options;
+using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
 
 namespace ERP.Core.Warehouse.Api.Infrastructure
 {
@@ -17,6 +21,10 @@ namespace ERP.Core.Warehouse.Api.Infrastructure
             //Uso de copies notifications
             services.Configure<PurchaseRequestOptions>(
                 configuration.GetSection("Notifications:PurchaseRequest")
+            );
+
+            services.Configure<Dictionary<PurchaseRequestStatus, ProcessPurchaseRequestOptions>>(
+                configuration.GetSection("Notifications:ProcessPurchaseRequest")
             );
             
             // services.AddJobScheduling();
@@ -30,3 +38,4 @@ namespace ERP.Core.Warehouse.Api.Infrastructure
         }
     }
 }
+

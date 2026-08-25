@@ -94,14 +94,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 }
             }
 
-
+            #region  Enviar push notification 
             var notificationConfig = _options.Value;
 
             string userName = access.User?.Fullname ?? "Un usuario";
-            string titleCopy = notificationConfig.Title ?? "Nueva Solicitud Compra";
             string descriptionCopy = (notificationConfig.Description ?? "{{Name}} registró una nueva solicitud de compra {{Type}}.")
                 .Replace("{{Name}}", userName);
-
 
             var targetProfiles = await _unitOfWork.Profiles.Entities
                 .Include(p => p.UserModuleRole)
@@ -120,14 +118,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
             var targetProfileIds = targetProfiles.Select(p => p.Id).ToList();
 
-            // 3. Crear registros internos de notificación para cada destinatario
+            // Crear registros internos de notificación para cada destinatario
             foreach (var profile in targetProfiles)
             {
                 //Lo registramos en su bandeja
                 await _unitOfWork.Notifications.CreateNotification(new()
                 {
-                    Title          = titleCopy,
-                    Description    = descriptionCopy,                       
+                    Title          = notificationConfig.Title,
+                    Description    = descriptionCopy ,                       
                     PathRedirect   = "/purchasing",
                     AdditionalData = JsonSerializer.Serialize("{}"),
                     UserId         = profile.UserId,
@@ -140,11 +138,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 .Where(device => targetProfileIds.Contains(device.UserProfileId))
                 .ToListAsync(cancellationToken);
             
+            //Mapear todos los dispositivos.
             foreach (var device in devices)
             {
                 var result = await _simpleNotificationServices.SendPushNotificationAsync(device.EndpointArn ?? "", new()
                 {
-                    Title    = titleCopy,
+                    Title    = notificationConfig.Title,
                     Body     = descriptionCopy,
                     WebPushConfig = new()
                     {
@@ -157,9 +156,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             }
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
-            
             _logger.LogInformation("✅Se registro exitosame la solicitud de compra");
 
+            #endregion
 
             return true;
         }
