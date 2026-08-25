@@ -58,13 +58,24 @@ public class WarehouseProfile : Profile
 
       #region Lots
       CreateMap<Lots, LotDto>()
-          .ForMember(d => d.LotId, o => o.MapFrom(s => s.Id))
-          .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()))
-          .ForMember(d => d.TotalPositions, o => o.MapFrom(s => s.Positions.Count))
-          .ForMember(d => d.OccupiedPositions, o => o.MapFrom(s => s.Positions.Count(p => p.CurrentStock != null)));
+         .ForMember(d => d.LotId, o => o.MapFrom(s => s.Id))
+         .ForMember(d => d.Status, o => o.MapFrom(s => s.Status))
+         .ForMember(d => d.TotalPositions, o => o.MapFrom(s => s.Positions.Count))
+         .ForMember(d => d.OccupiedPositions, o => o.MapFrom(s => s.Positions.Count(p => p.IsOccupied)))
+         .ForMember(d => d.BlockedPositions, o => o.MapFrom(s => s.Positions.Count(p => p.IsBlocked)))
+         .ForMember(d => d.FreePositions, o => o.MapFrom(s =>
+            s.Positions.Count - s.Positions.Count(p => p.IsOccupied) - s.Positions.Count(p => p.IsBlocked)
+         ));
 
       CreateMap<LotsPositions, LotPositionDto>()
-          .ForMember(d => d.PositionId, o => o.MapFrom(s => s.Id));
+          .ForMember(d => d.PositionId, o => o.MapFrom(s => s.Id))
+         .ForMember(d => d.RowNumber, o => o.MapFrom(s => s.RowNumber))
+         .ForMember(d => d.ColumnNumber, o => o.MapFrom(s => s.ColumnNumber))
+         .ForMember(d => d.PositionCode, o => o.MapFrom(s => s.PositionCode))
+         .ForMember(d => d.AllowsStacking, o => o.MapFrom(s => s.AllowsStacking))
+         .ForMember(d => d.IsBlocked, o => o.MapFrom(s => s.IsBlocked))
+         .ForMember(d => d.IsOccupied, o => o.MapFrom(s => s.IsOccupied))
+         .ForMember(d => d.BlockReason, o => o.MapFrom(s => s.BlockReason));
 
       CreateMap<Lots, LotSummaryDto>()
           .ForMember(d => d.LotId, o => o.MapFrom(s => s.Id))

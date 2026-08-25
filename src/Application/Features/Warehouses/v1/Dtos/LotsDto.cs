@@ -1,5 +1,4 @@
 using ERP.Core.Database.Domain.Enums;
-using MediatR;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 
@@ -55,6 +54,8 @@ public class LotDto
 
     public int TotalPositions { get; set; }
     public int OccupiedPositions { get; set; }
+    public int BlockedPositions { get; set; }
+    public int FreePositions { get; set; }
 
     public List<LotPositionDto> Positions { get; set; } = [];
 }
@@ -67,6 +68,8 @@ public class LotPositionDto
     public string PositionCode { get; set; } = null!;
     public bool AllowsStacking { get; set; }
     public bool IsBlocked { get; set; }
+    public bool IsOccupied { get; set; }
+    public string? BlockReason { get; set; }
 }
 
 public class LotListItemDto
