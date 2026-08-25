@@ -1,6 +1,6 @@
-using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
-using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Database.Domain.Entities.Catalogs;
+using ERP.Core.Warehouse.Api.Application.Commons.Utils;
+using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
 using WarehouseEntity = ERP.Core.Database.Domain.Entities.Warehouse.Warehouses;
 
 namespace ERP.Core.Warehouse.Api.Infrastructure.Services;
@@ -35,13 +35,7 @@ public class WarehouseCapacityCalculator : IWarehouseCapacityCalculator
             ? Math.Round(occupiedAreaM2 / usableAreaM2 * 100, 2)
             : 0;
         var totalPositions = rackMetrics.TotalPositions + lotMetrics.TotalPositions;
-        var usedPositions = (warehouse.Sections ?? [])
-            .Sum((Sections section) => (section.Racks ?? []).Sum((Racks rack) =>
-                PositionMetrics.Occupied(rack.Positions,
-                    (RackPositions position) => position.IsOccupied || position.IsBlocked))
-                + (section.Lots ?? []).Sum((Lots lot) =>
-                PositionMetrics.Occupied(lot.Positions,
-                    (LotsPositions position) => position.IsOccupied || position.IsBlocked)));
+        var usedPositions = (warehouse.Sections ?? []).Sum(GetSectionOccupiedPositions);
 
         return new WarehouseAreaCapacity(
             totalAreaM2,
@@ -54,4 +48,25 @@ public class WarehouseCapacityCalculator : IWarehouseCapacityCalculator
             usedPositions,
             Math.Max(0, totalPositions - usedPositions));
     }
+
+    private static int GetSectionOccupiedPositions(Sections section)
+    {
+        var rackOccupied = GetRacksOccupiedPositions(section.Racks);
+        var lotOccupied = GetLotsOccupiedPositions(section.Lots);
+        return rackOccupied + lotOccupied;
+    }
+
+    private static int GetRacksOccupiedPositions(IEnumerable<Racks>? racks) =>
+        (racks ?? []).Sum(GetRackOccupiedPositions);
+
+    private static int GetRackOccupiedPositions(Racks rack) =>
+        PositionMetrics.Occupied(rack.Positions,
+            (RackPositions position) => position.IsOccupied || position.IsBlocked);
+
+    private static int GetLotsOccupiedPositions(IEnumerable<Lots>? lots) =>
+        (lots ?? []).Sum(GetLotOccupiedPositions);
+
+    private static int GetLotOccupiedPositions(Lots lot) =>
+        PositionMetrics.Occupied(lot.Positions,
+            (LotsPositions position) => position.IsOccupied || position.IsBlocked);
 }
