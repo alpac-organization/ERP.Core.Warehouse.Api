@@ -1,4 +1,4 @@
-namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Utils;
+namespace ERP.Core.Warehouse.Api.Application.Commons.Utils;
 
 public static class PositionMetrics
 {

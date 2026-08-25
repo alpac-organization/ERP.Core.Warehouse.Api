@@ -1,6 +1,7 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Warehouse.Api.Application.Commons.Extensions;
 using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
@@ -28,18 +29,7 @@ public class GetWarehouseByIdHandler(
 
         var warehouse = await _unitOfWork.Warehouses.Entities
             .AsNoTracking()
-            .AsSplitQuery()
-            .Include(w => w.Capacity)
-            .Include(w => w.Branch)
-            .Include(w => w.Details)
-            .Include(w => w.Sections)
-                .ThenInclude(s => s.Racks)
-                    .ThenInclude(r => r.Positions)
-            .Include(w => w.Sections)
-                .ThenInclude(s => s.Lots)
-                    .ThenInclude(l => l.Positions)
-            .Include(w => w.Sections)
-                .ThenInclude(s => s.Capacity)
+            .IncludeWarehouseDetails()
             .FirstOrDefaultAsync(w => w.Id == request.WarehouseId, cancellationToken);
 
         if (warehouse == null)
