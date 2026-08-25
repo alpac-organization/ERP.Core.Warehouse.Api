@@ -1,5 +1,4 @@
 using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
@@ -75,17 +74,20 @@ public class GetLotsBySectionHandler(IUnitOfWork unitOfWork, IErrorManager error
         if (request.RackStatus.HasValue)
             queryLots = queryLots.Where(lot => lot.Status == request.RackStatus.Value);
 
+        queryLots = queryLots.Include(lot => lot.Positions);
+
         var totalRecords = await queryLots.CountAsync(cancellationToken);
 
         var lots = await queryLots
             .OrderBy(lot => lot.Code)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
-            .ProjectTo<LotListItemDto>(_mapper.ConfigurationProvider)
             .ToListAsync(cancellationToken);
 
+        var lotItems = _mapper.Map<List<LotListItemDto>>(lots);
+
         return new PagedResponse<LotListItemDto>(
-            lots,
+            lotItems,
             request.PageNumber,
             request.PageSize,
             totalRecords);

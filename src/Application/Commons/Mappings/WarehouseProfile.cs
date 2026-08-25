@@ -6,6 +6,7 @@ using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Utils;
 using Commands = ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
@@ -43,9 +44,14 @@ public class WarehouseProfile : Profile
       #region Racks
       CreateMap<Racks, RackListDto>()
          .ForMember(dest => dest.RackId, opt => opt.MapFrom(src => src.Id))
-         .ForMember(dest => dest.TotalPositions, opt => opt.MapFrom(src => src.Positions.Count))
-         .ForMember(dest => dest.OccupiedPositions, opt => opt.MapFrom(src => src.Positions.Count(p => p.IsOccupied)))
-         .ForMember(dest => dest.Positions, opt => opt.MapFrom(src => src.Positions.OrderBy(p => p.PositionNumber)));
+         .ForMember(dest => dest.Positions, opt => opt.MapFrom(src => src.Positions.OrderBy(p => p.PositionNumber)))
+         .AfterMap((src, dest) =>
+         {
+            dest.TotalPositions = PositionMetrics.Total(src.Positions);
+            dest.OccupiedPositions = PositionMetrics.Occupied(
+               src.Positions,
+               p => p.IsOccupied || p.IsBlocked);
+         });
 
       CreateMap<RackPositions, RackPositionDto>()
          .ForMember(dest => dest.PositionId, opt => opt.MapFrom(src => src.Id))
@@ -60,12 +66,16 @@ public class WarehouseProfile : Profile
       CreateMap<Lots, LotDto>()
          .ForMember(d => d.LotId, o => o.MapFrom(s => s.Id))
          .ForMember(d => d.Status, o => o.MapFrom(s => s.Status))
-         .ForMember(d => d.TotalPositions, o => o.MapFrom(s => s.Positions.Count))
-         .ForMember(d => d.OccupiedPositions, o => o.MapFrom(s => s.Positions.Count(p => p.IsOccupied)))
-         .ForMember(d => d.BlockedPositions, o => o.MapFrom(s => s.Positions.Count(p => p.IsBlocked)))
-         .ForMember(d => d.FreePositions, o => o.MapFrom(s =>
-            s.Positions.Count - s.Positions.Count(p => p.IsOccupied) - s.Positions.Count(p => p.IsBlocked)
-         ));
+         .AfterMap((src, dest) =>
+         {
+            dest.TotalPositions = PositionMetrics.Total(src.Positions);
+            dest.OccupiedPositions = PositionMetrics.Occupied(src.Positions, p => p.IsOccupied);
+            dest.BlockedPositions = PositionMetrics.Blocked(src.Positions, p => p.IsBlocked);
+            dest.FreePositions = PositionMetrics.Free(
+               dest.TotalPositions,
+               dest.OccupiedPositions,
+               dest.BlockedPositions);
+         });
 
       CreateMap<LotsPositions, LotPositionDto>()
           .ForMember(d => d.PositionId, o => o.MapFrom(s => s.Id))
@@ -87,19 +97,14 @@ public class WarehouseProfile : Profile
          .ForMember(d => d.WidthMetres, o => o.MapFrom(s => s.WidthMetres))
          .ForMember(d => d.LengthMetres, o => o.MapFrom(s => s.LengthMetres))
          .ForMember(d => d.Status, o => o.MapFrom(s => s.Status))
-         .ForMember(d => d.TotalPositions, o => o.MapFrom(s => s.Positions.Count))
-         .ForMember(d => d.UsedPositions, o => o.MapFrom(s =>
-            s.Positions.Count(p => p.IsOccupied || p.IsBlocked)))
-         .ForMember(d => d.TotalAreaM2, o => o.MapFrom(s =>
-            Math.Round(s.WidthMetres * s.LengthMetres, 2)))
-         .ForMember(d => d.UsedAreaM2, o => o.MapFrom(s =>
-            s.Positions.Count > 0
-                  ? Math.Round((s.Positions.Count(p => p.IsOccupied || p.IsBlocked) * 1.0m / s.Positions.Count) * (s.WidthMetres * s.LengthMetres), 2)
-                  : 0))
-         .ForMember(d => d.OccupancyPercentage, o => o.MapFrom(s =>
-            s.Positions.Count > 0
-                  ? Math.Round((s.Positions.Count(p => p.IsOccupied || p.IsBlocked) * 100.0m / s.Positions.Count), 2)
-                  : 0));
+         .AfterMap((src, dest) =>
+         {
+            dest.TotalPositions = PositionMetrics.Total(src.Positions);
+            dest.UsedPositions = PositionMetrics.Occupied(src.Positions, p => p.IsOccupied || p.IsBlocked);
+            dest.TotalAreaM2 = PositionMetrics.Area(src.WidthMetres, src.LengthMetres);
+            dest.UsedAreaM2 = PositionMetrics.UsedArea(dest.TotalAreaM2, dest.TotalPositions, dest.UsedPositions);
+            dest.OccupancyPercentage = PositionMetrics.OccupancyPercentage(dest.TotalPositions, dest.UsedPositions);
+         });
       #endregion
    }
 }
