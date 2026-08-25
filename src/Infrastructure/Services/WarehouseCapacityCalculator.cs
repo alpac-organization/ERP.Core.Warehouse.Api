@@ -10,17 +10,17 @@ public class WarehouseCapacityCalculator : IWarehouseCapacityCalculator
     public WarehouseAreaCapacity Calculate(WarehouseEntity warehouse)
     {
         var rackMetrics = PositionMetrics.Summarize<Racks, RackPositions>(
-            warehouse.Sections?.SelectMany(section => section.Racks ?? []),
-            rack => rack.Positions,
-            position => position.IsOccupied || position.IsBlocked,
-            rack => rack.WidthMetres,
-            rack => rack.LengthMetres);
+            warehouse.Sections?.SelectMany((Sections section) => section.Racks ?? []),
+            (Racks rack) => rack.Positions,
+            (RackPositions position) => position.IsOccupied || position.IsBlocked,
+            (Racks rack) => rack.WidthMetres,
+            (Racks rack) => rack.LengthMetres);
         var lotMetrics = PositionMetrics.Summarize<Lots, LotsPositions>(
-            warehouse.Sections?.SelectMany(section => section.Lots ?? []),
-            lot => lot.Positions,
-            position => position.IsOccupied || position.IsBlocked,
-            lot => lot.WidthMetres,
-            lot => lot.LengthMetres);
+            warehouse.Sections?.SelectMany((Sections section) => section.Lots ?? []),
+            (Lots lot) => lot.Positions,
+            (LotsPositions position) => position.IsOccupied || position.IsBlocked,
+            (Lots lot) => lot.WidthMetres,
+            (Lots lot) => lot.LengthMetres);
 
         var usableAreaM2 = rackMetrics.TotalAreaM2 + lotMetrics.TotalAreaM2;
         var totalAreaM2 = warehouse.Details is null
@@ -36,12 +36,12 @@ public class WarehouseCapacityCalculator : IWarehouseCapacityCalculator
             : 0;
         var totalPositions = rackMetrics.TotalPositions + lotMetrics.TotalPositions;
         var usedPositions = (warehouse.Sections ?? [])
-            .Sum(section => (section.Racks ?? []).Sum(rack =>
+            .Sum((Sections section) => (section.Racks ?? []).Sum((Racks rack) =>
                 PositionMetrics.Occupied(rack.Positions,
-                    position => position.IsOccupied || position.IsBlocked))
-                + (section.Lots ?? []).Sum(lot =>
+                    (RackPositions position) => position.IsOccupied || position.IsBlocked))
+                + (section.Lots ?? []).Sum((Lots lot) =>
                 PositionMetrics.Occupied(lot.Positions,
-                    position => position.IsOccupied || position.IsBlocked)));
+                    (LotsPositions position) => position.IsOccupied || position.IsBlocked)));
 
         return new WarehouseAreaCapacity(
             totalAreaM2,
