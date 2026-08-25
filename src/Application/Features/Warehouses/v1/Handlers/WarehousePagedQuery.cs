@@ -1,5 +1,7 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using ERP.Core.Warehouse.Api.Application.Commons.Extensions;
+using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
@@ -28,31 +30,21 @@ internal static class WarehousePagedQuery
         }
 
         var pagedWarehouses = await query
-            .Include(w => w.Capacity)
-            .Include(w => w.Branch)
-            .Include(w => w.Details)
+            .IncludeWarehouseDetails()
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
 
         var mapped = mapper.Map<List<WarehouseDto>>(pagedWarehouses);
 
-        foreach (var dto in mapped)
+        foreach (var (warehouse, dto) in pagedWarehouses.Zip(mapped))
         {
             ArgumentNullException.ThrowIfNull(dto);
 
             if (dto.Capacity is null)
                 continue;
 
-            var result = await capacityCalculator.CalculateAsync(
-                dto.WarehouseId,
-                dto.Capacity.TotalAreaM2,
-                dto.Capacity.UsableAreaM2,
-                cancellationToken);
-
-            dto.Capacity.OccupiedAreaM2 = result.OccupiedAreaM2;
-            dto.Capacity.FreeAreaM2 = result.FreeAreaM2;
-            dto.Capacity.OccupancyPercentage = result.OccupancyPercentage;
+            WarehouseCapacityMapper.Apply(dto, capacityCalculator.Calculate(warehouse));
         }
 
         return new PagedResponse<WarehouseDto>(

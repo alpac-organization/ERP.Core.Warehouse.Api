@@ -1,6 +1,8 @@
 using AutoMapper;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
+using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using WarehouseEntity = ERP.Core.Database.Domain.Entities.Warehouse.Warehouses;
 using ERP.Core.Database.Domain.Entities.Catalogs;
 
@@ -8,7 +10,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
 
 public static class WarehouseDetailBuilder
 {
-    public static async Task<WarehouseDetailDto> BuildDetailAsync(
+    public static Task<WarehouseDetailDto> BuildDetailAsync(
         WarehouseEntity warehouse,
         IMapper mapper,
         IWarehouseCapacityCalculator capacityCalculator,
@@ -16,109 +18,124 @@ public static class WarehouseDetailBuilder
     {
         var baseDto = mapper.Map<WarehouseDto>(warehouse);
 
-        var dto = new WarehouseDetailDto
-        {
-            WarehouseId = baseDto.WarehouseId,
-            WarehouseName = baseDto.WarehouseName,
-            WarehouseCode = baseDto.WarehouseCode,
-            IsActive = baseDto.IsActive,
-            WarehouseType = baseDto.WarehouseType,
-            IsOwner = baseDto.IsOwner,
-            BranchCode = baseDto.BranchCode,
-            SectionsCount = baseDto.SectionsCount,
-            Capacity = baseDto.Capacity,
-            HasChildren = baseDto.HasChildren
-        };
-
-        if (warehouse.Details != null)
-        {
-            dto.Details = new WarehouseDetailsDto();
-
-            if (warehouse.Details.RampsCount.HasValue && warehouse.Details.RampsCount > 0)
-                dto.Details.RampsCount = warehouse.Details.RampsCount;
-            if (warehouse.Details.ParkingSpacesCount.HasValue && warehouse.Details.ParkingSpacesCount > 0)
-                dto.Details.ParkingSpacesCount = warehouse.Details.ParkingSpacesCount;
-            dto.Details.WidthMetres = warehouse.Details.WitdhMetres;
-            dto.Details.LengthMetres = warehouse.Details.LengthMetres;
-
-        }
+        var dto = CreateDetailDto(baseDto);
+        ApplyWarehouseDetails(dto, warehouse);
 
         if (dto.Capacity != null)
-        {
-            var result = await capacityCalculator.CalculateAsync(
-                dto.WarehouseId,
-                dto.Capacity.TotalAreaM2,
-                dto.Capacity.UsableAreaM2,
-                cancellationToken);
+            WarehouseCapacityMapper.Apply(dto, capacityCalculator.Calculate(warehouse));
 
-            dto.Capacity.OccupiedAreaM2 = result.OccupiedAreaM2;
-            dto.Capacity.FreeAreaM2 = result.FreeAreaM2;
-            dto.Capacity.OccupancyPercentage = result.OccupancyPercentage;
+        ApplySectionData(dto, warehouse.Sections);
+
+        return Task.FromResult(dto);
+    }
+
+    private static WarehouseDetailDto CreateDetailDto(WarehouseDto baseDto) => new()
+    {
+        WarehouseId = baseDto.WarehouseId,
+        WarehouseName = baseDto.WarehouseName,
+        WarehouseCode = baseDto.WarehouseCode,
+        IsActive = baseDto.IsActive,
+        WarehouseType = baseDto.WarehouseType,
+        IsOwner = baseDto.IsOwner,
+        BranchCode = baseDto.BranchCode,
+        SectionsCount = baseDto.SectionsCount,
+        Capacity = baseDto.Capacity,
+        HasChildren = baseDto.HasChildren
+    };
+
+    private static void ApplyWarehouseDetails(WarehouseDetailDto dto, WarehouseEntity warehouse)
+    {
+        if (warehouse.Details is null)
+            return;
+
+        dto.Details = new WarehouseDetailsDto
+        {
+            RampsCount = warehouse.Details.RampsCount > 0 ? warehouse.Details.RampsCount : null,
+            ParkingSpacesCount = warehouse.Details.ParkingSpacesCount > 0
+                ? warehouse.Details.ParkingSpacesCount
+                : null,
+            WidthMetres = warehouse.Details.WitdhMetres,
+            LengthMetres = warehouse.Details.LengthMetres
+        };
+    }
+
+    private static void ApplySectionData(WarehouseDetailDto dto, IEnumerable<Sections>? sections)
+    {
+        var summaries = (sections ?? []).Select(BuildSectionSummary).ToList();
+
+        dto.Sections = summaries;
+        dto.TotalRacks = summaries.Sum(summary => summary.RacksCount);
+        dto.TotalLots = summaries.Sum(summary => summary.LotsCount);
+        dto.TotalPositions = summaries.Sum(summary => summary.TotalPositions);
+        dto.OccupiedPositions = summaries.Sum(summary => summary.OccupiedPositions);
+        dto.FreePositions = summaries.Sum(summary => summary.FreePositions);
+        dto.BlockedPositions = summaries.Sum(summary => summary.BlockedPositions);
+    }
+
+    private static SectionSummaryDto BuildSectionSummary(Sections section)
+    {
+        var isLotsSection = section.StorageType == ERP.Core.Database.Domain.Enums.SectionStorageType.Lots;
+        var isRacksSection = section.StorageType == ERP.Core.Database.Domain.Enums.SectionStorageType.Racks;
+        var racks = section.Racks ?? [];
+        var lots = section.Lots ?? [];
+        var metrics = isLotsSection
+            ? PositionMetrics.Summarize<Lots, LotsPositions>(
+                lots, lot => lot.Positions, position => position.IsOccupied || position.IsBlocked,
+                lot => lot.WidthMetres, lot => lot.LengthMetres)
+            : isRacksSection
+            ? PositionMetrics.Summarize<Racks, RackPositions>(
+                racks, rack => rack.Positions, position => position.IsOccupied || position.IsBlocked,
+                rack => rack.WidthMetres, rack => rack.LengthMetres)
+            : new PositionMetrics.Summary(0, 0, 0, 0);
+
+        var summary = new SectionSummaryDto
+        {
+            SectionId = section.Id,
+            Code = section.Code,
+            Name = section.Name,
+            SectionType = section.SectionType,
+            StorageType = section.StorageType,
+            IsActive = section.IsActive,
+            WidthMetres = section.WidthMetres,
+            LengthMetres = section.LengthMetres,
+            UsableAreaM2 = metrics.TotalAreaM2,
+            OccupiedAreaM2 = metrics.UsedAreaM2,
+            FreeAreaM2 = Math.Max(0, metrics.TotalAreaM2 - metrics.UsedAreaM2),
+            OccupancyPercentage = metrics.TotalAreaM2 > 0
+                ? Math.Round(metrics.UsedAreaM2 / metrics.TotalAreaM2 * 100, 2)
+                : 0,
+            RacksCount = isRacksSection ? racks.Count : 0,
+            LotsCount = isLotsSection ? lots.Count : 0,
+            TotalPositions = metrics.TotalPositions
+        };
+
+        SetPositionCounts(summary, section, isLotsSection);
+        return summary;
+    }
+
+    private static void SetPositionCounts(
+        SectionSummaryDto summary,
+        Sections section,
+        bool isLotsSection)
+    {
+        if (isLotsSection)
+        {
+            var positions = (section.Lots ?? []).SelectMany(lot => lot.Positions ?? []);
+            summary.OccupiedPositions = PositionMetrics.Occupied(positions, position => position.IsOccupied);
+            summary.BlockedPositions = PositionMetrics.Blocked(
+                positions, position => position.IsBlocked && !position.IsOccupied);
+        }
+        else if (section.StorageType == ERP.Core.Database.Domain.Enums.SectionStorageType.Racks)
+        {
+            var positions = (section.Racks ?? []).SelectMany(rack => rack.Positions ?? []);
+            summary.OccupiedPositions = PositionMetrics.Occupied(positions, position => position.IsOccupied);
+            summary.BlockedPositions = PositionMetrics.Blocked(
+                positions, position => position.IsBlocked && !position.IsOccupied);
         }
 
-        var sections = warehouse.Sections ?? new List<Sections>();
-        var sectionSummaries = new List<SectionSummaryDto>();
-        int totalRacks = 0, totalLots = 0;
-        int totalPositions = 0, occupiedPositions = 0, freePositions = 0, blockedPositions = 0;
-
-        foreach (var section in sections)
-        {
-            var summary = new SectionSummaryDto
-            {
-                SectionId = section.Id,
-                Code = section.Code,
-                Name = section.Name,
-                SectionType = section.SectionType,
-                StorageType = section.StorageType,
-                IsActive = section.IsActive,
-                WidthMetres = section.WidthMetres,
-                LengthMetres = section.LengthMetres
-            };
-
-            if (section.Capacity != null)
-            {
-                summary.UsableAreaM2 = section.Capacity.UsableAreaM2;
-            }
-
-            var racks = section.Racks ?? new List<Racks>();
-            summary.RacksCount = racks.Count;
-            totalRacks += racks.Count;
-
-            var lots = section.Lots ?? new List<Lots>();
-            summary.LotsCount = lots.Count;
-            totalLots += lots.Count;
-
-            int sectionRackPositions = racks.Sum(r => r.Positions?.Count ?? 0);
-            int sectionRackOccupied = racks.Sum(r => r.Positions?.Count(p => p.IsOccupied) ?? 0);
-            int sectionRackBlocked = racks.Sum(r => r.Positions?.Count(p => p.IsBlocked && !p.IsOccupied) ?? 0);
-
-            int sectionLotPositions = lots.Sum(l => l.Positions?.Count ?? 0);
-            int sectionLotOccupied = lots.Sum(l => l.Positions?.Count(p => p.IsOccupied) ?? 0);
-            int sectionLotBlocked = lots.Sum(l => l.Positions?.Count(p => p.IsBlocked && !p.IsOccupied) ?? 0);
-
-            summary.TotalPositions = sectionRackPositions + sectionLotPositions;
-            summary.OccupiedPositions = sectionRackOccupied + sectionLotOccupied;
-            summary.BlockedPositions = sectionRackBlocked + sectionLotBlocked;
-            summary.FreePositions = summary.TotalPositions -
-                summary.OccupiedPositions - summary.BlockedPositions;
-
-            sectionSummaries.Add(summary);
-
-            // Acumular totales generales
-            totalPositions += summary.TotalPositions;
-            occupiedPositions += summary.OccupiedPositions;
-            freePositions += summary.FreePositions;
-            blockedPositions += summary.BlockedPositions;
-        }
-
-        dto.Sections = sectionSummaries;
-        dto.TotalRacks = totalRacks;
-        dto.TotalLots = totalLots;
-        dto.TotalPositions = totalPositions;
-        dto.OccupiedPositions = occupiedPositions;
-        dto.FreePositions = freePositions;
-        dto.BlockedPositions = blockedPositions;
-
-        return dto;
+        summary.FreePositions = PositionMetrics.Free(
+            summary.TotalPositions,
+            summary.OccupiedPositions,
+            summary.BlockedPositions);
     }
 }
