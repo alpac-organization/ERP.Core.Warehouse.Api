@@ -1,12 +1,13 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Database.Domain.Entities.Catalogs;
+using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
-using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Utils;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
-using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
 
@@ -25,6 +26,7 @@ public class GetSectionsHandler(IUnitOfWork unitOfWork, IErrorManager errorManag
 
         var sectionsQuery = _unitOfWork.Sections.Entities
             .AsNoTracking()
+            .AsSplitQuery()
             .Where(s => s.WarehouseId == request.WarehouseId);
 
         sectionsQuery = ApplyFilters(sectionsQuery, request);
@@ -35,10 +37,39 @@ public class GetSectionsHandler(IUnitOfWork unitOfWork, IErrorManager errorManag
             .OrderBy(sect => sect.Code)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
+            .Include(section => section.Racks)
+                .ThenInclude(rack => rack.Positions)
+            .Include(section => section.Lots)
+                .ThenInclude(lot => lot.Positions)
             .ToListAsync(cancellationToken);
 
+        var sectionItems = mapper.Map<List<SectionDto>>(sections);
+
+        foreach (var (section, sectionItem) in sections.Zip(sectionItems))
+        {
+            var metrics = section.StorageType == ERP.Core.Database.Domain.Enums.SectionStorageType.Lots
+                ? PositionMetrics.Summarize(
+                    section.Lots,
+                    lot => lot.Positions,
+                    position => position.IsOccupied || position.IsBlocked,
+                    lot => lot.WidthMetres,
+                    lot => lot.LengthMetres)
+                : PositionMetrics.Summarize(
+                    section.Racks,
+                    rack => rack.Positions,
+                    position => position.IsOccupied || position.IsBlocked,
+                    rack => rack.WidthMetres,
+                    rack => rack.LengthMetres);
+
+            sectionItem.TotalAreaM2 = metrics.TotalAreaM2;
+            sectionItem.UsedAreaM2 = metrics.UsedAreaM2;
+            sectionItem.TotalPositions = metrics.TotalPositions;
+            sectionItem.UsedPositions = metrics.UsedPositions;
+
+        }
+
         return new PagedResponse<SectionDto>(
-            mapper.Map<List<SectionDto>>(sections),
+            sectionItems,
             request.PageNumber,
             request.PageSize,
             totalRecords);
