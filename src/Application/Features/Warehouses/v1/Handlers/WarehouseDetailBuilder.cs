@@ -1,6 +1,7 @@
 using AutoMapper;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
+using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Utils;
 using WarehouseEntity = ERP.Core.Database.Domain.Entities.Warehouse.Warehouses;
 using ERP.Core.Database.Domain.Entities.Catalogs;
 
@@ -8,7 +9,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
 
 public static class WarehouseDetailBuilder
 {
-    public static async Task<WarehouseDetailDto> BuildDetailAsync(
+    public static Task<WarehouseDetailDto> BuildDetailAsync(
         WarehouseEntity warehouse,
         IMapper mapper,
         IWarehouseCapacityCalculator capacityCalculator,
@@ -45,15 +46,17 @@ public static class WarehouseDetailBuilder
 
         if (dto.Capacity != null)
         {
-            var result = await capacityCalculator.CalculateAsync(
-                dto.WarehouseId,
-                dto.Capacity.TotalAreaM2,
-                dto.Capacity.UsableAreaM2,
-                cancellationToken);
+            var result = capacityCalculator.Calculate(warehouse);
 
+            dto.Capacity.TotalAreaM2 = result.TotalAreaM2;
+            dto.Capacity.UsableAreaM2 = result.UsableAreaM2;
+            dto.Capacity.UnusableAreaM2 = result.UnusableAreaM2;
             dto.Capacity.OccupiedAreaM2 = result.OccupiedAreaM2;
             dto.Capacity.FreeAreaM2 = result.FreeAreaM2;
             dto.Capacity.OccupancyPercentage = result.OccupancyPercentage;
+            dto.Capacity.TotalPositions = result.TotalPositions;
+            dto.Capacity.UsedPositions = result.UsedPositions;
+            dto.Capacity.FreePositions = result.FreePositions;
         }
 
         var sections = warehouse.Sections ?? new List<Sections>();
@@ -88,13 +91,17 @@ public static class WarehouseDetailBuilder
             summary.LotsCount = lots.Count;
             totalLots += lots.Count;
 
-            int sectionRackPositions = racks.Sum(r => r.Positions?.Count ?? 0);
-            int sectionRackOccupied = racks.Sum(r => r.Positions?.Count(p => p.IsOccupied) ?? 0);
-            int sectionRackBlocked = racks.Sum(r => r.Positions?.Count(p => p.IsBlocked && !p.IsOccupied) ?? 0);
+            int sectionRackPositions = racks.Sum(r => PositionMetrics.Total(r.Positions));
+            int sectionRackOccupied = racks.Sum(r =>
+                PositionMetrics.Occupied(r.Positions, p => p.IsOccupied));
+            int sectionRackBlocked = racks.Sum(r =>
+                PositionMetrics.Blocked(r.Positions, p => p.IsBlocked && !p.IsOccupied));
 
-            int sectionLotPositions = lots.Sum(l => l.Positions?.Count ?? 0);
-            int sectionLotOccupied = lots.Sum(l => l.Positions?.Count(p => p.IsOccupied) ?? 0);
-            int sectionLotBlocked = lots.Sum(l => l.Positions?.Count(p => p.IsBlocked && !p.IsOccupied) ?? 0);
+            int sectionLotPositions = lots.Sum(l => PositionMetrics.Total(l.Positions));
+            int sectionLotOccupied = lots.Sum(l =>
+                PositionMetrics.Occupied(l.Positions, p => p.IsOccupied));
+            int sectionLotBlocked = lots.Sum(l =>
+                PositionMetrics.Blocked(l.Positions, p => p.IsBlocked && !p.IsOccupied));
 
             summary.TotalPositions = sectionRackPositions + sectionLotPositions;
             summary.OccupiedPositions = sectionRackOccupied + sectionLotOccupied;
@@ -119,6 +126,6 @@ public static class WarehouseDetailBuilder
         dto.FreePositions = freePositions;
         dto.BlockedPositions = blockedPositions;
 
-        return dto;
+        return Task.FromResult(dto);
     }
 }
