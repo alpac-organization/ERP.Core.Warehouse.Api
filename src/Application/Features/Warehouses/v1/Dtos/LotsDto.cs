@@ -79,6 +79,11 @@ public class LotListItemDto
     public decimal WidthMetres { get; set; }
     public decimal LengthMetres { get; set; }
     public RackStatus? Status { get; set; }
+
     public int TotalPositions { get; set; }
-    public int OccupiedPositions { get; set; }
+    public int UsedPositions { get; set; }
+
+    public decimal TotalAreaM2 { get; set; }
+    public decimal UsedAreaM2 { get; set; }
+    public decimal? OccupancyPercentage { get; set; }
 }
