@@ -26,6 +26,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             var purchaseRequestsQuery = _unitOfWork.PurchaseRequests.Entities
                 .Where(purs => purs.IsActive)
                 .Include(purs => purs.Branch)
+                .Where(purs => purs.Branch.CompanyId == request.CompanyId)
                 .AsNoTracking();
 
             if (access.Role?.RoleType != RoleType.Administrator && access.Role?.RoleType != RoleType.Supervisor)
@@ -85,9 +86,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             if (request.BranchId.HasValue)
             {
                 purchaseRequestsQuery = purchaseRequestsQuery
-                    .Where(purs => purs.BranchId == request.BranchId)
-                    .Include(purs => purs.Branch)
-                    .Include(purs => purs.Branch.CompanyId == request.CompanyId);
+                    .Where(purs => purs.BranchId == request.BranchId);
             }
 
             var totalRecords = await purchaseRequestsQuery.CountAsync(cancellationToken);
