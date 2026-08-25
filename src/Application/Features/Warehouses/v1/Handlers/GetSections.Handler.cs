@@ -1,13 +1,13 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Database.Domain.Entities.Catalogs;
+using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
-using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
-using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Utils;
-using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
 
@@ -26,6 +26,7 @@ public class GetSectionsHandler(IUnitOfWork unitOfWork, IErrorManager errorManag
 
         var sectionsQuery = _unitOfWork.Sections.Entities
             .AsNoTracking()
+            .AsSplitQuery()
             .Where(s => s.WarehouseId == request.WarehouseId);
 
         sectionsQuery = ApplyFilters(sectionsQuery, request);
