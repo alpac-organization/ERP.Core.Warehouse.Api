@@ -1,9 +1,10 @@
-using Microsoft.EntityFrameworkCore;
 using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
-using ERP.Core.Database.Domain.Entities.Catalogs;
+using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
@@ -15,34 +16,51 @@ public class GetLotByIdHandler(IUnitOfWork unitOfWork, IErrorManager errorManage
 {
     private readonly IMapper _mapper = mapper;
 
-    public override async Task<LotDto> Handle(GetLotByIdQuery request, CancellationToken cancellationToken)
+    public override async Task<LotDto> Handle(
+        GetLotByIdQuery request,
+        CancellationToken cancellationToken)
     {
-        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
-        if (!access.IsSuccess) return access.ErrorResponse!;
+        var access = await ValidateAccessAsync(
+            request.UserId,
+            request.CompanyId,
+            request.ModuleCode,
+            cancellationToken);
 
-        var lot = await _mapper.ProjectTo<LotDto>(
-                _unitOfWork.Lots.Entities.Where(l =>
-                    l.Id == request.LotId && l.SectionId == request.SectionId))
-            .FirstOrDefaultAsync(cancellationToken);
+        if (!access.IsSuccess)
+            return access.ErrorResponse!;
+
+        var lot = await _unitOfWork.Lots.Entities
+            .AsNoTracking()
+            .Include(l => l.Positions)
+            .FirstOrDefaultAsync(
+                l => l.Id == request.LotId
+                    && l.SectionId == request.SectionId
+                    && l.DeletedAt == null,
+                cancellationToken);
 
         if (lot is null)
-            return _errorManager.ThrowBadRequest<LotDto>(
-                "El tramo indicado no existe en esta sección.", "ERP:LOT_NOT_FOUND");
+            return _errorManager.ThrowNotFound<LotDto>(
+                "El tramo no fue encontrado.",
+                "ERP:LOT_NOT_FOUND");
 
-        return lot;
+        return _mapper.Map<LotDto>(lot);
     }
 }
 
-#region Get Lots por Section
 public class GetLotsBySectionHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
     : BaseValidatorHandler<GetLotsBySectionQuery, PagedResponse<LotListItemDto>>(unitOfWork, errorManager)
 {
+    private readonly IMapper _mapper = mapper;
+
     public override async Task<PagedResponse<LotListItemDto>> Handle(
         GetLotsBySectionQuery request,
         CancellationToken cancellationToken)
     {
         var access = await ValidateAccessAsync(
-            request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+            request.UserId,
+            request.CompanyId,
+            request.ModuleCode,
+            cancellationToken);
 
         if (!access.IsSuccess)
             return access.ErrorResponse!;
@@ -51,7 +69,11 @@ public class GetLotsBySectionHandler(IUnitOfWork unitOfWork, IErrorManager error
             .AsNoTracking()
             .Where(lot => lot.DeletedAt == null && lot.SectionId == request.SectionId);
 
-        queryLots = ApplyFilters(queryLots, request);
+        if (!string.IsNullOrWhiteSpace(request.Code))
+            queryLots = queryLots.Where(lot => lot.Code == request.Code);
+
+        if (request.RackStatus.HasValue)
+            queryLots = queryLots.Where(lot => lot.Status == request.RackStatus.Value);
 
         var totalRecords = await queryLots.CountAsync(cancellationToken);
 
@@ -59,26 +81,15 @@ public class GetLotsBySectionHandler(IUnitOfWork unitOfWork, IErrorManager error
             .OrderBy(lot => lot.Code)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
+            .ProjectTo<LotListItemDto>(_mapper.ConfigurationProvider)
             .ToListAsync(cancellationToken);
 
         return new PagedResponse<LotListItemDto>(
-            mapper.Map<List<LotListItemDto>>(lots),
+            lots,
             request.PageNumber,
             request.PageSize,
             totalRecords);
     }
 
-    private static IQueryable<Lots> ApplyFilters(
-        IQueryable<Lots> query,
-        GetLotsBySectionQuery request)
-    {
-        if (!string.IsNullOrWhiteSpace(request.Code))
-            query = query.Where(lot => lot.Code == request.Code);
-
-        if (request.RackStatus.HasValue)
-            query = query.Where(lot => lot.Status == request.RackStatus.Value);
-
-        return query;
-    }
 }
-#endregion
+
