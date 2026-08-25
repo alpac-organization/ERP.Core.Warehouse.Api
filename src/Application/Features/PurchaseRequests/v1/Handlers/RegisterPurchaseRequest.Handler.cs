@@ -1,7 +1,10 @@
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Application.Commons.Interfaces.AWS;
 
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Shopping;
@@ -10,15 +13,16 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Services;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
+using ERP.Core.Warehouse.Api.Application.Commons.Options;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
-
-using ERP.Core.Application.Commons.Interfaces.AWS;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
     public class RegisterPurchaseRequestHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, ICodeGenerator _codeGenerator, IS3StorageService _s3StorageService,
-        ILogger<RegisterPurchaseRequestHandler> _logger
+        ILogger<RegisterPurchaseRequestHandler> _logger,
+        ISimpleNotificationServices _simpleNotificationServices,
+        IOptions<PurchaseRequestOptions> _options
     ): BaseValidatorHandler<RegisterPurchaseRequestCommand, bool>(_unitOfWork, _errorManager)
     {
         private static readonly JsonSerializerOptions JsonOptions = new()
@@ -26,6 +30,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
             PropertyNameCaseInsensitive = true
         };
+
+
 
         public override async Task<bool> Handle(RegisterPurchaseRequestCommand request, CancellationToken cancellationToken)
         {
@@ -60,6 +66,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 var purchaseRequestEntity = PurchaseRequestMapper.ToPurchaseRequestEntity(purchaseRequest, code, areaId, access.User.Id);
                 await _unitOfWork.PurchaseRequests.RegisterPurchaseRequest(purchaseRequestEntity);
 
+                // Guardame imagenes en el S3 Bucket
                 foreach (var product in purchaseRequest.PurchaseRequestItems)
                 {
                     var purchaseRequestItemEntity = PurchaseRequestMapper.ToPurchaseRequestItemEntity(product, purchaseRequestEntity.Id);
@@ -84,12 +91,76 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     }
                     
                     await _unitOfWork.PurchaseRequestItems.RegisterPurchaseRequestItem(purchaseRequestItemEntity);
-                }   
+                }
+            }
+
+
+            var notificationConfig = _options.Value;
+
+            string userName = access.User?.Fullname ?? "Un usuario";
+            string titleCopy = notificationConfig.Title ?? "Nueva Solicitud Compra";
+            string descriptionCopy = (notificationConfig.Description ?? "{{Name}} registró una nueva solicitud de compra {{Type}}.")
+                .Replace("{{Name}}", userName);
+
+
+            var targetProfiles = await _unitOfWork.Profiles.Entities
+                .Include(p => p.UserModuleRole)
+                    .ThenInclude(umr => umr.Role)
+                .Where(p => p.IsActive)
+                .Where(p => p.UserId != request.UserId)
+                .Where(p => p.CompanyId == request.CompanyId)
+                .Where(p => p.UserModuleRole.Any(
+                        umr => umr.ModuleCode == request.ModuleCode && (
+                            umr.Role.RoleType == RoleType.Administrator || 
+                            umr.Role.RoleType == RoleType.Manager
+                        )
+                    )
+                )
+                .ToListAsync(cancellationToken);
+
+            var targetProfileIds = targetProfiles.Select(p => p.Id).ToList();
+
+            // 3. Crear registros internos de notificación para cada destinatario
+            foreach (var profile in targetProfiles)
+            {
+                //Lo registramos en su bandeja
+                await _unitOfWork.Notifications.CreateNotification(new()
+                {
+                    Title          = titleCopy,
+                    Description    = descriptionCopy,                       
+                    PathRedirect   = "/purchasing",
+                    AdditionalData = JsonSerializer.Serialize("{}"),
+                    UserId         = profile.UserId,
+                });
+            }
+
+            // Obtener sus dispositivos y enviar notificaciones a ellos en especifico.
+            var devices = await _unitOfWork.Devices.Entities
+                .Where(device => device.IsActive)
+                .Where(device => targetProfileIds.Contains(device.UserProfileId))
+                .ToListAsync(cancellationToken);
+            
+            foreach (var device in devices)
+            {
+                var result = await _simpleNotificationServices.SendPushNotificationAsync(device.EndpointArn ?? "", new()
+                {
+                    Title    = titleCopy,
+                    Body     = descriptionCopy,
+                    WebPushConfig = new()
+                    {
+                        Badge = access.Profile.Company.ImageUrl,
+                        Icon  = access.Profile.Company.ImageUrl
+                    }
+                });
+
+                _logger.LogInformation("Push notification result for device {EndpointArn}: {@Result}", device.EndpointArn, result);
             }
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
-
+            
             _logger.LogInformation("✅Se registro exitosame la solicitud de compra");
+
+
             return true;
         }
     }

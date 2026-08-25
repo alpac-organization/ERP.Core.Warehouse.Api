@@ -3,6 +3,7 @@ using FluentValidation;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using ERP.Core.Application.Behaviors;
+using Microsoft.Extensions.Options;
 
 
 namespace ERP.Core.Warehouse.Api.Application
