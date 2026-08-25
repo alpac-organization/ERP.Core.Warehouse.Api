@@ -1,5 +1,7 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using ERP.Core.Warehouse.Api.Application.Commons.Extensions;
+using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
@@ -28,18 +30,7 @@ internal static class WarehousePagedQuery
         }
 
         var pagedWarehouses = await query
-            .AsSplitQuery()
-            .Include(w => w.Capacity)
-            .Include(w => w.Branch)
-            .Include(w => w.Details)
-            .Include(w => w.Sections)
-                .ThenInclude(s => s.Racks)
-                    .ThenInclude(r => r.Positions)
-            .Include(w => w.Sections)
-                .ThenInclude(s => s.Lots)
-                    .ThenInclude(l => l.Positions)
-            .Include(w => w.Sections)
-                .ThenInclude(s => s.Capacity)
+            .IncludeWarehouseDetails()
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
@@ -53,17 +44,7 @@ internal static class WarehousePagedQuery
             if (dto.Capacity is null)
                 continue;
 
-            var result = capacityCalculator.Calculate(warehouse);
-
-            dto.Capacity.TotalAreaM2 = result.TotalAreaM2;
-            dto.Capacity.UsableAreaM2 = result.UsableAreaM2;
-            dto.Capacity.UnusableAreaM2 = result.UnusableAreaM2;
-            dto.Capacity.OccupiedAreaM2 = result.OccupiedAreaM2;
-            dto.Capacity.FreeAreaM2 = result.FreeAreaM2;
-            dto.Capacity.OccupancyPercentage = result.OccupancyPercentage;
-            dto.Capacity.TotalPositions = result.TotalPositions;
-            dto.Capacity.UsedPositions = result.UsedPositions;
-            dto.Capacity.FreePositions = result.FreePositions;
+            WarehouseCapacityMapper.Apply(dto, capacityCalculator.Calculate(warehouse));
         }
 
         return new PagedResponse<WarehouseDto>(

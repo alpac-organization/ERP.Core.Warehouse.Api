@@ -1,5 +1,6 @@
 using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
-using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Utils;
+using ERP.Core.Warehouse.Api.Application.Commons.Utils;
+using ERP.Core.Database.Domain.Entities.Catalogs;
 using WarehouseEntity = ERP.Core.Database.Domain.Entities.Warehouse.Warehouses;
 
 namespace ERP.Core.Warehouse.Api.Infrastructure.Services;
@@ -8,13 +9,13 @@ public class WarehouseCapacityCalculator : IWarehouseCapacityCalculator
 {
     public WarehouseAreaCapacity Calculate(WarehouseEntity warehouse)
     {
-        var rackMetrics = PositionMetrics.Summarize(
+        var rackMetrics = PositionMetrics.Summarize<Racks, RackPositions>(
             warehouse.Sections?.SelectMany(section => section.Racks ?? []),
             rack => rack.Positions,
             position => position.IsOccupied || position.IsBlocked,
             rack => rack.WidthMetres,
             rack => rack.LengthMetres);
-        var lotMetrics = PositionMetrics.Summarize(
+        var lotMetrics = PositionMetrics.Summarize<Lots, LotsPositions>(
             warehouse.Sections?.SelectMany(section => section.Lots ?? []),
             lot => lot.Positions,
             position => position.IsOccupied || position.IsBlocked,
