@@ -6,4 +6,6 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Options
         public string Description { get; set; } = string.Empty;
         public string Icon { get; set; } = string.Empty;
     }
+
+    public class ProcessPurchaseRequestOptions : PurchaseRequestOptions { }
 }

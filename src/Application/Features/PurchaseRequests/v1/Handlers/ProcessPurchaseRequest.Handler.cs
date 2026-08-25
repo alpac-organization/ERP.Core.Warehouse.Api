@@ -1,16 +1,39 @@
 using Microsoft.EntityFrameworkCore;
+
 using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Application.Commons.Interfaces.AWS;
 
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
+using Microsoft.Extensions.Options;
+using ERP.Core.Warehouse.Api.Application.Commons.Options;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
-    public class ProcessPurchaseRequestHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager) : BaseValidatorHandler<ProcessPurchaseRequestCommand, bool>(_unitOfWork, _errorManager)
+    public class ProcessPurchaseRequestHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, ISimpleNotificationServices _simpleNotificationServices,
+        IOptions<Dictionary<PurchaseRequestStatus, ProcessPurchaseRequestOptions>> _options
+    ) : BaseValidatorHandler<ProcessPurchaseRequestCommand, bool>(_unitOfWork, _errorManager)
     {
+        private static readonly ProcessPurchaseRequestOptions DefaultCopy = new()
+        {
+            Title = "Actualización de Solicitud",
+            Description = "Se actualizó el estado de la solicitud de compra.",
+            Icon = "📦"
+        };
+
+        private ProcessPurchaseRequestOptions GetCopy(PurchaseRequestStatus status)
+        {
+            if (_options.Value.TryGetValue(status, out var copy))
+            {
+                return copy;
+            }
+
+            return DefaultCopy;
+        }
+
         public override async Task<bool> Handle(ProcessPurchaseRequestCommand request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode!, cancellationToken);
@@ -71,6 +94,62 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
             //✅Finalizar el aprobado de la solicitud de compra y guardar los cambios
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // _options.Value.
+
+            #region Construcción del Copy de Notificación
+
+            var rawCopy = GetCopy(request.NewStatus);
+            var reviewerName = access.User.Fullname ?? "unknow user";
+
+            var title = rawCopy.Title;
+            var description = rawCopy.Description?
+                .Replace("{{Code}}", purchaseRequest.Code)
+                .Replace("{{Name}}", reviewerName);
+
+            #endregion
+
+            //Enviar notificación de confirmación 🔔
+            await _unitOfWork.Notifications.CreateNotification(new ()
+            {
+                Title        = title,
+                Description  = description,     
+                PathRedirect = "/purchasing",
+                UserId       = purchaseRequest.RegisteredByUserId,
+                AdditionalData = null,  
+            });
+
+            var profile = await _unitOfWork.Profiles.Entities
+                .Where(profile => profile.IsActive)
+                .Where(profile => profile.CompanyId == request.CompanyId)
+                .Where(profile => profile.UserId == purchaseRequest.RegisteredByUserId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (profile is not null)
+            {
+                var devices = await _unitOfWork.Devices.Entities
+                    .Where(device => device.IsActive)
+                    .Where(device => device.UserProfileId == profile.UserId)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var device in devices)
+                {
+                    //Lanzamos las push
+                    var result = await _simpleNotificationServices.SendPushNotificationAsync(device.EndpointArn ?? "", new()
+                    {
+                        Title    = title,
+                        Body     = description,
+                        WebPushConfig = new()
+                        {
+                            Badge = access.Profile.Company.ImageUrl,
+                            Icon  = access.Profile.Company.ImageUrl
+                        }
+                    });
+                }            
+            }
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
             return true;
         }
     }
