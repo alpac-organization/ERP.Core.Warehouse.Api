@@ -78,36 +78,68 @@ public static class WarehouseDetailBuilder
                 LengthMetres = section.LengthMetres
             };
 
-            if (section.Capacity != null)
-            {
-                summary.UsableAreaM2 = section.Capacity.UsableAreaM2;
-            }
-
             var racks = section.Racks ?? new List<Racks>();
-            summary.RacksCount = racks.Count;
-            totalRacks += racks.Count;
+            var isLotsSection = section.StorageType == ERP.Core.Database.Domain.Enums.SectionStorageType.Lots;
+            var isRacksSection = section.StorageType == ERP.Core.Database.Domain.Enums.SectionStorageType.Racks;
+
+            summary.RacksCount = isRacksSection ? racks.Count : 0;
+            totalRacks += summary.RacksCount;
 
             var lots = section.Lots ?? new List<Lots>();
-            summary.LotsCount = lots.Count;
-            totalLots += lots.Count;
+            summary.LotsCount = isLotsSection ? lots.Count : 0;
+            totalLots += summary.LotsCount;
 
-            int sectionRackPositions = racks.Sum(r => PositionMetrics.Total(r.Positions));
-            int sectionRackOccupied = racks.Sum(r =>
-                PositionMetrics.Occupied(r.Positions, p => p.IsOccupied));
-            int sectionRackBlocked = racks.Sum(r =>
-                PositionMetrics.Blocked(r.Positions, p => p.IsBlocked && !p.IsOccupied));
+            var sectionMetrics = isLotsSection
+                ? PositionMetrics.Summarize(
+                    lots,
+                    lot => lot.Positions,
+                    position => position.IsOccupied || position.IsBlocked,
+                    lot => lot.WidthMetres,
+                    lot => lot.LengthMetres)
+                : isRacksSection
+                ? PositionMetrics.Summarize(
+                    racks,
+                    rack => rack.Positions,
+                    position => position.IsOccupied || position.IsBlocked,
+                    rack => rack.WidthMetres,
+                    rack => rack.LengthMetres)
+                : new PositionMetrics.Summary(0, 0, 0, 0);
 
-            int sectionLotPositions = lots.Sum(l => PositionMetrics.Total(l.Positions));
-            int sectionLotOccupied = lots.Sum(l =>
-                PositionMetrics.Occupied(l.Positions, p => p.IsOccupied));
-            int sectionLotBlocked = lots.Sum(l =>
-                PositionMetrics.Blocked(l.Positions, p => p.IsBlocked && !p.IsOccupied));
-
-            summary.TotalPositions = sectionRackPositions + sectionLotPositions;
-            summary.OccupiedPositions = sectionRackOccupied + sectionLotOccupied;
-            summary.BlockedPositions = sectionRackBlocked + sectionLotBlocked;
-            summary.FreePositions = summary.TotalPositions -
-                summary.OccupiedPositions - summary.BlockedPositions;
+            summary.UsableAreaM2 = sectionMetrics.TotalAreaM2;
+            summary.OccupiedAreaM2 = sectionMetrics.UsedAreaM2;
+            summary.FreeAreaM2 = Math.Max(
+                0,
+                sectionMetrics.TotalAreaM2 - sectionMetrics.UsedAreaM2);
+            summary.OccupancyPercentage = sectionMetrics.TotalAreaM2 > 0
+                ? Math.Round(
+                    sectionMetrics.UsedAreaM2 / sectionMetrics.TotalAreaM2 * 100,
+                    2)
+                : 0;
+            summary.TotalPositions = sectionMetrics.TotalPositions;
+            if (isLotsSection)
+            {
+                var positions = lots.SelectMany(lot => lot.Positions ?? []);
+                summary.OccupiedPositions = PositionMetrics.Occupied(
+                    positions,
+                    position => position.IsOccupied);
+                summary.BlockedPositions = PositionMetrics.Blocked(
+                    positions,
+                    position => position.IsBlocked && !position.IsOccupied);
+            }
+            else
+            {
+                var positions = racks.SelectMany(rack => rack.Positions ?? []);
+                summary.OccupiedPositions = PositionMetrics.Occupied(
+                    positions,
+                    position => position.IsOccupied);
+                summary.BlockedPositions = PositionMetrics.Blocked(
+                    positions,
+                    position => position.IsBlocked && !position.IsOccupied);
+            }
+            summary.FreePositions = PositionMetrics.Free(
+                summary.TotalPositions,
+                summary.OccupiedPositions,
+                summary.BlockedPositions);
 
             sectionSummaries.Add(summary);
 
