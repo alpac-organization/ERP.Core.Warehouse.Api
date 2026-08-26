@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
@@ -8,12 +9,14 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
-using Microsoft.Extensions.Options;
 using ERP.Core.Warehouse.Api.Application.Commons.Options;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
-    public class ProcessPurchaseRequestHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, ISimpleNotificationServices _simpleNotificationServices,
+    public class ProcessPurchaseRequestHandler(
+        IUnitOfWork _unitOfWork,
+        IErrorManager _errorManager,
+        ISimpleNotificationServices _simpleNotificationServices,
         IOptions<Dictionary<PurchaseRequestStatus, ProcessPurchaseRequestOptions>> _options
     ) : BaseValidatorHandler<ProcessPurchaseRequestCommand, bool>(_unitOfWork, _errorManager)
     {
@@ -92,11 +95,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     return _errorManager.ThrowBadRequest<bool>("El nuevo estado de la solicitud no es válido", "ERP:INVALID_STATUS_CHANGE");
             }
 
-            //✅Finalizar el aprobado de la solicitud de compra y guardar los cambios
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            // _options.Value.
-
             #region Construcción del Copy de Notificación
 
             var rawCopy = GetCopy(request.NewStatus);
@@ -127,9 +125,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
             if (profile is not null)
             {
-                var devices = await _unitOfWork.Devices.Entities
+               var devices = await _unitOfWork.Devices.Entities
                     .Where(device => device.IsActive)
-                    .Where(device => device.UserProfileId == profile.UserId)
+                    .Where(device => device.UserProfileId == profile.Id)  // ✅ Id del perfil, no del usuario
                     .ToListAsync(cancellationToken);
 
                 foreach (var device in devices)
@@ -141,8 +139,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                         Body     = description,
                         WebPushConfig = new()
                         {
-                            Badge = access.Profile.Company.ImageUrl,
-                            Icon  = access.Profile.Company.ImageUrl
+                            Badge = "",
+                            Icon  = ""
                         }
                     });
                 }            
