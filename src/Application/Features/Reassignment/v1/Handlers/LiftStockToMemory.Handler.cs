@@ -45,6 +45,11 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
             .Where(p => p.StockId == request.StockId && p.VacatedAtDate == null && p.DeletedAt == null)
             .ToListAsync(cancellationToken);
 
+        if (activePlacements.Count == 0)
+            return _errorManager.ThrowNotFound<ReassignmentMemoryItemDto>(
+                "El polín indicado no existe o no tiene una posición activa en el almacén.",
+                "ERP:STOCK_NOT_PLACED");
+
         var placement = activePlacements[0];
 
         if (placement.Stock is null || placement.Stock.DeletedAt != null)
