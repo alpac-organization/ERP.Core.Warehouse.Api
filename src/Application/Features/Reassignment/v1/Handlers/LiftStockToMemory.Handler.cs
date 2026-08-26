@@ -1,6 +1,7 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
@@ -72,22 +73,25 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
         var memoryItem = request.ToMemoryItemEntity(userIdStr);
 
         foreach (var activePlacement in activePlacements)
-        {
-            activePlacement.VacatedAtDate = memoryItem.LiftedAtDate;
-            activePlacement.VacatedAtTime = memoryItem.LiftedAtTime;
-            activePlacement.VacatedByUserId = userIdStr;
-            activePlacement.VacatedByMemoryItemId = memoryItem.Id;
-
-            if (activePlacement.RackPosition is not null)
-                activePlacement.RackPosition.IsOccupied = false;
-
-            if (activePlacement.LotPosition is not null)
-                activePlacement.LotPosition.IsOccupied = false;
-        }
+            VacatePlacement(activePlacement, memoryItem, userIdStr);
 
         await _unitOfWork.ReassignmentMemoryItems.InsertReassignmentMemoryItem(memoryItem);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return mapper.Map<ReassignmentMemoryItemDto>(memoryItem);
+    }
+
+    private static void VacatePlacement(StockPlacements placement, ReassignmentMemoryItems memoryItem, string userId)
+    {
+        placement.VacatedAtDate = memoryItem.LiftedAtDate;
+        placement.VacatedAtTime = memoryItem.LiftedAtTime;
+        placement.VacatedByUserId = userId;
+        placement.VacatedByMemoryItemId = memoryItem.Id;
+
+        if (placement.RackPosition is not null)
+            placement.RackPosition.IsOccupied = false;
+
+        if (placement.LotPosition is not null)
+            placement.LotPosition.IsOccupied = false;
     }
 }
