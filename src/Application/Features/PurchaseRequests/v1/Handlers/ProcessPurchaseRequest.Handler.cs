@@ -8,17 +8,12 @@ using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
-using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Commons.Options;
+using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
-    public class ProcessPurchaseRequestHandler(
-        IUnitOfWork _unitOfWork,
-        IErrorManager _errorManager,
-        ISimpleNotificationServices _simpleNotificationServices,
-        IOptions<Dictionary<PurchaseRequestStatus, ProcessPurchaseRequestOptions>> _options
-    ) : BaseValidatorHandler<ProcessPurchaseRequestCommand, bool>(_unitOfWork, _errorManager)
+    public class ProcessPurchaseRequestHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, ISimpleNotificationServices _simpleNotificationServices, IOptions<Dictionary<PurchaseRequestStatus, ProcessPurchaseRequestOptions>> _options) : BaseValidatorHandler<ProcessPurchaseRequestCommand, bool>(_unitOfWork, _errorManager)
     {
         private static readonly ProcessPurchaseRequestOptions DefaultCopy = new()
         {
