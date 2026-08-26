@@ -39,4 +39,35 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
         var response = await mediator.Send(command, cancellationToken);
         return Created(string.Empty, response);
     }
+
+    [Tags("Reasignamiento")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/reassignment-sessions/{session_id}/stocks/{stock_id}/lift")]
+    [ProducesResponseType(typeof(ReassignmentMemoryItemDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> LiftStockToMemoryAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid session_id,
+        [FromRoute] Guid stock_id,
+        CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        if (!Guid.TryParse(userIdStr, out var userId))
+            return Unauthorized();
+
+        var command = new LiftStockToMemoryCommand
+        {
+            SessionId = session_id,
+            StockId = stock_id,
+            UserId = userId,
+            CompanyId = company_id,
+            ModuleCode = module_code
+        };
+
+        var response = await mediator.Send(command, cancellationToken);
+        return Created(string.Empty, response);
+    }
 }
