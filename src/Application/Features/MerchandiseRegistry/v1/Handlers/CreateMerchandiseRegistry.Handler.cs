@@ -56,32 +56,20 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
                 "ERP:SHIPPING_COMPANY_NOT_FOUND");
         }
 
-        // Buscar usuario actual
-        var user = await _unitOfWork.Users.Entities
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
-
-        if (user == null)
+        var registeredByUserName = await MerchandiseWorkflowHelper.GetProcessedUserNameAsync(_unitOfWork, request.UserId, cancellationToken);
+        if (registeredByUserName == null)
         {
             return _errorManager.ThrowBadRequest<bool>(
                 "No se pudo identificar al usuario autenticado en el sistema.",
                 "ERP:USER_NOT_FOUND");
         }
-        var registeredByUserName = user.Fullname ?? user.UserName ?? request.UserId.ToString();
 
         // obtener fecha y hora actual de nicaragua
         var today = NicaraguaClock.Today;
         var now = NicaraguaClock.TimeNow;
 
-        var stepIsConfigured = await _unitOfWork.WorkflowStepDefinitions.Entities
-            .AnyAsync(x => x.Code == WorkflowStepCodes.Merchandise, cancellationToken);
-
-        if (!stepIsConfigured)
-        {
-            return _errorManager.ThrowInternalError<bool>(
-                $"No se encontró la configuración del paso '{WorkflowStepCodes.Merchandise}' en WorkflowStepDefinitions. Contacte al administrador.",
-                "ERP:WORKFLOW_NOT_CONFIGURED");
-        }
+        var workflowError = await MerchandiseWorkflowHelper.ValidateMerchandiseWorkflowStepAsync(_unitOfWork, _errorManager, cancellationToken);
+        if (workflowError.HasValue) return workflowError.Value;
 
         var ducatRegistry = mapper.Map<DucatRegistry>(request);
         ducatRegistry.RecordEntranceId = recordEntrance.Id;
@@ -282,15 +270,8 @@ public class AssignServiceOrderToCustomsDeclarationHandlers(IUnitOfWork unitOfWo
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        var stepIsConfigured = await _unitOfWork.WorkflowStepDefinitions.Entities
-            .AnyAsync(x => x.Code == WorkflowStepCodes.Merchandise, cancellationToken);
-
-        if (!stepIsConfigured)
-        {
-            return _errorManager.ThrowInternalError<bool>(
-                $"No se encontró la configuración del paso '{WorkflowStepCodes.Merchandise}' en WorkflowStepDefinitions. Contacte al administrador.",
-                "ERP:WORKFLOW_NOT_CONFIGURED");
-        }
+        var workflowError = await MerchandiseWorkflowHelper.ValidateMerchandiseWorkflowStepAsync(_unitOfWork, _errorManager, cancellationToken);
+        if (workflowError.HasValue) return workflowError.Value;
 
         var recordEntrance = await _unitOfWork.RecordEntrance.Entities
             .Include(r => r.ReceptionEntrance!)
@@ -329,23 +310,18 @@ public class AssignServiceOrderToCustomsDeclarationHandlers(IUnitOfWork unitOfWo
         var serviceOrderAlreadyUsed = await _unitOfWork.EntranceDucats.Entities
             .AnyAsync(d => d.ServiceOrderId == request.ServiceOrderId && d.DeletedAt == null, cancellationToken)
             || await _unitOfWork.CustomsDeclarations.Entities
-            .AnyAsync(c => c.ServiceOrderId == request.ServiceOrderId && c.DeletedAt == null, cancellationToken);
+                .AnyAsync(c => c.ServiceOrderId == request.ServiceOrderId && c.DeletedAt == null, cancellationToken);
 
         if (serviceOrderAlreadyUsed)
             return _errorManager.ThrowBadRequest<bool>(
                 "La orden de servicio indicada ya está asignada a otro documento.",
                 "ERP:SERVICE_ORDER_ALREADY_IN_USE");
 
-        var user = await _unitOfWork.Users.Entities
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
-
-        if (user == null)
+        var currentUserName = await MerchandiseWorkflowHelper.GetProcessedUserNameAsync(_unitOfWork, request.UserId, cancellationToken);
+        if (currentUserName == null)
             return _errorManager.ThrowBadRequest<bool>(
                 "No se pudo identificar al usuario autenticado en el sistema.",
                 "ERP:USER_NOT_FOUND");
-
-        var currentUserName = user.Fullname ?? user.UserName ?? request.UserId.ToString();
 
         var today = NicaraguaClock.Today;
         var now = NicaraguaClock.TimeNow;
@@ -385,6 +361,38 @@ public class AssignServiceOrderToCustomsDeclarationHandlers(IUnitOfWork unitOfWo
 
         return true;
 
+    }
+}
+#endregion
+
+#region Helpers compartidos
+internal static class MerchandiseWorkflowHelper
+{
+    internal static async Task<bool?> ValidateMerchandiseWorkflowStepAsync(
+        IUnitOfWork unitOfWork, IErrorManager errorManager, CancellationToken ct)
+    {
+        var stepIsConfigured = await unitOfWork.WorkflowStepDefinitions.Entities
+            .AnyAsync(x => x.Code == WorkflowStepCodes.Merchandise, ct);
+
+        if (!stepIsConfigured)
+        {
+            return errorManager.ThrowInternalError<bool>(
+                $"No se encontró la configuración del paso '{WorkflowStepCodes.Merchandise}' en WorkflowStepDefinitions. Contacte al administrador.",
+                "ERP:WORKFLOW_NOT_CONFIGURED");
+        }
+
+        return null;
+    }
+
+    internal static async Task<string?> GetProcessedUserNameAsync(
+        IUnitOfWork unitOfWork, Guid userId, CancellationToken ct)
+    {
+        var user = await unitOfWork.Users.Entities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId, ct);
+
+        if (user == null) return null;
+        return user.Fullname ?? user.UserName ?? userId.ToString();
     }
 }
 #endregion
