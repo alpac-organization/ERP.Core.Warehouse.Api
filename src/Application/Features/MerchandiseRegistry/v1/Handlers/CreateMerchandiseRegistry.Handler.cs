@@ -73,6 +73,16 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
         var today = NicaraguaClock.Today;
         var now = NicaraguaClock.TimeNow;
 
+        var stepIsConfigured = await _unitOfWork.WorkflowStepDefinitions.Entities
+            .AnyAsync(x => x.Code == WorkflowStepCodes.Merchandise, cancellationToken);
+
+        if (!stepIsConfigured)
+        {
+            return _errorManager.ThrowInternalError<bool>(
+                $"No se encontró la configuración del paso '{WorkflowStepCodes.Merchandise}' en WorkflowStepDefinitions. Contacte al administrador.",
+                "ERP:WORKFLOW_NOT_CONFIGURED");
+        }
+
         var ducatRegistry = mapper.Map<DucatRegistry>(request);
         ducatRegistry.RecordEntranceId = recordEntrance.Id;
         ducatRegistry.RegisteredByUserId = request.UserId.ToString();
@@ -272,6 +282,16 @@ public class AssignServiceOrderToCustomsDeclarationHandlers(IUnitOfWork unitOfWo
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
+        var stepIsConfigured = await _unitOfWork.WorkflowStepDefinitions.Entities
+            .AnyAsync(x => x.Code == WorkflowStepCodes.Merchandise, cancellationToken);
+
+        if (!stepIsConfigured)
+        {
+            return _errorManager.ThrowInternalError<bool>(
+                $"No se encontró la configuración del paso '{WorkflowStepCodes.Merchandise}' en WorkflowStepDefinitions. Contacte al administrador.",
+                "ERP:WORKFLOW_NOT_CONFIGURED");
+        }
+
         var recordEntrance = await _unitOfWork.RecordEntrance.Entities
             .Include(r => r.ReceptionEntrance!)
             .Include(r => r.CustomsDeclarations!)
@@ -316,9 +336,50 @@ public class AssignServiceOrderToCustomsDeclarationHandlers(IUnitOfWork unitOfWo
                 "La orden de servicio indicada ya está asignada a otro documento.",
                 "ERP:SERVICE_ORDER_ALREADY_IN_USE");
 
+        var user = await _unitOfWork.Users.Entities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+
+        if (user == null)
+            return _errorManager.ThrowBadRequest<bool>(
+                "No se pudo identificar al usuario autenticado en el sistema.",
+                "ERP:USER_NOT_FOUND");
+
+        var currentUserName = user.Fullname ?? user.UserName ?? request.UserId.ToString();
+
+        var today = NicaraguaClock.Today;
+        var now = NicaraguaClock.TimeNow;
+
         recordEntrance.CustomsDeclarations.ServiceOrderId = serviceOrder.Id;
         recordEntrance.CustomsDeclarations.ServiceOrderCode = serviceOrder.Code;
         recordEntrance.CustomsDeclarations.Status = DucaStatus.Completed;
+
+        #region StepExecutionLog - Registro de Mercadería (Declaración Aduanera)
+        var executionLog = await _unitOfWork.StepExecutionLogs.Entities
+            .FirstOrDefaultAsync(l =>
+                l.RecordEntranceId == recordEntrance.Id &&
+                l.WorkflowStepDefinitionCode == WorkflowStepCodes.Merchandise,
+                cancellationToken);
+
+        if (executionLog == null)
+        {
+            executionLog = new StepExecutionLogs
+            {
+                Id = Guid.NewGuid(),
+                RecordEntranceId = recordEntrance.Id,
+                WorkflowStepDefinitionCode = WorkflowStepCodes.Merchandise,
+                StartDate = request.RegisteredStartDate ?? today,
+                StartTime = request.RegisteredStartTime ?? now,
+                EndDate = today,
+                EndTime = now,
+                ProcessedByUserId = request.UserId.ToString(),
+                ProcessedByUserName = currentUserName,
+                FinishedByUserId = request.UserId.ToString(),
+                FinishedByUserName = currentUserName
+            };
+            await _unitOfWork.StepExecutionLogs.InsertExecutionLog(executionLog);
+        }
+        #endregion
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
