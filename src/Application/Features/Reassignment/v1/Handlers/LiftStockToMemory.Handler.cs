@@ -106,14 +106,20 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
                 .FirstOrDefaultAsync(p => p.Id == item.TargetRackPositionId.Value, ct);
 
             if (target is null)
+            {
                 _errorManager.ThrowNotFound<object>(
                     $"La posición destino rack {item.TargetRackPositionId} no existe.",
                     "ERP:TARGET_POSITION_NOT_FOUND");
+                return;
+            }
 
             if (target.IsOccupied || target.IsReserved || target.IsBlocked)
+            {
                 _errorManager.ThrowBadRequest<object>(
                     $"La posición destino rack {target.PositionCode} no está disponible.",
                     "ERP:TARGET_POSITION_NOT_AVAILABLE");
+                return;
+            }
 
             target.IsReserved = true;
         }
@@ -124,14 +130,20 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
                 .FirstOrDefaultAsync(p => p.Id == item.TargetLotPositionId.Value, ct);
 
             if (target is null)
+            {
                 _errorManager.ThrowNotFound<object>(
                     $"La posición destino tramo {item.TargetLotPositionId} no existe.",
                     "ERP:TARGET_POSITION_NOT_FOUND");
+                return;
+            }
 
             if (target.IsOccupied || target.IsReserved || target.IsBlocked)
+            {
                 _errorManager.ThrowBadRequest<object>(
                     $"La posición destino tramo {target.PositionCode} no está disponible.",
                     "ERP:TARGET_POSITION_NOT_AVAILABLE");
+                return;
+            }
 
             target.IsReserved = true;
         }
