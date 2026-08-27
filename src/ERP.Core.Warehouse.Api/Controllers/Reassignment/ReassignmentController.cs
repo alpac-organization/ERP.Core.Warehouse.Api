@@ -5,6 +5,7 @@ using ERP.Core.Infrastructure.Attributes;
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Controllers.Reassignment;
 
@@ -69,5 +70,36 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
 
         var response = await mediator.Send(command, cancellationToken);
         return Created(string.Empty, response);
+    }
+
+    [Tags("Reasignamiento")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/available-positions")]
+    [ProducesResponseType(typeof(List<AvailablePositionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetAvailablePositionsAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid warehouse_id,
+        [FromQuery] Guid? section_id,
+        [FromQuery] string? status,
+        CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        if (!Guid.TryParse(userIdStr, out var userId))
+            return Unauthorized();
+
+        var query = new GetAvailablePositionsQuery
+        {
+            WarehouseId = warehouse_id,
+            SectionId = section_id,
+            Status = status,
+            UserId = userId,
+            CompanyId = company_id,
+            ModuleCode = module_code
+        };
+
+        var response = await mediator.Send(query, cancellationToken);
+        return Ok(response);
     }
 }
