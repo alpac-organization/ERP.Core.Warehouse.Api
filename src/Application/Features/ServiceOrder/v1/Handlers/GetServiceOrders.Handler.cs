@@ -1,10 +1,12 @@
 
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+
+using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
-using ERP.Core.Application.Commons.Interfaces;
+
+using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Queries;
 
