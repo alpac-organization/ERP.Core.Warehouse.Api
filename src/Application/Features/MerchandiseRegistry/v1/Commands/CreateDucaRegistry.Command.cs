@@ -35,4 +35,6 @@ public class AssignServiceOrderToCustomsDeclarationCommand : BaseRequest, IReque
 {
     public Guid ReceptionId { get; set; }
     public Guid ServiceOrderId { get; set; }
+    public DateOnly? RegisteredStartDate { get; set; }
+    public TimeOnly? RegisteredStartTime { get; set; }
 }

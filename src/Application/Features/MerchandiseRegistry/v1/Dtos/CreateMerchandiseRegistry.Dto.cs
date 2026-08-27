@@ -28,4 +28,6 @@ public record CreateDucatRegistryDetailDto
 public record AssignServiceOrderToCustomsDeclarationDto
 {
     public Guid ServiceOrderId { get; set; }
+    public DateOnly? RegisteredStartDate { get; set; }
+    public TimeOnly? RegisteredStartTime { get; set; }
 }
