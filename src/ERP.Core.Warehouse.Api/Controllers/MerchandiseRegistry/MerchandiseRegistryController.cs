@@ -157,7 +157,9 @@ public class MerchandiseRegistryControlle(IMediator _mediator) : ApiControllerBa
             ServiceOrderId = dto.ServiceOrderId,
             UserId = userId,
             CompanyId = company_id,
-            ModuleCode = module_code
+            ModuleCode = module_code,
+            RegisteredStartDate = dto.RegisteredStartDate,
+            RegisteredStartTime = dto.RegisteredStartTime
         };
 
         var response = await _mediator.Send(command, cancellationToken);

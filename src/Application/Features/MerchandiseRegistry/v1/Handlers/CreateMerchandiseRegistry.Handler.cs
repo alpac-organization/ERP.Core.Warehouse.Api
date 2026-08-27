@@ -8,6 +8,7 @@ using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Commons.Constants;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
+using ServiceOrderEntity = ERP.Core.Database.Domain.Entities.Warehouse.ServiceOrder;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Commands;
 namespace ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Handlers;
 
@@ -56,22 +57,20 @@ public class CreateDucatRegistryHandler(IUnitOfWork unitOfWork, IErrorManager er
                 "ERP:SHIPPING_COMPANY_NOT_FOUND");
         }
 
-        // Buscar usuario actual
-        var user = await _unitOfWork.Users.Entities
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
-
-        if (user == null)
+        var registeredByUserName = await MerchandiseWorkflowHelper.GetProcessedUserNameAsync(_unitOfWork, request.UserId, cancellationToken);
+        if (registeredByUserName == null)
         {
             return _errorManager.ThrowBadRequest<bool>(
                 "No se pudo identificar al usuario autenticado en el sistema.",
                 "ERP:USER_NOT_FOUND");
         }
-        var registeredByUserName = user.Fullname ?? user.UserName ?? request.UserId.ToString();
 
         // obtener fecha y hora actual de nicaragua
         var today = NicaraguaClock.Today;
         var now = NicaraguaClock.TimeNow;
+
+        var workflowError = await MerchandiseWorkflowHelper.ValidateMerchandiseWorkflowStepAsync(_unitOfWork, _errorManager, cancellationToken);
+        if (workflowError.HasValue) return workflowError.Value;
 
         var ducatRegistry = mapper.Map<DucatRegistry>(request);
         ducatRegistry.RecordEntranceId = recordEntrance.Id;
@@ -177,25 +176,10 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
         #endregion
 
         #region 2.b Validacion de orden de servicio
-        var serviceOrder = await _unitOfWork.ServiceOrders.Entities
-            .AsNoTracking()
-            .FirstOrDefaultAsync(so => so.Id == request.ServiceOrderId && so.DeletedAt == null, cancellationToken);
-
+        var serviceOrder = await MerchandiseWorkflowHelper.ValidateAndFindServiceOrderAsync(
+            _unitOfWork, _errorManager, request.ServiceOrderId, cancellationToken);
         if (serviceOrder == null)
-            return _errorManager.ThrowBadRequest<bool>(
-                "La orden de servicio indicada no existe.",
-                "ERP:SERVICE_ORDER_NOT_FOUND");
-
-        var serviceOrderAlreadyUsed = await _unitOfWork.EntranceDucats.Entities
-            .AnyAsync(d => d.ServiceOrderId == request.ServiceOrderId && d.DeletedAt == null, cancellationToken)
-                || await _unitOfWork.CustomsDeclarations.Entities
-                    .AnyAsync(c => c.ServiceOrderId == request.ServiceOrderId && c.DeletedAt == null, cancellationToken);
-
-        if (serviceOrderAlreadyUsed)
-            return _errorManager.ThrowBadRequest<bool>(
-            "La orden de servicio indicada ya está asignada a otro documento.",
-            "ERP:SERVICE_ORDER_ALREADY_IN_USE");
-
+            return false;
         #endregion
 
         #region 3. Usuario actual
@@ -272,6 +256,9 @@ public class AssignServiceOrderToCustomsDeclarationHandlers(IUnitOfWork unitOfWo
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
+        var workflowError = await MerchandiseWorkflowHelper.ValidateMerchandiseWorkflowStepAsync(_unitOfWork, _errorManager, cancellationToken);
+        if (workflowError.HasValue) return workflowError.Value;
+
         var recordEntrance = await _unitOfWork.RecordEntrance.Entities
             .Include(r => r.ReceptionEntrance!)
             .Include(r => r.CustomsDeclarations!)
@@ -297,33 +284,118 @@ public class AssignServiceOrderToCustomsDeclarationHandlers(IUnitOfWork unitOfWo
                 "Esta declaración aduanera ya tiene una orden de servicio asignada.",
                 "ERP:CUSTOMS_DECLARATION_SERVICE_ORDER_ALREADY_ASSIGNED");
 
-        var serviceOrder = await _unitOfWork.ServiceOrders.Entities
-            .AsNoTracking()
-            .FirstOrDefaultAsync(so => so.Id == request.ServiceOrderId && so.DeletedAt == null, cancellationToken);
-
+        var serviceOrder = await MerchandiseWorkflowHelper.ValidateAndFindServiceOrderAsync(
+            _unitOfWork, _errorManager, request.ServiceOrderId, cancellationToken);
         if (serviceOrder == null)
-            return _errorManager.ThrowBadRequest<bool>(
-                "La orden de servicio indicada no existe.",
-                "ERP:SERVICE_ORDER_NOT_FOUND");
+            return false;
 
-        var serviceOrderAlreadyUsed = await _unitOfWork.EntranceDucats.Entities
-            .AnyAsync(d => d.ServiceOrderId == request.ServiceOrderId && d.DeletedAt == null, cancellationToken)
-            || await _unitOfWork.CustomsDeclarations.Entities
-            .AnyAsync(c => c.ServiceOrderId == request.ServiceOrderId && c.DeletedAt == null, cancellationToken);
-
-        if (serviceOrderAlreadyUsed)
+        var currentUserName = await MerchandiseWorkflowHelper.GetProcessedUserNameAsync(_unitOfWork, request.UserId, cancellationToken);
+        if (currentUserName == null)
             return _errorManager.ThrowBadRequest<bool>(
-                "La orden de servicio indicada ya está asignada a otro documento.",
-                "ERP:SERVICE_ORDER_ALREADY_IN_USE");
+                "No se pudo identificar al usuario autenticado en el sistema.",
+                "ERP:USER_NOT_FOUND");
+
+        var today = NicaraguaClock.Today;
+        var now = NicaraguaClock.TimeNow;
 
         recordEntrance.CustomsDeclarations.ServiceOrderId = serviceOrder.Id;
         recordEntrance.CustomsDeclarations.ServiceOrderCode = serviceOrder.Code;
         recordEntrance.CustomsDeclarations.Status = DucaStatus.Completed;
 
+        #region StepExecutionLog - Registro de Mercadería (Declaración Aduanera)
+        var executionLog = await _unitOfWork.StepExecutionLogs.Entities
+            .FirstOrDefaultAsync(l =>
+                l.RecordEntranceId == recordEntrance.Id &&
+                l.WorkflowStepDefinitionCode == WorkflowStepCodes.Merchandise,
+                cancellationToken);
+
+        if (executionLog == null)
+        {
+            executionLog = new StepExecutionLogs
+            {
+                Id = Guid.NewGuid(),
+                RecordEntranceId = recordEntrance.Id,
+                WorkflowStepDefinitionCode = WorkflowStepCodes.Merchandise,
+                StartDate = request.RegisteredStartDate ?? today,
+                StartTime = request.RegisteredStartTime ?? now,
+                EndDate = today,
+                EndTime = now,
+                ProcessedByUserId = request.UserId.ToString(),
+                ProcessedByUserName = currentUserName,
+                FinishedByUserId = request.UserId.ToString(),
+                FinishedByUserName = currentUserName
+            };
+            await _unitOfWork.StepExecutionLogs.InsertExecutionLog(executionLog);
+        }
+        #endregion
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return true;
 
+    }
+}
+#endregion
+
+#region Helpers compartidos
+internal static class MerchandiseWorkflowHelper
+{
+    internal static async Task<bool?> ValidateMerchandiseWorkflowStepAsync(
+        IUnitOfWork unitOfWork, IErrorManager errorManager, CancellationToken ct)
+    {
+        var stepIsConfigured = await unitOfWork.WorkflowStepDefinitions.Entities
+            .AnyAsync(x => x.Code == WorkflowStepCodes.Merchandise, ct);
+
+        if (!stepIsConfigured)
+        {
+            return errorManager.ThrowInternalError<bool>(
+                $"No se encontró la configuración del paso '{WorkflowStepCodes.Merchandise}' en WorkflowStepDefinitions. Contacte al administrador.",
+                "ERP:WORKFLOW_NOT_CONFIGURED");
+        }
+
+        return null;
+    }
+
+    internal static async Task<string?> GetProcessedUserNameAsync(
+        IUnitOfWork unitOfWork, Guid userId, CancellationToken ct)
+    {
+        var user = await unitOfWork.Users.Entities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId, ct);
+
+        if (user == null) return null;
+        return user.Fullname ?? user.UserName ?? userId.ToString();
+    }
+
+    internal static async Task<ServiceOrderEntity?> ValidateAndFindServiceOrderAsync(
+        IUnitOfWork unitOfWork, IErrorManager errorManager, Guid serviceOrderId, CancellationToken ct)
+    {
+        var serviceOrder = await unitOfWork.ServiceOrders.Entities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(so => so.Id == serviceOrderId && so.DeletedAt == null, ct);
+
+        if (serviceOrder == null)
+        {
+            errorManager.ThrowBadRequest<bool>(
+                "La orden de servicio indicada no existe.",
+                "ERP:SERVICE_ORDER_NOT_FOUND");
+            return null;
+        }
+
+        var alreadyUsed = await unitOfWork.EntranceDucats.Entities
+            .AnyAsync(d => d.ServiceOrderId == serviceOrderId && d.DeletedAt == null, ct)
+            || await unitOfWork.CustomsDeclarations.Entities
+                .AnyAsync(c => c.ServiceOrderId == serviceOrderId && c.DeletedAt == null, ct);
+
+        if (alreadyUsed)
+        {
+            errorManager.ThrowBadRequest<bool>(
+                "La orden de servicio indicada ya está asignada a otro documento.",
+                "ERP:SERVICE_ORDER_ALREADY_IN_USE");
+            return null;
+        }
+
+        return serviceOrder;
     }
 }
 #endregion

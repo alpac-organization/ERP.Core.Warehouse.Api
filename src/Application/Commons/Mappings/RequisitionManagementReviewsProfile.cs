@@ -14,6 +14,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             CreateMap<RequisitionManagementReview, RequisitionManagementReviewDto>()
                 .ForMember(dest => dest.RequisitionManagementReviewId, opt => opt.MapFrom(src => src.Id))
                 .ForPath(dest => dest.SentByUserInformation, opt => opt.MapFrom(src => src.SentByUser))
+                .ForPath(dest => dest.SentByUserInformation.WorkAreaInformation, opt => opt.MapFrom(src => src.SentByUser.WorkArea))
                 .ForPath(dest => dest.PurchaseRequest, opt => opt.MapFrom(src => src.PurchaseRequest));
         }
     }
