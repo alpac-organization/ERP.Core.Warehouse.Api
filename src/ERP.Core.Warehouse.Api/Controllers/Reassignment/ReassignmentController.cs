@@ -41,8 +41,8 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
     }
 
     [Tags("Reasignamiento")]
-    [HttpPost("companies/{company_id}/modules/{module_code}/reassignment-sessions/{session_id}/stocks/{stock_id}/lift")]
-    [ProducesResponseType(typeof(ReassignmentMemoryItemDto), StatusCodes.Status201Created)]
+    [HttpPost("companies/{company_id}/modules/{module_code}/reassignment-sessions/{session_id}/lift")]
+    [ProducesResponseType(typeof(List<ReassignmentMemoryItemDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
@@ -51,7 +51,7 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
         [FromRoute] Guid session_id,
-        [FromRoute] Guid stock_id,
+        [FromBody] List<LiftStockItemDto> items,
         CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
@@ -61,7 +61,7 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
         var command = new LiftStockToMemoryCommand
         {
             SessionId = session_id,
-            StockId = stock_id,
+            Items = items,
             UserId = userId,
             CompanyId = company_id,
             ModuleCode = module_code

@@ -12,8 +12,18 @@ public class LiftStockToMemoryValidator : BaseRequestValidator<LiftStockToMemory
             .NotEmpty().WithMessage("La sesión de reasignamiento es requerida.")
             .NotEqual(Guid.Empty).WithMessage("El id de la sesión es requerido.");
 
-        RuleFor(x => x.StockId)
-            .NotEmpty().WithMessage("El polín es requerido.")
-            .NotEqual(Guid.Empty).WithMessage("El id del polín es requerido.");
+        RuleFor(x => x.Items)
+            .NotEmpty().WithMessage("Debe enviar al menos un polín para levantar.");
+
+        RuleForEach(x => x.Items).ChildRules(item =>
+        {
+            item.RuleFor(i => i.StockId)
+                .NotEmpty().WithMessage("El polín es requerido.")
+                .NotEqual(Guid.Empty).WithMessage("El id del polín es requerido.");
+
+            item.RuleFor(i => i)
+                .Must(i => i.TargetRackPositionId.HasValue ^ i.TargetLotPositionId.HasValue)
+                .WithMessage("Cada polín debe tener exactamente una posición destino (rack o tramo).");
+        });
     }
 }

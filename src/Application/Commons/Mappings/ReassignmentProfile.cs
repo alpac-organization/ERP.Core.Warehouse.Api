@@ -58,17 +58,17 @@ public static class ReassignmentMapper
         };
     }
 
-    public static ReassignmentMemoryItems ToMemoryItemEntity(this LiftStockToMemoryCommand command, string userId)
+    public static ReassignmentMemoryItems ToMemoryItemEntity(this LiftStockItemDto item, Guid sessionId, string userId, DateOnly nowDate, TimeOnly nowTime)
     {
-        var nowNica = NicaraguaClock.Now;
-
         return new ReassignmentMemoryItems
         {
             Id = Guid.NewGuid(),
-            ReassignmentSessionId = command.SessionId,
-            StockId = command.StockId,
-            LiftedAtDate = DateOnly.FromDateTime(nowNica),
-            LiftedAtTime = TimeOnly.FromDateTime(nowNica),
+            ReassignmentSessionId = sessionId,
+            StockId = item.StockId,
+            TargetRackPositionId = item.TargetRackPositionId,
+            TargetLotPositionId = item.TargetLotPositionId,
+            LiftedAtDate = nowDate,
+            LiftedAtTime = nowTime,
             LiftedByUserId = userId
         };
     }
