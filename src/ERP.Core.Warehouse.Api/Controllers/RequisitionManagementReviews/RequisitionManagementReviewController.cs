@@ -40,5 +40,25 @@ namespace ERP.Core.Warehouse.Api.Controllers.RequisitionManagementReviews
                 PageSize    = page_size,
             });
         }
+
+
+        [Tags("Revisiones de gerencia")]
+        [HttpGet("companies/{company_id}/modules/{module_code}/requisition-management-reviews/{requisition_management_reviews_id}/details")]
+        [ProducesResponseType(typeof(RequisitionManagementReviewDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<RequisitionManagementReviewDetailsDto> GetRequisitionManagementReviewsDetailsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid requisition_management_reviews_id)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+            //Crear endpoint de detalles
+
+            return await _mediator.Send(new GetRequisitionManagementReviewsDetailsQuery()
+            {
+                CompanyId = company_id,
+                ModuleCode = module_code,
+                UserId = Guid.Parse(userIdStr ?? ""),
+                RequisitionManagementReviewsId = requisition_management_reviews_id
+            });
+        }
     }
 }
