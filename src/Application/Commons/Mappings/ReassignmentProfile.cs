@@ -19,6 +19,9 @@ public class ReassignmentProfile : Profile
                 s.ClosedAtDate.HasValue && s.ClosedAtTime.HasValue
                     ? s.ClosedAtDate.Value.ToDateTime(s.ClosedAtTime.Value)
                     : (DateTime?)null));
+
+        CreateMap<ReassignmentMemoryItems, ReassignmentMemoryItemDto>()
+            .ForMember(d => d.MemoryItemId, o => o.MapFrom(s => s.Id));
     }
 }
 
@@ -52,6 +55,21 @@ public static class ReassignmentMapper
                     StartedAtTime = nowTime
                 }
             ]
+        };
+    }
+
+    public static ReassignmentMemoryItems ToMemoryItemEntity(this LiftStockItemDto item, Guid sessionId, string userId, DateOnly nowDate, TimeOnly nowTime)
+    {
+        return new ReassignmentMemoryItems
+        {
+            Id = Guid.NewGuid(),
+            ReassignmentSessionId = sessionId,
+            StockId = item.StockId,
+            TargetRackPositionId = item.TargetRackPositionId,
+            TargetLotPositionId = item.TargetLotPositionId,
+            LiftedAtDate = nowDate,
+            LiftedAtTime = nowTime,
+            LiftedByUserId = userId
         };
     }
 }
