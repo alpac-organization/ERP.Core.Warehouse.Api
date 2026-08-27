@@ -233,7 +233,7 @@ public class MerchandiseRegistryProfile : Profile
 #region Crear Registro
 public class MerchandiseRegistrationSteps
 {
-    public const string CustomsDeclaration = "RECEP";
+    public const string CustomsDeclaration = "REME";
     public const string Duca = "REME";
 }
 

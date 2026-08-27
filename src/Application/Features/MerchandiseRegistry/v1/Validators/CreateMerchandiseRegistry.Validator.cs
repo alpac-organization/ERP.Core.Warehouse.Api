@@ -70,3 +70,24 @@ public class CreateDucaRegistryDetailValidator : AbstractValidator<CreateDucatRe
             .NotNull().WithMessage("La hora de inicio es obligatoria.");
     }
 }
+
+public class AssignServiceOrderToCustomsDeclarationValidator : AbstractValidator<AssignServiceOrderToCustomsDeclarationCommand>
+{
+    public AssignServiceOrderToCustomsDeclarationValidator()
+    {
+        RuleFor(x => x.UserId)
+            .NotEqual(Guid.Empty).WithMessage("No se pudo identificar al usuario autenticado.");
+
+        RuleFor(x => x.ReceptionId)
+            .NotEqual(Guid.Empty).WithMessage("El identificador de recepción es obligatorio.");
+
+        RuleFor(x => x.ServiceOrderId)
+            .NotEqual(Guid.Empty).WithMessage("La orden de servicio es obligatoria.");
+
+        RuleFor(x => x.RegisteredStartDate)
+            .NotNull().WithMessage("La fecha de inicio es obligatoria.");
+
+        RuleFor(x => x.RegisteredStartTime)
+            .NotNull().WithMessage("La hora de inicio es obligatoria.");
+    }
+}
