@@ -1,6 +1,7 @@
 using AutoMapper;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Warehouse;
+using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Commands;
@@ -71,6 +72,57 @@ public static class ReassignmentMapper
             LiftedAtTime = nowTime,
             LiftedByUserId = userId
         };
+    }
+
+    public static AvailablePositionDto ToAvailablePositionDto(
+        this RackPositions position,
+        Guid? stockId,
+        Guid? reservedBySessionId)
+    {
+        return new AvailablePositionDto
+        {
+            PositionId = position.Id,
+            PositionCode = position.PositionCode,
+            Type = "Rack",
+            Status = ResolveStatus(position.IsOccupied, position.IsReserved, position.IsBlocked),
+            SectionId = position.Rack.SectionId,
+            SectionCode = position.Rack.Section.Code,
+            RackId = position.RackId,
+            RackCode = position.Rack.Code,
+            PositionNumber = position.PositionNumber,
+            StockId = stockId,
+            ReservedBySessionId = reservedBySessionId
+        };
+    }
+
+    public static AvailablePositionDto ToAvailablePositionDto(
+        this LotsPositions position,
+        Guid? stockId,
+        Guid? reservedBySessionId)
+    {
+        return new AvailablePositionDto
+        {
+            PositionId = position.Id,
+            PositionCode = position.PositionCode,
+            Type = "Lot",
+            Status = ResolveStatus(position.IsOccupied, position.IsReserved, position.IsBlocked),
+            SectionId = position.Lot.SectionId,
+            SectionCode = position.Lot.Section.Code,
+            LotId = position.LotId,
+            LotCode = position.Lot.Code,
+            RowNumber = position.RowNumber,
+            ColumnNumber = position.ColumnNumber,
+            StockId = stockId,
+            ReservedBySessionId = reservedBySessionId
+        };
+    }
+
+    public static string ResolveStatus(bool isOccupied, bool isReserved, bool isBlocked)
+    {
+        if (isOccupied) return "Occupied";
+        if (isReserved) return "Reserved";
+        if (isBlocked) return "Blocked";
+        return "Free";
     }
 }
 #endregion
