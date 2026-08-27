@@ -12,7 +12,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
 
         public Guid RequisitionManagementReviewId { get; set; }
 
-        public PurchaseRequestDto PurchaseRequest { get; set; } = new();
+        public PurchaseRequestDetailsDto PurchaseRequest { get; set; } = new();
         public SentByUserInformation SentByUserInformation { get; set; } = new();
     }
 }

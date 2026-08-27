@@ -50,7 +50,6 @@ namespace ERP.Core.Warehouse.Api.Controllers.RequisitionManagementReviews
         public async Task<RequisitionManagementReviewDetailsDto> GetRequisitionManagementReviewsDetailsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid requisition_management_reviews_id)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
-            //Crear endpoint de detalles
 
             return await _mediator.Send(new GetRequisitionManagementReviewsDetailsQuery()
             {
@@ -59,6 +58,21 @@ namespace ERP.Core.Warehouse.Api.Controllers.RequisitionManagementReviews
                 UserId = Guid.Parse(userIdStr ?? ""),
                 RequisitionManagementReviewsId = requisition_management_reviews_id
             });
+        }
+
+
+
+        [Tags("Revisiones de gerencia")]
+        [HttpPost("companies/{company_id}/modules/{module_code}/requisition-management-reviews/{requisition_management_reviews_id}/process")]
+        [ProducesResponseType(typeof(RequisitionManagementReviewDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<OkResult> ProcessRequest([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid requisition_management_reviews_id)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+            //Crear endpoint de detalles
+
+            return Ok();
         }
     }
 }
