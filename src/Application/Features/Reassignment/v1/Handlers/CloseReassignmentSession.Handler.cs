@@ -9,7 +9,7 @@ using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Handlers;
 
-public class CloseReassignmentSessionHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
+public class CloseReassignmentSessionHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, SessionAccessValidator sessionValidator)
     : BaseValidatorHandler<CloseReassignmentSessionCommand, bool>(unitOfWork, errorManager)
 {
     public override async Task<bool> Handle(
@@ -19,7 +19,7 @@ public class CloseReassignmentSessionHandler(IUnitOfWork unitOfWork, IErrorManag
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        var session = await ValidateSession(request.SessionId, request.UserId.ToString(), cancellationToken);
+        var session = await sessionValidator.ValidateSession(request.SessionId, request.UserId.ToString(), cancellationToken);
 
         await EnsureNoPendingItems(request.SessionId, cancellationToken);
 
@@ -29,29 +29,6 @@ public class CloseReassignmentSessionHandler(IUnitOfWork unitOfWork, IErrorManag
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return true;
-    }
-
-    private async Task<ReassignmentSessions> ValidateSession(Guid sessionId, string userIdStr, CancellationToken ct)
-    {
-        var session = await _unitOfWork.ReassignmentSessions.Entities
-            .FirstOrDefaultAsync(s => s.Id == sessionId && s.DeletedAt == null, ct);
-
-        if (session is null)
-            return _errorManager.ThrowNotFound<ReassignmentSessions>(
-                "La sesión de reasignamiento no existe.",
-                "ERP:REASSIGNMENT_SESSION_NOT_FOUND");
-
-        if (session.Status != ReassignmentSessionStatus.Open)
-            return _errorManager.ThrowBadRequest<ReassignmentSessions>(
-                "La sesión no está abierta; no se puede cerrar.",
-                "ERP:REASSIGNMENT_SESSION_NOT_OPEN");
-
-        if (session.CurrentOwnerUserId != userIdStr)
-            return _errorManager.ThrowForbidden<ReassignmentSessions>(
-                "Solo el dueño actual de la sesión puede operar sobre ella.",
-                "ERP:NOT_SESSION_OWNER");
-
-        return session;
     }
 
     private async Task EnsureNoPendingItems(Guid sessionId, CancellationToken ct)

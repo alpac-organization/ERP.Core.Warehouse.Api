@@ -23,6 +23,7 @@ namespace ERP.Core.Warehouse.Api.Application
             services.AddValidatorsFromAssembly(currentAssembly);
 
             services.AddScoped<ResolveMemoryItemProcessor>();
+            services.AddScoped<SessionAccessValidator>();
 
             services.AddMediatR(cfg => {
                 cfg.RegisterServicesFromAssembly(currentAssembly);

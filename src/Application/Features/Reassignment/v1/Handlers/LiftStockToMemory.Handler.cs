@@ -1,6 +1,5 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Application.Commons.Interfaces;
@@ -13,7 +12,7 @@ using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Handlers;
 
-public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
+public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper, SessionAccessValidator sessionValidator)
     : BaseValidatorHandler<LiftStockToMemoryCommand, List<ReassignmentMemoryItemDto>>(unitOfWork, errorManager)
 {
     public override async Task<List<ReassignmentMemoryItemDto>> Handle(LiftStockToMemoryCommand request, CancellationToken cancellationToken)
@@ -21,7 +20,7 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        var session = await ValidateSession(request.SessionId, request.UserId.ToString(), cancellationToken);
+        var session = await sessionValidator.ValidateSession(request.SessionId, request.UserId.ToString(), cancellationToken);
 
         var nowNica = NicaraguaClock.Now;
         var nowDate = DateOnly.FromDateTime(nowNica);
@@ -35,29 +34,6 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return createdItems;
-    }
-
-    private async Task<ReassignmentSessions> ValidateSession(Guid sessionId, string userIdStr, CancellationToken ct)
-    {
-        var session = await _unitOfWork.ReassignmentSessions.Entities
-            .FirstOrDefaultAsync(s => s.Id == sessionId && s.DeletedAt == null, ct);
-
-        if (session is null)
-            return _errorManager.ThrowNotFound<ReassignmentSessions>(
-                "La sesión de reasignamiento no existe.",
-                "ERP:REASSIGNMENT_SESSION_NOT_FOUND");
-
-        if (session.Status != ReassignmentSessionStatus.Open)
-            return _errorManager.ThrowBadRequest<ReassignmentSessions>(
-                "La sesión no está abierta; no se pueden levantar polines.",
-                "ERP:REASSIGNMENT_SESSION_NOT_OPEN");
-
-        if (session.CurrentOwnerUserId != userIdStr)
-            return _errorManager.ThrowForbidden<ReassignmentSessions>(
-                "Solo el dueño actual de la sesión puede operar sobre ella.",
-                "ERP:NOT_SESSION_OWNER");
-
-        return session;
     }
 
     private async Task<ReassignmentMemoryItemDto> ProcessLiftItem(LiftStockItemDto item, ReassignmentSessions session, string userIdStr, DateOnly nowDate, TimeOnly nowTime, CancellationToken ct)
