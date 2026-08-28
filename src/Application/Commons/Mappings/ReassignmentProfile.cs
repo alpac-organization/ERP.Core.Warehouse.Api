@@ -185,3 +185,24 @@ public static class ResolveMemoryItemMapper
     }
 }
 #endregion
+
+#region Issue 5b - Transferir sesión
+public static class TransferSessionMapper
+{
+    public static ReassignmentSessionOwnershipLog ToOwnershipLogEntity(
+        this Guid sessionId,
+        string newOwnerUserId,
+        DateOnly nowDate,
+        TimeOnly nowTime)
+    {
+        return new ReassignmentSessionOwnershipLog
+        {
+            Id = Guid.NewGuid(),
+            ReassignmentSessionId = sessionId,
+            UserId = newOwnerUserId,
+            StartedAtDate = nowDate,
+            StartedAtTime = nowTime
+        };
+    }
+}
+#endregion
