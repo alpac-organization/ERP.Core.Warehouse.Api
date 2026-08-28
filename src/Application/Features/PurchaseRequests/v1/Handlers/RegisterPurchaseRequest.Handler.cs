@@ -149,6 +149,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     {
                         Badge = access.Profile.Company.ImageUrl,
                         Icon  = access.Profile.Company.ImageUrl
+                    },
+                    AndroidConfig = new()
+                    {
+                        Badge = access.Profile.Company.ImageUrl,
+                        Icon  = access.Profile.Company.ImageUrl
                     }
                 });
 
