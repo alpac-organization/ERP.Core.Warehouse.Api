@@ -35,12 +35,15 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
         }
 
         [Tags("Solicitudes de compras")] 
-        [HttpGet("companies/{company_id}/modules/{module_code}/purchase-requests")]      
+        [HttpGet("companies/{company_id}/modules/{module_code}/purchase-requests")]
         [ProducesResponseType(typeof(PagedResponse<PurchaseRequestDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<PagedResponse<PurchaseRequestDto>> GetPurchaseRequestAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
+            [FromQuery] int? year                         = null,
+            [FromQuery] int? month                        = null,
             [FromQuery] Guid? branch_id                   = null,
+            [FromQuery] Guid? area_id                     = null,
             [FromQuery] string? code                      = null,
             [FromQuery] PurchaseRequestType? request_type = null,
             [FromQuery] PriorityLevel? priority_Level     = null,
@@ -55,6 +58,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
             return await _mediator.Send(new GetPurchaseRequestsQuery()
             {
                 BranchId      = branch_id,
+                AreaId        = area_id,
                 CompanyId     = company_id,
                 Code          = code,
                 Status        = status,
@@ -64,6 +68,8 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
                 PriorityLevel = priority_Level,
                 PageNumber    = page_number,
                 PageSize      = page_size,
+                Month         = month,
+                Year          = year,
                 UserId        = Guid.Parse(userIdStr ?? ""),
             });
         }
