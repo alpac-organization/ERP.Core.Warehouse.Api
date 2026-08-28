@@ -88,6 +88,20 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 purchaseRequestsQuery = purchaseRequestsQuery
                     .Where(purs => purs.BranchId == request.BranchId);
             }
+            
+            if (request.RequestType == PurchaseRequestType.Monthly)
+            {
+                var year = request.Year ?? DateTime.UtcNow.Year;
+
+                int month = request.Month ?? DateTime.UtcNow.Month;
+                int targetYear = year;
+
+                var firstDayOfMonth = new DateTime(targetYear, month, 1, 0, 0, 0, DateTimeKind.Utc);
+                var firstDayOfNextMonth = firstDayOfMonth.AddMonths(1);
+
+                purchaseRequestsQuery = purchaseRequestsQuery
+                    .Where(purs => purs.CreatedAt >= firstDayOfMonth && purs.CreatedAt < firstDayOfNextMonth);
+            }
 
             var totalRecords = await purchaseRequestsQuery.CountAsync(cancellationToken);
 
