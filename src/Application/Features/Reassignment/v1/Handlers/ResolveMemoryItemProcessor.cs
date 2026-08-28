@@ -135,6 +135,11 @@ public class ResolveMemoryItemProcessor(
             rackPositionId, lotPositionId, userIdStr, nowDate, nowTime);
 
         await unitOfWork.StockPlacements.InsertStockPlacement(placement);
+
+        var movementEvent = memoryItem.ToStockMovementEventEntity(
+            memoryItem.ReassignmentSessionId, userIdStr, nowDate, nowTime);
+
+        await unitOfWork.StockMovementEvents.InsertStockMovementEvent(movementEvent);
     }
 
     private static void ResolveMemoryItem(

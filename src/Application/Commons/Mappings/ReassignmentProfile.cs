@@ -164,5 +164,24 @@ public static class ResolveMemoryItemMapper
             PlacedByMemoryItemId = memoryItem.Id
         };
     }
+
+    public static StockMovementEvents ToStockMovementEventEntity(
+        this ReassignmentMemoryItems memoryItem,
+        Guid sessionId,
+        string userId,
+        DateOnly nowDate,
+        TimeOnly nowTime)
+    {
+        return new StockMovementEvents
+        {
+            Id = Guid.NewGuid(),
+            ReassignmentSessionId = sessionId,
+            ReassignmentMemoryItemId = memoryItem.Id,
+            StockId = memoryItem.StockId,
+            ConfirmedAtDate = nowDate,
+            ConfirmedAtTime = nowTime,
+            ConfirmedByUserId = userId
+        };
+    }
 }
 #endregion
