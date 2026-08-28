@@ -4,9 +4,8 @@ using ERP.Core.Domain.Entities.Errors;
 using ERP.Core.Infrastructure.Attributes;
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Dtos;
-using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Queries;
-
+using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Commands;
 namespace ERP.Core.Warehouse.Api.Controllers.Reassignment;
 
 [HasToken]
@@ -26,8 +25,7 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
         [FromRoute] Guid warehouse_id,
         CancellationToken cancellationToken)
     {
-        var userIdStr = HttpContext.Items["UserId"] as string;
-        if (!Guid.TryParse(userIdStr, out var userId))
+        if (!TryGetUserId(out var userId))
             return Unauthorized();
 
         var command = new OpenReassignmentSessionCommand
@@ -58,8 +56,7 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
         [FromBody] List<LiftStockItemDto> items,
         CancellationToken cancellationToken)
     {
-        var userIdStr = HttpContext.Items["UserId"] as string;
-        if (!Guid.TryParse(userIdStr, out var userId))
+        if (!TryGetUserId(out var userId))
             return Unauthorized();
 
         var command = new LiftStockToMemoryCommand
@@ -90,8 +87,7 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
         [FromQuery] string? status,
         CancellationToken cancellationToken)
     {
-        var userIdStr = HttpContext.Items["UserId"] as string;
-        if (!Guid.TryParse(userIdStr, out var userId))
+        if (!TryGetUserId(out var userId))
             return Unauthorized();
 
         var query = new GetAvailablePositionsQuery
@@ -124,8 +120,7 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
         [FromRoute] Guid memory_item_id,
         CancellationToken cancellationToken)
     {
-        var userIdStr = HttpContext.Items["UserId"] as string;
-        if (!Guid.TryParse(userIdStr, out var userId))
+        if (!TryGetUserId(out var userId))
             return Unauthorized();
 
         var command = new ResolveMemoryItemCommand
@@ -155,8 +150,7 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
         [FromBody] List<Guid> memory_item_ids,
         CancellationToken cancellationToken)
     {
-        var userIdStr = HttpContext.Items["UserId"] as string;
-        if (!Guid.TryParse(userIdStr, out var userId))
+        if (!TryGetUserId(out var userId))
             return Unauthorized();
 
         var command = new ResolveMemoryItemsCommand
@@ -187,8 +181,8 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
         [FromRoute] Guid session_id,
         CancellationToken cancellationToken)
     {
-        var userIdStr = HttpContext.Items["UserId"] as string;
-        if (!Guid.TryParse(userIdStr, out var userId)) return Unauthorized();
+        if (!TryGetUserId(out var userId))
+            return Unauthorized();
 
         var command = new PauseSessionCommand
         {
@@ -217,8 +211,7 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
         [FromRoute] Guid session_id,
         CancellationToken cancellationToken)
     {
-        var userIdStr = HttpContext.Items["UserId"] as string;
-        if (!Guid.TryParse(userIdStr, out var userId))
+        if (!TryGetUserId(out var userId))
             return Unauthorized();
 
         var command = new CloseReassignmentSessionCommand

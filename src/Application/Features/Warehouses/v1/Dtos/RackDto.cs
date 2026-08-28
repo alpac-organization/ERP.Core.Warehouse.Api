@@ -58,7 +58,7 @@ public class LevelCapacityDto
 {
     public int LevelNumber { get; set; }
     public int RacksCount { get; set; }
-    public decimal UsedLengthMetres { get; set; }
+    public decimal UsedLengthMetres { get; set; } 
     public decimal AvailableLengthMetres { get; set; }
 }
 
