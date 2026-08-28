@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using ERP.Core.Domain.Entities.Errors;
 using ERP.Core.Infrastructure.Attributes;
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
+using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Commands;
@@ -19,26 +20,17 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
     [ProducesResponseType(typeof(ReassignmentSessionDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> OpenReassignmentSessionAsync(
+    public Task<IActionResult> OpenReassignmentSessionAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
         [FromRoute] Guid warehouse_id,
         CancellationToken cancellationToken)
-    {
-        if (!TryGetUserId(out var userId))
-            return Unauthorized();
-
-        var command = new OpenReassignmentSessionCommand
+        => SendAsync(new OpenReassignmentSessionCommand
         {
             WarehouseId = warehouse_id,
-            UserId = userId,
             CompanyId = company_id,
             ModuleCode = module_code
-        };
-
-        var response = await mediator.Send(command, cancellationToken);
-        return Created(string.Empty, response);
-    }
+        }, cancellationToken, created: true);
     #endregion
 
     #region Issue 2 - Levantar polines
@@ -49,28 +41,19 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> LiftStockToMemoryAsync(
+    public Task<IActionResult> LiftStockToMemoryAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
         [FromRoute] Guid session_id,
         [FromBody] List<LiftStockItemDto> items,
         CancellationToken cancellationToken)
-    {
-        if (!TryGetUserId(out var userId))
-            return Unauthorized();
-
-        var command = new LiftStockToMemoryCommand
+        => SendAsync(new LiftStockToMemoryCommand
         {
             SessionId = session_id,
             Items = items,
-            UserId = userId,
             CompanyId = company_id,
             ModuleCode = module_code
-        };
-
-        var response = await mediator.Send(command, cancellationToken);
-        return Created(string.Empty, response);
-    }
+        }, cancellationToken, created: true);
     #endregion
 
     #region Issue 3 - Posiciones disponibles
@@ -79,30 +62,21 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
     [ProducesResponseType(typeof(List<AvailablePositionDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetAvailablePositionsAsync(
+    public Task<IActionResult> GetAvailablePositionsAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
         [FromRoute] Guid warehouse_id,
         [FromQuery] Guid? section_id,
         [FromQuery] string? status,
         CancellationToken cancellationToken)
-    {
-        if (!TryGetUserId(out var userId))
-            return Unauthorized();
-
-        var query = new GetAvailablePositionsQuery
+        => SendAsync(new GetAvailablePositionsQuery
         {
             WarehouseId = warehouse_id,
             SectionId = section_id,
             Status = status,
-            UserId = userId,
             CompanyId = company_id,
             ModuleCode = module_code
-        };
-
-        var response = await mediator.Send(query, cancellationToken);
-        return Ok(response);
-    }
+        }, cancellationToken);
     #endregion
 
     #region Issue 4 - Confirmar polín en aire
@@ -113,28 +87,19 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> ResolveMemoryItemAsync(
+    public Task<IActionResult> ResolveMemoryItemAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
         [FromRoute] Guid session_id,
         [FromRoute] Guid memory_item_id,
         CancellationToken cancellationToken)
-    {
-        if (!TryGetUserId(out var userId))
-            return Unauthorized();
-
-        var command = new ResolveMemoryItemCommand
+        => SendAsync(new ResolveMemoryItemCommand
         {
             SessionId = session_id,
             MemoryItemId = memory_item_id,
-            UserId = userId,
             CompanyId = company_id,
             ModuleCode = module_code
-        };
-
-        var response = await mediator.Send(command, cancellationToken);
-        return Ok(response);
-    }
+        }, cancellationToken);
 
     [Tags("Reasignamiento")]
     [HttpPost("companies/{company_id}/modules/{module_code}/reassignment-sessions/{session_id}/memory-items/resolve")]
@@ -143,28 +108,19 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> ResolveMemoryItemsAsync(
+    public Task<IActionResult> ResolveMemoryItemsAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
         [FromRoute] Guid session_id,
         [FromBody] List<Guid> memory_item_ids,
         CancellationToken cancellationToken)
-    {
-        if (!TryGetUserId(out var userId))
-            return Unauthorized();
-
-        var command = new ResolveMemoryItemsCommand
+        => SendAsync(new ResolveMemoryItemsCommand
         {
             SessionId = session_id,
             MemoryItemIds = memory_item_ids,
-            UserId = userId,
             CompanyId = company_id,
             ModuleCode = module_code
-        };
-
-        var response = await mediator.Send(command, cancellationToken);
-        return Ok(response);
-    }
+        }, cancellationToken);
     #endregion
 
     #region Issue 5 - Pausar Session
@@ -175,26 +131,17 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> PauseSessionAsync(
+    public Task<IActionResult> PauseSessionAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
         [FromRoute] Guid session_id,
         CancellationToken cancellationToken)
-    {
-        if (!TryGetUserId(out var userId))
-            return Unauthorized();
-
-        var command = new PauseSessionCommand
+        => SendAsync(new PauseSessionCommand
         {
             SessionId = session_id,
-            UserId = userId,
             CompanyId = company_id,
             ModuleCode = module_code
-        };
-
-        var response = await mediator.Send(command, cancellationToken);
-        return Ok(response);
-    }
+        }, cancellationToken);
     #endregion
 
     #region Issue 6 - Cerrar sesión
@@ -205,25 +152,28 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> CloseReassignmentSessionAsync(
+    public Task<IActionResult> CloseReassignmentSessionAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
         [FromRoute] Guid session_id,
         CancellationToken cancellationToken)
+        => SendAsync(new CloseReassignmentSessionCommand
+        {
+            SessionId = session_id,
+            CompanyId = company_id,
+            ModuleCode = module_code
+        }, cancellationToken);
+    #endregion
+
+    private async Task<IActionResult> SendAsync<TRequest>(TRequest request,
+        CancellationToken ct, bool created = false)
+        where TRequest : BaseRequest
     {
         if (!TryGetUserId(out var userId))
             return Unauthorized();
 
-        var command = new CloseReassignmentSessionCommand
-        {
-            SessionId = session_id,
-            UserId = userId,
-            CompanyId = company_id,
-            ModuleCode = module_code
-        };
-
-        var response = await mediator.Send(command, cancellationToken);
-        return Ok(response);
+        request.UserId = userId;
+        var response = await mediator.Send(request, ct);
+        return created ? Created(string.Empty, response) : Ok(response);
     }
-    #endregion
 }
