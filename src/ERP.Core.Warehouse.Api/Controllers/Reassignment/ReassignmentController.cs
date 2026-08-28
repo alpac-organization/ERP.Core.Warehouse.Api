@@ -71,7 +71,11 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
         CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
-        Guid.TryParse(userIdStr, out var userId);
+        var parsed = Guid.TryParse(userIdStr, out var userId);
+        if (!parsed)
+        {
+            userId = Guid.Empty;
+        }
 
         return await mediator.Send(new GetAvailablePositionsQuery
         {
