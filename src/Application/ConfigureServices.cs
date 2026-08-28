@@ -4,6 +4,7 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using ERP.Core.Application.Behaviors;
 using Microsoft.Extensions.Options;
+using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Handlers;
 
 
 namespace ERP.Core.Warehouse.Api.Application
@@ -20,7 +21,9 @@ namespace ERP.Core.Warehouse.Api.Application
             });
 
             services.AddValidatorsFromAssembly(currentAssembly);
-             
+
+            services.AddScoped<ResolveMemoryItemProcessor>();
+
             services.AddMediatR(cfg => {
                 cfg.RegisterServicesFromAssembly(currentAssembly);
                 cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));

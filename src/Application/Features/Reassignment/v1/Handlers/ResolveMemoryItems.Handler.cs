@@ -8,31 +8,39 @@ using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Handlers;
 
-public class ResolveMemoryItemHandler(
+public class ResolveMemoryItemsHandler(
     IUnitOfWork unitOfWork,
     IErrorManager errorManager,
     IMapper mapper,
     ResolveMemoryItemProcessor processor)
-    : BaseValidatorHandler<ResolveMemoryItemCommand, ReassignmentMemoryItemDto>(unitOfWork, errorManager)
+    : BaseValidatorHandler<ResolveMemoryItemsCommand, List<ReassignmentMemoryItemDto>>(unitOfWork, errorManager)
 {
-    public override async Task<ReassignmentMemoryItemDto> Handle(
-        ResolveMemoryItemCommand request,
+    public override async Task<List<ReassignmentMemoryItemDto>> Handle(
+        ResolveMemoryItemsCommand request,
         CancellationToken cancellationToken)
     {
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
         await processor.ValidateSession(request.SessionId, request.UserId.ToString(), cancellationToken);
-        var memoryItem = await processor.ValidateMemoryItem(request.MemoryItemId, request.SessionId, cancellationToken);
 
         var nowNica = NicaraguaClock.Now;
         var nowDate = DateOnly.FromDateTime(nowNica);
         var nowTime = TimeOnly.FromDateTime(nowNica);
 
-        await processor.ConfirmDestination(memoryItem, request.UserId.ToString(), nowDate, nowTime, cancellationToken);
+        var resolvedItems = new List<ReassignmentMemoryItemDto>();
+
+        foreach (var memoryItemId in request.MemoryItemIds)
+        {
+            var memoryItem = await processor.ValidateMemoryItem(memoryItemId, request.SessionId, cancellationToken);
+
+            await processor.ConfirmDestination(memoryItem, request.UserId.ToString(), nowDate, nowTime, cancellationToken);
+
+            resolvedItems.Add(mapper.Map<ReassignmentMemoryItemDto>(memoryItem));
+        }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return mapper.Map<ReassignmentMemoryItemDto>(memoryItem);
+        return resolvedItems;
     }
 }
