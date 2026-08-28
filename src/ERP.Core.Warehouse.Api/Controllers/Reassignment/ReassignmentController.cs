@@ -62,21 +62,31 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
     [ProducesResponseType(typeof(List<AvailablePositionDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public Task<IActionResult> GetAvailablePositionsAsync(
+    public async Task<List<AvailablePositionDto>> GetAvailablePositionsAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
         [FromRoute] Guid warehouse_id,
         [FromQuery] Guid? section_id,
         [FromQuery] string? status,
         CancellationToken cancellationToken)
-        => SendAsync(new GetAvailablePositionsQuery
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        var parsed = Guid.TryParse(userIdStr, out var userId);
+        if (!parsed)
+        {
+            userId = Guid.Empty;
+        }
+
+        return await mediator.Send(new GetAvailablePositionsQuery
         {
             WarehouseId = warehouse_id,
             SectionId = section_id,
             Status = status,
             CompanyId = company_id,
-            ModuleCode = module_code
+            ModuleCode = module_code,
+            UserId = userId
         }, cancellationToken);
+    }
     #endregion
 
     #region Issue 4 - Confirmar polín en aire
