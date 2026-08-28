@@ -43,7 +43,7 @@ public class GetAvailablePositionsHandler(IUnitOfWork unitOfWork, IErrorManager 
             .ToListAsync(cancellationToken);
 
         return ApplyStatusFilter(request.Status, rows
-            .Select(r => ReassignmentMapper.ToAvailablePositionDto
+            .Select(r => GetAvailablePositionsMapper.ToAvailablePositionDto
                 (r, ResolveStockId(r.Id), ResolveReservedBySessionId(r.Id))));
     }
 
@@ -67,7 +67,7 @@ public class GetAvailablePositionsHandler(IUnitOfWork unitOfWork, IErrorManager 
             .ToListAsync(cancellationToken);
 
         return ApplyStatusFilter(request.Status, rows
-            .Select(l => ReassignmentMapper.ToAvailablePositionDto
+            .Select(l => GetAvailablePositionsMapper.ToAvailablePositionDto
                 (l, ResolveStockId(l.Id), ResolveReservedBySessionId(l.Id))));
     }
 
