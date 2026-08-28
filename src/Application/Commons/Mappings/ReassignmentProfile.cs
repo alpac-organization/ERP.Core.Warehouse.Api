@@ -1,7 +1,7 @@
 using AutoMapper;
 using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Database.Domain.Entities.Catalogs;
+using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Commands;
@@ -12,6 +12,7 @@ public class ReassignmentProfile : Profile
 {
     public ReassignmentProfile()
     {
+        #region Issue 1 - Abrir sesión
         CreateMap<ReassignmentSessions, ReassignmentSessionDto>()
             .ForMember(d => d.SessionId, o => o.MapFrom(s => s.Id))
             .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()))
@@ -20,14 +21,17 @@ public class ReassignmentProfile : Profile
                 s.ClosedAtDate.HasValue && s.ClosedAtTime.HasValue
                     ? s.ClosedAtDate.Value.ToDateTime(s.ClosedAtTime.Value)
                     : (DateTime?)null));
+        #endregion
 
+        #region Issue 2 - Levantar polines
         CreateMap<ReassignmentMemoryItems, ReassignmentMemoryItemDto>()
             .ForMember(d => d.MemoryItemId, o => o.MapFrom(s => s.Id));
+        #endregion
     }
 }
 
-#region Reassignment
-public static class ReassignmentMapper
+#region Issue 1 - Abrir sesión
+public static class OpenReassignmentSessionMapper
 {
     public static ReassignmentSessions ToSessionEntity(this OpenReassignmentSessionCommand command, string userId)
     {
@@ -58,7 +62,12 @@ public static class ReassignmentMapper
             ]
         };
     }
+}
+#endregion
 
+#region Issue 2 - Levantar polines
+public static class LiftStockToMemoryMapper
+{
     public static ReassignmentMemoryItems ToMemoryItemEntity(this LiftStockItemDto item, Guid sessionId, string userId, DateOnly nowDate, TimeOnly nowTime)
     {
         return new ReassignmentMemoryItems
@@ -73,7 +82,12 @@ public static class ReassignmentMapper
             LiftedByUserId = userId
         };
     }
+}
+#endregion
 
+#region Issue 3 - Posiciones disponibles
+public static class GetAvailablePositionsMapper
+{
     public static AvailablePositionDto ToAvailablePositionDto(
         this RackPositions position,
         Guid? stockId,
@@ -123,6 +137,32 @@ public static class ReassignmentMapper
         if (isReserved) return "Reserved";
         if (isBlocked) return "Blocked";
         return "Free";
+    }
+}
+#endregion
+
+#region Issue 4 - Confirmar polin en aire
+public static class ResolveMemoryItemMapper
+{
+    public static StockPlacements ToDestinationPlacementEntity(
+        this ReassignmentMemoryItems memoryItem,
+        Guid? rackPositionId,
+        Guid? lotPositionId,
+        string userId,
+        DateOnly nowDate,
+        TimeOnly nowTime)
+    {
+        return new StockPlacements
+        {
+            Id = Guid.NewGuid(),
+            StockId = memoryItem.StockId,
+            RackPositionId = rackPositionId,
+            LotPositionId = lotPositionId,
+            PlacedAtDate = nowDate,
+            PlacedAtTime = nowTime,
+            PlacedByUserId = userId,
+            PlacedByMemoryItemId = memoryItem.Id
+        };
     }
 }
 #endregion
