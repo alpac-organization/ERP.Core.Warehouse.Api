@@ -33,4 +33,25 @@ public class SessionAccessValidator(IUnitOfWork unitOfWork, IErrorManager errorM
 
         return session;
     }
+
+    public async Task<ReassignmentSessions> ValidateOwnership(
+        Guid sessionId,
+        string userIdStr,
+        CancellationToken ct)
+    {
+        var session = await unitOfWork.ReassignmentSessions.Entities
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.DeletedAt == null, ct);
+
+        if (session is null)
+            return errorManager.ThrowNotFound<ReassignmentSessions>(
+                "La sesión de reasignamiento no existe.",
+                "ERP:REASSIGNMENT_SESSION_NOT_FOUND");
+
+        if (session.CurrentOwnerUserId != userIdStr)
+            return errorManager.ThrowForbidden<ReassignmentSessions>(
+                "Solo el dueño actual de la sesión puede operar sobre ella.",
+                "ERP:NOT_SESSION_OWNER");
+
+        return session;
+    }
 }
