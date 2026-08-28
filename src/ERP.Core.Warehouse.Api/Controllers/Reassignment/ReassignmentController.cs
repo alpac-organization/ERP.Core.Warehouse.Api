@@ -172,4 +172,35 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
         return Ok(response);
     }
     #endregion
+
+    #region Issue 5 - Cerrar sesión
+    [Tags("Reasignamiento")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/reassignment-sessions/{session_id}/close")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> CloseReassignmentSessionAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid session_id,
+        CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        if (!Guid.TryParse(userIdStr, out var userId))
+            return Unauthorized();
+
+        var command = new CloseReassignmentSessionCommand
+        {
+            SessionId = session_id,
+            UserId = userId,
+            CompanyId = company_id,
+            ModuleCode = module_code
+        };
+
+        var response = await mediator.Send(command, cancellationToken);
+        return Ok(response);
+    }
+    #endregion
 }
