@@ -7,6 +7,7 @@ using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 using Commands = ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
+using ERP.Core.Database.Domain.ValueObjects;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 
@@ -129,6 +130,7 @@ public static class WarehouseMapper
          Id = warehouseId,
          Code = command.Code,
          IsActive = true,
+         IsOwner = command.IsOwner,
          WarehouseName = command.WarehouseName,
          BranchId = command.BranchId,
          WarehouseType = command.WarehouseType,
@@ -194,8 +196,15 @@ public static class SectionMapper
          WidthMetres = command.WidthMetres,
          LengthMetres = command.LengthMetres,
          WarehouseId = command.WarehouseId,
-
-         OverflowCapacity = overflowCapacity
+         OverflowCapacity = overflowCapacity,
+         TransformWarehouse3D = command.LayoutTransform3DDto is null
+         ? new() : new TransformWarehouse3D
+         {
+            PositionX = command.LayoutTransform3DDto.PositionX,
+            PositionY = command.LayoutTransform3DDto.PositionY,
+            PositionZ = command.LayoutTransform3DDto.PositionZ,
+            RotationY = command.LayoutTransform3DDto.RotationY
+         }
       };
    }
 }
@@ -224,101 +233,19 @@ public static class RackMapper
          Status = command.Status,
          UnavailableReason = command.UnavailableReason,
          StatusChangedAt = NicaraguaClock.Now,
-         Positions = BuildRackPositions(rackId, command.MaxPulleys)
-      };
-   }
-
-   public static List<Racks> ToRackEntities(
-       this RegisterRacksBulkCommand command,
-       string shelfCode,
-       int nextDepositNumber,
-       IReadOnlyDictionary<int, int> lastRowByLevel)
-   {
-      var racks = new List<Racks>();
-      var depositNumber = nextDepositNumber;
-      var now = NicaraguaClock.Now;
-
-      foreach (var level in command.Levels.OrderBy(l => l.LevelNumber))
-      {
-         var startingRow = lastRowByLevel.GetValueOrDefault(level.LevelNumber, 0) + 1;
-         var lastRow = startingRow + level.RacksCount - 1;
-
-         for (var row = startingRow; row <= lastRow; row++)
+         Positions = BuildRackPositions(rackId, command.MaxPulleys),
+         TransformWarehouse3D = command.LayoutTransform3DDto is null
+         ? new() : new TransformWarehouse3D
          {
-            var rackId = Guid.NewGuid();
-
-            racks.Add(new Racks
-            {
-               Id = rackId,
-               SectionId = command.SectionId,
-               Code = $"{shelfCode}-D{depositNumber}",
-               WidthMetres = level.WidthMetres,
-               LengthMetres = level.LengthMetres,
-               HeightMetres = level.HeightMetres,
-               UsageProfile = level.UsageProfile,
-               RowNumber = row,
-               LevelNumber = level.LevelNumber,
-               MaxPulleys = level.MaxPulleys,
-               Status = level.Status,
-               UnavailableReason = level.UnavailableReason,
-               StatusChangedAt = now,
-               Positions = BuildRackPositions(rackId, level.MaxPulleys)
-            });
-
-            depositNumber++;
+            PositionX = command.LayoutTransform3DDto.PositionX,
+            PositionY = command.LayoutTransform3DDto.PositionY,
+            PositionZ = command.LayoutTransform3DDto.PositionZ,
+            RotationY = command.LayoutTransform3DDto.RotationY
          }
-      }
 
-      return racks;
-   }
 
-   private static List<RackPositions> BuildRackPositions(Guid rackId, int maxPulleys)
-   {
-      return Enumerable.Range(1, maxPulleys)
-          .Select(positionNumber => new RackPositions
-          {
-             Id = Guid.NewGuid(),
-             RackId = rackId,
-             PositionNumber = positionNumber,
-             PositionCode = positionNumber.ToString().PadLeft(RackPositionCodePadLength, '0'),
-             IsBlocked = false
-          })
-          .ToList();
-   }
-}
-
-public static class RackDtoMapper
-{
-   public static RegisterRacksBulkCommand ToCommand(
-       this RegisterRacksBulkDto dto,
-       Guid sectionId,
-       Guid userId,
-       Guid companyId,
-       string moduleCode)
-   {
-      return new RegisterRacksBulkCommand
-      {
-         SectionId = sectionId,
-         ShelfCode = dto.ShelfCode,
-         StartingDepositNumber = dto.StartingDepositNumber,
-         Levels = [.. dto.Levels.Select(l => new RackLevelSpec
-            {
-                LevelNumber = l.LevelNumber,
-                RacksCount = l.RacksCount,
-                WidthMetres = l.WidthMetres,
-                LengthMetres = l.LengthMetres,
-                HeightMetres = l.HeightMetres,
-                UsageProfile = l.UsageProfile,
-                MaxPulleys = l.MaxPulleys,
-                Status = l.Status,
-                UnavailableReason = l.UnavailableReason
-            })],
-         UserId = userId,
-         CompanyId = companyId,
-         ModuleCode = moduleCode
       };
    }
-
    public static GetRacksBySectionQuery ToQuery(
        this Guid sectionId,
        Guid userId,

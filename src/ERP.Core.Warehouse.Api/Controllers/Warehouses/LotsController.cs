@@ -18,21 +18,21 @@ public class LotsController(IMediator _mediator) : ApiControllerBase
 {
     [Tags("Tramos")]
     [HttpPost("companies/{company_id}/modules/{module_code}/sections/{section_id}/lots")]
-    [ProducesResponseType(typeof(RegisterLotsResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(CreatedResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> RegisterLotsAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
         [FromRoute] Guid section_id,
-        [FromBody] RegisterLotsDto dto,
+        [FromBody] RegisterLotsCommand commandLots,
         CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
         if (!Guid.TryParse(userIdStr, out var userId))
             return Unauthorized();
 
-        var command = dto.ToCommand(section_id, userId, company_id, module_code);
+        var command = commandLots.ToCommand(section_id, userId, company_id, module_code);
         var response = await _mediator.Send(command, cancellationToken);
         return Ok(response);
     }

@@ -1,42 +1,8 @@
-using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 
-public class RegisterLotGroupDto
-{
-    public List<string>? Codes { get; set; }
+using ERP.Core.Database.Domain.Enums;
 
-    public string? CodePrefix { get; set; }
-    public int? StartNumber { get; set; }
-    public int? Count { get; set; }
-
-    public decimal WidthMetres { get; set; }
-    public decimal LengthMetres { get; set; }
-    public int NominalRows { get; set; }
-    public int NominalColumns { get; set; }
-    public bool AllowsStacking { get; set; } = true;
-    public RackStatus Status { get; set; } = RackStatus.Available;
-    public string? UnavailableReason { get; set; }
-}
-
-public class RegisterLotsDto
-{
-    public List<RegisterLotGroupDto> Groups { get; set; } = [];
-}
-public class RegisterLotsResultDto
-{
-    public Guid SectionId { get; set; }
-    public int TotalRequested { get; set; }
-    public int TotalCreated { get; set; }
-    public List<LotSummaryDto> Lots { get; set; } = [];
-}
-
-public class LotSummaryDto
-{
-    public Guid LotId { get; set; }
-    public string Code { get; set; } = null!;
-    public int PositionsCount { get; set; }
-}
 
 public class LotDto
 {
