@@ -3,40 +3,16 @@ using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Database.Domain.Entities.Warehouse;
-using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Handlers;
 
 public class ResolveMemoryItemProcessor(
     IUnitOfWork unitOfWork,
-    IErrorManager errorManager)
+    IErrorManager errorManager,
+    SessionAccessValidator sessionValidator)
 {
-    public async Task ValidateSession(Guid sessionId, string userIdStr, CancellationToken ct)
-    {
-        var session = await unitOfWork.ReassignmentSessions.Entities
-            .FirstOrDefaultAsync(s => s.Id == sessionId && s.DeletedAt == null, ct);
-
-        if (session is null)
-        {
-            errorManager.ThrowNotFound<ReassignmentSessions>(
-                "La sesión de reasignamiento no existe.",
-                "ERP:REASSIGNMENT_SESSION_NOT_FOUND");
-            return;
-        }
-
-        if (session.Status != ReassignmentSessionStatus.Open)
-        {
-            errorManager.ThrowBadRequest<ReassignmentSessions>(
-                "La sesión no está abierta; no se puede confirmar el polín.",
-                "ERP:REASSIGNMENT_SESSION_NOT_OPEN");
-            return;
-        }
-
-        if (session.CurrentOwnerUserId != userIdStr)
-            errorManager.ThrowForbidden<ReassignmentSessions>(
-                "Solo el dueño actual de la sesión puede operar sobre ella.",
-                "ERP:NOT_SESSION_OWNER");
-    }
+    public Task ValidateSession(Guid sessionId, string userIdStr, CancellationToken ct)
+        => sessionValidator.ValidateSession(sessionId, userIdStr, ct);
 
     public async Task<ReassignmentMemoryItems> ValidateMemoryItem(Guid memoryItemId, Guid sessionId, CancellationToken ct)
     {
