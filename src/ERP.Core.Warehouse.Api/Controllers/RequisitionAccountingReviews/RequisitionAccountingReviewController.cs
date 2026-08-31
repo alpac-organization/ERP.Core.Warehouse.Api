@@ -3,11 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Domain.Entities.Errors;
 using ERP.Core.Infrastructure.Attributes;
-using ERP.Core.Warehouse.Api.Controllers.ApiBase;
+
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Queries;
-using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
+
+using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 
 namespace ERP.Core.Warehouse.Api.Controllers.RequisitionAccountingReviews
 {
@@ -23,6 +25,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.RequisitionAccountingReviews
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<PagedResponse<RequisitionAccountingReviewDto>> GetRequisitionAccountingReviewsAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
             [FromQuery] Guid? area_id = null,
+            [FromQuery] Guid? branch_id = null,
             [FromQuery] AccountingReviewStatus? status = null,
             [FromQuery] int page_number = 1,
             [FromQuery] int page_size = 10
@@ -36,6 +39,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.RequisitionAccountingReviews
                 AreaId      = area_id,
                 CompanyId   = company_id,
                 ModuleCode  = module_code,
+                BranchId    = branch_id,
                 UserId      = Guid.Parse(userIdStr ?? ""),
                 PageNumber  = page_number,
                 PageSize    = page_size,
