@@ -7,18 +7,19 @@ using Commands = ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
-    public class RequisitionAccountingReviewsProfile : Profile
+    public class PurchaseRequestsReviewedAccountingProfile : Profile
     {
-        public RequisitionAccountingReviewsProfile()
+        public PurchaseRequestsReviewedAccountingProfile()
         {
-            CreateMap<RequisitionAccountingReview, RequisitionAccountingReviewDto>()
-                .ForMember(dest => dest.RequisitionAccountingReviewId, opt => opt.MapFrom(src => src.Id))
+            CreateMap<PurchaseRequestsReviewedAccounting, PurchaseRequestsReviewedAccountingDto>()
+                .ForMember(dest => dest.PurchaseRequestsReviewedAccountingId, opt => opt.MapFrom(src => src.Id))
                 .ForPath(dest => dest.SentByUserInformation,           opt => opt.MapFrom(src => src.SentByUser))
                 .ForPath(dest => dest.SentByUserInformation.WorkAreaInformation, opt => opt.MapFrom(src => src.SentByUser.WorkArea));
 
-            CreateMap<RequisitionAccountingReview, RequisitionAccountingReviewDetailsDto>()
-                .ForMember(dest => dest.RequisitionAccountingReviewId, opt => opt.MapFrom(src => src.Id))
+            CreateMap<PurchaseRequestsReviewedAccounting, PurchaseRequestsReviewedAccountingDetailsDto>()
+                .ForMember(dest => dest.PurchaseRequestsReviewedAccountingId, opt => opt.MapFrom(src => src.Id))
 
+                //Agregar un tercer nivel de centros de costo para contabilidad.
                 .ForPath(dest => dest.PurchaseRequest, opt => opt.MapFrom(src => src.PurchaseRequest))
                 .ForPath(dest => dest.PurchaseRequest.InformationFromRequestingArea, opt => opt.MapFrom(src => src.PurchaseRequest.WorkArea))
                 .ForPath(dest => dest.PurchaseRequest.InformationFromRequestingArea.CostCenters, opt => opt.MapFrom(src => src.PurchaseRequest.WorkArea.CostCenters))
@@ -29,11 +30,11 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         }
     }
 
-    public static class RequisitionAccountingReviewMapper
+    public static class PurchaseRequestsReviewedAccountingMapper
     {
-        public static RequisitionAccountingReview ToRequisitionAccountingReviewEntity(this Commands.SendPurchaseRequestToReviewCommand request, Guid sentByUserId)
+        public static PurchaseRequestsReviewedAccounting ToPurchaseRequestsReviewedAccountingEntity(this Commands.SendPurchaseRequestToReviewCommand request, Guid sentByUserId)
         {
-            return new RequisitionAccountingReview()
+            return new PurchaseRequestsReviewedAccounting()
             {
                 Id                = Guid.NewGuid(),
                 Status            = AccountingReviewStatus.Pending,

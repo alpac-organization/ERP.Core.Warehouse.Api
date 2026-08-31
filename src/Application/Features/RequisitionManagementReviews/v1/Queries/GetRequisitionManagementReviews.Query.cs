@@ -5,7 +5,7 @@ using ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementReviews.v
 
 namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementReviews.v1.Queries
 {
-    public class GetRequisitionManagementReviewsQuery : BaseRequest, IRequest<PagedResponse<RequisitionManagementReviewDto>>
+    public class GetRequisitionManagementReviewsQuery : BaseRequest, IRequest<PagedResponse<PurchaseRequestsReviewedManagementDto>>
     {
         public Guid? AreaId { get; set; }
         public Guid? BranchId { get; set; }
