@@ -31,8 +31,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             PropertyNameCaseInsensitive = true
         };
 
-
-
         public override async Task<bool> Handle(RegisterPurchaseRequestCommand request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode!, cancellationToken);
@@ -141,23 +139,23 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             //Mapear todos los dispositivos.
             foreach (var device in devices)
             {
-                var result = await _simpleNotificationServices.SendPushNotificationAsync(device.EndpointArn ?? "", new()
+                var result = await _simpleNotificationServices.SendPushNotificationAsync(device?.EndpointArn ?? "", new()
                 {
-                    Title    = notificationConfig.Title,
-                    Body     = descriptionCopy,
+                    Title = notificationConfig?.Title ?? "",
+                    Body  = descriptionCopy ?? "",
                     WebPushConfig = new()
                     {
-                        Badge = access.Profile.Company.ImageUrl,
-                        Icon  = access.Profile.Company.ImageUrl
+                        Badge = access?.Profile?.Company?.ImageUrl ?? "",
+                        Icon  = access?.Profile?.Company?.ImageUrl ?? ""
                     },
                     AndroidConfig = new()
                     {
-                        Badge = access.Profile.Company.ImageUrl,
-                        Icon  = access.Profile.Company.ImageUrl
+                        Badge = access?.Profile?.Company?.ImageUrl ?? "",
+                        Icon  = access?.Profile?.Company?.ImageUrl ?? ""
                     }
                 });
 
-                _logger.LogInformation("Push notification result for device {EndpointArn}: {@Result}", device.EndpointArn, result);
+                _logger.LogInformation("Push notification result for device {EndpointArn}: {@Result}", device?.EndpointArn, result);
             }
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
