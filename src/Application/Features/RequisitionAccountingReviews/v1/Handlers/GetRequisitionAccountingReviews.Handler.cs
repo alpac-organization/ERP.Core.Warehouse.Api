@@ -28,6 +28,17 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 .Include(rev => rev.PurchaseRequest)
                 .AsNoTracking();
 
+            if (request.BranchId.HasValue)
+            {
+                reviewsQuery = reviewsQuery
+                    .Where(rev => rev.PurchaseRequest.BranchId == request.BranchId);
+            }
+            else
+            {
+                reviewsQuery = reviewsQuery
+                    .Where(rev => rev.PurchaseRequest.Branch.Company.Id == request.CompanyId);
+            }
+
             if (request.AreaId.HasValue)
             {
                 reviewsQuery = reviewsQuery

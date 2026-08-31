@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Database.Domain.Entities.Shopping;
+
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
@@ -23,6 +25,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return access.ErrorResponse!;
             }
 
+            //Inicializar IQuerable<T>
             var purchaseRequestsQuery = _unitOfWork.PurchaseRequests.Entities
                 .Where(purs => purs.IsActive)
                 .Include(purs => purs.Branch)
@@ -31,7 +34,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
             if (access.Role?.RoleType != RoleType.Administrator && access.Role?.RoleType != RoleType.Supervisor)
             {
-
                 if (access.Role?.RoleType == RoleType.Operator)
                 {  
                     //Obtener unicamente las solicitudes del usuario que genero sus solocitudes
@@ -47,59 +49,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 }
             }
 
-            if (request.AreaId.HasValue && access.Role?.RoleType == RoleType.Administrator)
-            {
-                purchaseRequestsQuery = purchaseRequestsQuery
-                    .Where(pur => pur.AreaId == request.AreaId);
-            }
+            ApplyRequestFilters(purchaseRequestsQuery, request, access);
 
-            if (request.PriorityLevel.HasValue)
-            {
-                purchaseRequestsQuery = purchaseRequestsQuery
-                    .Where(pur => pur.PriorityLevel == request.PriorityLevel);
-            }
-
-            if (request.Destination.HasValue)
-            {
-                purchaseRequestsQuery = purchaseRequestsQuery
-                    .Where(pur => pur.Destination == request.Destination);
-            }
-
-            if (!string.IsNullOrEmpty(request.Code))
-            {
-                purchaseRequestsQuery = purchaseRequestsQuery
-                    .Where(purs => purs.Code == request.Code);
-            }
-
-            if (request.Status.HasValue)
-            {
-                purchaseRequestsQuery = purchaseRequestsQuery
-                    .Where(purs => purs.RequestStatus == request.Status);
-            }
-
-            if (request.RequestType.HasValue)
-            {
-                purchaseRequestsQuery = purchaseRequestsQuery
-                    .Where(purs => purs.RequestType == request.RequestType);
-            }
-
-            if (request.BranchId.HasValue)
-            {
-                purchaseRequestsQuery = purchaseRequestsQuery
-                    .Where(purs => purs.BranchId == request.BranchId);
-            }
-            
-
-            var year = request.Year ?? DateTime.UtcNow.Year;
-
-            int month = request.Month ?? DateTime.UtcNow.Month;
-            int targetYear = year;
-
-            var firstDayOfMonth = new DateTime(targetYear, month, 1, 0, 0, 0, DateTimeKind.Utc);
-            var firstDayOfNextMonth = firstDayOfMonth.AddMonths(1);
-
-            purchaseRequestsQuery = purchaseRequestsQuery
-                .Where(purs => purs.CreatedAt >= firstDayOfMonth && purs.CreatedAt < firstDayOfNextMonth);
+            ApplyPeriodFilter(purchaseRequestsQuery, request);
 
             var totalRecords = await purchaseRequestsQuery.CountAsync(cancellationToken);
 
@@ -118,6 +70,62 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 totalRecords
             );
         }
+
+        #region Filtros periodos
+        private static IQueryable<PurchaseRequest> ApplyPeriodFilter(IQueryable<PurchaseRequest> query,GetPurchaseRequestsQuery request)
+        {
+            var year  = request.Year   ?? DateTime.UtcNow.Year;
+            var month = request.Month ?? DateTime.UtcNow.Month;
+
+            var firstDayOfMonth = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var firstDayOfNextMonth = firstDayOfMonth.AddMonths(1);
+
+            return query
+                .Where(pr => pr.CreatedAt >= firstDayOfMonth && pr.CreatedAt < firstDayOfNextMonth);
+        }
+        #endregion 
+
+        #region Filtros de busqueda
+        private static IQueryable<PurchaseRequest> ApplyRequestFilters(IQueryable<PurchaseRequest> query, GetPurchaseRequestsQuery request, AccessValidationResult<PagedResponse<PurchaseRequestDto>> access)
+        {
+            if (request.AreaId.HasValue && access.Role?.RoleType == RoleType.Administrator)
+            {
+                query = query.Where(pr => pr.AreaId == request.AreaId);
+            }
+ 
+            if (request.PriorityLevel.HasValue)
+            {
+                query = query.Where(pr => pr.PriorityLevel == request.PriorityLevel);
+            }
+ 
+            if (request.Destination.HasValue)
+            {
+                query = query.Where(pr => pr.Destination == request.Destination);
+            }
+ 
+            if (!string.IsNullOrEmpty(request.Code))
+            {
+                query = query.Where(pr => pr.Code == request.Code);
+            }
+ 
+            if (request.Status.HasValue)
+            {
+                query = query.Where(pr => pr.RequestStatus == request.Status);
+            }
+ 
+            if (request.RequestType.HasValue)
+            {
+                query = query.Where(pr => pr.RequestType == request.RequestType);
+            }
+ 
+            if (request.BranchId.HasValue)
+            {
+                query = query.Where(pr => pr.BranchId == request.BranchId);
+            }
+ 
+            return query;
+        }
+        #endregion
     }
     
 }
