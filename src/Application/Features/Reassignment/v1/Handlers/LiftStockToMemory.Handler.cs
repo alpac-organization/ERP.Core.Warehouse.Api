@@ -1,8 +1,7 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using ERP.Core.Database.Domain.Entities.Warehouse;
-using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
