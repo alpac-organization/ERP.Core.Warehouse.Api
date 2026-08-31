@@ -39,6 +39,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                     .ThenInclude(rev => rev.RegistrationUser)
                 .AsNoTracking();
 
+            if (request.BranchId.HasValue)
+            {
+                reviewsQuery = reviewsQuery
+                    .Where(rev => rev.PurchaseRequest.BranchId == request.BranchId);
+            }
+            else
+            {
+                reviewsQuery = reviewsQuery
+                    .Where(rev => rev.PurchaseRequest.Branch.Company.Id == request.CompanyId);
+            }
+
+
             if (request.AreaId.HasValue)
             {
                 reviewsQuery = reviewsQuery

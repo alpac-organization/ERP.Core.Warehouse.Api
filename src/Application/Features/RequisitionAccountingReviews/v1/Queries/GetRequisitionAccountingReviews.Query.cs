@@ -8,6 +8,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
     public class GetRequisitionAccountingReviewsQuery : BaseRequest, IRequest<PagedResponse<RequisitionAccountingReviewDto>>
     {
         public Guid? AreaId { get; set; }
+        public Guid? BranchId { get; set; }
         public AccountingReviewStatus? Status { get; set; }
 
         public int PageSize { get; set; }

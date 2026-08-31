@@ -22,6 +22,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.RequisitionManagementReviews
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<PagedResponse<RequisitionManagementReviewDto>> GetRequisitionManagementReviewsAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
             [FromQuery] Guid? area_id = null,
+            [FromQuery] Guid? branch_id = null,
             [FromQuery] ManagementReviewStatus? status = null,
             [FromQuery] int page_number = 1,
             [FromQuery] int page_size = 10
@@ -35,6 +36,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.RequisitionManagementReviews
                 AreaId      = area_id,
                 CompanyId   = company_id,
                 ModuleCode  = module_code,
+                BranchId    = branch_id,
                 UserId      = Guid.Parse(userIdStr ?? ""),
                 PageNumber  = page_number,
                 PageSize    = page_size,

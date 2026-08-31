@@ -8,6 +8,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
     public class GetRequisitionManagementReviewsQuery : BaseRequest, IRequest<PagedResponse<RequisitionManagementReviewDto>>
     {
         public Guid? AreaId { get; set; }
+        public Guid? BranchId { get; set; }
         public ManagementReviewStatus? Status { get; set; }
 
         public int PageSize { get; set; }
