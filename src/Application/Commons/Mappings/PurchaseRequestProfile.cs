@@ -45,8 +45,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 RequestType         = command.RequestType,
                 Destination         = command.Destination,
                 PriorityLevel       = command.PriorityLevel ?? PriorityLevel.None,
-
-                Observations        = command.Observations,
+                
+                Concept             = command.Observations,
                 RequestStatus       = PurchaseRequestStatus.Pending,
                 Id                  = Guid.NewGuid(),
                 

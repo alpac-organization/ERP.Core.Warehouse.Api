@@ -10,7 +10,7 @@ using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
-    public class SendPurchaseRequestToReviewHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager) :  BaseValidatorHandler<SendPurchaseRequestToReviewCommand, bool>(_unitOfWork, _errorManager)
+    public class SendPurchaseRequestToAccountingReviewHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager) :  BaseValidatorHandler<SendPurchaseRequestToReviewCommand, bool>(_unitOfWork, _errorManager)
     {
         public override async Task<bool> Handle(SendPurchaseRequestToReviewCommand request, CancellationToken cancellationToken)
         {
@@ -62,9 +62,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return _errorManager.ThrowBadRequest<bool>("Todos los productos solicitados deben tener al menos una cotización asociada", "ERP:ITEMS_WITHOUT_QUOTATION");
             }
 
-            var RequisitionAccountingReviewEntity = RequisitionAccountingReviewMapper.ToRequisitionAccountingReviewEntity(request, access.User.Id);
+            var purchaseRequestsReviewedAccountingEntity = PurchaseRequestsReviewedAccountingMapper.ToPurchaseRequestsReviewedAccountingEntity(request, access.User.Id);
 
-            await _unitOfWork.RequisitionAccountingReviews.RegisterRequisitionAccountingReview(RequisitionAccountingReviewEntity);
+            await _unitOfWork.PurchaseRequestsReviewedAccounting.RegisterPurchaseRequestsReviewedAccounting(purchaseRequestsReviewedAccountingEntity);
 
             purchaseRequest.RequestStatus = PurchaseRequestStatus.Revision;
 

@@ -20,10 +20,10 @@ namespace ERP.Core.Warehouse.Api.Controllers.RequisitionAccountingReviews
     {
         [Tags("Revisiones contables")]
         [HttpGet("companies/{company_id}/modules/{module_code}/requisition-accounting-reviews")]
-        [ProducesResponseType(typeof(PagedResponse<RequisitionAccountingReviewDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PagedResponse<PurchaseRequestsReviewedAccountingDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<PagedResponse<RequisitionAccountingReviewDto>> GetRequisitionAccountingReviewsAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
+        public async Task<PagedResponse<PurchaseRequestsReviewedAccountingDto>> GetRequisitionAccountingReviewsAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
             [FromQuery] Guid? area_id = null,
             [FromQuery] Guid? branch_id = null,
             [FromQuery] AccountingReviewStatus? status = null,
@@ -48,10 +48,10 @@ namespace ERP.Core.Warehouse.Api.Controllers.RequisitionAccountingReviews
 
         [Tags("Revisiones contables")]
         [HttpGet("companies/{company_id}/modules/{module_code}/requisition-accounting-reviews/{requisition_accounting_review_id}")]
-        [ProducesResponseType(typeof(RequisitionAccountingReviewDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PurchaseRequestsReviewedAccountingDetailsDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<RequisitionAccountingReviewDetailsDto> GetRequisitionAccountingReviewDetailsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid requisition_accounting_review_id)
+        public async Task<PurchaseRequestsReviewedAccountingDetailsDto> GetRequisitionAccountingReviewDetailsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid requisition_accounting_review_id)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
