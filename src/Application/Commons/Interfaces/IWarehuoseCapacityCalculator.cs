@@ -16,4 +16,5 @@ public sealed record WarehouseAreaCapacity(
 public interface IWarehouseCapacityCalculator
 {
     WarehouseAreaCapacity Calculate(WarehouseEntity warehouse);
+    Task PersistCalculatedCapacityAsync(WarehouseEntity warehouse, CancellationToken cancellationToken);
 }
