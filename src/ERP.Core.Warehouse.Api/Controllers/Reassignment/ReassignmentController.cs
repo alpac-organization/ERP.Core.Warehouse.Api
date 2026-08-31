@@ -175,6 +175,29 @@ public class ReassignmentController(IMediator mediator) : ApiControllerBase
         }, cancellationToken);
     #endregion
 
+    #region Issue 5b - Transferir Session
+    [Tags("Reasignamiento")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/reassignment-sessions/{session_id}/transfer")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public Task<IActionResult> TransferSessionAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid session_id,
+        [FromBody] TransferSessionCommand command,
+        CancellationToken cancellationToken)
+        => SendAsync(new TransferSessionCommand
+        {
+            SessionId = session_id,
+            NewOwnerUserId = command.NewOwnerUserId,
+            CompanyId = company_id,
+            ModuleCode = module_code
+        }, cancellationToken);
+    #endregion
+
     #region Issue 6 - Cerrar sesión
     [Tags("Reasignamiento")]
     [HttpPost("companies/{company_id}/modules/{module_code}/reassignment-sessions/{session_id}/close")]
