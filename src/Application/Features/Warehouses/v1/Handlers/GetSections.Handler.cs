@@ -51,13 +51,13 @@ public class GetSectionsHandler(IUnitOfWork unitOfWork, IErrorManager errorManag
                 ? PositionMetrics.Summarize(
                     section.Lots,
                     lot => lot.Positions,
-                    position => position.IsOccupied || position.IsBlocked,
+                    position => position.IsOccupied || position.IsBlocked || position.IsReserved,
                     lot => lot.WidthMetres,
                     lot => lot.LengthMetres)
                 : PositionMetrics.Summarize(
                     section.Racks,
                     rack => rack.Positions,
-                    position => position.IsOccupied || position.IsBlocked,
+                    position => position.IsOccupied || position.IsBlocked || position.IsReserved,
                     rack => rack.WidthMetres,
                     rack => rack.LengthMetres);
 

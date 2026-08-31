@@ -80,11 +80,11 @@ public static class WarehouseDetailBuilder
         var lots = section.Lots ?? [];
         var metrics = isLotsSection
             ? PositionMetrics.Summarize<Lots, LotsPositions>(
-                lots, lot => lot.Positions, position => position.IsOccupied || position.IsBlocked,
+                lots, lot => lot.Positions, position => position.IsOccupied || position.IsBlocked || position.IsReserved,
                 lot => lot.WidthMetres, lot => lot.LengthMetres)
             : isRacksSection
             ? PositionMetrics.Summarize<Racks, RackPositions>(
-                racks, rack => rack.Positions, position => position.IsOccupied || position.IsBlocked,
+                racks, rack => rack.Positions, position => position.IsOccupied || position.IsBlocked || position.IsReserved,
                 rack => rack.WidthMetres, rack => rack.LengthMetres)
             : new PositionMetrics.Summary(0, 0, 0, 0);
 

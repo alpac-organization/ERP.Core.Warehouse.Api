@@ -50,7 +50,7 @@ public class WarehouseProfile : Profile
             dest.TotalPositions = PositionMetrics.Total(src.Positions);
             dest.OccupiedPositions = PositionMetrics.Occupied(
                src.Positions,
-               p => p.IsOccupied || p.IsBlocked);
+               p => p.IsOccupied || p.IsBlocked || p.IsReserved);
          });
 
       CreateMap<RackPositions, RackPositionDto>()
@@ -100,7 +100,7 @@ public class WarehouseProfile : Profile
          .AfterMap((src, dest) =>
          {
             dest.TotalPositions = PositionMetrics.Total(src.Positions);
-            dest.UsedPositions = PositionMetrics.Occupied(src.Positions, p => p.IsOccupied || p.IsBlocked);
+            dest.UsedPositions = PositionMetrics.Occupied(src.Positions, p => p.IsOccupied || p.IsBlocked || p.IsReserved);
             dest.TotalAreaM2 = PositionMetrics.Area(src.WidthMetres, src.LengthMetres);
             dest.UsedAreaM2 = PositionMetrics.UsedArea(dest.TotalAreaM2, dest.TotalPositions, dest.UsedPositions);
             dest.OccupancyPercentage = PositionMetrics.OccupancyPercentage(dest.TotalPositions, dest.UsedPositions);

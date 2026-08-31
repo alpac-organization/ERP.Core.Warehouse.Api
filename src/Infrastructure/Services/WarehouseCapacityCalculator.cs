@@ -11,16 +11,16 @@ public class WarehouseCapacityCalculator : IWarehouseCapacityCalculator
     {
         var rackMetrics = PositionMetrics.Summarize<Racks, RackPositions>(
             warehouse.Sections?.SelectMany((Sections section) => section.Racks ?? []),
-            (Racks rack) => rack.Positions,
-            (RackPositions position) => position.IsOccupied || position.IsBlocked,
-            (Racks rack) => rack.WidthMetres,
-            (Racks rack) => rack.LengthMetres);
+            rack => rack.Positions,
+            position => position.IsOccupied || position.IsBlocked || position.IsReserved,
+            rack => rack.WidthMetres,
+            rack => rack.LengthMetres);
         var lotMetrics = PositionMetrics.Summarize<Lots, LotsPositions>(
             warehouse.Sections?.SelectMany((Sections section) => section.Lots ?? []),
-            (Lots lot) => lot.Positions,
-            (LotsPositions position) => position.IsOccupied || position.IsBlocked,
-            (Lots lot) => lot.WidthMetres,
-            (Lots lot) => lot.LengthMetres);
+            lot => lot.Positions,
+            position => position.IsOccupied || position.IsBlocked || position.IsReserved,
+            lot => lot.WidthMetres,
+            lot => lot.LengthMetres);
 
         var usableAreaM2 = rackMetrics.TotalAreaM2 + lotMetrics.TotalAreaM2;
         var totalAreaM2 = warehouse.Details is null
@@ -61,12 +61,12 @@ public class WarehouseCapacityCalculator : IWarehouseCapacityCalculator
 
     private static int GetRackOccupiedPositions(Racks rack) =>
         PositionMetrics.Occupied(rack.Positions,
-            (RackPositions position) => position.IsOccupied || position.IsBlocked);
+            position => position.IsOccupied || position.IsBlocked || position.IsReserved);
 
     private static int GetLotsOccupiedPositions(IEnumerable<Lots>? lots) =>
         (lots ?? []).Sum(GetLotOccupiedPositions);
 
     private static int GetLotOccupiedPositions(Lots lot) =>
         PositionMetrics.Occupied(lot.Positions,
-            (LotsPositions position) => position.IsOccupied || position.IsBlocked);
+            position => position.IsOccupied || position.IsBlocked || position.IsReserved);
 }
