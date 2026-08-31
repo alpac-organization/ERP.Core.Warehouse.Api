@@ -10,9 +10,9 @@ using ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementReviews.v
 
 namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementReviews.v1.Handlers
 {
-    public class GetRequisitionManagementReviewsDetailsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) :  BaseValidatorHandler<GetRequisitionManagementReviewsDetailsQuery, RequisitionManagementReviewDetailsDto>(_unitOfWork, _errorManager)
+    public class GetRequisitionManagementReviewsDetailsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) :  BaseValidatorHandler<GetRequisitionManagementReviewsDetailsQuery, PurchaseRequestsReviewedManagementDetailsDto>(_unitOfWork, _errorManager)
     {
-        public override async Task<RequisitionManagementReviewDetailsDto> Handle(GetRequisitionManagementReviewsDetailsQuery request, CancellationToken cancellationToken)
+        public override async Task<PurchaseRequestsReviewedManagementDetailsDto> Handle(GetRequisitionManagementReviewsDetailsQuery request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode!, cancellationToken);
 
@@ -21,7 +21,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                 return access.ErrorResponse!;
             }
 
-            var reviewsQuery = await _unitOfWork.RequisitionManagementReviews.Entities
+            var reviewsQuery = await _unitOfWork.PurchaseRequestsReviewedManagement.Entities
                 .Include(rev => rev.SentByUser)
                     .ThenInclude(user => user.WorkArea)
 
@@ -44,7 +44,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                 .Where(review => review.Id == request.RequisitionManagementReviewsId)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            var mapped =  _mapper.Map<RequisitionManagementReviewDetailsDto>(reviewsQuery);
+            var mapped =  _mapper.Map<PurchaseRequestsReviewedManagementDetailsDto>(reviewsQuery);
 
             return mapped;
         }
