@@ -13,9 +13,10 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             CreateMap<PurchaseRequest, PurchaseRequestDto>()
                 .ForMember(dest => dest.PurchaseRequestId,     opt => opt.MapFrom(src => src.Id));
-
+                
             CreateMap<PurchaseRequest, PurchaseRequestDetailsDto>()
-                .ForMember(dest => dest.PurchaseRequestId,    opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.PurchaseRequestId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.Observations, opt => opt.MapFrom(src => src.Concept))
 
                 .ForPath(dest => dest.InformationFromRequestingArea, opt => opt.MapFrom(src => src.WorkArea))
 
