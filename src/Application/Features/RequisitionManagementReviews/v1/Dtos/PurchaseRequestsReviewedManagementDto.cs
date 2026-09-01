@@ -13,6 +13,5 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
         public Guid PurchaseRequestsReviewedManagementId { get; set; }
         public PurchaseRequestDetailsDto PurchaseRequest { get; set; } = new();
         public SentByUserInformation SentByUserInformation { get; set; } = new();
-
     }
 }
