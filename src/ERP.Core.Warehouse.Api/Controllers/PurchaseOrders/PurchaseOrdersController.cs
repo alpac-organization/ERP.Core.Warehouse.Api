@@ -65,17 +65,16 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseOrders
         [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<bool> ProcessPurchaseOrderAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid requisition_management_review_id)
+        public async Task<bool> ProcessPurchaseOrderAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid requisition_management_review_id, [FromBody] ProcessPurchaseOrderCommand payload)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
-            return await _mediator.Send(new ProcessPurchaseOrderCommand
-            {
-                CompanyId                   = company_id,
-                ModuleCode                  = module_code,
-                UserId                      = Guid.Parse(userIdStr ?? ""),
-                RequisitionManagementReviewId = requisition_management_review_id
-            });
+            payload.CompanyId                    = company_id;
+            payload.ModuleCode                   = module_code;
+            payload.UserId                       = Guid.Parse(userIdStr ?? "");
+            payload.RequisitionManagementReviewId = requisition_management_review_id;
+
+            return await _mediator.Send(payload);
         }
     }
 }

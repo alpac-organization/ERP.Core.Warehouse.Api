@@ -52,6 +52,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                         .ThenInclude(item => item.UnitMeasure)
 
                 .AsNoTracking()
+                .AsSplitQuery()
                 .Where(purs => purs.Id == request.PurchaseOrderId)
                 .FirstOrDefaultAsync(cancellationToken);
 
