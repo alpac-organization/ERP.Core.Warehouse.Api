@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Domain.Entities.Errors;
 using ERP.Core.Infrastructure.Attributes;
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
@@ -22,6 +23,10 @@ public class UnloadingController(IMediator mediator) : ApiControllerBase
     public async Task<GetAssignmentQueueDto> GetAssignmentQueueAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
+        [FromQuery] string? service_order_code,
+        [FromQuery] string? ducat_number,
+        [FromQuery] string? warehouse_name,
+        [FromQuery] UnloadingStatus? unloading_status,
         [FromQuery] int page_number = 1,
         [FromQuery] int page_size = 10,
         CancellationToken cancellationToken = default)
@@ -38,6 +43,10 @@ public class UnloadingController(IMediator mediator) : ApiControllerBase
             CompanyId = company_id,
             ModuleCode = module_code,
             UserId = userId,
+            ServiceOrderCode = service_order_code,
+            DucatNumber = ducat_number,
+            WarehouseName = warehouse_name,
+            UnloadingStatus = unloading_status,
             PageNumber = page_number,
             PageSize = page_size
         }, cancellationToken);

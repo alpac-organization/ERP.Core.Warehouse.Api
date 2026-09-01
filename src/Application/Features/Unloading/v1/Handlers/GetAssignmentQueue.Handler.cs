@@ -24,7 +24,25 @@ public class GetAssignmentQueueHandler(IUnitOfWork unitOfWork, IErrorManager err
 
         var query = _unitOfWork.WarehouseAssignments.Entities
             .AsNoTracking()
-            .Where(a => a.DeletedAt == null && a.UnloadingStatus == UnloadingStatus.Pending);
+            .Where(a => a.DeletedAt == null && a.UnloadingStatus == (request.UnloadingStatus ?? UnloadingStatus.Pending));
+
+        if (!string.IsNullOrWhiteSpace(request.ServiceOrderCode))
+        {
+            var filter = request.ServiceOrderCode.Trim().ToLower().Replace(" ", "");
+            query = query.Where(a => a.EntranceDucat!.ServiceOrderCode!.ToLower().Replace(" ", "").Contains(filter));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.DucatNumber))
+        {
+            var filter = request.DucatNumber.Trim().ToLower().Replace(" ", "");
+            query = query.Where(a => a.EntranceDucat!.DucatNumber.ToLower().Replace(" ", "").Contains(filter));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.WarehouseName))
+        {
+            var filter = request.WarehouseName.Trim().ToLower().Replace(" ", "");
+            query = query.Where(a => a.Warehouse!.WarehouseName.ToLower().Replace(" ", "").Contains(filter));
+        }
 
         var totalCount = await query.CountAsync(cancellationToken);
 
