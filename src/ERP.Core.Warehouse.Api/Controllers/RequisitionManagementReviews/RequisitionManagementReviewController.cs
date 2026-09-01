@@ -63,9 +63,8 @@ namespace ERP.Core.Warehouse.Api.Controllers.RequisitionManagementReviews
         }
 
 
-
         [Tags("Revisiones de gerencia")]
-        [HttpPost("companies/{company_id}/modules/{module_code}/requisition-management-reviews/{requisition_management_reviews_id}/process")]
+        [HttpPost("companies/{company_id}/modules/{module_code}/requisition-management-reviews/{requisition_management_reviews_id}/process-purchase-order")]
         [ProducesResponseType(typeof(PurchaseRequestsReviewedManagementDetailsDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
