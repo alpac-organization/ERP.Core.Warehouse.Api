@@ -87,10 +87,6 @@ public class WarehouseProfile : Profile
          .ForMember(d => d.IsOccupied, o => o.MapFrom(s => s.IsOccupied))
          .ForMember(d => d.BlockReason, o => o.MapFrom(s => s.BlockReason));
 
-      CreateMap<Lots, LotSummaryDto>()
-          .ForMember(d => d.LotId, o => o.MapFrom(s => s.Id))
-          .ForMember(d => d.PositionsCount, o => o.MapFrom(s => s.Positions.Count));
-
       CreateMap<Lots, LotListItemDto>()
          .ForMember(d => d.LotId, o => o.MapFrom(s => s.Id))
          .ForMember(d => d.Code, o => o.MapFrom(s => s.Code))
@@ -213,52 +209,66 @@ public static class SectionMapper
 #region Racks
 public static class RackMapper
 {
-   private const int RackPositionCodePadLength = 2;
-   public static Racks ToRackEntity(this RegisterRackCommand command)
+   public static List<Racks> ToRackEntities(this RacksBulkCommand command)
    {
-      var rackId = Guid.NewGuid();
+      var now = NicaraguaClock.Now;
 
-      return new()
+      return command.PlacementRacks.Select(placement =>
       {
-         Id = rackId,
-         SectionId = command.SectionId,
-         Code = command.Code.Trim(),
-         WidthMetres = command.WidthMetres,
-         LengthMetres = command.LengthMetres,
-         HeightMetres = command.HeightMetres,
-         UsageProfile = command.UsageProfile,
-         RowNumber = command.RowNumber,
-         LevelNumber = command.LevelNumber,
-         MaxPulleys = command.MaxPulleys,
-         Status = command.Status,
-         UnavailableReason = command.UnavailableReason,
-         StatusChangedAt = NicaraguaClock.Now,
-         Positions = BuildRackPositions(rackId, command.MaxPulleys),
-         TransformWarehouse3D = command.LayoutTransform3DDto is null
-         ? new() : new TransformWarehouse3D
+         var rackId = Guid.NewGuid();
+         return new Racks
          {
-            PositionX = command.LayoutTransform3DDto.PositionX,
-            PositionY = command.LayoutTransform3DDto.PositionY,
-            PositionZ = command.LayoutTransform3DDto.PositionZ,
-            RotationY = command.LayoutTransform3DDto.RotationY
-         }
+            Id = rackId,
+            SectionId = command.SectionId,
+            Code = placement.Code.Trim(),
+            WidthMetres = placement.WidthMetres,
+            LengthMetres = placement.LengthMetres,
+            HeightMetres = placement.HeightMetres,
+            UsageProfile = placement.UsageProfile,
+            RowNumber = placement.RowNumber,
+            LevelNumber = placement.LevelNumber,
+            MaxPulleys = placement.MaxPulleys,
+            Status = placement.Status,
+            UnavailableReason = placement.UnavailableReason,
+            StatusChangedAt = now,
 
+            TransformWarehouse3D = placement.LayoutTransform3DDto is null ? new() : new TransformWarehouse3D
+            {
+               PositionX = placement.LayoutTransform3DDto.PositionX,
+               PositionY = placement.LayoutTransform3DDto.PositionY,
+               PositionZ = placement.LayoutTransform3DDto.PositionZ,
+               RotationY = placement.LayoutTransform3DDto.RotationY
+            },
 
-      };
+            Positions = Enumerable.Range(1, placement.MaxPulleys).Select(i => new RackPositions
+            {
+               Id = Guid.NewGuid(),
+               RackId = rackId,
+               PositionNumber = i,
+               PositionCode = i.ToString().PadLeft(2, '0'),
+               IsBlocked = false,
+               IsOccupied = false
+            }).ToList()
+         };
+      }).ToList();
    }
+
+   public static RacksBulkCommand WithContext(
+       this RacksBulkCommand command,
+       Guid sectionId, Guid userId, Guid companyId, string moduleCode)
+   {
+      command.SectionId = sectionId;
+      command.UserId = userId;
+      command.CompanyId = companyId;
+      command.ModuleCode = moduleCode;
+      return command;
+   }
+
    public static GetRacksBySectionQuery ToQuery(
-       this Guid sectionId,
-       Guid userId,
-       Guid companyId,
-       string moduleCode,
-       int? levelNumber,
-       RackStatus? status,
-       RackUsageProfile? usageProfile,
-       decimal? widthMetres,
-       decimal? lengthMetres,
-       decimal? heightMetres,
-       int pageNumber,
-       int pageSize) => new()
+       this Guid sectionId, Guid userId, Guid companyId, string moduleCode,
+       int? levelNumber, RackStatus? status, RackUsageProfile? usageProfile,
+       decimal? widthMetres, decimal? lengthMetres, decimal? heightMetres,
+       int pageNumber, int pageSize) => new()
        {
           SectionId = sectionId,
           LevelNumber = levelNumber,
@@ -275,75 +285,62 @@ public static class RackMapper
        };
 }
 #endregion
-
 #region Lots
 public static class LotMapper
 {
    public static List<Lots> ToLotEntities(this RegisterLotsCommand command)
    {
       var now = NicaraguaClock.Now;
-
-      return command.Groups
-          .SelectMany(ExpandGroupCodes)
-          .Select(item => BuildLot(command.SectionId, item, now))
-          .ToList();
-   }
-
-   private const int LotCodePadLength = 2; // tramos van de 01 a 40 por bodega
-
-   private static IEnumerable<(string Code, RegisterLotGroupDto Spec)> ExpandGroupCodes(RegisterLotGroupDto group)
-   {
-      if (group.Codes is { Count: > 0 })
-         return group.Codes.Select(c => (c.Trim(), group));
-
-      var start = group.StartNumber ?? 1;
-      var count = group.Count ?? 0;
-      var prefix = group.CodePrefix ?? string.Empty;
-
-      return Enumerable.Range(start, count)
-          .Select(n => ($"{prefix}{n.ToString().PadLeft(LotCodePadLength, '0')}", group));
-   }
-   private static Lots BuildLot(Guid sectionId, (string Code, RegisterLotGroupDto Spec) item, DateTime now)
-   {
-      var lotId = Guid.NewGuid();
-      var spec = item.Spec;
-
-      return new Lots
+      return command.PlacementsLots.Select(placement =>
       {
-         Id = lotId,
-         SectionId = sectionId,
-         Code = item.Code,
-         WidthMetres = spec.WidthMetres,
-         LengthMetres = spec.LengthMetres,
-         NominalRows = spec.NominalRows,
-         NominalColumns = spec.NominalColumns,
-         AllowsStacking = spec.AllowsStacking,
-         Status = spec.Status,
-         UnavailableReason = spec.UnavailableReason,
-         StatusChangedAt = now,
-         Positions = Enumerable.Range(1, spec.NominalRows)
-              .SelectMany(row => Enumerable.Range(1, spec.NominalColumns).Select(col => (row, col)))
-              .Select((rc, index) => new LotsPositions
-              {
-                 Id = Guid.NewGuid(),
-                 LotId = lotId,
-                 RowNumber = rc.row,
-                 ColumnNumber = rc.col,
-                 PositionCode = (index + 1).ToString().PadLeft(2, '0'),
-                 AllowsStacking = spec.AllowsStacking,
-                 IsBlocked = false
-              })
-              .ToList()
-      };
+         var lotId = Guid.NewGuid();
+         return new Lots
+         {
+            Id = lotId,
+            SectionId = command.SectionId,
+            Code = placement.Code.Trim(),
+            WidthMetres = placement.WidthMetres,
+            LengthMetres = placement.LengthMetres,
+            NominalRows = placement.NominalRows,
+            NominalColumns = placement.NominalColumns,
+            AllowsStacking = placement.AllowsStacking,
+            Status = placement.Status,
+            UnavailableReason = placement.UnavailableReason,
+            StatusChangedAt = now,
+            TransformWarehouse3D = placement.LayoutTransform3DDto is null ? new() : new TransformWarehouse3D
+            {
+               PositionX = placement.LayoutTransform3DDto.PositionX,
+               PositionY = placement.LayoutTransform3DDto.PositionY,
+               PositionZ = placement.LayoutTransform3DDto.PositionZ,
+               RotationY = placement.LayoutTransform3DDto.RotationY
+            },
+            Positions = Enumerable.Range(1, placement.NominalRows)
+               .SelectMany(row => Enumerable.Range(1, placement.NominalColumns).Select(col => (row, col)))
+               .Select((rc, index) => new LotsPositions
+               {
+                  Id = Guid.NewGuid(),
+                  LotId = lotId,
+                  RowNumber = rc.row,
+                  ColumnNumber = rc.col,
+                  PositionCode = (index + 1).ToString().PadLeft(2, '0'),
+                  AllowsStacking = placement.AllowsStacking,
+                  IsBlocked = false
+               }).ToList()
+         };
+      }).ToList();
    }
-   public static RegisterLotsCommand ToCommand(
-       this RegisterLotsDto dto, Guid sectionId, Guid userId, Guid companyId, string moduleCode) => new()
-       {
-          SectionId = sectionId,
-          Groups = dto.Groups,
-          UserId = userId,
-          CompanyId = companyId,
-          ModuleCode = moduleCode
-       };
+   public static RegisterLotsCommand WithContext(
+       this RegisterLotsCommand command,
+       Guid sectionId,
+       Guid userId,
+       Guid companyId,
+       string moduleCode)
+   {
+      command.SectionId = sectionId;
+      command.UserId = userId;
+      command.CompanyId = companyId;
+      command.ModuleCode = moduleCode;
+      return command;
+   }
 }
 #endregion

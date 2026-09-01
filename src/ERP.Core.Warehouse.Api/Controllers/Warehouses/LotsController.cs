@@ -8,6 +8,7 @@ using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Controllers.Warehouses;
 
@@ -32,9 +33,9 @@ public class LotsController(IMediator _mediator) : ApiControllerBase
         if (!Guid.TryParse(userIdStr, out var userId))
             return Unauthorized();
 
-        var command = commandLots.ToCommand(section_id, userId, company_id, module_code);
-        var response = await _mediator.Send(command, cancellationToken);
-        return Ok(response);
+        var command = commandLots.WithContext(section_id, userId, company_id, module_code);
+        await _mediator.Send(command, cancellationToken);
+        return Created();
     }
 
     #region Get Lots By Section

@@ -14,7 +14,7 @@ public class LotDto
     public int NominalRows { get; set; }
     public int NominalColumns { get; set; }
     public bool AllowsStacking { get; set; }
-    public string? Status { get; set; }
+    public RackStatus? Status { get; set; }
     public string? UnavailableReason { get; set; }
     public DateTime? StatusChangedAt { get; set; }
 
