@@ -67,13 +67,31 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             await _unitOfWork.PurchaseRequestsReviewedAccounting.RegisterPurchaseRequestsReviewedAccounting(purchaseRequestsReviewedAccountingEntity);
 
             purchaseRequest.RequestStatus = PurchaseRequestStatus.Revision;
-
             await _unitOfWork.PurchaseRequests.UpdateAsync(purchaseRequest);
+
+            #region Obtener perfil del usuario que ha realizado la solicitud.
+
+            var profile = await _unitOfWork.Profiles.Entities
+                .Where(prof => prof.UserId == purchaseRequest.RegisteredByUserId)
+                .Where(prof => prof.CompanyId == request.CompanyId)
+                .Where(prof => prof.IsActive)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (profile is null)
+            {
+                return _errorManager.ThrowNotFound<bool>("El perfil del usuario que ha realizado la solicitud no fue encontrado", "ERP:PROFILE_NOT_FOUND");
+            }
+            
+            var devices = await _unitOfWork.Devices.Entities
+                .Where(dev => dev.UserProfileId == profile.Id)
+                .Where(dev => dev.IsActive)
+                .ToListAsync(cancellationToken);
+
+            #endregion
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return true;
         }
     }
-    
 }

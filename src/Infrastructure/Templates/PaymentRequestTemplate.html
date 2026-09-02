@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>{{DocumentInfo.Title}}</title>
+<style>
+    @page {
+        size: A4;
+        margin: 0;
+    }
+
+    * {
+        box-sizing: border-box;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+    }
+
+    body {
+        font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+        font-size: 12px;
+        color: #1a1a1a;
+        padding: 18px 24px;
+    }
+
+    .document {
+        width: 100%;
+    }
+
+    /* ===== HEADER ===== */
+    .doc-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 2px solid #1a1a1a;
+        padding-bottom: 10px;
+    }
+
+    .doc-header .logo-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 80px;
+    }
+
+    .doc-header .logo-wrap img {
+        width: 54px;
+        height: 54px;
+        object-fit: contain;
+    }
+
+    .doc-header .logo-wrap .initial {
+        font-weight: 700;
+        letter-spacing: 2px;
+        font-size: 10px;
+        margin-top: 2px;
+        text-transform: uppercase;
+    }
+
+    .doc-header .titles {
+        text-align: center;
+        flex: 1;
+        padding: 0 12px;
+    }
+
+    .doc-header .titles h1 {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+
+    .doc-header .titles h2 {
+        margin: 3px 0 0;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .doc-header .titles .num {
+        display: block;
+        font-size: 11px;
+        color: #555;
+        margin-top: 2px;
+        letter-spacing: 0.5px;
+    }
+
+    .doc-header .spacer {
+        width: 80px;
+    }
+
+    /* ===== SECTION LABEL ===== */
+    .section-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: #666;
+        margin: 14px 0 5px;
+    }
+
+    /* ===== INFO GRID ===== */
+    .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        column-gap: 48px;
+        row-gap: 1px;
+    }
+
+    .field {
+        display: flex;
+        padding: 3px 0;
+        border-bottom: 1px dotted #c6c6c6;
+        line-height: 1.35;
+    }
+
+    .field .lbl {
+        font-weight: 600;
+        min-width: 150px;
+        white-space: nowrap;
+    }
+
+    .field .val {
+        flex: 1;
+        text-align: left;
+        padding-left: 2px;
+    }
+
+    .field.amount .val {
+        display: flex;
+        justify-content: space-between;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .field.amount .val .cur {
+        font-weight: 700;
+        margin-right: 8px;
+    }
+
+    .field.amount .val .amount {
+        font-weight: 700;
+    }
+
+    .field.total .val {
+        font-weight: 800;
+    }
+
+    /* ===== CONCEPTO (ancho completo) ===== */
+    .concept-block {
+        margin-top: 12px;
+    }
+
+    .concept-block .lbl {
+        font-weight: 700;
+        display: block;
+        margin-bottom: 3px;
+    }
+
+    .concept-block .val {
+        border-bottom: 1px solid #1a1a1a;
+        padding: 4px 2px 6px;
+        min-height: 18px;
+        line-height: 1.45;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
+    }
+
+    /* ===== TRÁMITE ===== */
+    .tramite {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+        padding: 3px 0;
+    }
+
+    .tramite .lbl {
+        font-weight: 600;
+    }
+
+    .tramite .check-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .chk {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 15px;
+        height: 15px;
+        border: 1px solid #1a1a1a;
+        font-size: 11px;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .tramite .sep {
+        margin: 0 8px;
+    }
+
+    /* ===== CHECKLIST ===== */
+    .checklist {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+        font-size: 11px;
+        page-break-inside: avoid;
+    }
+
+    .checklist th,
+    .checklist td {
+        border: 1px solid #1a1a1a;
+        padding: 5px 8px;
+        vertical-align: top;
+        line-height: 1.3;
+    }
+
+    .checklist th {
+        background: #f0f0f0;
+        font-size: 10px;
+        text-align: left;
+        letter-spacing: 0.3px;
+    }
+
+    .checklist td.check-col {
+        width: 40px;
+        text-align: center;
+    }
+
+    .checklist td.verificado-col,
+    .checklist td.comentario-col {
+        width: 130px;
+    }
+
+    .checklist tr.section-title td {
+        font-weight: 700;
+        background: #f7f7f7;
+        letter-spacing: 0.4px;
+    }
+
+    /* ===== FIRMAS ===== */
+    .signatures {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 16px;
+        margin-top: 16px;
+        page-break-inside: avoid;
+    }
+
+    .signature-block {
+        text-align: center;
+    }
+
+    .signature-line {
+        border-top: 1px solid #1a1a1a;
+        margin-top: 22px;
+        padding-top: 4px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .signature-block .role {
+        font-weight: 700;
+        font-size: 10px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: #555;
+        margin-top: 2px;
+    }
+
+    .banco-line {
+        margin-top: 6px;
+    }
+
+    .banco-line .signature-line {
+        margin-top: 10px;
+    }
+</style>
+</head>
+<body>
+    <div class="document">
+
+        <!-- HEADER -->
+        <div class="doc-header">
+            <div class="logo-wrap">
+                {{#if CompanyInformation.CompanyLogoUrl}}
+                <img src="{{CompanyInformation.CompanyLogoUrl}}" alt="Logo {{CompanyInformation.CompanyName}}" />
+                {{/if}}
+            </div>
+            <div class="titles">
+                <h1>{{CompanyInformation.CompanyName}}</h1>
+                <h2>{{DocumentInfo.Title}}</h2>
+                <span class="num">No. Solicitud: {{DocumentInfo.RequestCode}}</span>
+            </div>
+            <div class="spacer"></div>
+        </div>
+
+        <!-- DATOS DEL PAGO -->
+        <div class="section-label">Datos del pago</div>
+        <div class="info-grid">
+            <div>
+                <div class="field">
+                    <span class="lbl">Fecha:</span>
+                    <span class="val">{{DocumentInfo.Date}}</span>
+                </div>
+                <div class="field">
+                    <span class="lbl">Del Departamento:</span>
+                    <span class="val">{{PaymentInfo.Department}}</span>
+                </div>
+                <div class="field">
+                    <span class="lbl">A favor de:</span>
+                    <span class="val">{{PaymentInfo.Payee}}</span>
+                </div>
+                <div class="field">
+                    <span class="lbl">Por Cuenta de (Cliente):</span>
+                    <span class="val">{{PaymentInfo.Customer}}</span>
+                </div>
+                <div class="field">
+                    <span class="lbl">RUC:</span>
+                    <span class="val">{{CompanyInformation.Ruc}}</span>
+                </div>
+                <div class="field">
+                    <span class="lbl">Aduana:</span>
+                    <span class="val">{{PaymentInfo.Customs}}</span>
+                </div>
+                <div class="field">
+                    <span class="lbl">Número de Referencia:</span>
+                    <span class="val">{{DocumentInfo.ReferenceNumber}}</span>
+                </div>
+            </div>
+            <div>
+                <div class="field">
+                    <span class="lbl">No Asignación:</span>
+                    <span class="val">{{DocumentInfo.AssignmentNumber}}</span>
+                </div>
+                <div class="field amount">
+                    <span class="lbl">Monto Servicio:</span>
+                    <span class="val"><span class="cur">C$</span><span class="amount">{{PaymentInfo.ServiceAmount}}</span></span>
+                </div>
+                <div class="field amount">
+                    <span class="lbl">Monto Serv. Exento:</span>
+                    <span class="val"><span class="cur">C$</span><span class="amount">{{PaymentInfo.ExemptServiceAmount}}</span></span>
+                </div>
+                <div class="field amount">
+                    <span class="lbl">Desembolso/Otros:</span>
+                    <span class="val"><span class="cur">C$</span><span class="amount">{{PaymentInfo.OtherDisbursement}}</span></span>
+                </div>
+                <div class="field amount">
+                    <span class="lbl">IVA:</span>
+                    <span class="val"><span class="cur">C$</span><span class="amount">{{PaymentInfo.Vat}}</span></span>
+                </div>
+                <div class="field amount">
+                    <span class="lbl">IR:</span>
+                    <span class="val"><span class="cur">C$</span><span class="amount">{{PaymentInfo.IncomeTax}}</span></span>
+                </div>
+                <div class="field amount">
+                    <span class="lbl">IMI:</span>
+                    <span class="val"><span class="cur">C$</span><span class="amount">{{PaymentInfo.MunicipalTax}}</span></span>
+                </div>
+                <div class="field amount">
+                    <span class="lbl">Otros:</span>
+                    <span class="val"><span class="cur">C$</span><span class="amount">{{PaymentInfo.Others}}</span></span>
+                </div>
+                <div class="field amount total">
+                    <span class="lbl">Neto a Pagar:</span>
+                    <span class="val"><span class="cur">C$</span><span class="amount">{{PaymentInfo.NetToPay}}</span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONCEPTO -->
+        <div class="concept-block">
+            <span class="lbl">En Concepto de:</span>
+            <div class="val">{{Concept}}</div>
+        </div>
+
+        <!-- TRÁMITE -->
+        <div class="tramite">
+            <span class="lbl">Trámite:</span>
+            <span class="check-label">Normal <span class="chk">{{#if DocumentInfo.IsNormal}}X{{/if}}</span></span>
+            <span class="sep">|</span>
+            <span class="check-label">Crítica <span class="chk">{{#if DocumentInfo.IsCritical}}X{{/if}}</span></span>
+            <span class="lbl sep">|</span>
+            <span class="lbl">N° Multa Admin.:</span>
+            <span class="check-label">{{DocumentInfo.AdministrativeFineNumber}}</span>
+            <span class="lbl sep">|</span>
+            <span class="lbl">N° Declaración:</span>
+            <span class="check-label">{{DocumentInfo.DeclarationNumber}}</span>
+        </div>
+
+        <!-- CHECKLIST -->
+        <div class="section-label">Check list de documentos</div>
+        <table class="checklist">
+            <thead>
+                <tr>
+                    <th class="check-col">Check</th>
+                    <th>Descripción del documento</th>
+                    <th class="verificado-col">Verificado por Contabilidad</th>
+                    <th class="comentario-col">Comentarios de contabilidad</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="section-title">
+                    <td></td>
+                    <td colspan="3">DOCUMENTOS GENERALES</td>
+                </tr>
+                <tr>
+                    <td class="check-col"><span class="chk"></span></td>
+                    <td>Solicitud de cheque firmada por personal del departamento solicitante.</td>
+                    <td class="verificado-col"></td>
+                    <td class="comentario-col"></td>
+                </tr>
+                <tr>
+                    <td class="check-col"><span class="chk"></span></td>
+                    <td>Copia ( ) u original ( X ) de orden de compra.</td>
+                    <td class="verificado-col"></td>
+                    <td class="comentario-col"></td>
+                </tr>
+                <tr>
+                    <td class="check-col"><span class="chk"></span></td>
+                    <td>Copia ( ) u original ( X ) de la factura, ND, NC, documento del proveedor.</td>
+                    <td class="verificado-col"></td>
+                    <td class="comentario-col"></td>
+                </tr>
+                <tr>
+                    <td class="check-col"><span class="chk"></span></td>
+                    <td>Cuadro de análisis comparativo de cotizaciones debidamente firmada.</td>
+                    <td class="verificado-col"></td>
+                    <td class="comentario-col"></td>
+                </tr>
+                <tr>
+                    <td class="check-col"><span class="chk"></span></td>
+                    <td>Cotizaciones efectuadas ( {{DocumentInfo.QuoteCount}} ) debidamente anexas.</td>
+                    <td class="verificado-col"></td>
+                    <td class="comentario-col"></td>
+                </tr>
+                <tr>
+                    <td class="check-col"><span class="chk"></span></td>
+                    <td>Solicitud mensual o eventual / Requisición con firma de recibido del solicitante.</td>
+                    <td class="verificado-col"></td>
+                    <td class="comentario-col"></td>
+                </tr>
+                <tr>
+                    <td class="check-col"><span class="chk"></span></td>
+                    <td>Carta de exoneración de la DGI ( ), ALMA ( ).</td>
+                    <td class="verificado-col"></td>
+                    <td class="comentario-col"></td>
+                </tr>
+                <tr>
+                    <td class="check-col"><span class="chk"></span></td>
+                    <td>Comunicaciones relacionadas con el pago.</td>
+                    <td class="verificado-col"></td>
+                    <td class="comentario-col"></td>
+                </tr>
+                <tr>
+                    <td class="check-col"><span class="chk"></span></td>
+                    <td>Otros</td>
+                    <td class="verificado-col"></td>
+                    <td class="comentario-col"></td>
+                </tr>
+                <tr class="section-title">
+                    <td></td>
+                    <td colspan="3">SERVICIOS</td>
+                </tr>
+                <tr>
+                    <td class="check-col"><span class="chk"></span></td>
+                    <td>Contrato original debidamente firmado.</td>
+                    <td class="verificado-col"></td>
+                    <td class="comentario-col"></td>
+                </tr>
+                <tr>
+                    <td class="check-col"><span class="chk"></span></td>
+                    <td>Presupuesto del servicio (si aplica).</td>
+                    <td class="verificado-col"></td>
+                    <td class="comentario-col"></td>
+                </tr>
+                <tr>
+                    <td class="check-col"><span class="chk"></span></td>
+                    <td>Finiquito de servicio.</td>
+                    <td class="verificado-col"></td>
+                    <td class="comentario-col"></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- FIRMAS -->
+        <div class="signatures">
+            <div class="signature-block">
+                <div class="signature-line">{{Signatures.RequestedBy}}</div>
+                <div class="role">Solicitado</div>
+            </div>
+            <div class="signature-block">
+                <div class="signature-line">{{Signatures.ApprovedBy}}</div>
+                <div class="role">Aprobado</div>
+            </div>
+            <div class="signature-block">
+                <div class="signature-line">{{Signatures.AuthorizedBy}}</div>
+                <div class="role">Autorizado</div>
+                <div class="banco-line">
+                    <div class="signature-line">{{Signatures.Bank}}</div>
+                    <div class="role">Banco</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>

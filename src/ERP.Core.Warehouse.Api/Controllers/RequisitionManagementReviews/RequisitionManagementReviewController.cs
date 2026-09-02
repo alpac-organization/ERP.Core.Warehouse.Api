@@ -17,7 +17,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.RequisitionManagementReviews
     {
         [Tags("Revisiones de gerencia")]
         [HttpGet("companies/{company_id}/modules/{module_code}/requisition-management-reviews")]
-        [ProducesResponseType(typeof(PagedResponse<>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PagedResponse<PurchaseRequestsReviewedManagementDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<PagedResponse<PurchaseRequestsReviewedManagementDto>> GetRequisitionManagementReviewsAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
@@ -60,20 +60,6 @@ namespace ERP.Core.Warehouse.Api.Controllers.RequisitionManagementReviews
                 UserId = Guid.Parse(userIdStr ?? ""),
                 RequisitionManagementReviewsId = requisition_management_reviews_id
             });
-        }
-
-
-        [Tags("Revisiones de gerencia")]
-        [HttpPost("companies/{company_id}/modules/{module_code}/requisition-management-reviews/{requisition_management_reviews_id}/process-purchase-order")]
-        [ProducesResponseType(typeof(PurchaseRequestsReviewedManagementDetailsDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<OkResult> ProcessRequest([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid requisition_management_reviews_id)
-        {
-            var userIdStr = HttpContext.Items["UserId"] as string;
-            //Crear endpoint de detalles
-
-            return Ok();
         }
     }
 }
