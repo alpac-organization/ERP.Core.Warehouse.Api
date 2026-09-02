@@ -28,7 +28,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
 
             if (recordEntrance == null)
             {
-                return _errorManager.ThrowBadRequest<bool>("El registro de recepción no fue encontrado.", "ERP:RECEPTION_NOT_FOUND");
+                return _errorManager.ThrowBadRequest<bool>("El registro de recepcion no fue encontrado.", "ERP:RECEPTION_NOT_FOUND");
             }
 
             var assignmentQuery = _unitOfWork.WarehouseAssignments.Entities
@@ -47,18 +47,20 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
 
             if (assignment == null)
             {
-                return _errorManager.ThrowBadRequest<bool>("No se encontró la asignación de bodega para esta recepción/DUCA.", "ERP:ASSIGNMENT_NOT_FOUND");
+                return _errorManager.ThrowBadRequest<bool>("No se encontro la asignacion de bodega para esta recepcion/DUCA.", "ERP:ASSIGNMENT_NOT_FOUND");
             }
 
             var nowNica = NicaraguaClock.Now;
             var today = NicaraguaClock.Today;
             var now = NicaraguaClock.TimeNow;
 
+            // Sellar el final de la descarga si aun no estaba
             if (assignment.UnloadingEndTime == null)
             {
                 assignment.UnloadingEndTime = nowNica;
             }
 
+            // Cerrar bitacora de ejecucion del paso
             var executionLog = await _unitOfWork.StepExecutionLogs.Entities
                 .FirstOrDefaultAsync(l => l.RecordEntranceId == recordEntrance.Id 
                                        && l.WorkflowStepDefinitionCode == WorkflowStepCodes.Assignment, cancellationToken);

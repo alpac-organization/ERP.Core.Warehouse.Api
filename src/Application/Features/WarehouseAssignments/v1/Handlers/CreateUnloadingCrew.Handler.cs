@@ -10,6 +10,7 @@ using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
+using WarehouseAssignmentEntity = ERP.Core.Database.Domain.Entities.Warehouse.WarehouseAssignments;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Handlers
 {
@@ -25,20 +26,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
             if (!access.IsSuccess) return access.ErrorResponse!;
 
-            var assignmentQuery = _unitOfWork.WarehouseAssignments.Entities
-                .Where(a => a.RecordEntranceId == request.ReceptionId && a.DeletedAt == null);
-
-            if (request.EntranceDucatId.HasValue)
-            {
-                assignmentQuery = assignmentQuery.Where(a => a.EntranceDucatId == request.EntranceDucatId.Value);
-            }
-            else
-            {
-                assignmentQuery = assignmentQuery.Where(a => a.EntranceDucatId == null);
-            }
-
-            var assignment = await assignmentQuery.FirstOrDefaultAsync(cancellationToken);
-
+            var assignment = await GetActiveAssignmentAsync(request.ReceptionId, request.EntranceDucatId, cancellationToken);
             if (assignment == null)
             {
                 return _errorManager.ThrowBadRequest<bool>(
@@ -46,78 +34,100 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                     "ERP:ASSIGNMENT_NOT_FOUND");
             }
 
-            var assignmentId = assignment.Id;
+            var assignResult = request.IsOutsourced
+                ? await AssignOutsourcedCrewAsync(assignment.Id, request)
+                : await AssignInternalCrewAsync(assignment.Id, request, cancellationToken);
 
-            if (!request.IsOutsourced)
+            if (!assignResult) return false;
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+
+        private async Task<WarehouseAssignmentEntity?> GetActiveAssignmentAsync(
+            Guid receptionId, Guid? entranceDucatId, CancellationToken cancellationToken)
+        {
+            var query = _unitOfWork.WarehouseAssignments.Entities
+                .Where(a => a.RecordEntranceId == receptionId && a.DeletedAt == null);
+
+            query = entranceDucatId.HasValue
+                ? query.Where(a => a.EntranceDucatId == entranceDucatId.Value)
+                : query.Where(a => a.EntranceDucatId == null);
+
+            return await query.FirstOrDefaultAsync(cancellationToken);
+        }
+
+        private async Task<bool> AssignInternalCrewAsync(
+            Guid assignmentId, CreateUnloadingCrewCommand request, CancellationToken cancellationToken)
+        {
+            if (request.CollaboratorIds == null || request.CollaboratorIds.Count == 0)
             {
-                if (request.CollaboratorIds == null || !request.CollaboratorIds.Any())
-                {
-                    return _errorManager.ThrowBadRequest<bool>(
-                        "Debe enviar al menos un colaborador (collaborator_ids) para una cuadrilla interna.",
-                        "ERP:CREW_MISSING_COLLABORATORS");
-                }
-
-                var validCollaboratorsCount = await _unitOfWork.Collaborators.Entities
-                    .CountAsync(c => request.CollaboratorIds.Contains(c.Id) 
-                                  && c.CompanyId == request.CompanyId 
-                                  && c.DeletedAt == null 
-                                  && c.Status == CollaboratorStatus.Active, cancellationToken);
-
-                if (validCollaboratorsCount != request.CollaboratorIds.Distinct().Count())
-                {
-                    return _errorManager.ThrowBadRequest<bool>(
-                        "Uno o más colaboradores seleccionados no existen o no se encuentran activos.",
-                        "ERP:INVALID_COLLABORATORS");
-                }
-
-                foreach (var collaboratorId in request.CollaboratorIds.Distinct())
-                {
-                    var crew = new CrewAssignments
-                    {
-                        Id = Guid.NewGuid(),
-                        WarehouseAssignmentId = assignmentId,
-                        AssignedAt = NicaraguaClock.Now,
-                        CollaboratorId = collaboratorId,
-                        IsOutsourced = false,
-                        PersonCount = 1,
-                        ProviderName = null,
-                        InvoiceNumber = null
-                    };
-                    await _unitOfWork.CrewAssignments.InsertCrewAssignment(crew);
-                }
+                return _errorManager.ThrowBadRequest<bool>(
+                    "Debe enviar al menos un colaborador (collaborator_ids) para una cuadrilla interna.",
+                    "ERP:CREW_MISSING_COLLABORATORS");
             }
-            else
+
+            var distinctIds = request.CollaboratorIds.Distinct().ToList();
+            var validCount = await _unitOfWork.Collaborators.Entities
+                .CountAsync(c => distinctIds.Contains(c.Id) 
+                              && c.CompanyId == request.CompanyId 
+                              && c.DeletedAt == null 
+                              && c.Status == CollaboratorStatus.Active, cancellationToken);
+
+            if (validCount != distinctIds.Count)
             {
-                if (!request.PersonCount.HasValue || request.PersonCount.Value <= 0)
-                {
-                    return _errorManager.ThrowBadRequest<bool>(
-                        "La cantidad de personas para la cuadrilla tercerizada debe ser mayor a cero.",
-                        "ERP:INVALID_PERSON_COUNT");
-                }
+                return _errorManager.ThrowBadRequest<bool>(
+                    "Uno o mas colaboradores seleccionados no existen o no se encuentran activos.",
+                    "ERP:INVALID_COLLABORATORS");
+            }
 
-                if (string.IsNullOrWhiteSpace(request.ProviderName))
-                {
-                    return _errorManager.ThrowBadRequest<bool>(
-                        "Debe ingresar el nombre del proveedor para la cuadrilla tercerizada.",
-                        "ERP:PROVIDER_NAME_REQUIRED");
-                }
-
+            foreach (var collaboratorId in distinctIds)
+            {
                 var crew = new CrewAssignments
                 {
                     Id = Guid.NewGuid(),
                     WarehouseAssignmentId = assignmentId,
                     AssignedAt = NicaraguaClock.Now,
-                    CollaboratorId = null,
-                    IsOutsourced = true,
-                    PersonCount = request.PersonCount.Value,
-                    ProviderName = request.ProviderName.Trim(),
-                    InvoiceNumber = request.InvoiceNumber?.Trim()
+                    CollaboratorId = collaboratorId,
+                    IsOutsourced = false,
+                    PersonCount = 1
                 };
                 await _unitOfWork.CrewAssignments.InsertCrewAssignment(crew);
             }
 
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            return true;
+        }
 
+        private async Task<bool> AssignOutsourcedCrewAsync(
+            Guid assignmentId, CreateUnloadingCrewCommand request)
+        {
+            if (!request.PersonCount.HasValue || request.PersonCount.Value <= 0)
+            {
+                return _errorManager.ThrowBadRequest<bool>(
+                    "La cantidad de personas para la cuadrilla tercerizada debe ser mayor a cero.",
+                    "ERP:INVALID_PERSON_COUNT");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ProviderName))
+            {
+                return _errorManager.ThrowBadRequest<bool>(
+                    "Debe ingresar el nombre del proveedor para la cuadrilla tercerizada.",
+                    "ERP:PROVIDER_NAME_REQUIRED");
+                }
+
+            var crew = new CrewAssignments
+            {
+                Id = Guid.NewGuid(),
+                WarehouseAssignmentId = assignmentId,
+                AssignedAt = NicaraguaClock.Now,
+                CollaboratorId = null,
+                IsOutsourced = true,
+                PersonCount = request.PersonCount.Value,
+                ProviderName = request.ProviderName.Trim(),
+                InvoiceNumber = request.InvoiceNumber?.Trim()
+            };
+
+            await _unitOfWork.CrewAssignments.InsertCrewAssignment(crew);
             return true;
         }
     }

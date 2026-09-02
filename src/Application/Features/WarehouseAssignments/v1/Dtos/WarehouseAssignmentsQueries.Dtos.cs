@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Dtos
@@ -37,7 +37,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Dt
         public string LicensePlate { get; set; } = string.Empty;
         public string? WarehouseName { get; set; }
 
-        // InformaciÃ³n del documento vinculado
+        // Informacion del documento vinculado
         public string? DucatNumber { get; set; }        // poblado si es DUCA
         public string? ServiceOrderCode { get; set; }   // OS de la DUCA (si aplica)
 
@@ -52,17 +52,33 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Dt
     {
         public bool IsOutsourced { get; set; }
         public string? ProviderName { get; set; }
+        public string? InvoiceNumber { get; set; }
         public int TotalPersonCount { get; set; }
-        public List<string> CollaboratorIds { get; set; } = new List<string>();
-        public List<Guid> CrewAssignmentIds { get; set; } = new List<Guid>();
+        public List<Guid> CollaboratorIds { get; set; } = new();
+        public List<string> CollaboratorNames { get; set; } = new();
+        public List<Guid> CrewAssignmentIds { get; set; } = new();
     }
 
     public class WarehouseMachineryDetailDto
     {
         public Guid MachineryAssignmentId { get; set; }
         public bool IsOutsourced { get; set; }
+
+        // Datos para maquinaria interna
+        public Guid? MachineryId { get; set; }
         public string? MachineryCode { get; set; }
+        public string? MachineryName { get; set; }
+
+        // Datos del operador
+        public Guid? OperatorCollaboratorId { get; set; }
         public string? OperatorName { get; set; }
+
+        // Datos para maquinaria tercerizada
         public string? ProviderName { get; set; }
+        public string? InvoiceNumber { get; set; }
+        public string? MachineryDescription { get; set; }
+
+        public DateTime? StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
     }
 }
