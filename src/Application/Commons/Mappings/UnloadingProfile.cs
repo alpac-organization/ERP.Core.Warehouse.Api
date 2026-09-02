@@ -16,8 +16,8 @@ public class UnloadingProfile : Profile
             .ForMember(d => d.AssignmentId, o => o.MapFrom(s => s.Id))
             .ForMember(d => d.RecordEntranceId, o => o.MapFrom(s => s.RecordEntranceId))
             .ForMember(d => d.DucatNumber, o => o.MapFrom(s => s.EntranceDucat!.DucatNumber))
+            .ForMember(d => d.DucatId, o => o.MapFrom(s => s.EntranceDucatId))
             .ForMember(d => d.ServiceOrderCode, o => o.MapFrom(s => s.EntranceDucat!.ServiceOrderCode))
-            .ForMember(d => d.WarehouseId, o => o.MapFrom(s => s.WarehouseId))
             .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.Warehouse.WarehouseName))
             .ForMember(d => d.UnloadingStatus, o => o.MapFrom(s => s.UnloadingStatus));
         #endregion
