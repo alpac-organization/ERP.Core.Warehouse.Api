@@ -10,6 +10,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos
         public decimal WidthMetres { get; set; }
         public decimal LengthMetres { get; set; }
 
+        public int MaxPulleys { get; set; }
         public decimal? HeightMetres { get; set; }
 
         public LayoutTransform3DDto Transform { get; set; } = new();

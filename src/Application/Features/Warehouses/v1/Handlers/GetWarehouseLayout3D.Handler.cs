@@ -65,6 +65,8 @@ public class GetWarehouseLayout3DHandler(IUnitOfWork unitOfWork, IErrorManager e
                         WidthMetres = r.WidthMetres,
                         LengthMetres = r.LengthMetres,
                         HeightMetres = r.HeightMetres,
+
+                        MaxPulleys = r.MaxPulleys,
                         Transform = new LayoutTransform3DDto
                         {
                             PositionX = r.TransformWarehouse3D.PositionX,
