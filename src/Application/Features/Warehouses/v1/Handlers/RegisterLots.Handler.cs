@@ -19,15 +19,13 @@ public class RegisterLotsHandler(IUnitOfWork unitOfWork, IErrorManager errorMana
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        // var section = await _unitOfWork.Sections.Entities
-        //     .FirstOrDefaultAsync(s => s.Id == request.SectionId && s.IsActive, cancellationToken);
 
         var sectionInfo = await _unitOfWork.Sections.Entities
             .Where(s => s.Id == request.SectionId && s.IsActive)
             .Select(s => new
             {
                 s.SectionType,
-                HasRacks = s.Racks.Any()
+                s.StorageType
             })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -42,25 +40,17 @@ public class RegisterLotsHandler(IUnitOfWork unitOfWork, IErrorManager errorMana
                 "No se pueden crear tramos en una sección de tipo pasillo.",
                 "ERP:SECTION_TYPE_NOT_ALLOWED_FOR_LOTS");
 
-        var sectionHasRacks = await _unitOfWork.Racks.Entities
-            .AnyAsync(r => r.SectionId == request.SectionId, cancellationToken);
-
-        if (sectionHasRacks)
-            return _errorManager.ThrowBadRequest<bool>(
-                "No se pueden crear tramos en una sección que ya tiene racks registrados.",
-                "ERP:SECTION_HAS_RACKS");
+        if (sectionInfo.StorageType == SectionStorageType.Racks)
+            return _errorManager.ThrowBadRequest<bool>("Esta sección está configurada para Racks. Crea una sección independiente ", "ERP:SECTION_STORAGE_MISMATCH");
 
         var lotsToCreate = request.ToLotEntities();
         var requestedCodes = lotsToCreate.Select(l => l.Code).ToList();
 
-        var duplicatedCodes = requestedCodes.GroupBy(c => c)
-           .Where(g => g.Count() > 1)
-           .Select(g => g.Key)
-           .ToList();
+        var duplicatedCodesInRequest = requestedCodes.GroupBy(c => c).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
 
+        if (duplicatedCodesInRequest.Count > 0)
+            return _errorManager.ThrowBadRequest<bool>($"Se enviaron códigos duplicados en la solicitud: {string.Join(", ", duplicatedCodesInRequest)}.", "ERP:LOT_CODE_DUPLICATED_IN_REQUEST");
 
-        if (duplicatedCodes.Count > 0)
-            return _errorManager.ThrowBadRequest<bool>($"Se enviaron códigos duplicados en la solicitud: {string.Join(", ", duplicatedCodes)}.", "ERP:LOT_CODE_DUPLICATED_IN_REQUEST");
 
         var existingCodeLots = await _unitOfWork.Lots.Entities
             .Where(l => l.SectionId == request.SectionId && requestedCodes.Contains(l.Code))
