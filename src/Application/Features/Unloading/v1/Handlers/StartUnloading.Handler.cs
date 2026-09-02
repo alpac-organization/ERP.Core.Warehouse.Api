@@ -3,10 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Entities.Warehouse;
+using ERP.Core.Warehouse.Api.Application.Commons.Utils;
+using ERP.Core.Warehouse.Api.Application.Commons.Constants;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
-using ERP.Core.Warehouse.Api.Application.Commons.Constants;
-using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Features.Unloading.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Unloading.v1.Handlers;
@@ -73,7 +73,7 @@ public class StartUnloadingHandler(IUnitOfWork unitOfWork, IErrorManager errorMa
                 UnloadingDetailsId = detail.Id,
                 PalletType = pallet.Type,
                 Quantity = pallet.Quantity,
-                LenghtMetres = pallet.Type == PalletType.Standard ? (decimal?)null : pallet.LenghtMetres,
+                LengthMetres = pallet.Type == PalletType.Standard ? (decimal?)null : pallet.LenghtMetres,
                 WidthMetres = pallet.Type == PalletType.Standard ? (decimal?)null : pallet.WidthMetres
             };
 
@@ -86,12 +86,12 @@ public class StartUnloadingHandler(IUnitOfWork unitOfWork, IErrorManager errorMa
         {
             var supplyEntity = new UnloadingSupplies
             {
-                UloadingDetailsId = detail.Id,
+                UnloadingDetailsId = detail.Id,
                 Description = supply.Description,
                 Quantity = supply.Quantity
             };
 
-            await _unitOfWork.UnloadingSupplies.InsertUnloadingSupply(supplyEntity);
+            await _unitOfWork.UnloadingSupplies.InsertUnloadingSupplie(supplyEntity);
         }
         #endregion
 
