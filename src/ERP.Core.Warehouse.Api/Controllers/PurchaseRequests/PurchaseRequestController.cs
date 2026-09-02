@@ -135,7 +135,6 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
             return Ok();
         }
 
-
         [Tags("Solicitudes de compras")] 
         [HttpDelete("companies/{company_id}/modules/{module_code}/purchase-requests/{purchase_request_id}")]      
         [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]

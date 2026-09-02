@@ -28,7 +28,6 @@ public class GetWarehouseByIdHandler(
             return access.ErrorResponse!;
 
         var warehouse = await _unitOfWork.Warehouses.Entities
-            .AsNoTracking()
             .IncludeWarehouseDetails()
             .FirstOrDefaultAsync(w => w.Id == request.WarehouseId, cancellationToken);
 
@@ -36,6 +35,8 @@ public class GetWarehouseByIdHandler(
             return _errorManager.ThrowNotFound<WarehouseDetailDto>(
                 "La bodega no fue encontrada.",
                 "ERP:WAREHOUSE_NOT_FOUND");
+
+        await capacityCalculator.PersistCalculatedCapacityAsync(warehouse, cancellationToken);
 
         return await WarehouseDetailBuilder.BuildDetailAsync(
             warehouse, mapper, capacityCalculator, cancellationToken);

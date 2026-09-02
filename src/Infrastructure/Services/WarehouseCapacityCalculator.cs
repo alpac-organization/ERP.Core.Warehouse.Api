@@ -1,11 +1,12 @@
 using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
+using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using WarehouseEntity = ERP.Core.Database.Domain.Entities.Warehouse.Warehouses;
 
 namespace ERP.Core.Warehouse.Api.Infrastructure.Services;
 
-public class WarehouseCapacityCalculator : IWarehouseCapacityCalculator
+public class WarehouseCapacityCalculator(IUnitOfWork unitOfWork) : IWarehouseCapacityCalculator
 {
     public WarehouseAreaCapacity Calculate(WarehouseEntity warehouse)
     {
@@ -69,4 +70,21 @@ public class WarehouseCapacityCalculator : IWarehouseCapacityCalculator
     private static int GetLotOccupiedPositions(Lots lot) =>
         PositionMetrics.Occupied(lot.Positions,
             position => position.IsOccupied || position.IsBlocked || position.IsReserved);
+
+    public async Task PersistCalculatedCapacityAsync(
+        WarehouseEntity warehouse,
+        CancellationToken cancellationToken)
+    {
+        if (warehouse.Capacity is null)
+            return;
+
+        var calculated = Calculate(warehouse);
+
+        warehouse.Capacity.TotalAreaM2 = calculated.TotalAreaM2;
+        warehouse.Capacity.UsableAreaM2 = calculated.UsableAreaM2;
+        warehouse.Capacity.UnusableAreaM2 = calculated.UnusableAreaM2;
+        warehouse.Capacity.LastCalculatedAt = NicaraguaClock.Now;
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
 }

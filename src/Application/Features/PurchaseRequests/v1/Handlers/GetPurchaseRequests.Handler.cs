@@ -49,9 +49,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 }
             }
 
-            ApplyRequestFilters(purchaseRequestsQuery, request, access);
+            purchaseRequestsQuery = ApplyRequestFilters(purchaseRequestsQuery, request, access);
 
-            ApplyPeriodFilter(purchaseRequestsQuery, request);
+            purchaseRequestsQuery = ApplyPeriodFilter(purchaseRequestsQuery, request);
 
             var totalRecords = await purchaseRequestsQuery.CountAsync(cancellationToken);
 
@@ -90,37 +90,44 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
         {
             if (request.AreaId.HasValue && access.Role?.RoleType == RoleType.Administrator)
             {
-                query = query.Where(pr => pr.AreaId == request.AreaId);
+                query = query
+                    .Where(pr => pr.AreaId == request.AreaId);
             }
  
             if (request.PriorityLevel.HasValue)
             {
-                query = query.Where(pr => pr.PriorityLevel == request.PriorityLevel);
+                query = query
+                    .Where(pr => pr.PriorityLevel == request.PriorityLevel);
             }
  
             if (request.Destination.HasValue)
             {
-                query = query.Where(pr => pr.Destination == request.Destination);
+                query = query
+                    .Where(pr => pr.Destination == request.Destination);
             }
  
             if (!string.IsNullOrEmpty(request.Code))
             {
-                query = query.Where(pr => pr.Code == request.Code);
+                query = query
+                    .Where(pr => pr.Code == request.Code);
             }
  
             if (request.Status.HasValue)
             {
-                query = query.Where(pr => pr.RequestStatus == request.Status);
+                query = query
+                    .Where(pr => pr.RequestStatus == request.Status);
             }
  
             if (request.RequestType.HasValue)
             {
-                query = query.Where(pr => pr.RequestType == request.RequestType);
+                query = query
+                    .Where(pr => pr.RequestType == request.RequestType);
             }
  
             if (request.BranchId.HasValue)
             {
-                query = query.Where(pr => pr.BranchId == request.BranchId);
+                query = query
+                    .Where(pr => pr.BranchId == request.BranchId);
             }
  
             return query;

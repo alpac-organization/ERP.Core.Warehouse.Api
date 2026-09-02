@@ -13,9 +13,10 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             CreateMap<PurchaseRequest, PurchaseRequestDto>()
                 .ForMember(dest => dest.PurchaseRequestId,     opt => opt.MapFrom(src => src.Id));
-
+                
             CreateMap<PurchaseRequest, PurchaseRequestDetailsDto>()
-                .ForMember(dest => dest.PurchaseRequestId,    opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.PurchaseRequestId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.Observations, opt => opt.MapFrom(src => src.Concept))
 
                 .ForPath(dest => dest.InformationFromRequestingArea, opt => opt.MapFrom(src => src.WorkArea))
 
@@ -45,8 +46,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 RequestType         = command.RequestType,
                 Destination         = command.Destination,
                 PriorityLevel       = command.PriorityLevel ?? PriorityLevel.None,
-
-                Observations        = command.Observations,
+                
+                Concept             = command.Observations,
                 RequestStatus       = PurchaseRequestStatus.Pending,
                 Id                  = Guid.NewGuid(),
                 

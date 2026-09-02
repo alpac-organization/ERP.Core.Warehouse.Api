@@ -146,10 +146,10 @@ public static class WarehouseMapper
          Id = Guid.NewGuid(),
          WarehouseId = warehouseId,
          TotalAreaM2 = totalArea,
-         UsableAreaM2 = null, // aún no hay secciones/racks para descontar
-         UnusableAreaM2 = null,
-         TotalMaxPolines = null,
-         CurrentPolinesStored = null,
+         UsableAreaM2 = 0m, // aún no hay secciones/racks para descontar
+         UnusableAreaM2 = totalArea,
+         TotalMaxPolines = 0,
+         CurrentPolinesStored = 0,
          LastCalculatedAt = NicaraguaClock.Now
       };
    }

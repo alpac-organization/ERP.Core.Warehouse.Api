@@ -26,7 +26,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return _errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:INVALID_ACCESS");
             }
 
-            var requisitionPending = await _unitOfWork.RequisitionAccountingReviews.Entities
+            var requisitionPending = await _unitOfWork.PurchaseRequestsReviewedAccounting.Entities
                 .Where(req => req.Id == request.RequisitionAccountingReviewId)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -83,16 +83,16 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     }
                 }
 
-                var requisitionManagementReviewEntity = RequisitionManagementReviewMapper.ToRequisitionManagementReviewEntity(request, access.User.Id, requisitionPending.PurchaseRequestId);
-                await _unitOfWork.RequisitionManagementReviews.RegisterRequisitionManagementReview(requisitionManagementReviewEntity);
+                var requisitionManagementReviewEntity = PurchaseRequestsReviewedManagementMapper.ToPurchaseRequestsReviewedManagementEntity(request, access.User.Id, requisitionPending.PurchaseRequestId);
+                await _unitOfWork.PurchaseRequestsReviewedManagement.RegisterRequisitionManagementReview(requisitionManagementReviewEntity);
 
                 requisitionPending.Status = AccountingReviewStatus.Approved;
-                await _unitOfWork.RequisitionAccountingReviews.UpdateAsync(requisitionPending);
+                await _unitOfWork.PurchaseRequestsReviewedAccounting.UpdateAsync(requisitionPending);
             }
             else
             {
                 requisitionPending.Status = AccountingReviewStatus.Rejected;
-                await _unitOfWork.RequisitionAccountingReviews.UpdateAsync(requisitionPending);
+                await _unitOfWork.PurchaseRequestsReviewedAccounting.UpdateAsync(requisitionPending);
             }
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);

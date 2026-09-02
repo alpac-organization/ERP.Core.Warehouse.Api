@@ -10,9 +10,9 @@ using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v
 
 namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Handlers
 {
-    public class GetRequisitionAccountingReviewDetailsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) :  BaseValidatorHandler<GetRequisitionAccountingReviewDetailsQuery, RequisitionAccountingReviewDetailsDto>(_unitOfWork, _errorManager)
+    public class GetRequisitionAccountingReviewDetailsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) :  BaseValidatorHandler<GetRequisitionAccountingReviewDetailsQuery, PurchaseRequestsReviewedAccountingDetailsDto>(_unitOfWork, _errorManager)
     {
-        public override async Task<RequisitionAccountingReviewDetailsDto> Handle(GetRequisitionAccountingReviewDetailsQuery request, CancellationToken cancellationToken)
+        public override async Task<PurchaseRequestsReviewedAccountingDetailsDto> Handle(GetRequisitionAccountingReviewDetailsQuery request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode!, cancellationToken);
 
@@ -21,7 +21,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 return access.ErrorResponse!;
             }
 
-            var review = await _unitOfWork.RequisitionAccountingReviews.Entities
+            var review = await _unitOfWork.PurchaseRequestsReviewedAccounting.Entities
                 //Usuario que envia la solicitud a revición
                 .Include(rev => rev.SentByUser)
                     .ThenInclude(user => user.WorkArea)
@@ -58,10 +58,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
 
             if (review is null)
             {
-                return _errorManager.ThrowBadRequest<RequisitionAccountingReviewDetailsDto>("No se encontro la revision contable", "ERP:NOT_FOUND");
+                return _errorManager.ThrowBadRequest<PurchaseRequestsReviewedAccountingDetailsDto>("No se encontro la revision contable", "ERP:NOT_FOUND");
             }
 
-            return _mapper.Map<RequisitionAccountingReviewDetailsDto>(review);
+            return _mapper.Map<PurchaseRequestsReviewedAccountingDetailsDto>(review);
         }
     }
     

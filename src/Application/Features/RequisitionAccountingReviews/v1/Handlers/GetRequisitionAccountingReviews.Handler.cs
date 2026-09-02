@@ -11,9 +11,9 @@ using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v
 
 namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Handlers
 {
-    public class GetRequisitionAccountingReviewsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) :  BaseValidatorHandler<GetRequisitionAccountingReviewsQuery, PagedResponse<RequisitionAccountingReviewDto>>(_unitOfWork, _errorManager)
+    public class GetRequisitionAccountingReviewsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) :  BaseValidatorHandler<GetRequisitionAccountingReviewsQuery, PagedResponse<PurchaseRequestsReviewedAccountingDto>>(_unitOfWork, _errorManager)
     {
-        public override async Task<PagedResponse<RequisitionAccountingReviewDto>> Handle(GetRequisitionAccountingReviewsQuery request, CancellationToken cancellationToken)
+        public override async Task<PagedResponse<PurchaseRequestsReviewedAccountingDto>> Handle(GetRequisitionAccountingReviewsQuery request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode!, cancellationToken);
 
@@ -22,7 +22,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 return access.ErrorResponse!;
             }
 
-            var reviewsQuery = _unitOfWork.RequisitionAccountingReviews.Entities
+            var reviewsQuery = _unitOfWork.PurchaseRequestsReviewedAccounting.Entities
                 .Include(rev => rev.SentByUser)
                     .ThenInclude(user => user.WorkArea)
                 .Include(rev => rev.PurchaseRequest)
@@ -59,9 +59,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 .Take(request.PageSize)
                 .ToListAsync(cancellationToken);
 
-            var reviewsMapped = _mapper.Map<List<RequisitionAccountingReviewDto>>(reviews);
+            var reviewsMapped = _mapper.Map<List<PurchaseRequestsReviewedAccountingDto>>(reviews);
 
-            return new PagedResponse<RequisitionAccountingReviewDto>(
+            return new PagedResponse<PurchaseRequestsReviewedAccountingDto>(
                 reviewsMapped,
                 request.PageNumber,
                 request.PageSize,

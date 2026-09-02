@@ -11,9 +11,9 @@ using ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementReviews.v
 
 namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementReviews.v1.Handlers
 {
-    public class GetRequisitionManagementReviewsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) :  BaseValidatorHandler<GetRequisitionManagementReviewsQuery, PagedResponse<RequisitionManagementReviewDto>>(_unitOfWork, _errorManager)
+    public class GetRequisitionManagementReviewsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) :  BaseValidatorHandler<GetRequisitionManagementReviewsQuery, PagedResponse<PurchaseRequestsReviewedManagementDto>>(_unitOfWork, _errorManager)
     {
-        public override async Task<PagedResponse<RequisitionManagementReviewDto>> Handle(GetRequisitionManagementReviewsQuery request, CancellationToken cancellationToken)
+        public override async Task<PagedResponse<PurchaseRequestsReviewedManagementDto>> Handle(GetRequisitionManagementReviewsQuery request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode!, cancellationToken);
 
@@ -22,7 +22,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                 return access.ErrorResponse!;
             }
 
-            var reviewsQuery = _unitOfWork.RequisitionManagementReviews.Entities
+            var reviewsQuery = _unitOfWork.PurchaseRequestsReviewedManagement.Entities
                 .Include(rev => rev.SentByUser)
                     .ThenInclude(user => user.WorkArea)
 
@@ -71,9 +71,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                 .Take(request.PageSize)
                 .ToListAsync(cancellationToken);
 
-            var reviewsMapped = _mapper.Map<List<RequisitionManagementReviewDto>>(reviews);
+            var reviewsMapped = _mapper.Map<List<PurchaseRequestsReviewedManagementDto>>(reviews);
 
-            return new PagedResponse<RequisitionManagementReviewDto>(
+            return new PagedResponse<PurchaseRequestsReviewedManagementDto>(
                 reviewsMapped,
                 request.PageNumber,
                 request.PageSize,
