@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Validators
 {
@@ -88,6 +89,52 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Validators
                 })
                 .WithMessage("Ya existe una sección registrada con el mismo nombre y dimensiones en este almacén.")
                 .WithName("Name");
+
+            When(x => x.LayoutTransform3DDto != null, () =>
+            {
+                RuleFor(x => x.LayoutTransform3DDto!)
+                    .Must(WarehouseLayoutValidation.HasValidNonNegativeCoordinates)
+                    .WithMessage("Las coordenadas X, Y, & Z no pueden ser negativas, Ingrese las correctas");
+
+                RuleFor(x => x.LayoutTransform3DDto!.RotationY)
+                .Must(WarehouseLayoutValidation.IsRightAngleRotation)
+                .WithMessage("La rotación debe ser un ángulo recto (0, 90, 180, 270).");
+
+
+                RuleFor(x => x)
+                    .MustAsync(async (command, cancellationToken) =>
+                    {
+                        var warehouse = await unitOfWork.Warehouses.Entities
+                            .AsNoTracking()
+                            .Where(w => w.Id == command.WarehouseId)
+                            .Select(w => new
+                            {
+                                Width = w.Details.WitdhMetres,
+                                Length = w.Details.LengthMetres
+                            })
+                            .FirstOrDefaultAsync(cancellationToken);
+
+                        if (warehouse is null) return false;
+
+                        var layout = command.LayoutTransform3DDto!;
+                        var bounds = new WarehouseLayoutValidation.LayoutBounds(
+                            layout.PositionX,
+                            layout.PositionY,
+                            layout.PositionZ,
+                            layout.RotationY,
+                            command.WidthMetres,
+                            command.LengthMetres
+                        );
+                        return WarehouseLayoutValidation.FitsWithinContainer(
+                            bounds,
+                            warehouse.Width,
+                            warehouse.Length
+                         );
+                    })
+                    .WithMessage("La sección excede los límites del almacén.");
+
+            });
         }
+
     }
 }
