@@ -10,7 +10,6 @@ using ERP.Core.Domain.Entities.Errors;
 using ERP.Core.Infrastructure.Attributes;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
-using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Commands;
@@ -38,10 +37,14 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseAssignments
             [FromRoute(Name = "company_id")] Guid companyId,
             [FromRoute(Name = "module_code")] string moduleCode,
             [FromRoute(Name = "reception_id")] Guid receptionId,
-            [FromBody] AssignWarehouseDto dto,
+            [FromBody] CreateWarehouseAssignmentCommand command,
             CancellationToken cancellationToken = default)
         {
-            var command = dto.ToCommand(receptionId, CurrentUserId, companyId, moduleCode);
+            command.CompanyId = companyId;
+            command.ModuleCode = moduleCode;
+            command.ReceptionId = receptionId;
+            command.UserId = CurrentUserId;
+
             var result = await _mediator.Send(command, cancellationToken);
             return Ok(result);
         }
@@ -55,10 +58,14 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseAssignments
             [FromRoute(Name = "company_id")] Guid companyId,
             [FromRoute(Name = "module_code")] string moduleCode,
             [FromRoute(Name = "reception_id")] Guid receptionId,
-            [FromBody] AssignUnloadingCrewDto dto,
+            [FromBody] CreateUnloadingCrewCommand command,
             CancellationToken cancellationToken = default)
         {
-            var command = dto.ToCommand(receptionId, CurrentUserId, companyId, moduleCode);
+            command.CompanyId = companyId;
+            command.ModuleCode = moduleCode;
+            command.ReceptionId = receptionId;
+            command.UserId = CurrentUserId;
+
             var result = await _mediator.Send(command, cancellationToken);
             return Ok(result);
         }
@@ -72,10 +79,14 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseAssignments
             [FromRoute(Name = "company_id")] Guid companyId,
             [FromRoute(Name = "module_code")] string moduleCode,
             [FromRoute(Name = "reception_id")] Guid receptionId,
-            [FromBody] AssignUnloadingMachineryDto dto,
+            [FromBody] CreateUnloadingMachineryCommand command,
             CancellationToken cancellationToken = default)
         {
-            var command = dto.ToCommand(receptionId, CurrentUserId, companyId, moduleCode);
+            command.CompanyId = companyId;
+            command.ModuleCode = moduleCode;
+            command.ReceptionId = receptionId;
+            command.UserId = CurrentUserId;
+
             var result = await _mediator.Send(command, cancellationToken);
             return Ok(result);
         }
@@ -191,17 +202,14 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseAssignments
             [FromRoute(Name = "company_id")] Guid companyId,
             [FromRoute(Name = "module_code")] string moduleCode,
             [FromRoute(Name = "reception_id")] Guid receptionId,
-            [FromBody] CompleteWarehouseAssignmentDto dto,
+            [FromBody] CompleteWarehouseAssignmentCommand command,
             CancellationToken cancellationToken = default)
         {
-            var command = new CompleteWarehouseAssignmentCommand
-            {
-                ReceptionId = receptionId,
-                EntranceDucatId = dto.EntranceDucatId,
-                UserId = CurrentUserId,
-                CompanyId = companyId,
-                ModuleCode = moduleCode
-            };
+            command.CompanyId = companyId;
+            command.ModuleCode = moduleCode;
+            command.ReceptionId = receptionId;
+            command.UserId = CurrentUserId;
+
             var result = await _mediator.Send(command, cancellationToken);
             return Ok(result);
         }

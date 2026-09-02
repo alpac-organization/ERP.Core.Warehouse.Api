@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
@@ -17,9 +18,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
 {
     public class CreateWarehouseAssignmentHandler : BaseValidatorHandler<CreateWarehouseAssignmentCommand, bool>
     {
-        public CreateWarehouseAssignmentHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
+        private readonly IMapper _mapper;
+
+        public CreateWarehouseAssignmentHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
             : base(unitOfWork, errorManager)
         {
+            _mapper = mapper;
         }
 
         public override async Task<bool> Handle(CreateWarehouseAssignmentCommand request, CancellationToken cancellationToken)
@@ -43,19 +47,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
 
             await EnsureStepExecutionLogAsync(recordEntrance, request.UserId, cancellationToken);
 
-            var nowNica = NicaraguaClock.Now;
-            var assignment = new WarehouseAssignmentEntity
-            {
-                Id = Guid.NewGuid(),
-                RecordEntranceId = request.ReceptionId,
-                EntranceDucatId = request.EntranceDucatId,
-                WarehouseId = request.WarehouseId,
-                WarehouseKeeperUserId = request.WarehouseChiefUserId.ToString(),
-                UnloadingStartTime = nowNica,
-                AssignedAt = nowNica,
-                AssignedByUserId = request.UserId.ToString()
-            };
-
+            var assignment = _mapper.Map<WarehouseAssignmentEntity>(request);
             recordEntrance.CurrentStepCode = WorkflowStepCodes.Assignment;
 
             await _unitOfWork.WarehouseAssignments.InsertWarehouseAssignment(assignment);

@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
@@ -15,9 +16,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
 {
     public class CreateUnloadingCrewHandler : BaseValidatorHandler<CreateUnloadingCrewCommand, bool>
     {
-        public CreateUnloadingCrewHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
+        private readonly IMapper _mapper;
+
+        public CreateUnloadingCrewHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
             : base(unitOfWork, errorManager)
         {
+            _mapper = mapper;
         }
 
         public override async Task<bool> Handle(CreateUnloadingCrewCommand request, CancellationToken cancellationToken)
@@ -103,17 +107,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                     "ERP:PROVIDER_NAME_REQUIRED");
             }
 
-            var crew = new CrewAssignments
-            {
-                Id = Guid.NewGuid(),
-                WarehouseAssignmentId = assignmentId,
-                AssignedAt = NicaraguaClock.Now,
-                CollaboratorId = null,
-                IsOutsourced = true,
-                PersonCount = request.PersonCount.Value,
-                ProviderName = request.ProviderName.Trim(),
-                InvoiceNumber = request.InvoiceNumber?.Trim()
-            };
+            var crew = _mapper.Map<CrewAssignments>(request);
+            crew.WarehouseAssignmentId = assignmentId;
+            crew.CollaboratorId = null;
+            crew.ProviderName = request.ProviderName.Trim();
+            crew.InvoiceNumber = request.InvoiceNumber?.Trim();
 
             await _unitOfWork.CrewAssignments.InsertCrewAssignment(crew);
             return true;

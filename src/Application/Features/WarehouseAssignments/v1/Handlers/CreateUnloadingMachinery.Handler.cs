@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
@@ -8,15 +9,17 @@ using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Commands;
-using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Handlers
 {
     public class CreateUnloadingMachineryHandler : BaseValidatorHandler<CreateUnloadingMachineryCommand, bool>
     {
-        public CreateUnloadingMachineryHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
+        private readonly IMapper _mapper;
+
+        public CreateUnloadingMachineryHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
             : base(unitOfWork, errorManager)
         {
+            _mapper = mapper;
         }
 
         public override async Task<bool> Handle(CreateUnloadingMachineryCommand request, CancellationToken cancellationToken)
@@ -52,19 +55,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                 }
             }
 
-            var machineryAssignment = new MachineryAssignments
-            {
-                Id = Guid.NewGuid(),
-                WarehouseAssignmentId = assignment.Id,
-                MachineryCode = internalMachineryId,
-                OperatorCollaboratorId = request.IsOutsourced ? null : request.OperatorCollaboratorId,
-                IsOutsourced = request.IsOutsourced,
-                StartTime = request.StartTime != default ? request.StartTime : NicaraguaClock.Now,
-                ProviderName = request.IsOutsourced ? request.ProviderName?.Trim() : null,
-                InvoiceNumber = request.IsOutsourced ? request.InvoiceNumber?.Trim() : null,
-                MachineryDescription = request.IsOutsourced ? request.MachineryDescription?.Trim() : null,
-                AssignedByUserId = request.UserId.ToString()
-            };
+            var machineryAssignment = _mapper.Map<MachineryAssignments>(request);
+            machineryAssignment.WarehouseAssignmentId = assignment.Id;
+            machineryAssignment.MachineryCode = internalMachineryId;
+            machineryAssignment.OperatorCollaboratorId = request.IsOutsourced ? null : request.OperatorCollaboratorId;
+            machineryAssignment.ProviderName = request.IsOutsourced ? request.ProviderName?.Trim() : null;
+            machineryAssignment.InvoiceNumber = request.IsOutsourced ? request.InvoiceNumber?.Trim() : null;
+            machineryAssignment.MachineryDescription = request.IsOutsourced ? request.MachineryDescription?.Trim() : null;
 
             await _unitOfWork.MachineryAssignments.InsertMachineryAssignment(machineryAssignment);
             await _unitOfWork.SaveChangesAsync(cancellationToken);

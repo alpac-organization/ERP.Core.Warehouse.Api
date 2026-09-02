@@ -2,14 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using ERP.Core.Domain.Entities.Errors;
 using ERP.Core.Infrastructure.Attributes;
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
-using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.WarehouseMachineries.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.WarehouseMachineries.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.WarehouseMachineries.v1.Commands;
@@ -22,12 +20,10 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseMachineries
     public class WarehouseMachineriesController : ApiControllerBase
     {
         private readonly IMediator _mediator;
-        private readonly IMapper _mapper;
 
-        public WarehouseMachineriesController(IMediator mediator, IMapper mapper)
+        public WarehouseMachineriesController(IMediator mediator)
         {
             _mediator = mediator;
-            _mapper = mapper;
         }
 
         [Tags("Maquinarias de Bodega")]
@@ -38,10 +34,13 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseMachineries
         public async Task<IActionResult> CreateWarehouseMachinery(
             [FromRoute(Name = "company_id")] Guid companyId,
             [FromRoute(Name = "module_code")] string moduleCode,
-            [FromBody] CreateWarehouseMachineryDto dto,
+            [FromBody] CreateWarehouseMachineryCommand command,
             CancellationToken cancellationToken = default)
         {
-            var command = dto.ToCommand(CurrentUserId, companyId, moduleCode, _mapper);
+            command.CompanyId = companyId;
+            command.ModuleCode = moduleCode;
+            command.UserId = CurrentUserId;
+
             var result = await _mediator.Send(command, cancellationToken);
             return Ok(result);
         }

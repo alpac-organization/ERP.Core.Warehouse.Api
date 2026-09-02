@@ -1,8 +1,9 @@
 using System;
 using AutoMapper;
 using ERP.Core.Database.Domain.Entities.Warehouse;
-using ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Commons.Utils;
+using WarehouseAssignmentEntity = ERP.Core.Database.Domain.Entities.Warehouse.WarehouseAssignments;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
@@ -10,66 +11,24 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
     {
         public WarehouseAssignmentsProfile()
         {
-            CreateMap<AssignWarehouseDto, CreateWarehouseAssignmentCommand>();
-            CreateMap<AssignUnloadingCrewDto, CreateUnloadingCrewCommand>();
-            CreateMap<AssignUnloadingMachineryDto, CreateUnloadingMachineryCommand>();
-            CreateMap<CompleteWarehouseAssignmentDto, CompleteWarehouseAssignmentCommand>();
-        }
-    }
+            // Command -> Database Entity (para ser consumido por UnitOfWork sin ensuciar el handler)
+            CreateMap<CreateWarehouseAssignmentCommand, WarehouseAssignmentEntity>()
+                .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
+                .ForMember(d => d.RecordEntranceId, o => o.MapFrom(s => s.ReceptionId))
+                .ForMember(d => d.WarehouseKeeperUserId, o => o.MapFrom(s => s.WarehouseChiefUserId.ToString()))
+                .ForMember(d => d.AssignedByUserId, o => o.MapFrom(s => s.UserId.ToString()))
+                .ForMember(d => d.AssignedAt, o => o.MapFrom(_ => NicaraguaClock.Now))
+                .ForMember(d => d.UnloadingStartTime, o => o.MapFrom(_ => NicaraguaClock.Now));
 
-    public static class WarehouseAssignmentsMapper
-    {
-        public static CreateWarehouseAssignmentCommand ToCommand(
-            this AssignWarehouseDto dto, Guid receptionId, Guid userId, Guid companyId, string moduleCode)
-        {
-            return new CreateWarehouseAssignmentCommand
-            {
-                ReceptionId = receptionId,
-                UserId = userId,
-                CompanyId = companyId,
-                ModuleCode = moduleCode,
-                EntranceDucatId = dto.EntranceDucatId,
-                WarehouseId = dto.WarehouseId,
-                WarehouseChiefUserId = dto.WarehouseChiefUserId
-            };
-        }
+            CreateMap<CreateUnloadingMachineryCommand, MachineryAssignments>()
+                .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
+                .ForMember(d => d.AssignedByUserId, o => o.MapFrom(s => s.UserId.ToString()))
+                .ForMember(d => d.StartTime, o => o.MapFrom(s => s.StartTime != default ? s.StartTime : NicaraguaClock.Now));
 
-        public static CreateUnloadingCrewCommand ToCommand(
-            this AssignUnloadingCrewDto dto, Guid receptionId, Guid userId, Guid companyId, string moduleCode)
-        {
-            return new CreateUnloadingCrewCommand
-            {
-                ReceptionId = receptionId,
-                EntranceDucatId = dto.EntranceDucatId,
-                UserId = userId,
-                CompanyId = companyId,
-                ModuleCode = moduleCode,
-                CollaboratorIds = dto.CollaboratorIds,
-                IsOutsourced = dto.IsOutsourced,
-                PersonCount = dto.PersonCount,
-                ProviderName = dto.ProviderName?.Trim(),
-                InvoiceNumber = dto.InvoiceNumber?.Trim()
-            };
-        }
-
-        public static CreateUnloadingMachineryCommand ToCommand(
-            this AssignUnloadingMachineryDto dto, Guid receptionId, Guid userId, Guid companyId, string moduleCode)
-        {
-            return new CreateUnloadingMachineryCommand
-            {
-                ReceptionId = receptionId,
-                EntranceDucatId = dto.EntranceDucatId,
-                UserId = userId,
-                CompanyId = companyId,
-                ModuleCode = moduleCode,
-                MachineryCode = dto.MachineryCode ?? string.Empty,
-                OperatorCollaboratorId = dto.OperatorCollaboratorId,
-                IsOutsourced = dto.IsOutsourced,
-                StartTime = dto.StartTime,
-                ProviderName = dto.ProviderName ?? string.Empty,
-                InvoiceNumber = dto.InvoiceNumber ?? string.Empty,
-                MachineryDescription = dto.MachineryDescription ?? string.Empty
-            };
+            CreateMap<CreateUnloadingCrewCommand, CrewAssignments>()
+                .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
+                .ForMember(d => d.AssignedAt, o => o.MapFrom(_ => NicaraguaClock.Now));
         }
     }
 }
+
