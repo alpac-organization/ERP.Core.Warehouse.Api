@@ -17,3 +17,6 @@
 nuget.config
 .env
 repomix.config.json
+
+
+.opencodeignore
