@@ -1,5 +1,7 @@
+using System;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ERP.Core.Warehouse.Api.Controllers.ApiBase
 {
@@ -16,5 +18,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.ApiBase
             var userIdStr = HttpContext.Items["UserId"] as string;
             return Guid.TryParse(userIdStr, out userId);
         }
+
+        protected Guid CurrentUserId => TryGetUserId(out var userId) ? userId : Guid.Empty;
     }
 }
