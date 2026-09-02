@@ -132,4 +132,33 @@ public class WarehouseController(IMediator _mediator) : ApiControllerBase
 
         return Ok(response);
     }
+
+
+    [Tags("Almacenes - Layout 3D")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}/layout-3d")]
+    [ProducesResponseType(typeof(WarehouseLayout3dDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetWarehouseLayout3DAsync(
+    [FromRoute] Guid company_id,
+    [FromRoute] string module_code,
+    [FromRoute] Guid warehouse_id,
+    CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        if (!Guid.TryParse(userIdStr, out var userId))
+            return Unauthorized();
+
+        var query = new GetWarehouseLayout3dQuery
+        {
+            WarehouseId = warehouse_id,
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = userId
+        };
+
+        var response = await _mediator.Send(query, cancellationToken);
+        return Ok(response);
+    }
 }

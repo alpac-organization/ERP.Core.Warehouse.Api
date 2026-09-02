@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using MediatR;
 
@@ -9,10 +10,11 @@ public class RegisterSectionCommand : BaseRequest, IRequest<bool>
 {
     [JsonIgnore]
     public Guid WarehouseId { get; set; } // se asigna desde la ruta, no viene del body
-    
+
     public string Code { get; set; } = null!;
     public string Name { get; set; } = null!;
     public SectionType SectionType { get; set; }
+    public LayoutTransform3DDto? LayoutTransform3DDto { get; set; }
     public SectionStorageType StorageType { get; set; } = SectionStorageType.Empty;
     public decimal WidthMetres { get; set; }
     public decimal LengthMetres { get; set; }

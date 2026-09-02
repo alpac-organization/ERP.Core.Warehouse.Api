@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
@@ -5,9 +6,15 @@ using MediatR;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
-public class RegisterRackCommand : BaseRequest, IRequest<RackDto>
+public class RacksBulkCommand : BaseRequest, IRequest<bool>
 {
+    [JsonIgnore]
     public Guid SectionId { get; set; }
+
+    public List<RackPlacementCommand> PlacementRacks { get; set; } = [];
+}
+public class RackPlacementCommand
+{
 
     public string Code { get; set; } = null!;
     public decimal WidthMetres { get; set; }
@@ -20,26 +27,7 @@ public class RegisterRackCommand : BaseRequest, IRequest<RackDto>
     public int MaxPulleys { get; set; } = 2;
 
     public RackStatus Status { get; set; } = RackStatus.Available;
-    public string? UnavailableReason { get; set; }
-}
 
-public class RegisterRacksBulkCommand : BaseRequest, IRequest<RegisterRacksBulkResultDto>
-{
-    public Guid SectionId { get; set; }
-    public string? ShelfCode { get; set; }
-    public int? StartingDepositNumber { get; set; }
-    public List<RackLevelSpec> Levels { get; set; } = [];
-}
-
-public class RackLevelSpec
-{
-    public int LevelNumber { get; set; }
-    public int RacksCount { get; set; }
-    public decimal WidthMetres { get; set; }
-    public decimal LengthMetres { get; set; }
-    public decimal? HeightMetres { get; set; }
-    public RackUsageProfile UsageProfile { get; set; }
-    public int MaxPulleys { get; set; } = 2;
-    public RackStatus Status { get; set; } = RackStatus.Available;
+    public LayoutTransform3DDto? LayoutTransform3DDto { get; set; }
     public string? UnavailableReason { get; set; }
 }
