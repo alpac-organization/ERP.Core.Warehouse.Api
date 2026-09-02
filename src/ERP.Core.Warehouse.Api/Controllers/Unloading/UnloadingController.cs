@@ -31,9 +31,7 @@ public class UnloadingController(IMediator mediator) : ApiControllerBase
         [FromQuery] int page_size = 10,
         CancellationToken cancellationToken = default)
     {
-        var userIdStr = HttpContext.Items["UserId"] as string;
-        var parsed = Guid.TryParse(userIdStr, out var userId);
-        if (!parsed)
+        if (!TryGetUserId(out var userId))
         {
             userId = Guid.Empty;
         }
@@ -49,6 +47,34 @@ public class UnloadingController(IMediator mediator) : ApiControllerBase
             UnloadingStatus = unloading_status,
             PageNumber = page_number,
             PageSize = page_size
+        }, cancellationToken);
+    }
+    #endregion
+
+    #region Issue 2 - Detalle de asignación
+    [Tags("Descarga")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/unloading/assignment-queue/{assignment_id}")]
+    [ProducesResponseType(typeof(UnloadingAssignmentDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<UnloadingAssignmentDetailDto> GetUnloadingAssignmentAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid assignment_id,
+        CancellationToken cancellationToken = default)
+    {
+        if (!TryGetUserId(out var userId))
+        {
+            userId = Guid.Empty;
+        }
+
+        return await mediator.Send(new GetUnloadingAssignmentDetailQuery
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = userId,
+            AssignmentId = assignment_id
         }, cancellationToken);
     }
     #endregion
