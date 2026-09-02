@@ -18,5 +18,20 @@ public class UnloadingProfile : Profile
             .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.Warehouse.WarehouseName))
             .ForMember(d => d.UnloadingStatus, o => o.MapFrom(s => s.UnloadingStatus));
         #endregion
+
+        #region Unloading - Detalle de asignación
+        CreateMap<WarehouseAssignments, UnloadingAssignmentDetailDto>()
+            .ForMember(d => d.AssignmentId, o => o.MapFrom(s => s.Id))
+            .ForMember(d => d.RecordEntranceId, o => o.MapFrom(s => s.RecordEntranceId))
+            .ForMember(d => d.EntranceDucatId, o => o.MapFrom(s => s.EntranceDucatId))
+            .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.Warehouse.WarehouseName))
+            .ForMember(d => d.UnloadingStatus, o => o.MapFrom(s => s.UnloadingStatus))
+            .ForMember(d => d.AssignedAt, o => o.MapFrom(s => s.AssignedAt))
+            .ForMember(d => d.WarehouseKeeperUserId, o => o.MapFrom(s => s.WarehouseKeeperUserId))
+            .ForMember(d => d.Machinery, o => o.MapFrom(s => s.MachineryAssignments));
+
+        CreateMap<MachineryAssignments, MachineryAssignmentDto>()
+            .ForMember(d => d.Code, o => o.MapFrom(s => s.Machinery != null ? s.Machinery.Code : null));
+        #endregion
     }
 }
