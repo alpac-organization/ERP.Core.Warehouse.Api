@@ -24,8 +24,10 @@ public class SuppliesController(IMediator _mediator) : ApiControllerBase
         [FromRoute] string module_code,
         CancellationToken cancellationToken)
     {
-        var userIdStr = HttpContext.Items["UserId"] as string;
-        Guid.TryParse(userIdStr, out var userId);
+        if (!TryGetUserId(out var userId))
+        {
+            userId = Guid.Empty;
+        }
 
         return await _mediator.Send(new GetSuppliesQuery
         {
@@ -46,8 +48,10 @@ public class SuppliesController(IMediator _mediator) : ApiControllerBase
         [FromBody] RegisterSupplyDto dto,
         CancellationToken cancellationToken)
     {
-        var userIdStr = HttpContext.Items["UserId"] as string;
-        Guid.TryParse(userIdStr, out var userId);
+        if (!TryGetUserId(out var userId))
+        {
+            userId = Guid.Empty;
+        }
 
         var command = dto.ToCommand(
             userId: userId,

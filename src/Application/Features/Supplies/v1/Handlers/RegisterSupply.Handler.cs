@@ -28,7 +28,7 @@ public class RegisterSupplyHandler(IUnitOfWork unitOfWork, IErrorManager errorMa
 
         var existingSupply = await _unitOfWork.Supplies.Entities
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Name.ToLower() == sanitizedName.ToLower() && s.DeletedAt == null, cancellationToken);
+            .FirstOrDefaultAsync(s => string.Equals(s.Name, sanitizedName, StringComparison.OrdinalIgnoreCase) && s.DeletedAt == null, cancellationToken);
 
         if (existingSupply != null)
         {
