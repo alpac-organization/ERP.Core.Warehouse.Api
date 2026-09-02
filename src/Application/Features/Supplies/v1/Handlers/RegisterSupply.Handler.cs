@@ -26,11 +26,14 @@ public class RegisterSupplyHandler(IUnitOfWork unitOfWork, IErrorManager errorMa
                 "ERP:INVALID_SUPPLY_NAME");
         }
 
-        var existingSupply = await _unitOfWork.Supplies.Entities
+        var activeSupplies = await _unitOfWork.Supplies.Entities
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => string.Equals(s.Name, sanitizedName, StringComparison.OrdinalIgnoreCase) && s.DeletedAt == null, cancellationToken);
+            .Where(s => s.DeletedAt == null)
+            .ToListAsync(cancellationToken);
 
-        if (existingSupply != null)
+        var existingSupply = activeSupplies.Any(s => string.Equals(s.Name, sanitizedName, StringComparison.OrdinalIgnoreCase));
+
+        if (existingSupply)
         {
             return _errorManager.ThrowBadRequest<bool>(
                 "Ya existe un insumo con este nombre.",
