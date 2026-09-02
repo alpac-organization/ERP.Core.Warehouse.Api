@@ -10,6 +10,12 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
     {
         public WarehouseMachineriesProfile()
         {
+            CreateMap<CreateWarehouseMachineryDto, CreateWarehouseMachineryCommand>();
+            
+            CreateMap<CreateWarehouseMachineryCommand, WarehouseMachinery>()
+                .ForMember(d => d.Id, opt => opt.MapFrom(_ => Guid.NewGuid()))
+                .ForMember(d => d.IsActive, opt => opt.MapFrom(_ => true));
+
             CreateMap<WarehouseMachinery, WarehouseMachineryListDto>()
                 .ConstructUsing(m => new WarehouseMachineryListDto(
                     m.Id,
@@ -29,33 +35,13 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
     public static class WarehouseMachineriesMapper
     {
         public static CreateWarehouseMachineryCommand ToCommand(
-            this CreateWarehouseMachineryDto dto, Guid userId, Guid companyId, string moduleCode)
+            this CreateWarehouseMachineryDto dto, Guid userId, Guid companyId, string moduleCode, IMapper mapper)
         {
-            return new CreateWarehouseMachineryCommand
-            {
-                UserId = userId,
-                CompanyId = companyId,
-                ModuleCode = moduleCode,
-                BranchId = dto.BranchId,
-                WarehouseId = dto.WarehouseId,
-                AssignedOperatorId = dto.AssignedOperatorId,
-                Code = dto.Code,
-                SerialNumber = dto.SerialNumber,
-                LicensePlate = dto.LicensePlate,
-                Name = dto.Name,
-                Brand = dto.Brand,
-                Model = dto.Model,
-                ManufactureYear = dto.ManufactureYear,
-                MachineryType = dto.MachineryType,
-                FuelType = dto.FuelType,
-                LoadCapacityKg = dto.LoadCapacityKg,
-                MaxReachHeightMeters = dto.MaxReachHeightMeters,
-                HourMeter = dto.HourMeter,
-                Status = dto.Status,
-                Notes = dto.Notes,
-                PurchaseDate = dto.PurchaseDate
-            };
+            var command = mapper.Map<CreateWarehouseMachineryCommand>(dto);
+            command.UserId = userId;
+            command.CompanyId = companyId;
+            command.ModuleCode = moduleCode;
+            return command;
         }
     }
 }
-

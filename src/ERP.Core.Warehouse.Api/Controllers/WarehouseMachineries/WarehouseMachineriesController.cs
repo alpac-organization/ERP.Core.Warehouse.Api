@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
@@ -21,10 +22,12 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseMachineries
     public class WarehouseMachineriesController : ApiControllerBase
     {
         private readonly IMediator _mediator;
+        private readonly IMapper _mapper;
 
-        public WarehouseMachineriesController(IMediator mediator)
+        public WarehouseMachineriesController(IMediator mediator, IMapper mapper)
         {
             _mediator = mediator;
+            _mapper = mapper;
         }
 
         [Tags("Maquinarias de Bodega")]
@@ -38,8 +41,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseMachineries
             [FromBody] CreateWarehouseMachineryDto dto,
             CancellationToken cancellationToken = default)
         {
-            var userId = Guid.Parse(HttpContext.Items["UserId"] as string ?? Guid.Empty.ToString());
-            var command = dto.ToCommand(userId, companyId, moduleCode);
+            var command = dto.ToCommand(CurrentUserId, companyId, moduleCode, _mapper);
             var result = await _mediator.Send(command, cancellationToken);
             return Ok(result);
         }
@@ -54,12 +56,11 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseMachineries
             [FromRoute(Name = "module_code")] string moduleCode,
             CancellationToken cancellationToken = default)
         {
-            var userId = Guid.Parse(HttpContext.Items["UserId"] as string ?? Guid.Empty.ToString());
             var query = new GetWarehouseMachineriesQuery 
             { 
                 CompanyId = companyId,
                 ModuleCode = moduleCode,
-                UserId = userId
+                UserId = CurrentUserId
             };
             var result = await _mediator.Send(query, cancellationToken);
             return Ok(result);

@@ -117,13 +117,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
             if (!string.IsNullOrWhiteSpace(request.DriverName))
             {
                 var driverSearch = request.DriverName.Trim().ToLower();
-                baseQuery = baseQuery.Where(r => r.ReceptionEntrance!.DriverName.ToLower().Contains(driverSearch));
+                baseQuery = baseQuery.Where(r => EF.Functions.Like(r.ReceptionEntrance!.DriverName.ToLower(), $"%{driverSearch}%"));
             }
 
             if (!string.IsNullOrWhiteSpace(request.LicensePlate))
             {
                 var plateSearch = request.LicensePlate.Trim().ToLower();
-                baseQuery = baseQuery.Where(r => r.ReceptionEntrance!.VehiclePlateNumber.ToLower().Contains(plateSearch));
+                baseQuery = baseQuery.Where(r => EF.Functions.Like(r.ReceptionEntrance!.VehiclePlateNumber.ToLower(), $"%{plateSearch}%"));
             }
 
             if (request.DocumentType.HasValue)
@@ -324,14 +324,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
             {
                 var driverSearch = request.DriverName.Trim().ToLower();
                 baseQuery = baseQuery.Where(a => a.RecordEntrance.ReceptionEntrance != null 
-                                              && a.RecordEntrance.ReceptionEntrance.DriverName.ToLower().Contains(driverSearch));
+                                              && EF.Functions.Like(a.RecordEntrance.ReceptionEntrance.DriverName.ToLower(), $"%{driverSearch}%"));
             }
 
             if (!string.IsNullOrWhiteSpace(request.LicensePlate))
             {
                 var plateSearch = request.LicensePlate.Trim().ToLower();
                 baseQuery = baseQuery.Where(a => a.RecordEntrance.ReceptionEntrance != null 
-                                              && a.RecordEntrance.ReceptionEntrance.VehiclePlateNumber.ToLower().Contains(plateSearch));
+                                              && EF.Functions.Like(a.RecordEntrance.ReceptionEntrance.VehiclePlateNumber.ToLower(), $"%{plateSearch}%"));
             }
 
             var totalCount = await baseQuery.CountAsync(cancellationToken);

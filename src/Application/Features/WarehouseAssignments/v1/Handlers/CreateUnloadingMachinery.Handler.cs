@@ -9,7 +9,6 @@ using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
-using WarehouseAssignmentEntity = ERP.Core.Database.Domain.Entities.Warehouse.WarehouseAssignments;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Handlers
 {
@@ -25,7 +24,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
             if (!access.IsSuccess) return access.ErrorResponse!;
 
-            var assignment = await GetActiveAssignmentAsync(request.ReceptionId, request.EntranceDucatId, cancellationToken);
+            var assignment = await WarehouseAssignmentRules.GetActiveAssignmentAsync(
+                _unitOfWork, request.ReceptionId, request.EntranceDucatId, cancellationToken);
+
             if (assignment == null)
             {
                 return _errorManager.ThrowBadRequest<bool>(
@@ -69,19 +70,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return true;
-        }
-
-        private async Task<WarehouseAssignmentEntity?> GetActiveAssignmentAsync(
-            Guid receptionId, Guid? entranceDucatId, CancellationToken cancellationToken)
-        {
-            var query = _unitOfWork.WarehouseAssignments.Entities
-                .Where(a => a.RecordEntranceId == receptionId && a.DeletedAt == null);
-
-            query = entranceDucatId.HasValue
-                ? query.Where(a => a.EntranceDucatId == entranceDucatId.Value)
-                : query.Where(a => a.EntranceDucatId == null);
-
-            return await query.FirstOrDefaultAsync(cancellationToken);
         }
 
         private async Task<(bool IsSuccess, Guid? MachineryId)> ResolveInternalMachineryAndOperatorAsync(

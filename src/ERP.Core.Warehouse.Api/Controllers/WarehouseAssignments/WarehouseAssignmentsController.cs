@@ -41,8 +41,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseAssignments
             [FromBody] AssignWarehouseDto dto,
             CancellationToken cancellationToken = default)
         {
-            var userId = Guid.Parse(HttpContext.Items["UserId"] as string ?? Guid.Empty.ToString());
-            var command = dto.ToCommand(receptionId, userId, companyId, moduleCode);
+            var command = dto.ToCommand(receptionId, CurrentUserId, companyId, moduleCode);
             var result = await _mediator.Send(command, cancellationToken);
             return Ok(result);
         }
@@ -59,8 +58,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseAssignments
             [FromBody] AssignUnloadingCrewDto dto,
             CancellationToken cancellationToken = default)
         {
-            var userId = Guid.Parse(HttpContext.Items["UserId"] as string ?? Guid.Empty.ToString());
-            var command = dto.ToCommand(receptionId, userId, companyId, moduleCode);
+            var command = dto.ToCommand(receptionId, CurrentUserId, companyId, moduleCode);
             var result = await _mediator.Send(command, cancellationToken);
             return Ok(result);
         }
@@ -77,8 +75,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseAssignments
             [FromBody] AssignUnloadingMachineryDto dto,
             CancellationToken cancellationToken = default)
         {
-            var userId = Guid.Parse(HttpContext.Items["UserId"] as string ?? Guid.Empty.ToString());
-            var command = dto.ToCommand(receptionId, userId, companyId, moduleCode);
+            var command = dto.ToCommand(receptionId, CurrentUserId, companyId, moduleCode);
             var result = await _mediator.Send(command, cancellationToken);
             return Ok(result);
         }
@@ -98,12 +95,11 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseAssignments
             [FromQuery(Name = "page_size")] int pageSize = 10,
             CancellationToken cancellationToken = default)
         {
-            var userId = Guid.Parse(HttpContext.Items["UserId"] as string ?? Guid.Empty.ToString());
             var query = new GetPendingWarehouseAssignmentsQuery
             {
                 CompanyId = companyId,
                 ModuleCode = moduleCode,
-                UserId = userId,
+                UserId = CurrentUserId,
                 DriverName = driverName,
                 LicensePlate = licensePlate,
                 DocumentType = documentType,
@@ -124,12 +120,11 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseAssignments
             [FromRoute(Name = "module_code")] string moduleCode,
             CancellationToken cancellationToken = default)
         {
-            var userId = Guid.Parse(HttpContext.Items["UserId"] as string ?? Guid.Empty.ToString());
             var query = new GetWarehouseStaffsQuery
             {
                 CompanyId = companyId,
                 ModuleCode = moduleCode,
-                UserId = userId
+                UserId = CurrentUserId
             };
             var result = await _mediator.Send(query, cancellationToken);
             return Ok(result);
@@ -147,12 +142,11 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseAssignments
             [FromQuery(Name = "entrance_ducat_id")] Guid? entranceDucatId,
             CancellationToken cancellationToken = default)
         {
-            var userId = Guid.Parse(HttpContext.Items["UserId"] as string ?? Guid.Empty.ToString());
             var query = new GetWarehouseAssignmentByIdQuery 
             { 
                 CompanyId = companyId,
                 ModuleCode = moduleCode,
-                UserId = userId,
+                UserId = CurrentUserId,
                 ReceptionId = receptionId,
                 EntranceDucatId = entranceDucatId 
             };
@@ -174,12 +168,11 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseAssignments
             [FromQuery(Name = "page_size")] int pageSize = 10,
             CancellationToken cancellationToken = default)
         {
-            var userId = Guid.Parse(HttpContext.Items["UserId"] as string ?? Guid.Empty.ToString());
             var query = new GetWarehouseAssignmentsHistoryQuery
             {
                 CompanyId = companyId,
                 ModuleCode = moduleCode,
-                UserId = userId,
+                UserId = CurrentUserId,
                 DriverName = driverName,
                 LicensePlate = licensePlate,
                 PageNumber = pageNumber > 0 ? pageNumber : 1,
@@ -201,12 +194,11 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseAssignments
             [FromBody] CompleteWarehouseAssignmentDto dto,
             CancellationToken cancellationToken = default)
         {
-            var userId = Guid.Parse(HttpContext.Items["UserId"] as string ?? Guid.Empty.ToString());
             var command = new CompleteWarehouseAssignmentCommand
             {
                 ReceptionId = receptionId,
                 EntranceDucatId = dto.EntranceDucatId,
-                UserId = userId,
+                UserId = CurrentUserId,
                 CompanyId = companyId,
                 ModuleCode = moduleCode
             };

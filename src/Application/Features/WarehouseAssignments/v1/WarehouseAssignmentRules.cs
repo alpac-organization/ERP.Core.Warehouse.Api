@@ -1,8 +1,14 @@
 using System;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using ERP.Core.Database.Application.Commons.Interfaces.Bases;
+using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Commons.Constants;
+using WarehouseAssignmentEntity = ERP.Core.Database.Domain.Entities.Warehouse.WarehouseAssignments;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1
 {
@@ -42,6 +48,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1
                 _ => WarehouseType.General
             };
         }
+
+        public static async Task<WarehouseAssignmentEntity?> GetActiveAssignmentAsync(
+            IUnitOfWork unitOfWork, Guid receptionId, Guid? entranceDucatId, CancellationToken cancellationToken = default)
+        {
+            var query = unitOfWork.WarehouseAssignments.Entities
+                .Where(a => a.RecordEntranceId == receptionId && a.DeletedAt == null);
+
+            query = entranceDucatId.HasValue
+                ? query.Where(a => a.EntranceDucatId == entranceDucatId.Value)
+                : query.Where(a => a.EntranceDucatId == null);
+
+            return await query.FirstOrDefaultAsync(cancellationToken);
+        }
     }
 }
-
