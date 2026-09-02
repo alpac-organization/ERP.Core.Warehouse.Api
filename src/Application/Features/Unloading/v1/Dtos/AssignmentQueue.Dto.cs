@@ -8,8 +8,8 @@ public class AssignmentQueueItemDto
     public Guid AssignmentId { get; set; }
     public Guid RecordEntranceId { get; set; }
     public string? DucatNumber { get; set; }
+    public Guid DucatId { get; set; }
     public string? ServiceOrderCode { get; set; }
-    public Guid WarehouseId { get; set; }
     public string? WarehouseName { get; set; }
     [JsonConverter(typeof(JsonNumberEnumConverter<UnloadingStatus>))]
     public UnloadingStatus UnloadingStatus { get; set; }
