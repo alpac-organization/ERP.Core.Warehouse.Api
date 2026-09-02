@@ -28,10 +28,42 @@ public class UnloadingProfile : Profile
             .ForMember(d => d.UnloadingStatus, o => o.MapFrom(s => s.UnloadingStatus))
             .ForMember(d => d.AssignedAt, o => o.MapFrom(s => s.AssignedAt))
             .ForMember(d => d.WarehouseKeeperUserId, o => o.MapFrom(s => s.WarehouseKeeperUserId))
-            .ForMember(d => d.Machinery, o => o.MapFrom(s => s.MachineryAssignments));
+            .ForMember(d => d.WarehouseKeeperUserName, o => o.MapFrom((s, d, m, ctx) => (string?)ctx.Items["WarehouseKeeperUserName"] ?? s.WarehouseKeeperUserId))
+            .ForMember(d => d.Machinery, o => o.MapFrom(s => s.MachineryAssignments))
+            .ForMember(d => d.Crew, o => o.MapFrom((s, d, m, ctx) => BuildCrew(s.CrewAssignments, ctx.Items["CrewMemberNames"] as Dictionary<Guid, string> ?? new())));
 
         CreateMap<MachineryAssignments, MachineryAssignmentDto>()
             .ForMember(d => d.Code, o => o.MapFrom(s => s.Machinery != null ? s.Machinery.Code : null));
         #endregion
+    }
+
+    private static CrewSummaryDto BuildCrew(IEnumerable<CrewAssignments> crewAssignments, Dictionary<Guid, string> namesById)
+    {
+        var crewRows = crewAssignments.Where(c => c.DeletedAt == null).ToList();
+
+        var outsourcedRows = crewRows.Where(c => c.IsOutsourced).ToList();
+        if (outsourcedRows.Count > 0)
+        {
+            return new CrewSummaryDto
+            {
+                IsOutsourced = true,
+                PersonCount = outsourcedRows.Sum(c => c.PersonCount ?? 0),
+                MemberNames = []
+            };
+        }
+
+        var collaboratorIds = crewRows
+            .Where(c => c.CollaboratorId.HasValue)
+            .Select(c => c.CollaboratorId!.Value)
+            .ToList();
+
+        return new CrewSummaryDto
+        {
+            IsOutsourced = false,
+            PersonCount = collaboratorIds.Count,
+            MemberNames = collaboratorIds
+                .Select(id => namesById.GetValueOrDefault(id) ?? id.ToString())
+                .ToList()
+        };
     }
 }

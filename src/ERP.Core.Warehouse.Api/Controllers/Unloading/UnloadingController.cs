@@ -64,9 +64,7 @@ public class UnloadingController(IMediator mediator) : ApiControllerBase
         [FromRoute] Guid assignment_id,
         CancellationToken cancellationToken = default)
     {
-        var userIdStr = HttpContext.Items["UserId"] as string;
-        var parsed = Guid.TryParse(userIdStr, out var userId);
-        if (!parsed)
+        if (!TryGetUserId(out var userId))
         {
             userId = Guid.Empty;
         }

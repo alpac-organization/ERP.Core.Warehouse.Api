@@ -1,7 +1,6 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
-using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.Unloading.v1.Dtos;
@@ -23,6 +22,7 @@ public class GetUnloadingAssignmentDetailHandler(IUnitOfWork unitOfWork, IErrorM
 
         var assignment = await _unitOfWork.WarehouseAssignments.Entities
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(a => a.Warehouse)
             .Include(a => a.MachineryAssignments)
                 .ThenInclude(m => m.Machinery)
@@ -36,8 +36,7 @@ public class GetUnloadingAssignmentDetailHandler(IUnitOfWork unitOfWork, IErrorM
                 "ERP:ASSIGNMENT_NOT_FOUND");
         }
 
-        var dto = _mapper.Map<UnloadingAssignmentDetailDto>(assignment);
-
+        string? keeperNameFinal = assignment.WarehouseKeeperUserId;
         if (Guid.TryParse(assignment.WarehouseKeeperUserId, out var resolvedKeeperId))
         {
             var keeper = await _unitOfWork.Collaborators.Entities
@@ -48,64 +47,37 @@ public class GetUnloadingAssignmentDetailHandler(IUnitOfWork unitOfWork, IErrorM
 
             if (keeper != null)
             {
-                dto.WarehouseKeeperUserName = string.Join(" ",
+                keeperNameFinal = string.Join(" ",
                     new[] { keeper.FirstName, keeper.SecondName, keeper.FirstLastname, keeper.SecondLastname }
                         .Where(x => !string.IsNullOrWhiteSpace(x)));
             }
-            else
-            {
-                dto.WarehouseKeeperUserName = assignment.WarehouseKeeperUserId;
-            }
-        }
-        else
-        {
-            dto.WarehouseKeeperUserName = assignment.WarehouseKeeperUserId;
         }
 
-        dto.Crew = await BuildCrewAsync(assignment, cancellationToken);
-
-        return dto;
-    }
-
-    private async Task<CrewSummaryDto> BuildCrewAsync(WarehouseAssignments assignment, CancellationToken cancellationToken)
-    {
-        var crewRows = assignment.CrewAssignments.Where(c => c.DeletedAt == null).ToList();
-
-        var outsourcedRows = crewRows.Where(c => c.IsOutsourced).ToList();
-        if (outsourcedRows.Count > 0)
-        {
-            return new CrewSummaryDto
-            {
-                IsOutsourced = true,
-                PersonCount = outsourcedRows.Sum(c => c.PersonCount ?? 0),
-                MemberNames = []
-            };
-        }
-
-        var collaboratorIds = crewRows
-            .Where(c => c.CollaboratorId.HasValue)
+        var crewCollaboratorIds = assignment.CrewAssignments
+            .Where(c => c.DeletedAt == null && !c.IsOutsourced && c.CollaboratorId.HasValue)
             .Select(c => c.CollaboratorId!.Value)
             .ToList();
 
-        var names = await _unitOfWork.Collaborators.Entities
-            .AsNoTracking()
-            .Where(c => collaboratorIds.Contains(c.Id))
-            .Select(c => new { c.Id, c.FirstName, c.SecondName, c.FirstLastname, c.SecondLastname })
-            .ToListAsync(cancellationToken);
-
-        var namesById = names.ToDictionary(
-            c => c.Id,
-            c => string.Join(" ",
-                new[] { c.FirstName, c.SecondName, c.FirstLastname, c.SecondLastname }
-                    .Where(x => !string.IsNullOrWhiteSpace(x))));
-
-        return new CrewSummaryDto
+        Dictionary<Guid, string> crewNamesDict = [];
+        if (crewCollaboratorIds.Count > 0)
         {
-            IsOutsourced = false,
-            PersonCount = collaboratorIds.Count,
-            MemberNames = collaboratorIds
-                .Select(id => namesById.GetValueOrDefault(id) ?? id.ToString())
-                .ToList()
-        };
+            var names = await _unitOfWork.Collaborators.Entities
+                .AsNoTracking()
+                .Where(c => crewCollaboratorIds.Contains(c.Id))
+                .Select(c => new { c.Id, c.FirstName, c.SecondName, c.FirstLastname, c.SecondLastname })
+                .ToListAsync(cancellationToken);
+
+            crewNamesDict = names.ToDictionary(
+                c => c.Id,
+                c => string.Join(" ",
+                    new[] { c.FirstName, c.SecondName, c.FirstLastname, c.SecondLastname }
+                        .Where(x => !string.IsNullOrWhiteSpace(x))));
+        }
+
+        return _mapper.Map<UnloadingAssignmentDetailDto>(assignment, opts =>
+        {
+            opts.Items["WarehouseKeeperUserName"] = keeperNameFinal;
+            opts.Items["CrewMemberNames"] = crewNamesDict;
+        });
     }
 }
