@@ -99,7 +99,6 @@ public class UnloadingController(IMediator mediator) : ApiControllerBase
             AssignmentId = assignment_id,
             StartDate = body.StartDate,
             StartTime = body.StartTime,
-            ProcessedByUserName = body.ProcessedByUserName,
             MerchandiseType = body.MerchandiseType,
             Pallets = body.Pallets,
             Supplies = body.Supplies,

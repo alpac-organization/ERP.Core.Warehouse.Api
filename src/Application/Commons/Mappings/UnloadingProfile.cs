@@ -1,5 +1,8 @@
 using AutoMapper;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Warehouse;
+using ERP.Core.Warehouse.Api.Application.Commons.Constants;
+using ERP.Core.Warehouse.Api.Application.Features.Unloading.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Features.Unloading.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
@@ -67,3 +70,71 @@ public class UnloadingProfile : Profile
         };
     }
 }
+
+#region Unloading - Iniciar descarga
+public static class StartUnloadingMapper
+{
+    public static UnloadingDetails ToDetailsEntity(
+        this StartUnloadingCommand command,
+        DateOnly startDate,
+        TimeOnly startTime)
+    {
+        return new UnloadingDetails
+        {
+            Id = Guid.NewGuid(),
+            WarehouseAssignmentId = command.AssignmentId,
+            MerchandiseType = command.MerchandiseType
+        };
+    }
+
+    public static UnloadingPallets ToPalletEntity(
+        this StartUnloadingPalletItem item,
+        Guid unloadingDetailsId)
+    {
+        var isOversized = item.Type == PalletType.Oversized;
+
+        return new UnloadingPallets
+        {
+            Id = Guid.NewGuid(),
+            UnloadingDetailsId = unloadingDetailsId,
+            PalletType = item.Type,
+            Quantity = item.Quantity,
+            LengthMetres = isOversized ? item.LengthMetres : null,
+            WidthMetres = isOversized ? item.WidthMetres : null
+        };
+    }
+
+    public static UnloadingSupplies ToSupplyEntity(
+        this StartUnloadingSupplyItem item,
+        Guid unloadingDetailsId)
+    {
+        return new UnloadingSupplies
+        {
+            Id = Guid.NewGuid(),
+            UnloadingDetailsId = unloadingDetailsId,
+            SuppliesId = item.SuppliesId,
+            Quantity = item.Quantity
+        };
+    }
+
+    public static StepExecutionLogs ToStepExecutionLogEntity(
+        this StartUnloadingCommand command,
+        Guid recordEntranceId,
+        DateOnly startDate,
+        TimeOnly startTime,
+        string processedByUserId,
+        string processedByUserName)
+    {
+        return new StepExecutionLogs
+        {
+            Id = Guid.NewGuid(),
+            RecordEntranceId = recordEntranceId,
+            WorkflowStepDefinitionCode = WorkflowStepCodes.Unloading,
+            StartDate = startDate,
+            StartTime = startTime,
+            ProcessedByUserId = processedByUserId,
+            ProcessedByUserName = processedByUserName
+        };
+    }
+}
+#endregion

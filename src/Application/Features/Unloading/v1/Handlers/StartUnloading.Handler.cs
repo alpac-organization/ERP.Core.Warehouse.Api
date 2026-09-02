@@ -1,9 +1,8 @@
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Application.Commons.Interfaces;
-using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
+using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Commons.Constants;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
@@ -11,7 +10,7 @@ using ERP.Core.Warehouse.Api.Application.Features.Unloading.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Unloading.v1.Handlers;
 
-public class StartUnloadingHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
+public class StartUnloadingHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
     : BaseValidatorHandler<StartUnloadingCommand, bool>(unitOfWork, errorManager)
 {
     public override async Task<bool> Handle(StartUnloadingCommand request, CancellationToken cancellationToken)
@@ -55,12 +54,13 @@ public class StartUnloadingHandler(IUnitOfWork unitOfWork, IErrorManager errorMa
         var startDate = request.StartDate ?? NicaraguaClock.Today;
         var startTime = request.StartTime ?? NicaraguaClock.TimeNow;
 
+        var user = await _unitOfWork.Users.Entities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+        var processedByUserName = user?.Fullname ?? user?.UserName ?? request.UserId.ToString();
+
         #region 3. Insertar UnloadingDetails
-        var detail = new UnloadingDetails
-        {
-            WarehouseAssignmentId = request.AssignmentId,
-            MerchandiseType = request.MerchandiseType
-        };
+        var detail = request.ToDetailsEntity(startDate, startTime);
 
         await _unitOfWork.UnloadingDetails.InsertUnloadingDetail(detail);
         #endregion
@@ -68,14 +68,7 @@ public class StartUnloadingHandler(IUnitOfWork unitOfWork, IErrorManager errorMa
         #region 4. Insertar UnloadingPallets
         foreach (var pallet in request.Pallets)
         {
-            var palletEntity = new UnloadingPallets
-            {
-                UnloadingDetailsId = detail.Id,
-                PalletType = pallet.Type,
-                Quantity = pallet.Quantity,
-                LengthMetres = pallet.Type == PalletType.Standard ? (decimal?)null : pallet.LenghtMetres,
-                WidthMetres = pallet.Type == PalletType.Standard ? (decimal?)null : pallet.WidthMetres
-            };
+            var palletEntity = pallet.ToPalletEntity(detail.Id);
 
             await _unitOfWork.UnloadingPallets.InsertUnloadingPallet(palletEntity);
         }
@@ -84,12 +77,7 @@ public class StartUnloadingHandler(IUnitOfWork unitOfWork, IErrorManager errorMa
         #region 5. Insertar UnloadingSupplies
         foreach (var supply in request.Supplies)
         {
-            var supplyEntity = new UnloadingSupplies
-            {
-                UnloadingDetailsId = detail.Id,
-                Description = supply.Description,
-                Quantity = supply.Quantity
-            };
+            var supplyEntity = supply.ToSupplyEntity(detail.Id);
 
             await _unitOfWork.UnloadingSupplies.InsertUnloadingSupplie(supplyEntity);
         }
@@ -107,15 +95,12 @@ public class StartUnloadingHandler(IUnitOfWork unitOfWork, IErrorManager errorMa
         #endregion
 
         #region 7. Insertar StepExecutionLog (DESC)
-        var executionLog = new StepExecutionLogs
-        {
-            RecordEntranceId = assignment.RecordEntranceId,
-            WorkflowStepDefinitionCode = WorkflowStepCodes.Unloading,
-            StartDate = startDate,
-            StartTime = startTime,
-            ProcessedByUserId = request.UserId.ToString(),
-            ProcessedByUserName = request.ProcessedByUserName
-        };
+        var executionLog = request.ToStepExecutionLogEntity(
+            assignment.RecordEntranceId,
+            startDate,
+            startTime,
+            request.UserId.ToString(),
+            processedByUserName);
 
         await _unitOfWork.StepExecutionLogs.InsertExecutionLog(executionLog);
         #endregion

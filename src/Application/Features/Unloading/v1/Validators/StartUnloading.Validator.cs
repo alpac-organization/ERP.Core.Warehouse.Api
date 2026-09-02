@@ -13,10 +13,6 @@ public class StartUnloadingValidator : BaseRequestValidator<StartUnloadingComman
             .NotEmpty().WithMessage("El identificador de la asignación no puede estar vacío.")
             .NotEqual(Guid.Empty).WithMessage("El identificador de la asignación no es válido.");
 
-        RuleFor(x => x.ProcessedByUserName)
-            .NotEmpty().WithMessage("El nombre del usuario que inicia la descarga es obligatorio.")
-            .MaximumLength(450).WithMessage("El nombre del usuario no puede superar los 450 caracteres.");
-
         RuleFor(x => x.MerchandiseType)
             .IsInEnum().WithMessage("El tipo de mercadería no es válido.");
 
@@ -42,10 +38,10 @@ public class StartUnloadingPalletItemValidator : AbstractValidator<StartUnloadin
         RuleFor(x => x.Quantity)
             .GreaterThan(0).WithMessage("La cantidad de polines debe ser mayor a cero (0).");
 
-        RuleFor(x => x.LenghtMetres)
+        RuleFor(x => x.LengthMetres)
             .NotNull().When(x => x.Type == PalletType.Oversized)
             .WithMessage("El largo del polín es obligatorio para polines sobredimensionados.")
-            .GreaterThan(0).When(x => x.LenghtMetres.HasValue)
+            .GreaterThan(0).When(x => x.LengthMetres.HasValue)
             .WithMessage("El largo del polín debe ser mayor a cero (0).");
 
         RuleFor(x => x.WidthMetres)
@@ -60,9 +56,9 @@ public class StartUnloadingSupplyItemValidator : AbstractValidator<StartUnloadin
 {
     public StartUnloadingSupplyItemValidator()
     {
-        RuleFor(x => x.Description)
-            .NotEmpty().WithMessage("La descripción del insumo es obligatoria.")
-            .MaximumLength(500).WithMessage("La descripción del insumo no puede superar los 500 caracteres.");
+        RuleFor(x => x.SuppliesId)
+            .NotEmpty().WithMessage("El identificador del insumo no puede estar vacío.")
+            .NotEqual(Guid.Empty).WithMessage("El identificador del insumo no es válido.");
 
         RuleFor(x => x.Quantity)
             .GreaterThan(0).WithMessage("La cantidad del insumo debe ser mayor a cero (0).");
