@@ -2,66 +2,6 @@ using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 
-public class RackDto
-{
-    public Guid RackId { get; set; }
-    public Guid SectionId { get; set; }
-    public string? Code { get; set; }
-    public decimal WidthMetres { get; set; }
-    public decimal LengthMetres { get; set; }
-    public decimal? HeightMetres { get; set; }
-    public string? UsageProfile { get; set; }
-    public int RowNumber { get; set; }
-    public int LevelNumber { get; set; }
-    public int MaxPulleys { get; set; }
-    public string? Status { get; set; }
-    public string? UnavailableReason { get; set; }
-    public DateTime? StatusChangedAt { get; set; }
-
-    public int TotalPositions { get; set; }
-    public int OccupiedPositions { get; set; }
-    public List<RackPositionDto> Positions { get; set; } = [];
-}
-
-public class RegisterRacksBulkDto
-{
-    public string? ShelfCode { get; set; }
-    public int? StartingDepositNumber { get; set; }
-    public List<RackLevelSpecDto> Levels { get; set; } = [];
-}
-
-public class RackLevelSpecDto
-{
-    public int LevelNumber { get; set; }
-    public int RacksCount { get; set; }
-
-    public decimal WidthMetres { get; set; }
-    public decimal LengthMetres { get; set; }
-    public decimal? HeightMetres { get; set; }
-
-    public RackUsageProfile UsageProfile { get; set; }
-    public int MaxPulleys { get; set; } = 2;
-    public RackStatus Status { get; set; } = RackStatus.Available;
-    public string? UnavailableReason { get; set; }
-}
-
-public class RegisterRacksBulkResultDto
-{
-    public Guid SectionId { get; set; }
-    public decimal SectionLengthMetres { get; set; }
-    public int TotalRequested { get; set; }
-    public int TotalCreated { get; set; }
-    public List<LevelCapacityDto> LevelCapacity { get; set; } = [];
-}
-
-public class LevelCapacityDto
-{
-    public int LevelNumber { get; set; }
-    public int RacksCount { get; set; }
-    public decimal UsedLengthMetres { get; set; } 
-    public decimal AvailableLengthMetres { get; set; }
-}
-
 public class RackPositionDto
 {
     public Guid PositionId { get; set; }
@@ -76,9 +16,17 @@ public class RackListDto
 {
     public Guid RackId { get; set; }
     public string Code { get; set; } = null!;
+
+    public Guid SectionId { get; set; }
     public int LevelNumber { get; set; }
     public int RowNumber { get; set; }
     public RackStatus Status { get; set; }
+    public decimal WidthMetres { get; set; }
+    public decimal LengthMetres { get; set; }
+    public decimal? HeightMetres { get; set; }
+
+    public RackUsageProfile UsageProfile { get; set; }
+
     public int TotalPositions { get; set; }
     public int OccupiedPositions { get; set; }
     public List<RackPositionDto> Positions { get; set; } = [];
