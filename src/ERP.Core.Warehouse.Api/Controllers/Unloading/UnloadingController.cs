@@ -4,8 +4,10 @@ using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Domain.Entities.Errors;
 using ERP.Core.Infrastructure.Attributes;
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
+using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.Unloading.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Unloading.v1.Queries;
+using ERP.Core.Warehouse.Api.Application.Features.Unloading.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Controllers.Unloading;
 
@@ -78,4 +80,43 @@ public class UnloadingController(IMediator mediator) : ApiControllerBase
         }, cancellationToken);
     }
     #endregion
+
+    #region Issue 3 - Iniciar descarga
+    [Tags("Descarga")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/unloading/assignment-queue/{assignment_id}/start")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public Task<IActionResult> StartUnloadingAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid assignment_id,
+        [FromBody] StartUnloadingCommand body,
+        CancellationToken cancellationToken)
+        => SendAsync(new StartUnloadingCommand
+        {
+            AssignmentId = assignment_id,
+            StartDate = body.StartDate,
+            StartTime = body.StartTime,
+            ProcessedByUserName = body.ProcessedByUserName,
+            MerchandiseType = body.MerchandiseType,
+            Pallets = body.Pallets,
+            Supplies = body.Supplies,
+            CompanyId = company_id,
+            ModuleCode = module_code
+        }, cancellationToken);
+    #endregion
+
+    private async Task<IActionResult> SendAsync<TRequest>(TRequest request,
+        CancellationToken ct, bool created = false)
+        where TRequest : BaseRequest
+    {
+        if (!TryGetUserId(out var userId))
+            return Unauthorized();
+
+        request.UserId = userId;
+        var response = await mediator.Send(request, ct);
+        return created ? Created(string.Empty, response) : Ok(response);
+    }
 }
