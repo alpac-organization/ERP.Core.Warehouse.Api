@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Domain.Entities.Errors;
+using ERP.Core.Domain.Entities.Exceptions;
 using ERP.Core.Infrastructure.Attributes;
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
@@ -115,7 +116,14 @@ public class UnloadingController(IMediator mediator) : ApiControllerBase
             return Unauthorized();
 
         request.UserId = userId;
-        var response = await mediator.Send(request, ct);
-        return created ? Created(string.Empty, response) : Ok(response);
+        try
+        {
+            var response = await mediator.Send(request, ct);
+            return created ? Created(string.Empty, response) : Ok(response);
+        }
+        catch (CoreException ex)
+        {
+            return BadRequest(ex.ErrorData);
+        }
     }
 }

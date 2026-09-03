@@ -11,7 +11,7 @@ public class UnloadingProfile : Profile
 {
     public UnloadingProfile()
     {
-        #region Unloading - Queue
+        #region Queue
         CreateMap<WarehouseAssignments, AssignmentQueueItemDto>()
             .ForMember(d => d.AssignmentId, o => o.MapFrom(s => s.Id))
             .ForMember(d => d.RecordEntranceId, o => o.MapFrom(s => s.RecordEntranceId))
@@ -22,7 +22,7 @@ public class UnloadingProfile : Profile
             .ForMember(d => d.UnloadingStatus, o => o.MapFrom(s => s.UnloadingStatus));
         #endregion
 
-        #region Unloading - Detalle de asignación
+        #region Detalle de asignación
         CreateMap<WarehouseAssignments, UnloadingAssignmentDetailDto>()
             .ForMember(d => d.AssignmentId, o => o.MapFrom(s => s.Id))
             .ForMember(d => d.RecordEntranceId, o => o.MapFrom(s => s.RecordEntranceId))
@@ -31,12 +31,40 @@ public class UnloadingProfile : Profile
             .ForMember(d => d.UnloadingStatus, o => o.MapFrom(s => s.UnloadingStatus))
             .ForMember(d => d.AssignedAt, o => o.MapFrom(s => s.AssignedAt))
             .ForMember(d => d.WarehouseKeeperUserId, o => o.MapFrom(s => s.WarehouseKeeperUserId))
-            .ForMember(d => d.WarehouseKeeperUserName, o => o.MapFrom((s, d, m, ctx) => (string?)ctx.Items["WarehouseKeeperUserName"] ?? s.WarehouseKeeperUserId))
+            .ForMember(d => d.WarehouseKeeperUserName, o => o.MapFrom((s, d, m, ctx) => ctx.Items["WarehouseKeeperUserName"] as string))
             .ForMember(d => d.Machinery, o => o.MapFrom(s => s.MachineryAssignments))
             .ForMember(d => d.Crew, o => o.MapFrom((s, d, m, ctx) => BuildCrew(s.CrewAssignments, ctx.Items["CrewMemberNames"] as Dictionary<Guid, string> ?? new())));
 
         CreateMap<MachineryAssignments, MachineryAssignmentDto>()
             .ForMember(d => d.Code, o => o.MapFrom(s => s.Machinery != null ? s.Machinery.Code : null));
+        #endregion
+
+        #region Iniciar descarga
+        CreateMap<StartUnloadingCommand, UnloadingDetails>()
+            .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
+            .ForMember(d => d.WarehouseAssignmentId, o => o.MapFrom(s => s.AssignmentId))
+            .ForMember(d => d.MerchandiseType, o => o.MapFrom(s => s.MerchandiseType));
+
+        CreateMap<StartUnloadingPalletItem, UnloadingPallets>()
+            .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
+            .ForMember(d => d.UnloadingDetailsId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["UnloadingDetailsId"]))
+            .ForMember(d => d.PalletType, o => o.MapFrom(s => s.Type))
+            .ForMember(d => d.LengthMetres, o => o.MapFrom((s, d, m, ctx) => s.Type == PalletType.Oversized ? s.LengthMetres : null))
+            .ForMember(d => d.WidthMetres, o => o.MapFrom((s, d, m, ctx) => s.Type == PalletType.Oversized ? s.WidthMetres : null));
+
+        CreateMap<StartUnloadingSupplyItem, UnloadingSupplies>()
+            .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
+            .ForMember(d => d.UnloadingDetailsId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["UnloadingDetailsId"]))
+            .ForMember(d => d.SuppliesId, o => o.MapFrom(s => s.SuppliesId));
+
+        CreateMap<StartUnloadingCommand, StepExecutionLogs>()
+            .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
+            .ForMember(d => d.RecordEntranceId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["RecordEntranceId"]))
+            .ForMember(d => d.WorkflowStepDefinitionCode, o => o.MapFrom(_ => WorkflowStepCodes.Unloading))
+            .ForMember(d => d.StartDate, o => o.MapFrom(s => s.StartDate))
+            .ForMember(d => d.StartTime, o => o.MapFrom(s => s.StartTime))
+            .ForMember(d => d.ProcessedByUserId, o => o.MapFrom(s => s.UserId.ToString()))
+            .ForMember(d => d.ProcessedByUserName, o => o.MapFrom((src, dest, destMember, ctx) => (string)ctx.Items["ProcessedByUserName"]));
         #endregion
     }
 
@@ -70,71 +98,3 @@ public class UnloadingProfile : Profile
         };
     }
 }
-
-#region Unloading - Iniciar descarga
-public static class StartUnloadingMapper
-{
-    public static UnloadingDetails ToDetailsEntity(
-        this StartUnloadingCommand command,
-        DateOnly startDate,
-        TimeOnly startTime)
-    {
-        return new UnloadingDetails
-        {
-            Id = Guid.NewGuid(),
-            WarehouseAssignmentId = command.AssignmentId,
-            MerchandiseType = command.MerchandiseType
-        };
-    }
-
-    public static UnloadingPallets ToPalletEntity(
-        this StartUnloadingPalletItem item,
-        Guid unloadingDetailsId)
-    {
-        var isOversized = item.Type == PalletType.Oversized;
-
-        return new UnloadingPallets
-        {
-            Id = Guid.NewGuid(),
-            UnloadingDetailsId = unloadingDetailsId,
-            PalletType = item.Type,
-            Quantity = item.Quantity,
-            LengthMetres = isOversized ? item.LengthMetres : null,
-            WidthMetres = isOversized ? item.WidthMetres : null
-        };
-    }
-
-    public static UnloadingSupplies ToSupplyEntity(
-        this StartUnloadingSupplyItem item,
-        Guid unloadingDetailsId)
-    {
-        return new UnloadingSupplies
-        {
-            Id = Guid.NewGuid(),
-            UnloadingDetailsId = unloadingDetailsId,
-            SuppliesId = item.SuppliesId,
-            Quantity = item.Quantity
-        };
-    }
-
-    public static StepExecutionLogs ToStepExecutionLogEntity(
-        this StartUnloadingCommand command,
-        Guid recordEntranceId,
-        DateOnly startDate,
-        TimeOnly startTime,
-        string processedByUserId,
-        string processedByUserName)
-    {
-        return new StepExecutionLogs
-        {
-            Id = Guid.NewGuid(),
-            RecordEntranceId = recordEntranceId,
-            WorkflowStepDefinitionCode = WorkflowStepCodes.Unloading,
-            StartDate = startDate,
-            StartTime = startTime,
-            ProcessedByUserId = processedByUserId,
-            ProcessedByUserName = processedByUserName
-        };
-    }
-}
-#endregion

@@ -1,8 +1,9 @@
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
-using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Commons.Constants;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
@@ -10,9 +11,11 @@ using ERP.Core.Warehouse.Api.Application.Features.Unloading.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Unloading.v1.Handlers;
 
-public class StartUnloadingHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
+public class StartUnloadingHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
     : BaseValidatorHandler<StartUnloadingCommand, bool>(unitOfWork, errorManager)
 {
+    private readonly IMapper _mapper = mapper;
+
     public override async Task<bool> Handle(StartUnloadingCommand request, CancellationToken cancellationToken)
     {
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
@@ -33,7 +36,9 @@ public class StartUnloadingHandler(IUnitOfWork unitOfWork, IErrorManager errorMa
         #region 2. Obtener y validar asignación
         var assignment = await _unitOfWork.WarehouseAssignments.Entities
             .AsNoTracking()
-            .FirstOrDefaultAsync(a => a.Id == request.AssignmentId && a.DeletedAt == null, cancellationToken);
+            .Where(a => a.Id == request.AssignmentId && a.DeletedAt == null)
+            .Select(a => new { a.Id, a.RecordEntranceId, a.UnloadingStatus })
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (assignment is null)
         {
@@ -50,9 +55,30 @@ public class StartUnloadingHandler(IUnitOfWork unitOfWork, IErrorManager errorMa
         }
         #endregion
 
+        #region 2.5. Obtener y validar registro de recepción
+        var recordEntrance = await _unitOfWork.RecordEntrance.Entities
+            .AsNoTracking()
+            .Where(r => r.Id == assignment.RecordEntranceId && r.DeletedAt == null)
+            .Select(r => new { r.Id, r.CurrentStepCode, r.Status })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (recordEntrance is null)
+        {
+            return _errorManager.ThrowBadRequest<bool>(
+                "El registro de recepción no fue encontrado o ya ha sido eliminado.",
+                "ERP:RECEPTION_NOT_FOUND");
+        }
+
+        if (recordEntrance.Status == RecordEntranceStatus.Completed ||
+            recordEntrance.Status == RecordEntranceStatus.Abandoned)
+        {
+            return _errorManager.ThrowBadRequest<bool>(
+                "No se puede iniciar la descarga porque el registro ya está completado o abandonado.",
+                "ERP:RECORD_ALREADY_CLOSED");
+        }
+        #endregion
+
         var now = NicaraguaClock.Now;
-        var startDate = request.StartDate ?? NicaraguaClock.Today;
-        var startTime = request.StartTime ?? NicaraguaClock.TimeNow;
 
         var user = await _unitOfWork.Users.Entities
             .AsNoTracking()
@@ -60,7 +86,7 @@ public class StartUnloadingHandler(IUnitOfWork unitOfWork, IErrorManager errorMa
         var processedByUserName = user?.Fullname ?? user?.UserName ?? request.UserId.ToString();
 
         #region 3. Insertar UnloadingDetails
-        var detail = request.ToDetailsEntity(startDate, startTime);
+        var detail = _mapper.Map<UnloadingDetails>(request);
 
         await _unitOfWork.UnloadingDetails.InsertUnloadingDetail(detail);
         #endregion
@@ -68,7 +94,8 @@ public class StartUnloadingHandler(IUnitOfWork unitOfWork, IErrorManager errorMa
         #region 4. Insertar UnloadingPallets
         foreach (var pallet in request.Pallets)
         {
-            var palletEntity = pallet.ToPalletEntity(detail.Id);
+            var palletEntity = _mapper.Map<UnloadingPallets>(pallet, opts =>
+                opts.Items["UnloadingDetailsId"] = detail.Id);
 
             await _unitOfWork.UnloadingPallets.InsertUnloadingPallet(palletEntity);
         }
@@ -77,35 +104,44 @@ public class StartUnloadingHandler(IUnitOfWork unitOfWork, IErrorManager errorMa
         #region 5. Insertar UnloadingSupplies
         foreach (var supply in request.Supplies)
         {
-            var supplyEntity = supply.ToSupplyEntity(detail.Id);
+            var supplyEntity = _mapper.Map<UnloadingSupplies>(supply, opts =>
+                opts.Items["UnloadingDetailsId"] = detail.Id);
 
             await _unitOfWork.UnloadingSupplies.InsertUnloadingSupplie(supplyEntity);
         }
         #endregion
 
-        #region 6. Actualizar estado de la asignación
-        var assignmentUpdate = await _unitOfWork.WarehouseAssignments.Entities
-            .FirstOrDefaultAsync(a => a.Id == request.AssignmentId, cancellationToken);
-
-        if (assignmentUpdate is not null)
+        #region 6. Insertar StepExecutionLog (DESC)
+        var executionLog = _mapper.Map<StepExecutionLogs>(request, opts =>
         {
-            assignmentUpdate.UnloadingStatus = UnloadingStatus.InProgress;
-            assignmentUpdate.UnloadingStartTime = now;
-        }
-        #endregion
-
-        #region 7. Insertar StepExecutionLog (DESC)
-        var executionLog = request.ToStepExecutionLogEntity(
-            assignment.RecordEntranceId,
-            startDate,
-            startTime,
-            request.UserId.ToString(),
-            processedByUserName);
+            opts.Items["RecordEntranceId"] = assignment.RecordEntranceId;
+            opts.Items["ProcessedByUserName"] = processedByUserName;
+        });
 
         await _unitOfWork.StepExecutionLogs.InsertExecutionLog(executionLog);
         #endregion
 
+        #region 7. Persistir inserts y actualizar estado de la asignación
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await _unitOfWork.WarehouseAssignments.Entities
+            .Where(a => a.Id == request.AssignmentId && a.DeletedAt == null)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(a => a.UnloadingStatus, UnloadingStatus.InProgress)
+                .SetProperty(a => a.UnloadingStartTime, now),
+                cancellationToken);
+
+        if (recordEntrance.Status != RecordEntranceStatus.Unloading ||
+            recordEntrance.CurrentStepCode != WorkflowStepCodes.Unloading)
+        {
+            await _unitOfWork.RecordEntrance.Entities
+                .Where(r => r.Id == assignment.RecordEntranceId && r.DeletedAt == null)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(r => r.CurrentStepCode, WorkflowStepCodes.Unloading)
+                    .SetProperty(r => r.Status, RecordEntranceStatus.Unloading),
+                    cancellationToken);
+        }
+        #endregion
 
         return true;
     }

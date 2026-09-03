@@ -1,6 +1,7 @@
 using FluentValidation;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Commons.Bases;
+using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Features.Unloading.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Unloading.v1.Validators;
@@ -16,13 +17,18 @@ public class StartUnloadingValidator : BaseRequestValidator<StartUnloadingComman
         RuleFor(x => x.MerchandiseType)
             .IsInEnum().WithMessage("El tipo de mercadería no es válido.");
 
+        RuleFor(x => x.StartDate)
+            .NotNull().WithMessage("La fecha de inicio es obligatoria.")
+            .LessThanOrEqualTo(NicaraguaClock.Today)
+                .WithMessage("La fecha de inicio no puede ser una fecha futura.");
+
+        RuleFor(x => x.StartTime)
+            .NotNull().WithMessage("La hora de inicio es obligatoria.");
+
         RuleFor(x => x.Pallets)
             .NotEmpty().WithMessage("Debe declarar al menos un polín para iniciar la descarga.");
 
         RuleForEach(x => x.Pallets).SetValidator(new StartUnloadingPalletItemValidator());
-
-        RuleFor(x => x.Supplies)
-            .NotEmpty().WithMessage("Debe declarar al menos un insumo para iniciar la descarga.");
 
         RuleForEach(x => x.Supplies).SetValidator(new StartUnloadingSupplyItemValidator());
     }

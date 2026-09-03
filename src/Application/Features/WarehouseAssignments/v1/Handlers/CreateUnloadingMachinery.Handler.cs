@@ -57,7 +57,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
 
             var machineryAssignment = _mapper.Map<MachineryAssignments>(request);
             machineryAssignment.WarehouseAssignmentId = assignment.Id;
-            machineryAssignment.MachineryCode = internalMachineryId;
+            machineryAssignment.MachineryId = internalMachineryId;
             machineryAssignment.OperatorCollaboratorId = request.IsOutsourced ? null : request.OperatorCollaboratorId;
             machineryAssignment.ProviderName = request.IsOutsourced ? request.ProviderName?.Trim() : null;
             machineryAssignment.InvoiceNumber = request.IsOutsourced ? request.InvoiceNumber?.Trim() : null;

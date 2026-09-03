@@ -288,7 +288,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                 {
                     MachineryAssignmentId = m.Id,
                     IsOutsourced = m.IsOutsourced,
-                    MachineryId = m.MachineryCode,
+                    MachineryId = m.MachineryId,
                     MachineryCode = !m.IsOutsourced && m.Machinery != null ? m.Machinery.Code : null,
                     MachineryName = !m.IsOutsourced && m.Machinery != null ? m.Machinery.Name : null,
                     OperatorCollaboratorId = m.OperatorCollaboratorId,

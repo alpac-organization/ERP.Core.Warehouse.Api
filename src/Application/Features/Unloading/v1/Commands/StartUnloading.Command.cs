@@ -13,6 +13,7 @@ public class StartUnloadingCommand : BaseRequest, IRequest<bool>
     public DateOnly? StartDate { get; set; }
     public TimeOnly? StartTime { get; set; }
 
+    [JsonConverter(typeof(JsonNumberEnumConverter<UnloadingMerchandiseType>))]
     public UnloadingMerchandiseType MerchandiseType { get; set; }
     public List<StartUnloadingPalletItem> Pallets { get; set; } = [];
     public List<StartUnloadingSupplyItem> Supplies { get; set; } = [];
@@ -20,6 +21,7 @@ public class StartUnloadingCommand : BaseRequest, IRequest<bool>
 
 public class StartUnloadingPalletItem
 {
+    [JsonConverter(typeof(JsonNumberEnumConverter<PalletType>))]
     public PalletType Type { get; set; }
     public int Quantity { get; set; }
     public decimal? LengthMetres { get; set; }
