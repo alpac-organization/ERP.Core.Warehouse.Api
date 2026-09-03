@@ -82,6 +82,32 @@ public class UnloadingController(IMediator mediator) : ApiControllerBase
     }
     #endregion
 
+    #region Detalle de descarga
+    [Tags("Descarga")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/unloading/assignment-queue/{assignment_id}/detail")]
+    [ProducesResponseType(typeof(UnloadingDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<UnloadingDetailDto> GetUnloadingDetailAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid assignment_id,
+        CancellationToken cancellationToken = default)
+    {
+        if (!TryGetUserId(out var userId))
+            userId = Guid.Empty;
+
+        return await mediator.Send(new GetUnloadingDetailQuery
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = userId,
+            AssignmentId = assignment_id
+        }, cancellationToken);
+    }
+    #endregion
+
     #region Issue 3 - Iniciar descarga
     [Tags("Descarga")]
     [HttpPost("companies/{company_id}/modules/{module_code}/unloading/assignment-queue/{assignment_id}/start")]
