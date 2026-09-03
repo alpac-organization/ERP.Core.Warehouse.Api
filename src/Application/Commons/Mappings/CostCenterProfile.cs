@@ -1,6 +1,6 @@
 using AutoMapper;
+using ERP.Core.Database.Domain.Entities.Bases;
 using ERP.Core.Database.Domain.Entities.Catalogs;
-using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
