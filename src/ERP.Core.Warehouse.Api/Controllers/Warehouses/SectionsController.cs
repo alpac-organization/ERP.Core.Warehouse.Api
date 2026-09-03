@@ -76,4 +76,29 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
         }, cancellationToken);
     }
 
+    [Tags("Secciones")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}/sections/{section_id}")]
+    [ProducesResponseType(typeof(SectionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<SectionDto> GetSectionByIdAsync(
+    [FromRoute] Guid company_id,
+    [FromRoute] string module_code,
+    [FromRoute] Guid warehouse_id,
+    [FromRoute] Guid section_id,
+    CancellationToken cancellationToken = default)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        Guid.TryParse(userIdStr, out var userId);
+
+        return await _mediator.Send(new GetSectionByIdQuery
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = userId,
+            WarehouseId = warehouse_id,
+            SectionId = section_id,
+        }, cancellationToken);
+    }
+
 }

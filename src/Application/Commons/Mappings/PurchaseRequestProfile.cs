@@ -18,15 +18,11 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(dest => dest.PurchaseRequestId, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.Observations, opt => opt.MapFrom(src => src.Concept))
 
+                .ForPath(dest => dest.BranchInformation,      opt => opt.MapFrom(src => src.Branch))
                 .ForPath(dest => dest.InformationFromRequestingArea, opt => opt.MapFrom(src => src.WorkArea))
 
-                .ForPath(dest => dest.BranchInformation,      opt => opt.MapFrom(src => src.Branch))
-
-                .ForPath(dest => dest.CreatorUserInformation, opt => opt.MapFrom(src => src.RegistrationUser))
-                .ForPath(dest => dest.CreatorUserInformation.WorkAreaInformation, opt => opt.MapFrom(src => src.RegistrationUser.WorkArea))
-
                 .ForPath(dest => dest.ReviewerUserInformation, opt => opt.MapFrom(src => src.UserRevision))
-                .ForPath(dest => dest.ReviewerUserInformation!.WorkAreaInformation, opt => opt.MapFrom(src => src.UserRevision.WorkArea));
+                .ForPath(dest => dest.CreatorUserInformation, opt => opt.MapFrom(src => src.RegistrationUser));
         }
     }
 
