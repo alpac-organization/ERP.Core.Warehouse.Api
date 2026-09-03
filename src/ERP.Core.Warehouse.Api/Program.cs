@@ -59,6 +59,8 @@ var app = builder.Build();
 //Casos de uso, (Middlewares, Cors..., etc)
 app.UseRouting();
 
+app.UseMiddleware<ERP.Core.Warehouse.Api.Middlewares.RequestLoggingMiddleware>();
+
 app.UseCors("ViteLocalPolicy");
 
 //Middlewares..
