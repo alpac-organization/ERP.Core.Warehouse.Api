@@ -66,6 +66,19 @@ public class ReserveUnloadingPositionsHandler(IUnitOfWork unitOfWork, IErrorMana
             .SumAsync(cancellationToken);
         #endregion
 
+        #region 2.5. Validar que la descarga no tenga ya posiciones reservadas
+        var alreadyReserved = await _unitOfWork.UnloadingPositionsReservations.Entities
+            .AsNoTracking()
+            .AnyAsync(r => r.UnloadingDetailsId == unloading.Id && r.DeletedAt == null, cancellationToken);
+
+        if (alreadyReserved)
+        {
+            return _errorManager.ThrowBadRequest<bool>(
+                "La descarga ya tiene posiciones reservadas; no se pueden volver a reservar.",
+                "ERP:POSITIONS_ALREADY_RESERVED");
+        }
+        #endregion
+
         #region 3. Validar que el número de posiciones iguale al de polines declarados (un polín por posición)
         if (request.Positions.Count != declaredTotal)
         {
@@ -75,12 +88,22 @@ public class ReserveUnloadingPositionsHandler(IUnitOfWork unitOfWork, IErrorMana
         }
         #endregion
 
-        #region 4. Primera pasada: validar que todas las posiciones existan y estén libres (sin mutar ni insertar)
+        #region 4. Primera pasada: validar unicidad, existencia y disponibilidad de todas las posiciones (sin mutar ni insertar)
+        var seen = new HashSet<Guid>();
         var validated = new List<ValidatedPosition>();
 
         foreach (var item in request.Positions)
         {
-            validated.Add(await ValidateFreePositionAsync(item, cancellationToken));
+            var positionId = item.RackPositionId ?? item.LotPositionId;
+
+            if (positionId is not null && !seen.Add(positionId.Value))
+            {
+                return _errorManager.ThrowBadRequest<bool>(
+                    "Una posición no puede reservarse más de una vez por descarga.",
+                    "ERP:DUPLICATE_POSITION");
+            }
+
+            validated.Add(await ValidateFreePositionAsync(item, unloading.Id, cancellationToken));
         }
         #endregion
 
@@ -124,7 +147,7 @@ public class ReserveUnloadingPositionsHandler(IUnitOfWork unitOfWork, IErrorMana
         return true;
     }
 
-    private async Task<ValidatedPosition> ValidateFreePositionAsync(PositionReservationItemDto item, CancellationToken ct)
+    private async Task<ValidatedPosition> ValidateFreePositionAsync(PositionReservationItemDto item, Guid unloadingDetailsId, CancellationToken ct)
     {
         if (item.RackPositionId.HasValue)
         {
@@ -139,13 +162,9 @@ public class ReserveUnloadingPositionsHandler(IUnitOfWork unitOfWork, IErrorMana
                 return ValidatedPosition.Empty();
             }
 
-            if (target.IsOccupied || target.IsReserved || target.IsBlocked)
-            {
-                _errorManager.ThrowBadRequest<object>(
-                    $"La posición destino rack {target.PositionCode} ({target.Id}) no está disponible.",
-                    "ERP:TARGET_POSITION_NOT_AVAILABLE");
-                return ValidatedPosition.Empty();
-            }
+            await ValidateAvailabilityAsync(
+                target.IsOccupied, target.IsReserved, target.IsBlocked,
+                "rack", target.PositionCode, target.Id, unloadingDetailsId, ct);
 
             return new ValidatedPosition(target, null);
         }
@@ -163,13 +182,9 @@ public class ReserveUnloadingPositionsHandler(IUnitOfWork unitOfWork, IErrorMana
                 return ValidatedPosition.Empty();
             }
 
-            if (target.IsOccupied || target.IsReserved || target.IsBlocked)
-            {
-                _errorManager.ThrowBadRequest<object>(
-                    $"La posición destino tramo {target.PositionCode} ({target.Id}) no está disponible.",
-                    "ERP:TARGET_POSITION_NOT_AVAILABLE");
-                return ValidatedPosition.Empty();
-            }
+            await ValidateAvailabilityAsync(
+                target.IsOccupied, target.IsReserved, target.IsBlocked,
+                "tramo", target.PositionCode, target.Id, unloadingDetailsId, ct);
 
             return new ValidatedPosition(null, target);
         }
@@ -178,6 +193,55 @@ public class ReserveUnloadingPositionsHandler(IUnitOfWork unitOfWork, IErrorMana
             "Cada posición debe indicar una posición de rack o de lot.",
             "ERP:TARGET_POSITION_REQUIRED");
         return ValidatedPosition.Empty();
+    }
+
+    private async Task ValidateAvailabilityAsync(
+        bool isOccupied, bool isReserved, bool isBlocked,
+        string kind, string code, Guid positionId, Guid unloadingDetailsId, CancellationToken ct)
+    {
+        if (isBlocked)
+        {
+            _errorManager.ThrowBadRequest<object>(
+                $"La posición destino {kind} {code} ({positionId}) está bloqueada.",
+                "ERP:POSITION_BLOCKED");
+            return;
+        }
+
+        if (isOccupied)
+        {
+            _errorManager.ThrowBadRequest<object>(
+                $"La posición destino {kind} {code} ({positionId}) está ocupada.",
+                "ERP:POSITION_OCCUPIED");
+            return;
+        }
+
+        if (!isReserved) return;
+
+        var existing = await _unitOfWork.UnloadingPositionsReservations.Entities
+            .AsNoTracking()
+            .Where(r => r.DeletedAt == null && (r.RackPositionId == positionId || r.LotPositionId == positionId))
+            .Select(r => new { r.UnloadingDetailsId })
+            .FirstOrDefaultAsync(ct);
+
+        if (existing is not null && existing.UnloadingDetailsId == unloadingDetailsId)
+        {
+            _errorManager.ThrowBadRequest<object>(
+                $"La posición destino {kind} {code} ({positionId}) ya está reservada por esta misma descarga.",
+                "ERP:POSITION_RESERVED_BY_SAME_UNLOADING");
+            return;
+        }
+
+        if (existing is not null)
+        {
+            _errorManager.ThrowBadRequest<object>(
+                $"La posición destino {kind} {code} ({positionId}) está reservada por otra descarga.",
+                "ERP:POSITION_RESERVED_BY_ANOTHER_UNLOADING");
+            return;
+        }
+
+        _errorManager.ThrowBadRequest<object>(
+            $"La posición destino {kind} {code} ({positionId}) está reservada u ocupada por otro proceso.",
+            "ERP:POSITION_RESERVED_BY_ANOTHER_PROCESS");
     }
 
     private sealed record ValidatedPosition(RackPositions? rack, LotsPositions? lot)
