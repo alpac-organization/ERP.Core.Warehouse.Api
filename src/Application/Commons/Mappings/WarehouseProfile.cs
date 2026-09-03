@@ -33,17 +33,22 @@ public class WarehouseProfile : Profile
          });
 
       CreateMap<WarehouseCapacity, WarehouseCapacityDto>();
+      CreateMap<TransformWarehouse3D, LayoutTransform3DDto>();
 
       #region Sections
       CreateMap<Sections, SectionDto>()
           .ForMember(dest => dest.SectionId, opt => opt.MapFrom(src => src.Id))
           .ForMember(dest => dest.SectionCode, opt => opt.MapFrom(src => src.Code))
-          .ForMember(dest => dest.SectionName, opt => opt.MapFrom(src => src.Name));
+          .ForMember(dest => dest.SectionName, opt => opt.MapFrom(src => src.Name))
+          .ForMember(dest => dest.WidthMetres, opt => opt.MapFrom(src => src.WidthMetres))
+          .ForMember(dest => dest.LengthMetres, opt => opt.MapFrom(src => src.LengthMetres))
+          .ForMember(dest => dest.Transform, opt => opt.MapFrom(src => src.TransformWarehouse3D));
       #endregion
 
       #region Racks
       CreateMap<Racks, RackListDto>()
          .ForMember(dest => dest.RackId, opt => opt.MapFrom(src => src.Id))
+         .ForMember(dest => dest.Transform, opt => opt.MapFrom(src => src.TransformWarehouse3D))
          .ForMember(dest => dest.Positions, opt => opt.MapFrom(src => src.Positions.OrderBy(p => p.PositionNumber)))
          .AfterMap((src, dest) =>
          {
@@ -66,6 +71,7 @@ public class WarehouseProfile : Profile
       CreateMap<Lots, LotDto>()
          .ForMember(d => d.LotId, o => o.MapFrom(s => s.Id))
          .ForMember(d => d.Status, o => o.MapFrom(s => s.Status))
+         .ForMember(d => d.Transform, o => o.MapFrom(s => s.TransformWarehouse3D))
          .AfterMap((src, dest) =>
          {
             dest.TotalPositions = PositionMetrics.Total(src.Positions);
@@ -90,6 +96,7 @@ public class WarehouseProfile : Profile
       CreateMap<Lots, LotListItemDto>()
          .ForMember(d => d.LotId, o => o.MapFrom(s => s.Id))
          .ForMember(d => d.Code, o => o.MapFrom(s => s.Code))
+         .ForMember(d => d.Transform, o => o.MapFrom(s => s.TransformWarehouse3D))
          .ForMember(d => d.WidthMetres, o => o.MapFrom(s => s.WidthMetres))
          .ForMember(d => d.LengthMetres, o => o.MapFrom(s => s.LengthMetres))
          .ForMember(d => d.Status, o => o.MapFrom(s => s.Status))
