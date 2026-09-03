@@ -7,6 +7,7 @@ public class UnloadingAssignmentDetailDto
     public Guid AssignmentId { get; set; }
     public Guid RecordEntranceId { get; set; }
     public Guid? EntranceDucatId { get; set; }
+    public Guid? WarehouseId { get; set; }
     public string? WarehouseName { get; set; }
     public UnloadingStatus UnloadingStatus { get; set; }
     public DateTime AssignedAt { get; set; }
