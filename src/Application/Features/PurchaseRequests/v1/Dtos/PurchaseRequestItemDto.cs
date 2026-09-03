@@ -14,8 +14,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public string? Justification { get; set; }
 
         public ProductDetails ProductDetails { get; set; } = new ();
-        public List<QuotationInformationDto> Quotations { get; set; } = [];
         public UnitMeasureInformation UnitMeasureInformation { get; set; } = new();
+        
+        public List<QuotationInformationDto> Quotations { get; set; } = [];
     }
 
     public class ProductDetails
