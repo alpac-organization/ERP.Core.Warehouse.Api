@@ -63,17 +63,36 @@ public class UnloadingProfile : Profile
             .ForMember(d => d.ProcessedByUserName, o => o.MapFrom((src, dest, destMember, ctx) => (string)ctx.Items["ProcessedByUserName"]));
         #endregion
 
-        #region Reservar posiciones
-        CreateMap<PositionReservationItemDto, UnloadingPositionReservations>()
-            .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
-            .ForMember(d => d.EntranceDucatId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["EntranceDucatId"]))
-            .ForMember(d => d.WarehouseAssignmentId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["WarehouseAssignmentId"]))
-            .ForMember(d => d.WarehouseId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["WarehouseId"]))
-            .ForMember(d => d.UnloadingDetailsId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid?)ctx.Items["UnloadingDetailsId"]))
-            .ForMember(d => d.Quantity, o => o.MapFrom((src, dest, destMember, ctx) => (int)ctx.Items["Quantity"]))
-            .ForMember(d => d.ReservedByUserId, o => o.MapFrom((src, dest, destMember, ctx) => (string)ctx.Items["ReservedByUserId"]))
-            .ForMember(d => d.ReservedAtDate, o => o.MapFrom((src, dest, destMember, ctx) => (DateOnly)ctx.Items["ReservedAtDate"]))
-            .ForMember(d => d.ReservedAtTime, o => o.MapFrom((src, dest, destMember, ctx) => (TimeOnly)ctx.Items["ReservedAtTime"]));
+        #region Detalle de descarga
+        CreateMap<UnloadingDetails, UnloadingDetailDto>()
+            .ForMember(d => d.AssignmentId, o => o.MapFrom(s => s.WarehouseAssignment.Id))
+            .ForMember(d => d.RecordEntranceId, o => o.MapFrom(s => s.WarehouseAssignment.RecordEntranceId))
+            .ForMember(d => d.UnloadingStatus, o => o.MapFrom(s => s.WarehouseAssignment.UnloadingStatus))
+            .ForMember(d => d.UnloadingDetailsId, o => o.MapFrom(s => s.Id))
+            .ForMember(d => d.StartDate, o => o.MapFrom((src, dest, member, ctx) => ctx.Items["StartLog"] is StepExecutionLogs log ? log.StartDate : (DateOnly?)null))
+            .ForMember(d => d.StartTime, o => o.MapFrom((src, dest, member, ctx) => ctx.Items["StartLog"] is StepExecutionLogs log ? log.StartTime : (TimeOnly?)null))
+            .ForMember(d => d.Pallets, o => o.MapFrom(s => s.UnloadingPallets.Where(p => p.DeletedAt == null)))
+            .ForMember(d => d.Supplies, o => o.MapFrom(s => s.UnloadingSupplies.Where(s => s.DeletedAt == null)))
+            .ForMember(d => d.ReservedPositions, o => o.MapFrom((src, dest, member, ctx) =>
+                ctx.Items["Reservations"] is IEnumerable<UnloadingPositionReservations> reservations
+                    ? reservations
+                    : []));
+
+        CreateMap<UnloadingPallets, UnloadingPalletDetailDto>()
+            .ForMember(d => d.Type, o => o.MapFrom(s => s.PalletType));
+
+        CreateMap<UnloadingSupplies, UnloadingSupplyDetailDto>()
+            .ForMember(d => d.SupplyName, o => o.MapFrom(s => s.Supplies.Name));
+
+        CreateMap<UnloadingPositionReservations, UnloadingPositionReservationDetailDto>()
+            .ForMember(d => d.PositionCode, o => o.MapFrom((src, dest, member, ctx) =>
+                ctx.Items["PositionCodes"] is Dictionary<Guid, string> codes
+                    ? src.RackPositionId is Guid rackId
+                        ? codes.GetValueOrDefault(rackId)
+                        : src.LotPositionId is Guid lotId
+                            ? codes.GetValueOrDefault(lotId)
+                            : null
+                    : null));
         #endregion
     }
 
