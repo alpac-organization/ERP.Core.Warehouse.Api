@@ -12,6 +12,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Qu
         public string? DriverName { get; set; }
         public string? LicensePlate { get; set; }
         public DocumentType? DocumentType { get; set; }
+        public string? ServiceOrderCode { get; set; }
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 10;
     }
@@ -27,6 +28,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Qu
     {
         public string? DriverName { get; set; }
         public string? LicensePlate { get; set; }
+        public DocumentType? DocumentType { get; set; }
+        public string? ServiceOrderCode { get; set; }
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 10;
     }

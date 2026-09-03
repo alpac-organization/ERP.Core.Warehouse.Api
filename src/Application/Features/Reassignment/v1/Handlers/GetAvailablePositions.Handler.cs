@@ -30,6 +30,8 @@ public class GetAvailablePositionsHandler(IUnitOfWork unitOfWork, IErrorManager 
     {
         var query = _unitOfWork.RackPositions.Entities
             .AsNoTracking()
+            .Include(r => r.Rack)
+                .ThenInclude(r => r.Section)
             .Where(r => r.DeletedAt == null
                 && r.Rack.Section.WarehouseId == request.WarehouseId);
 
@@ -53,6 +55,8 @@ public class GetAvailablePositionsHandler(IUnitOfWork unitOfWork, IErrorManager 
     {
         var query = _unitOfWork.LotsPositions.Entities
             .AsNoTracking()
+            .Include(l => l.Lot)
+                .ThenInclude(l => l.Section)
             .Where(l => l.DeletedAt == null
                 && l.Lot.Section.WarehouseId == request.WarehouseId);
 

@@ -251,7 +251,7 @@
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
         gap: 16px;
-        margin-top: 16px;
+        margin-top: 80px;
         page-break-inside: avoid;
     }
 
@@ -291,14 +291,14 @@
         <!-- HEADER -->
         <div class="doc-header">
             <div class="logo-wrap">
-                {{#if CompanyInformation.CompanyLogoUrl}}
-                <img src="{{CompanyInformation.CompanyLogoUrl}}" alt="Logo {{CompanyInformation.CompanyName}}" />
+                {{#if CompanyInformation.ImageUrl}}
+                    <img src="{{CompanyInformation.ImageUrl}}" alt="Logo {{CompanyInformation.CompanyName}}" />
                 {{/if}}
             </div>
             <div class="titles">
                 <h1>{{CompanyInformation.CompanyName}}</h1>
                 <h2>{{DocumentInfo.Title}}</h2>
-                <span class="num">No. Solicitud: {{DocumentInfo.RequestCode}}</span>
+                <span class="num">Code: Solicitud: {{DocumentInfo.RequestCode}}</span>
             </div>
             <div class="spacer"></div>
         </div>
@@ -494,20 +494,22 @@
         <!-- FIRMAS -->
         <div class="signatures">
             <div class="signature-block">
-                <div class="signature-line">{{Signatures.RequestedBy}}</div>
+                <div class="signature-line">
+
+                </div>
                 <div class="role">Solicitado</div>
             </div>
             <div class="signature-block">
-                <div class="signature-line">{{Signatures.ApprovedBy}}</div>
+                <div class="signature-line">
+
+                </div>
                 <div class="role">Aprobado</div>
             </div>
             <div class="signature-block">
-                <div class="signature-line">{{Signatures.AuthorizedBy}}</div>
-                <div class="role">Autorizado</div>
-                <div class="banco-line">
-                    <div class="signature-line">{{Signatures.Bank}}</div>
-                    <div class="role">Banco</div>
+                <div class="signature-line">
+
                 </div>
+                <div class="role">Autorizado</div>
             </div>
         </div>
 

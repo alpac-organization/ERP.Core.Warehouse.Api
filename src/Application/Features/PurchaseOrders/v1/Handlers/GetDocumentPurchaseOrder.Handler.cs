@@ -1,3 +1,4 @@
+using System.Globalization;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,6 +8,8 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Domain.Enums;
+using ERP.Core.Warehouse.Api.Domain.Entities.ObjectValues;
+using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Queries;
 
@@ -22,7 +25,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             {
                 return access.ErrorResponse!;
             }
-
+            
+            //Incluir información de mapeo
             var purchaseOrder = await _unitOfWork.PurchaseOrders.Entities
                 .Include(purs => purs.SentByUser)
                     .ThenInclude(user => user.WorkArea)
@@ -68,40 +72,76 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 return _errorManager.ThrowBadRequest<PurchaseOrderDocumentDto>("No se encontro la orden de compra", "ERP:NOT_FOUND");
             }
 
-            // Mapea la orden de compra al modelo del documento (información en inglés).
-            var documentModel = _mapper.Map<PurchaseOrderDocumentTemplateDto>(purchaseOrder);
+            var template = _mapper.Map<PurchaseOrderTemplateDto>(purchaseOrder);
 
-            // Valores que no provienen directamente de la entidad.
-            documentModel.DocumentInfo.Title      = ResolveTitle(request.PaymentMethod);
-            documentModel.DocumentInfo.IsNormal   = true;
-            documentModel.DocumentInfo.IsCritical = false;
+            switch (request.PaymentMethod)
+            {
+                case PaymentMethod.Check:
+                case PaymentMethod.BankTransfer:
+                {
+                    var quotations = purchaseOrder.PurchaseRequest.PurchaseRequestItems
+                        .SelectMany(item => item.Quotations)
+                        .Where(quotation => quotation.IsActive && quotation.IsAcceptedForPurchase)
+                        .ToList();
 
-            // Genera el PDF a partir de la plantilla y los datos del modelo.
-            var pdfBytes = await _pdfGeneratorServices.GenerateAsync<PurchaseOrderDocumentTemplateDto>("PaymentRequestTemplate", documentModel);
+                    if (quotations.Count == 0)
+                    {
+                        quotations = purchaseOrder.PurchaseRequest.PurchaseRequestItems
+                            .SelectMany(item => item.Quotations)
+                            .Where(quotation => quotation.IsActive)
+                            .ToList();
+                    }
 
-            await using var stream = new MemoryStream(pdfBytes);
+                    var culture = new CultureInfo("es-NI");
+                    var serviceAmount = quotations.Sum(quotation => quotation.PriceTotal);
+                    var vatAmount = quotations.Sum(quotation => quotation.Iva);
 
-            // Sube el PDF a S3 y retorna la URL pre-firmada hacia el frontend.
-            var documentName = $"OC-{request.PurchaseOrderId}.pdf";
-            var documentUrl = await _s3StorageService.UploadPdfAsync(
-                "purchase-orders",
-                "documents",
-                stream,
-                documentName);
+                    template.DocumentInfo = new DocumentInfo
+                    {
+                        Title       = PurchaseOrdersMapper.GetDocumentTitleByMethodPayment(request.PaymentMethod!.Value),
+                        RequestCode = purchaseOrder.PurchaseRequest.Code,
+                        Date        = DateTime.Now.ToString("dd/MM/yyyy", culture),
+                        QuoteCount  = quotations.Count
+                    };
+
+                    template.PaymentInfo = new PaymentInfo
+                    {
+                        Department    = purchaseOrder.PurchaseRequest.WorkArea?.WorkAreaName ?? purchaseOrder.PurchaseRequest.WorkArea?.Description,
+                        Payee         = quotations.FirstOrDefault()?.Supplier?.SuppliersLegalName,
+                        Customer      = purchaseOrder.PurchaseRequest.Branch.Company?.CompanieName,
+                        ServiceAmount = serviceAmount,
+                        Vat           = vatAmount,
+                        NetToPay      = serviceAmount + vatAmount
+                    };
+
+                    var pdfBytes = await _pdfGeneratorServices.GenerateAsync<PurchaseOrderTemplateDto>(
+                        "PaymentRequestTemplate",
+                        template);
+
+                    var fileName = $"{template.DocumentInfo.Title}-{template.DocumentInfo.RequestCode}.pdf";
+
+                    await using var pdfStream = new MemoryStream(pdfBytes);
+                    var documentUrl = await _s3StorageService.UploadPdfAsync("Compras", "OrdenesCompra", pdfStream, fileName);
+
+                    return new PurchaseOrderDocumentDto
+                    {
+                        DocumentName = fileName,
+                        DocumentUrl  = documentUrl
+                    };
+                }
+                case PaymentMethod.Credit:
+                {
+                    //Cuentas por pagar: lógica pendiente (queda vacía de forma intencional).
+
+                    break;
+                }
+            }
 
             return new PurchaseOrderDocumentDto
             {
-                DocumentName = documentName,
-                DocumentUrl  = documentUrl
+                DocumentName = "",
+                DocumentUrl  = ""
             };
         }
-
-        private static string ResolveTitle(PaymentMethod? paymentMethod) => paymentMethod switch
-        {
-            PaymentMethod.BankTransfer => "SOLICITUD DE TRANSFERENCIA",
-            PaymentMethod.Check        => "SOLICITUD DE CHEQUE",
-            PaymentMethod.Credit       => "CUENTAS PENDIENTES",
-            _                          => "SOLICITUD DE PAGO"
-        };
     }
 }
