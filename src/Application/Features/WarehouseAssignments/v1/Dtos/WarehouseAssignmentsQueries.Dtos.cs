@@ -12,16 +12,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Dt
         public string Status { get; set; } = string.Empty;
         public bool IsConsolidated { get; set; }
 
-        public List<PendingDucaDto> Ducas { get; set; } = new();
-    }
-
-    public class PendingDucaDto
-    {
-        public Guid EntranceDucatId { get; set; }
-        public string DucatNumber { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
+        public Guid? EntranceDucatId { get; set; }
+        public string DocumentType { get; set; } = string.Empty;
+        public string DocumentNumber { get; set; } = string.Empty;
         public string? ServiceOrderCode { get; set; }
-        public bool AlreadyAssigned { get; set; }  
     }
 
 
