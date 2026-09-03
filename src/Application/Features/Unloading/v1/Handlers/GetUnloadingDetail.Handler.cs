@@ -26,6 +26,7 @@ public class GetUnloadingDetailHandler(IUnitOfWork unitOfWork, IErrorManager err
         #region Obtener descarga y asignación relacionada
         var detail = await _unitOfWork.UnloadingDetails.Entities
             .AsNoTracking()
+            .AsSplitQuery()
             .Where(d => d.WarehouseAssignmentId == request.AssignmentId && d.DeletedAt == null)
             .Include(d => d.WarehouseAssignment)
             .Include(d => d.UnloadingPallets.Where(p => p.DeletedAt == null))
