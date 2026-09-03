@@ -47,8 +47,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                     Status = r.CurrentStepCode,
                     r.IsConsolidated,
                     DocumentType = r.ReceptionEntrance.DocumentType,
+                    CustomsNumber = r.CustomsDeclarations != null ? r.CustomsDeclarations.CustomsDeclarationNumber : null,
+                    CustomsOrderCode = r.CustomsDeclarations != null ? r.CustomsDeclarations.ServiceOrderCode : null,
+                    CustomsStatus = r.CustomsDeclarations != null ? r.CustomsDeclarations.Status : DucaStatus.Pending,
                     ActiveDucats = r.EntranceDucats
-                        .Where(d => d.DeletedAt == null)
+                        .Where(d => d.DeletedAt == null && d.Status == DucaStatus.Completed)
                         .Select(d => new
                         {
                             d.Id,
@@ -62,25 +65,59 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                 })
                 .ToListAsync(cancellationToken);
 
-            var data = pagedRecords.Select(r => new PendingWarehouseAssignmentDto
+            var data = new List<PendingWarehouseAssignmentDto>();
+            var osSearch = request.ServiceOrderCode?.Trim().ToLower();
+
+            foreach (var r in pagedRecords)
             {
-                ReceptionId = r.Id,
-                LicensePlate = r.LicensePlate ?? "N/A",
-                DriverName = r.DriverName ?? "N/A",
-                EntranceTime = r.EntranceTime,
-                Status = r.Status ?? "N/A",
-                IsConsolidated = r.IsConsolidated,
-                Ducas = r.DocumentType == DocumentType.DUCA 
-                    ? r.ActiveDucats.Select(d => new PendingDucaDto
+                if (r.DocumentType == DocumentType.DUCA)
+                {
+                    foreach (var d in r.ActiveDucats.Where(x => !x.AlreadyAssigned))
                     {
-                        EntranceDucatId = d.Id,
-                        DucatNumber = d.DucatNumber,
-                        Status = d.Status.ToString(),
-                        ServiceOrderCode = d.ServiceOrderCode,
-                        AlreadyAssigned = d.AlreadyAssigned
-                    }).ToList()
-                    : new List<PendingDucaDto>()
-            }).ToList();
+                        if (!string.IsNullOrEmpty(osSearch))
+                        {
+                            if (string.IsNullOrEmpty(d.ServiceOrderCode) || !d.ServiceOrderCode.ToLower().Contains(osSearch))
+                                continue;
+                        }
+
+                        data.Add(new PendingWarehouseAssignmentDto
+                        {
+                            ReceptionId = r.Id,
+                            LicensePlate = r.LicensePlate ?? "N/A",
+                            DriverName = r.DriverName ?? "N/A",
+                            EntranceTime = r.EntranceTime,
+                            Status = d.Status.ToString(),
+                            IsConsolidated = r.IsConsolidated,
+                            EntranceDucatId = d.Id,
+                            DocumentType = "DUCA",
+                            DocumentNumber = d.DucatNumber ?? "N/A",
+                            ServiceOrderCode = d.ServiceOrderCode
+                        });
+                    }
+                }
+                else if (r.DocumentType == DocumentType.CustomsDeclaration)
+                {
+                    if (!string.IsNullOrEmpty(osSearch))
+                    {
+                        if (string.IsNullOrEmpty(r.CustomsOrderCode) || !r.CustomsOrderCode.ToLower().Contains(osSearch))
+                            continue;
+                    }
+
+                    data.Add(new PendingWarehouseAssignmentDto
+                    {
+                        ReceptionId = r.Id,
+                        LicensePlate = r.LicensePlate ?? "N/A",
+                        DriverName = r.DriverName ?? "N/A",
+                        EntranceTime = r.EntranceTime,
+                        Status = r.CustomsStatus.ToString(),
+                        IsConsolidated = r.IsConsolidated,
+                        EntranceDucatId = null,
+                        DocumentType = "Declaración Aduanera",
+                        DocumentNumber = r.CustomsNumber ?? "N/A",
+                        ServiceOrderCode = r.CustomsOrderCode
+                    });
+                }
+            }
 
             return new PagedResponse<PendingWarehouseAssignmentDto>(data, pageNumber, pageSize, totalCount);
         }
@@ -93,24 +130,17 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                          && r.ReceptionEntrance != null 
                          && r.ReceptionEntrance.DeletedAt == null);
 
-            // Filtrar recepciones que completaron paso 2 (Registro de Mercaderia)
+            // Filtrar recepciones que tengan documentos individuales completados y pendientes de asignación
             baseQuery = baseQuery.Where(r => 
                 (r.ReceptionEntrance!.DocumentType == DocumentType.DUCA 
-                    && r.EntranceDucats.Any(d => d.DeletedAt == null) 
-                    && r.EntranceDucats.Where(d => d.DeletedAt == null).All(d => d.Status == DucaStatus.Completed))
-                ||
-                (r.ReceptionEntrance.DocumentType == DocumentType.CustomsDeclaration 
-                    && r.CustomsDeclarations != null 
-                    && r.CustomsDeclarations.Details != null)
-            );
-
-            // Filtrar que tengan asignacion pendiente
-            baseQuery = baseQuery.Where(r =>
-                (r.ReceptionEntrance!.DocumentType == DocumentType.DUCA 
                     && r.EntranceDucats.Any(d => d.DeletedAt == null 
+                        && d.Status == DucaStatus.Completed
                         && !_unitOfWork.WarehouseAssignments.Entities.Any(a => a.RecordEntranceId == r.Id && a.EntranceDucatId == d.Id && a.DeletedAt == null)))
                 ||
                 (r.ReceptionEntrance.DocumentType == DocumentType.CustomsDeclaration 
+                    && r.CustomsDeclarations != null 
+                    && r.CustomsDeclarations.Details != null
+                    && r.CustomsDeclarations.Status == DucaStatus.Completed
                     && !_unitOfWork.WarehouseAssignments.Entities.Any(a => a.RecordEntranceId == r.Id && a.EntranceDucatId == null && a.DeletedAt == null))
             );
 
@@ -129,6 +159,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
             if (request.DocumentType.HasValue)
             {
                 baseQuery = baseQuery.Where(r => r.ReceptionEntrance!.DocumentType == request.DocumentType.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.ServiceOrderCode))
+            {
+                var osSearch = request.ServiceOrderCode.Trim().ToLower();
+                baseQuery = baseQuery.Where(r => 
+                    (r.ReceptionEntrance!.DocumentType == DocumentType.DUCA 
+                        && r.EntranceDucats.Any(d => d.DeletedAt == null && d.ServiceOrderCode != null && EF.Functions.Like(d.ServiceOrderCode.ToLower(), $"%{osSearch}%")))
+                    ||
+                    (r.ReceptionEntrance.DocumentType == DocumentType.CustomsDeclaration 
+                        && r.CustomsDeclarations != null && r.CustomsDeclarations.ServiceOrderCode != null && EF.Functions.Like(r.CustomsDeclarations.ServiceOrderCode.ToLower(), $"%{osSearch}%"))
+                );
             }
 
             return baseQuery;
@@ -308,6 +350,22 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                                               && EF.Functions.Like(a.RecordEntrance.ReceptionEntrance.VehiclePlateNumber.ToLower(), $"%{plateSearch}%"));
             }
 
+            if (request.DocumentType.HasValue)
+            {
+                baseQuery = baseQuery.Where(a => a.RecordEntrance.ReceptionEntrance != null 
+                                              && a.RecordEntrance.ReceptionEntrance.DocumentType == request.DocumentType.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.ServiceOrderCode))
+            {
+                var osSearch = request.ServiceOrderCode.Trim().ToLower();
+                baseQuery = baseQuery.Where(a => 
+                    (a.EntranceDucat != null && a.EntranceDucat.ServiceOrderCode != null && EF.Functions.Like(a.EntranceDucat.ServiceOrderCode.ToLower(), $"%{osSearch}%"))
+                    ||
+                    (a.RecordEntrance.CustomsDeclarations != null && a.RecordEntrance.CustomsDeclarations.ServiceOrderCode != null && EF.Functions.Like(a.RecordEntrance.CustomsDeclarations.ServiceOrderCode.ToLower(), $"%{osSearch}%"))
+                );
+            }
+
             var totalCount = await baseQuery.CountAsync(cancellationToken);
 
             var pageNumber = request.PageNumber > 0 ? request.PageNumber : 1;
@@ -325,8 +383,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                         ? (a.RecordEntrance.ReceptionEntrance.VehiclePlateNumber ?? "N/A") 
                         : "N/A",
                     WarehouseName = a.Warehouse != null ? a.Warehouse.WarehouseName : "N/A",
-                    DucatNumber = a.EntranceDucat != null ? a.EntranceDucat.DucatNumber : null,
-                    ServiceOrderCode = a.EntranceDucat != null ? a.EntranceDucat.ServiceOrderCode : null,
+                    DucatNumber = a.EntranceDucat != null 
+                        ? a.EntranceDucat.DucatNumber 
+                        : (a.RecordEntrance.CustomsDeclarations != null ? a.RecordEntrance.CustomsDeclarations.CustomsDeclarationNumber : null),
+                    ServiceOrderCode = a.EntranceDucat != null 
+                        ? a.EntranceDucat.ServiceOrderCode 
+                        : (a.RecordEntrance.CustomsDeclarations != null ? a.RecordEntrance.CustomsDeclarations.ServiceOrderCode : null),
                     UnloadingStartTime = a.UnloadingStartTime,
                     UnloadingEndTime = a.UnloadingEndTime
                 })

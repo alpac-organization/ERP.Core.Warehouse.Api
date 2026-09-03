@@ -102,6 +102,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseAssignments
             [FromQuery(Name = "driver_name")] string? driverName,
             [FromQuery(Name = "license_plate")] string? licensePlate,
             [FromQuery(Name = "document_type")] DocumentType? documentType,
+            [FromQuery(Name = "service_order_code")] string? serviceOrderCode,
             [FromQuery(Name = "page_number")] int pageNumber = 1,
             [FromQuery(Name = "page_size")] int pageSize = 10,
             CancellationToken cancellationToken = default)
@@ -114,6 +115,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseAssignments
                 DriverName = driverName,
                 LicensePlate = licensePlate,
                 DocumentType = documentType,
+                ServiceOrderCode = serviceOrderCode,
                 PageNumber = pageNumber > 0 ? pageNumber : 1,
                 PageSize = pageSize > 0 ? pageSize : 10
             };
@@ -156,6 +158,8 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseAssignments
             [FromRoute(Name = "module_code")] string moduleCode,
             [FromQuery(Name = "driver_name")] string? driverName,
             [FromQuery(Name = "license_plate")] string? licensePlate,
+            [FromQuery(Name = "document_type")] DocumentType? documentType,
+            [FromQuery(Name = "service_order_code")] string? serviceOrderCode,
             [FromQuery(Name = "page_number")] int pageNumber = 1,
             [FromQuery(Name = "page_size")] int pageSize = 10,
             CancellationToken cancellationToken = default)
@@ -167,6 +171,8 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseAssignments
                 UserId = CurrentUserId,
                 DriverName = driverName,
                 LicensePlate = licensePlate,
+                DocumentType = documentType,
+                ServiceOrderCode = serviceOrderCode,
                 PageNumber = pageNumber > 0 ? pageNumber : 1,
                 PageSize = pageSize > 0 ? pageSize : 10
             };

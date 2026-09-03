@@ -18,6 +18,8 @@ public class LotDto
     public string? UnavailableReason { get; set; }
     public DateTime? StatusChangedAt { get; set; }
 
+    public LayoutTransform3DDto? Transform { get; set; }
+
     public int TotalPositions { get; set; }
     public int OccupiedPositions { get; set; }
     public int BlockedPositions { get; set; }
@@ -48,6 +50,8 @@ public class LotListItemDto
 
     public int TotalPositions { get; set; }
     public int UsedPositions { get; set; }
+
+    public LayoutTransform3DDto? Transform { get; set; }
 
     public decimal TotalAreaM2 { get; set; }
     public decimal UsedAreaM2 { get; set; }

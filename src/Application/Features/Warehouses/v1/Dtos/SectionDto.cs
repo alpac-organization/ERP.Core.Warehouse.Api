@@ -10,6 +10,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos
         public SectionType? SectionType { get; set; }
         public SectionStorageType? StorageType { get; set; }
         public bool IsActive { get; set; }
+        public decimal WidthMetres { get; set; }
+        public decimal LengthMetres { get; set; }
+        public LayoutTransform3DDto? Transform { get; set; }
         public decimal TotalAreaM2 { get; set; }
         public decimal UsedAreaM2 { get; set; }
         public int TotalPositions { get; set; }
