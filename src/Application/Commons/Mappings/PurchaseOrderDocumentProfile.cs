@@ -1,5 +1,6 @@
-using System.Globalization;
 using AutoMapper;
+using System.Globalization;
+
 using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Domain.Entities.ObjectValues;
@@ -68,13 +69,14 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         private static IEnumerable<Quotation> AcceptedQuotations(PurchaseOrder src)
         {
             if (src.PurchaseRequest?.PurchaseRequestItems == null)
-                return Enumerable.Empty<Quotation>();
+                return [];
 
-            return src.PurchaseRequest.PurchaseRequestItems
+            return [
+                .. src.PurchaseRequest.PurchaseRequestItems
                 .Where(item => item.Quotations != null)
                 .SelectMany(item => item.Quotations)
                 .Where(q => q.IsActive && q.IsAcceptedForPurchase)
-                .ToList();
+            ];
         }
     }
 }

@@ -1,7 +1,7 @@
 using AutoMapper;
 using ERP.Core.Database.Domain.Entities.Warehouse;
-using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 
@@ -10,6 +10,7 @@ public class ServiceOrderProfile : Profile
     public ServiceOrderProfile()
     {
         CreateMap<CreateServiceOrderDto, CreateServiceOrderCommand>();
+
         CreateMap<CreateServiceOrderCommand, ServiceOrder>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.Code, opt => opt.Ignore())
@@ -19,5 +20,6 @@ public class ServiceOrderProfile : Profile
             .ForCtorParam(nameof(CreateServiceOrderResponse.ServiceOrderId), opt => opt.MapFrom(src => src.Id));
 
         CreateMap<ServiceOrder, ServiceOrderDto>()
-            .ForMember(dest => dest.ServiceOrderId, opt => opt.MapFrom(src => src.Id));    }
+            .ForMember(dest => dest.ServiceOrderId, opt => opt.MapFrom(src => src.Id));    
+    }
 }
