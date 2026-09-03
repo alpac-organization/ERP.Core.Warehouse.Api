@@ -33,27 +33,31 @@ RUN dotnet publish "ERP.Core.Warehouse.Api.csproj" \
     -o /app/publish \
     /p:UseAppHost=false
 
-# =========================
-# 2. RUNTIME STAGE
-# =========================
+ENV XDG_DATA_HOME=/app/data
+RUN mkdir -p /app/data/Puppeteer /tmp/warmup \
+    && (cd /tmp/warmup \
+        && dotnet new console --force \
+        && dotnet add package PuppeteerSharp --version 25.8.0 \
+        && printf 'using PuppeteerSharp;\nvar fetcher = new BrowserFetcher();\nawait fetcher.DownloadAsync();\n' > Program.cs \
+        && dotnet run --configuration Release) \
+        || echo "[warmup] No se pudo pre-descargar Chromium; se descargará en runtime."
+
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 
 WORKDIR /app
 
-# Instala Chromium del sistema (aplica Debian 12/13 resolviendo sus dependencias correctas)
-# y las fuentes para poder renderizar texto en los PDFs.
 RUN apt-get update \
-    && apt-get install -y \
-        chromium \
-        fonts-liberation \
-        ca-certificates \
-        wget \
-        procps \
+    && apt-get install -y --no-install-recommends wget ca-certificates fonts-liberation \
+    && wget -q "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb" -O /tmp/chrome.deb \
+    && apt-get install -y /tmp/chrome.deb \
+    && rm -f /tmp/chrome.deb \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# PuppeteerSharp usará este Chromium del sistema (evita descarga en runtime y el 500 por librerías).
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome
+ENV XDG_DATA_HOME=/app/data
+
+COPY --from=build /app/data/Puppeteer /app/data/Puppeteer
 
 COPY --from=build /app/publish .
 
