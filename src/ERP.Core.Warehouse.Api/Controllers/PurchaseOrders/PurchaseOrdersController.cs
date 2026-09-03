@@ -7,6 +7,8 @@ using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Commands;
+using Amazon.S3;
+using ERP.Core.Warehouse.Api.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Controllers.PurchaseOrders
 {
@@ -59,7 +61,6 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseOrders
             });
         }
 
-
         [Tags("Ordenes de compras")]
         [HttpPost("companies/{company_id}/modules/{module_code}/purchase-orders/{requisition_management_review_id}/process")]
         [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
@@ -75,6 +76,29 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseOrders
             payload.RequisitionManagementReviewId = requisition_management_review_id;
 
             return await _mediator.Send(payload);
+        }
+
+        [Tags("Ordenes de compras")]
+        [HttpGet("companies/{company_id}/modules/{module_code}/purchase-orders/{purchase_order_id}/document-generator")]
+        [ProducesResponseType(typeof(PurchaseOrderDocumentDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<PurchaseOrderDocumentDto> ProcessRequest(
+            [FromRoute] Guid company_id,
+            [FromRoute] string module_code,
+            [FromRoute] Guid purchase_order_id,
+            [FromQuery] PaymentMethod? payment_method = null)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            return await _mediator.Send(new GetDocumentPurchaseOrderQuery
+            {
+                CompanyId       = company_id,
+                ModuleCode      = module_code,
+                UserId          = Guid.Parse(userIdStr ?? ""),
+                PurchaseOrderId = purchase_order_id,
+                PaymentMethod   = payment_method
+            });
         }
     }
 }
