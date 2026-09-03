@@ -121,25 +121,6 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseAssignments
             return Ok(result);
         }
 
-        [Tags("Asignacion de Bodega")]
-        [HttpGet("companies/{company_id}/modules/{module_code}/warehouse-staffs")]
-        [ProducesResponseType(typeof(IEnumerable<WarehouseStaffDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetWarehouseStaffs(
-            [FromRoute(Name = "company_id")] Guid companyId,
-            [FromRoute(Name = "module_code")] string moduleCode,
-            CancellationToken cancellationToken = default)
-        {
-            var query = new GetWarehouseStaffsQuery
-            {
-                CompanyId = companyId,
-                ModuleCode = moduleCode,
-                UserId = CurrentUserId
-            };
-            var result = await _mediator.Send(query, cancellationToken);
-            return Ok(result);
-        }
 
         [Tags("Asignacion de Bodega")]
         [HttpGet("companies/{company_id}/modules/{module_code}/warehouse-assignments/{reception_id}")]

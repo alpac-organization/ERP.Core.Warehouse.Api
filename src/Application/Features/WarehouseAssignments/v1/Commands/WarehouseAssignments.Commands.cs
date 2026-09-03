@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using MediatR;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 
@@ -29,7 +29,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Co
     {
         public Guid ReceptionId { get; set; }
         public Guid? EntranceDucatId { get; set; }
-        public string MachineryCode { get; set; } = string.Empty;
+        public Guid? MachineryId { get; set; }
         public Guid? OperatorCollaboratorId { get; set; }
         public bool IsOutsourced { get; set; }
         public DateTime StartTime { get; set; }

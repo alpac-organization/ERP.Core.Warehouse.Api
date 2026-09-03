@@ -24,11 +24,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Dt
         public bool AlreadyAssigned { get; set; }  
     }
 
-    public class WarehouseStaffDto
-    {
-        public Guid UserId { get; set; }
-        public string Fullname { get; set; } = string.Empty;
-    }
 
     public class WarehouseAssignmentDetailDto
     {
