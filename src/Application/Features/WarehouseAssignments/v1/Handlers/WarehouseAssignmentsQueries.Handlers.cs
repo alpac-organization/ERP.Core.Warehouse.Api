@@ -47,8 +47,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                     Status = r.CurrentStepCode,
                     r.IsConsolidated,
                     DocumentType = r.ReceptionEntrance.DocumentType,
+                    CustomsNumber = r.CustomsDeclarations != null ? r.CustomsDeclarations.CustomsDeclarationNumber : null,
+                    CustomsOrderCode = r.CustomsDeclarations != null ? r.CustomsDeclarations.ServiceOrderCode : null,
+                    CustomsStatus = r.CustomsDeclarations != null ? r.CustomsDeclarations.Status : DucaStatus.Pending,
                     ActiveDucats = r.EntranceDucats
-                        .Where(d => d.DeletedAt == null)
+                        .Where(d => d.DeletedAt == null && d.Status == DucaStatus.Completed)
                         .Select(d => new
                         {
                             d.Id,
@@ -62,25 +65,46 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                 })
                 .ToListAsync(cancellationToken);
 
-            var data = pagedRecords.Select(r => new PendingWarehouseAssignmentDto
+            var data = new List<PendingWarehouseAssignmentDto>();
+
+            foreach (var r in pagedRecords)
             {
-                ReceptionId = r.Id,
-                LicensePlate = r.LicensePlate ?? "N/A",
-                DriverName = r.DriverName ?? "N/A",
-                EntranceTime = r.EntranceTime,
-                Status = r.Status ?? "N/A",
-                IsConsolidated = r.IsConsolidated,
-                Ducas = r.DocumentType == DocumentType.DUCA 
-                    ? r.ActiveDucats.Select(d => new PendingDucaDto
+                if (r.DocumentType == DocumentType.DUCA)
+                {
+                    foreach (var d in r.ActiveDucats.Where(x => !x.AlreadyAssigned))
                     {
-                        EntranceDucatId = d.Id,
-                        DucatNumber = d.DucatNumber,
-                        Status = d.Status.ToString(),
-                        ServiceOrderCode = d.ServiceOrderCode,
-                        AlreadyAssigned = d.AlreadyAssigned
-                    }).ToList()
-                    : new List<PendingDucaDto>()
-            }).ToList();
+                        data.Add(new PendingWarehouseAssignmentDto
+                        {
+                            ReceptionId = r.Id,
+                            LicensePlate = r.LicensePlate ?? "N/A",
+                            DriverName = r.DriverName ?? "N/A",
+                            EntranceTime = r.EntranceTime,
+                            Status = d.Status.ToString(),
+                            IsConsolidated = r.IsConsolidated,
+                            EntranceDucatId = d.Id,
+                            DocumentType = "DUCA",
+                            DocumentNumber = d.DucatNumber ?? "N/A",
+                            ServiceOrderCode = d.ServiceOrderCode
+                        });
+                    }
+                }
+                else if (r.DocumentType == DocumentType.CustomsDeclaration)
+                {
+                    data.Add(new PendingWarehouseAssignmentDto
+                    {
+                        ReceptionId = r.Id,
+                        LicensePlate = r.LicensePlate ?? "N/A",
+                        DriverName = r.DriverName ?? "N/A",
+                        EntranceTime = r.EntranceTime,
+                        Status = r.CustomsStatus.ToString(),
+                        IsConsolidated = r.IsConsolidated,
+                        EntranceDucatId = null,
+                        DocumentType = "Declaración Aduanera",
+                        DocumentNumber = r.CustomsNumber ?? "N/A",
+                        ServiceOrderCode = r.CustomsOrderCode
+                    });
+                }
+            }
 
             return new PagedResponse<PendingWarehouseAssignmentDto>(data, pageNumber, pageSize, totalCount);
         }
@@ -93,24 +117,17 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                          && r.ReceptionEntrance != null 
                          && r.ReceptionEntrance.DeletedAt == null);
 
-            // Filtrar recepciones que completaron paso 2 (Registro de Mercaderia)
+            // Filtrar recepciones que tengan documentos individuales completados y pendientes de asignación
             baseQuery = baseQuery.Where(r => 
                 (r.ReceptionEntrance!.DocumentType == DocumentType.DUCA 
-                    && r.EntranceDucats.Any(d => d.DeletedAt == null) 
-                    && r.EntranceDucats.Where(d => d.DeletedAt == null).All(d => d.Status == DucaStatus.Completed))
-                ||
-                (r.ReceptionEntrance.DocumentType == DocumentType.CustomsDeclaration 
-                    && r.CustomsDeclarations != null 
-                    && r.CustomsDeclarations.Details != null)
-            );
-
-            // Filtrar que tengan asignacion pendiente
-            baseQuery = baseQuery.Where(r =>
-                (r.ReceptionEntrance!.DocumentType == DocumentType.DUCA 
                     && r.EntranceDucats.Any(d => d.DeletedAt == null 
+                        && d.Status == DucaStatus.Completed
                         && !_unitOfWork.WarehouseAssignments.Entities.Any(a => a.RecordEntranceId == r.Id && a.EntranceDucatId == d.Id && a.DeletedAt == null)))
                 ||
                 (r.ReceptionEntrance.DocumentType == DocumentType.CustomsDeclaration 
+                    && r.CustomsDeclarations != null 
+                    && r.CustomsDeclarations.Details != null
+                    && r.CustomsDeclarations.Status == DucaStatus.Completed
                     && !_unitOfWork.WarehouseAssignments.Entities.Any(a => a.RecordEntranceId == r.Id && a.EntranceDucatId == null && a.DeletedAt == null))
             );
 
