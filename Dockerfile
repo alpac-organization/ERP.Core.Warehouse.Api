@@ -40,6 +40,21 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 
 WORKDIR /app
 
+# Instala Chromium del sistema (aplica Debian 12/13 resolviendo sus dependencias correctas)
+# y las fuentes para poder renderizar texto en los PDFs.
+RUN apt-get update \
+    && apt-get install -y \
+        chromium \
+        fonts-liberation \
+        ca-certificates \
+        wget \
+        procps \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# PuppeteerSharp usará este Chromium del sistema (evita descarga en runtime y el 500 por librerías).
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
 COPY --from=build /app/publish .
 
 ENV ASPNETCORE_URLS=http://+:8080
