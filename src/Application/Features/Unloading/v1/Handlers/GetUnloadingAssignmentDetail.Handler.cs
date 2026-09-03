@@ -36,12 +36,12 @@ public class GetUnloadingAssignmentDetailHandler(IUnitOfWork unitOfWork, IErrorM
                 "ERP:ASSIGNMENT_NOT_FOUND");
         }
 
-        string? keeperNameFinal = assignment.WarehouseKeeperUserId?.ToString();
-        if (assignment.WarehouseKeeperUserId.HasValue)
+        string? keeperNameFinal = null;
+        if (assignment.WarehouseKeeperUserId is Guid keeperId)
         {
             var keeper = await _unitOfWork.Collaborators.Entities
                 .AsNoTracking()
-                .Where(c => c.Id == assignment.WarehouseKeeperUserId.Value)
+                .Where(c => c.Id == keeperId)
                 .Select(c => new { c.FirstName, c.SecondName, c.FirstLastname, c.SecondLastname })
                 .FirstOrDefaultAsync(cancellationToken);
 
