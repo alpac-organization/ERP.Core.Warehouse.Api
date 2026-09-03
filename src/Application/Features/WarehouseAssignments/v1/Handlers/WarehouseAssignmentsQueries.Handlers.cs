@@ -135,32 +135,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
         }
     }
 
-    public class GetWarehouseStaffsHandler : BaseValidatorHandler<GetWarehouseStaffsQuery, IEnumerable<WarehouseStaffDto>>
-    {
-        public GetWarehouseStaffsHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
-            : base(unitOfWork, errorManager)
-        {
-        }
-
-        public override async Task<IEnumerable<WarehouseStaffDto>> Handle(GetWarehouseStaffsQuery request, CancellationToken cancellationToken)
-        {
-            var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
-            if (!access.IsSuccess) return access.ErrorResponse!;
-
-            var collaborators = await _unitOfWork.Collaborators.Entities
-                .AsNoTracking()
-                .Where(c => c.CompanyId == request.CompanyId && c.DeletedAt == null && c.Status == CollaboratorStatus.Active)
-                .OrderBy(c => c.FirstName)
-                .Select(c => new WarehouseStaffDto
-                {
-                    UserId = c.Id,
-                    Fullname = ((c.FirstName ?? "") + " " + (c.FirstLastname ?? "")).Trim()
-                })
-                .ToListAsync(cancellationToken);
-
-            return collaborators;
-        }
-    }
 
     public class GetWarehouseAssignmentByIdHandler : BaseValidatorHandler<GetWarehouseAssignmentByIdQuery, WarehouseAssignmentDetailDto>
     {

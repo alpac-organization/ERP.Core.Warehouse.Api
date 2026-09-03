@@ -16,9 +16,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Qu
         public int PageSize { get; set; } = 10;
     }
 
-    public class GetWarehouseStaffsQuery : BaseRequest, IRequest<IEnumerable<WarehouseStaffDto>>
-    {
-    }
 
     public class GetWarehouseAssignmentByIdQuery : BaseRequest, IRequest<WarehouseAssignmentDetailDto>
     {

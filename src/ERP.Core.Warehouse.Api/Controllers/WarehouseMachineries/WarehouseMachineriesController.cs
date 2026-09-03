@@ -26,8 +26,8 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseMachineries
             _mediator = mediator;
         }
 
-        [Tags("Maquinarias de Bodega")]
-        [HttpPost("companies/{company_id}/modules/{module_code}/warehouse-machineries")]
+        [Tags("Catálogo de Maquinarias")]
+        [HttpPost("companies/{company_id}/modules/{module_code}/machinery-catalogs")]
         [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
@@ -45,8 +45,8 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseMachineries
             return Ok(result);
         }
 
-        [Tags("Maquinarias de Bodega")]
-        [HttpGet("companies/{company_id}/modules/{module_code}/warehouse-machineries")]
+        [Tags("Catálogo de Maquinarias")]
+        [HttpGet("companies/{company_id}/modules/{module_code}/machinery-catalogs")]
         [ProducesResponseType(typeof(IEnumerable<WarehouseMachineryListDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
