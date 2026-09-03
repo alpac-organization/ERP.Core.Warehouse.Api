@@ -10,7 +10,7 @@ public class UnloadingAssignmentDetailDto
     public string? WarehouseName { get; set; }
     public UnloadingStatus UnloadingStatus { get; set; }
     public DateTime AssignedAt { get; set; }
-    public string? WarehouseKeeperUserId { get; set; }
+    public Guid? WarehouseKeeperUserId { get; set; }
     public string? WarehouseKeeperUserName { get; set; }
 
     public List<MachineryAssignmentDto> Machinery { get; set; } = [];

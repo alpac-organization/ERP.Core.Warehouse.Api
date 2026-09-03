@@ -57,7 +57,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
 
             var machineryAssignment = _mapper.Map<MachineryAssignments>(request);
             machineryAssignment.WarehouseAssignmentId = assignment.Id;
-            machineryAssignment.MachineryCode = internalMachineryId;
+            machineryAssignment.MachineryId = internalMachineryId;
             machineryAssignment.OperatorCollaboratorId = request.IsOutsourced ? null : request.OperatorCollaboratorId;
             machineryAssignment.ProviderName = request.IsOutsourced ? request.ProviderName?.Trim() : null;
             machineryAssignment.InvoiceNumber = request.IsOutsourced ? request.InvoiceNumber?.Trim() : null;
@@ -72,50 +72,28 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
         private async Task<(bool IsSuccess, Guid? MachineryId)> ResolveInternalMachineryAndOperatorAsync(
             CreateUnloadingMachineryCommand request, CancellationToken cancellationToken)
         {
-            if (string.IsNullOrWhiteSpace(request.MachineryCode))
+            if (!request.MachineryId.HasValue || request.MachineryId.Value == Guid.Empty)
             {
                 _errorManager.ThrowBadRequest<bool>(
-                    "Debe especificar la maquinaria interna a asignar.",
+                    "Debe especificar la maquinaria interna a asignar (machinery_id).",
                     "ERP:MACHINERY_REQUIRED");
                 return (false, null);
             }
 
-            Guid? parsedId = null;
+            var targetId = request.MachineryId.Value;
 
-            if (Guid.TryParse(request.MachineryCode, out Guid mcGuid))
+            var exists = await _unitOfWork.WarehouseMachineries.Entities
+                .AnyAsync(m => m.Id == targetId 
+                            && m.CompanyId == request.CompanyId 
+                            && m.IsActive 
+                            && m.DeletedAt == null, cancellationToken);
+
+            if (!exists)
             {
-                parsedId = mcGuid;
-                var exists = await _unitOfWork.WarehouseMachineries.Entities
-                    .AnyAsync(m => m.Id == mcGuid 
-                                && m.CompanyId == request.CompanyId 
-                                && m.IsActive 
-                                && m.DeletedAt == null, cancellationToken);
-
-                if (!exists)
-                {
-                    _errorManager.ThrowBadRequest<bool>(
-                        "La maquinaria seleccionada no existe o no se encuentra activa.",
-                        "ERP:MACHINERY_NOT_FOUND");
-                    return (false, null);
-                }
-            }
-            else
-            {
-                var machinery = await _unitOfWork.WarehouseMachineries.Entities
-                    .FirstOrDefaultAsync(m => m.Code == request.MachineryCode.Trim() 
-                                           && m.CompanyId == request.CompanyId 
-                                           && m.IsActive 
-                                           && m.DeletedAt == null, cancellationToken);
-
-                if (machinery == null)
-                {
-                    _errorManager.ThrowBadRequest<bool>(
-                        "La maquinaria con el codigo especificado no existe o no se encuentra activa.",
-                        "ERP:MACHINERY_NOT_FOUND");
-                    return (false, null);
-                }
-
-                parsedId = machinery.Id;
+                _errorManager.ThrowBadRequest<bool>(
+                    "La maquinaria seleccionada no existe o no se encuentra activa.",
+                    "ERP:MACHINERY_NOT_FOUND");
+                return (false, null);
             }
 
             if (request.OperatorCollaboratorId.HasValue)
@@ -135,7 +113,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                 }
             }
 
-            return (true, parsedId);
+            return (true, targetId);
         }
     }
 }
