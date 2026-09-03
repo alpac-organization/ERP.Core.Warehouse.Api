@@ -1,5 +1,8 @@
 using AutoMapper;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Warehouse;
+using ERP.Core.Warehouse.Api.Application.Commons.Constants;
+using ERP.Core.Warehouse.Api.Application.Features.Unloading.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Features.Unloading.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
@@ -8,7 +11,7 @@ public class UnloadingProfile : Profile
 {
     public UnloadingProfile()
     {
-        #region Unloading - Queue
+        #region Queue
         CreateMap<WarehouseAssignments, AssignmentQueueItemDto>()
             .ForMember(d => d.AssignmentId, o => o.MapFrom(s => s.Id))
             .ForMember(d => d.RecordEntranceId, o => o.MapFrom(s => s.RecordEntranceId))
@@ -19,7 +22,7 @@ public class UnloadingProfile : Profile
             .ForMember(d => d.UnloadingStatus, o => o.MapFrom(s => s.UnloadingStatus));
         #endregion
 
-        #region Unloading - Detalle de asignación
+        #region Detalle de asignación
         CreateMap<WarehouseAssignments, UnloadingAssignmentDetailDto>()
             .ForMember(d => d.AssignmentId, o => o.MapFrom(s => s.Id))
             .ForMember(d => d.RecordEntranceId, o => o.MapFrom(s => s.RecordEntranceId))
@@ -34,6 +37,34 @@ public class UnloadingProfile : Profile
 
         CreateMap<MachineryAssignments, MachineryAssignmentDto>()
             .ForMember(d => d.Code, o => o.MapFrom(s => s.Machinery != null ? s.Machinery.Code : null));
+        #endregion
+
+        #region Iniciar descarga
+        CreateMap<StartUnloadingCommand, UnloadingDetails>()
+            .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
+            .ForMember(d => d.WarehouseAssignmentId, o => o.MapFrom(s => s.AssignmentId))
+            .ForMember(d => d.MerchandiseType, o => o.MapFrom(s => s.MerchandiseType));
+
+        CreateMap<StartUnloadingPalletItem, UnloadingPallets>()
+            .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
+            .ForMember(d => d.UnloadingDetailsId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["UnloadingDetailsId"]))
+            .ForMember(d => d.PalletType, o => o.MapFrom(s => s.Type))
+            .ForMember(d => d.LengthMetres, o => o.MapFrom((s, d, m, ctx) => s.Type == PalletType.Oversized ? s.LengthMetres : null))
+            .ForMember(d => d.WidthMetres, o => o.MapFrom((s, d, m, ctx) => s.Type == PalletType.Oversized ? s.WidthMetres : null));
+
+        CreateMap<StartUnloadingSupplyItem, UnloadingSupplies>()
+            .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
+            .ForMember(d => d.UnloadingDetailsId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["UnloadingDetailsId"]))
+            .ForMember(d => d.SuppliesId, o => o.MapFrom(s => s.SuppliesId));
+
+        CreateMap<StartUnloadingCommand, StepExecutionLogs>()
+            .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
+            .ForMember(d => d.RecordEntranceId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["RecordEntranceId"]))
+            .ForMember(d => d.WorkflowStepDefinitionCode, o => o.MapFrom(_ => WorkflowStepCodes.Unloading))
+            .ForMember(d => d.StartDate, o => o.MapFrom(s => s.StartDate))
+            .ForMember(d => d.StartTime, o => o.MapFrom(s => s.StartTime))
+            .ForMember(d => d.ProcessedByUserId, o => o.MapFrom(s => s.UserId.ToString()))
+            .ForMember(d => d.ProcessedByUserName, o => o.MapFrom((src, dest, destMember, ctx) => (string)ctx.Items["ProcessedByUserName"]));
         #endregion
     }
 
