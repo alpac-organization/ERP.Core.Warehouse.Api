@@ -40,6 +40,17 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 
 WORKDIR /app
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libatspi2.0-0 \
+        libcups2 libdrm2 libxkbcommon0 libxkbcommon-x11-0 libxcomposite1 \
+        libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 \
+        libpangocairo-1.0-0 libpango-1.0-0 libcairo2 libglib2.0-0 \
+        libx11-6 libxcb1 libxext6 libxcursor1 libxi6 libxss1 libxtst6 \
+        libgtk-3-0 fonts-liberation ca-certificates wget procps \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=build /app/publish .
 
 ENV ASPNETCORE_URLS=http://+:8080
