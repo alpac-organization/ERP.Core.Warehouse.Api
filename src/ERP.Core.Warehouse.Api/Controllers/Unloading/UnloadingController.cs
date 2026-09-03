@@ -108,6 +108,28 @@ public class UnloadingController(IMediator mediator) : ApiControllerBase
         }, cancellationToken);
     #endregion
 
+    #region Issue 4 - Reservar posiciones
+    [Tags("Descarga")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/unloading/assignment-queue/{assignment_id}/reserve-positions")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public Task<IActionResult> ReserveUnloadingPositionsAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid assignment_id,
+        [FromBody] ReserveUnloadingPositionsCommand body,
+        CancellationToken cancellationToken)
+        => SendAsync(new ReserveUnloadingPositionsCommand
+        {
+            AssignmentId = assignment_id,
+            Positions = body.Positions,
+            CompanyId = company_id,
+            ModuleCode = module_code
+        }, cancellationToken, created: true);
+    #endregion
+
     private async Task<IActionResult> SendAsync<TRequest>(TRequest request,
         CancellationToken ct, bool created = false)
         where TRequest : BaseRequest
