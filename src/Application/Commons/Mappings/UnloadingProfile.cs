@@ -61,6 +61,32 @@ public class UnloadingProfile : Profile
             .ForMember(d => d.StartTime, o => o.MapFrom(s => s.StartTime))
             .ForMember(d => d.ProcessedByUserId, o => o.MapFrom(s => s.UserId.ToString()))
             .ForMember(d => d.ProcessedByUserName, o => o.MapFrom((src, dest, destMember, ctx) => (string)ctx.Items["ProcessedByUserName"]));
+
+        CreateMap<StartUnloadingCommand, WarehouseTask>()
+            .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
+            .ForMember(d => d.WarehouseId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["WarehouseId"]))
+            .ForMember(d => d.TaskType, o => o.MapFrom(_ => WarehouseTaskType.Unloading))
+            .ForMember(d => d.SourceId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["SourceId"]))
+            .ForMember(d => d.Status, o => o.MapFrom(_ => WarehouseTaskStatus.InProgress))
+            .ForMember(d => d.CurrentOwnerUserId, o => o.MapFrom(s => s.UserId.ToString()))
+            .ForMember(d => d.CreatedByUserId, o => o.MapFrom(s => s.UserId.ToString()))
+            .ForMember(d => d.StartedAt, o => o.MapFrom((src, dest, destMember, ctx) => (DateTime)ctx.Items["StartedAt"]))
+            .ForMember(d => d.PausedAt, o => o.Ignore())
+            .ForMember(d => d.CompletedAt, o => o.Ignore())
+            .ForMember(d => d.CancelledAt, o => o.Ignore())
+            .ForMember(d => d.ClosedAt, o => o.Ignore())
+            .ForMember(d => d.Events, o => o.Ignore())
+            .ForMember(d => d.OwnershipLogs, o => o.Ignore());
+
+        CreateMap<StartUnloadingCommand, WarehouseTaskEvent>()
+            .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
+            .ForMember(d => d.WarehouseTaskId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["WarehouseTaskId"]))
+            .ForMember(d => d.EventType, o => o.MapFrom(_ => WarehouseTaskEventType.Started))
+            .ForMember(d => d.Status, o => o.MapFrom(_ => WarehouseTaskStatus.InProgress))
+            .ForMember(d => d.UserId, o => o.MapFrom(s => s.UserId.ToString()))
+            .ForMember(d => d.OccurredAt, o => o.MapFrom((src, dest, destMember, ctx) => (DateTime)ctx.Items["OccurredAt"]))
+            .ForMember(d => d.Notes, o => o.Ignore())
+            .ForMember(d => d.WarehouseTask, o => o.Ignore());
         #endregion
 
         #region Detalle de descarga

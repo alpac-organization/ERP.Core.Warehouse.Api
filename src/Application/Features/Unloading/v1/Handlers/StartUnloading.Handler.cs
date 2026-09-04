@@ -37,7 +37,7 @@ public class StartUnloadingHandler(IUnitOfWork unitOfWork, IErrorManager errorMa
         var assignment = await _unitOfWork.WarehouseAssignments.Entities
             .AsNoTracking()
             .Where(a => a.Id == request.AssignmentId && a.DeletedAt == null)
-            .Select(a => new { a.Id, a.RecordEntranceId, a.UnloadingStatus })
+            .Select(a => new { a.Id, a.WarehouseId, a.RecordEntranceId, a.UnloadingStatus })
             .FirstOrDefaultAsync(cancellationToken);
 
         if (assignment is null)
@@ -124,6 +124,8 @@ public class StartUnloadingHandler(IUnitOfWork unitOfWork, IErrorManager errorMa
         #region 7. Persistir inserts y actualizar estado de la asignación
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var unloadingDetailsId = detail.Id;
+
         await _unitOfWork.WarehouseAssignments.Entities
             .Where(a => a.Id == request.AssignmentId && a.DeletedAt == null)
             .ExecuteUpdateAsync(setters => setters
@@ -141,6 +143,26 @@ public class StartUnloadingHandler(IUnitOfWork unitOfWork, IErrorManager errorMa
                     .SetProperty(r => r.Status, RecordEntranceStatus.Unloading),
                     cancellationToken);
         }
+        #endregion
+
+        #region 8. Registrar tarea de descarga
+        var warehouseTask = _mapper.Map<WarehouseTask>(request, opts =>
+        {
+            opts.Items["WarehouseId"] = assignment.WarehouseId;
+            opts.Items["SourceId"] = unloadingDetailsId;
+            opts.Items["StartedAt"] = now;
+        });
+
+        await _unitOfWork.WarehouseTasks.InsertWarehouseTask(warehouseTask);
+
+        var warehouseTaskEvent = _mapper.Map<WarehouseTaskEvent>(request, opts =>
+        {
+            opts.Items["WarehouseTaskId"] = warehouseTask.Id;
+            opts.Items["OccurredAt"] = now;
+        });
+        await _unitOfWork.WarehouseTaskEvents.InsertWarehouseTaskEvent(warehouseTaskEvent);
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         #endregion
 
         return true;
