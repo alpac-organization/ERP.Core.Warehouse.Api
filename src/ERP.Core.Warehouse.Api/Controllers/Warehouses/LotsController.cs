@@ -22,18 +22,18 @@ public class LotsController(IMediator _mediator) : ApiControllerBase
     [ProducesResponseType(typeof(CreatedResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> RegisterLotsAsync(
+    public async Task<IActionResult> RegisterLotAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
         [FromRoute] Guid section_id,
-        [FromBody] RegisterLotsCommand commandLots,
+        [FromBody] RegisterLotCommand commandLot,
         CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
         if (!Guid.TryParse(userIdStr, out var userId))
             return Unauthorized();
 
-        var command = commandLots.WithContext(section_id, userId, company_id, module_code);
+        var command = commandLot.WithContext(section_id, userId, company_id, module_code);
         await _mediator.Send(command, cancellationToken);
         return Created();
     }
