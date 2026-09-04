@@ -22,18 +22,18 @@ public class RacksController(IMediator mediator) : ApiControllerBase
     [ProducesResponseType(typeof(CreatedResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> RegisterRacksAsync(
+    public async Task<IActionResult> RegisterRackAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
         [FromRoute] Guid section_id,
-        [FromBody] RacksBulkCommand commandRacks,
+        [FromBody] RegisterRackCommand commandRack,
         CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
         if (!Guid.TryParse(userIdStr, out var userId))
             return Unauthorized();
 
-        var command = commandRacks.WithContext(section_id, userId, company_id, module_code);
+        var command = commandRack.WithContext(section_id, userId, company_id, module_code);
         await mediator.Send(command, cancellationToken);
         return Created();
     }

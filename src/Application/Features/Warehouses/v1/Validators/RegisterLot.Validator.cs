@@ -7,89 +7,65 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Validators;
 
-public class RegisterLotsCommandValidator : AbstractValidator<RegisterLotsCommand>
+public class RegisterLotCommandValidator : AbstractValidator<RegisterLotCommand>
 {
-   public RegisterLotsCommandValidator(IUnitOfWork _unitOfWork)
-   {
-      RuleFor(x => x.SectionId).NotEmpty();
-      RuleFor(x => x.PlacementsLots).NotEmpty().WithMessage("Debe especificar al menos un grupo de tramos.");
+    public RegisterLotCommandValidator(IUnitOfWork unitOfWork)
+    {
+        RuleFor(x => x.SectionId).NotEmpty().WithMessage("La sección es obligatoria.");
 
-      RuleForEach(x => x.PlacementsLots).ChildRules(placement =>
-      {
-         placement.RuleFor(p => p.Code)
-                    .NotEmpty()
-                    .WithMessage("El codigo del tramo es obligatorio");
+        RuleFor(x => x.Code)
+            .NotEmpty().WithMessage("El código del tramo es obligatorio.")
+            .MaximumLength(50);
 
-         placement.RuleFor(p => p.WidthMetres).GreaterThan(0);
-         placement.RuleFor(p => p.LengthMetres).GreaterThan(0);
-         placement.RuleFor(p => p.NominalRows).GreaterThan(0);
-         placement.RuleFor(p => p.NominalColumns).GreaterThan(0);
-         placement.RuleFor(p => p.Status).IsInEnum();
+        RuleFor(x => x.WidthMetres).GreaterThan(0).WithMessage("El ancho debe ser mayor a 0.");
+        RuleFor(x => x.LengthMetres).GreaterThan(0).WithMessage("El largo debe ser mayor a 0.");
+        RuleFor(x => x.NominalRows).GreaterThan(0).WithMessage("Las filas deben ser mayor a 0.");
+        RuleFor(x => x.NominalColumns).GreaterThan(0).WithMessage("Las columnas deben ser mayor a 0.");
+        RuleFor(x => x.Status).IsInEnum();
 
-         placement.RuleFor(p => p.UnavailableReason)
-                    .NotEmpty()
-                    .MaximumLength(250)
-                    .When(p => p.Status is RackStatus.UnderMaintenance or RackStatus.Blocked);
+        RuleFor(x => x.UnavailableReason)
+            .NotEmpty()
+            .MaximumLength(250)
+            .When(x => x.Status is RackStatus.UnderMaintenance or RackStatus.Blocked);
 
-         placement.RuleFor(p => p.UnavailableReason)
-               .Empty()
-               .When(p => p.Status is RackStatus.Available or RackStatus.Occupied);
+        RuleFor(x => x.UnavailableReason)
+            .Empty()
+            .When(x => x.Status is RackStatus.Available or RackStatus.Occupied);
 
-         placement.When(p => p.LayoutTransform3DDto != null, () =>
-           {
-             placement.RuleFor(p => p.LayoutTransform3DDto!)
-                        .Must(WarehouseLayoutValidation.HasValidNonNegativeCoordinates)
-                        .WithMessage("Las coordenadas X, Y y Z no pueden ser negativas.");
+        When(x => x.LayoutTransform3DDto != null, () =>
+        {
+            RuleFor(x => x.LayoutTransform3DDto!)
+                .Must(WarehouseLayoutValidation.HasValidNonNegativeCoordinates)
+                .WithMessage("Las coordenadas X, Y y Z no pueden ser negativas.");
 
-             placement.RuleFor(p => p.LayoutTransform3DDto!.RotationY)
-                        .Must(WarehouseLayoutValidation.IsRightAngleRotation)
-                        .WithMessage("La rotación debe ser un ángulo recto (0, 90, 180, 270).");
-          });
+            RuleFor(x => x.LayoutTransform3DDto!.RotationY)
+                .Must(WarehouseLayoutValidation.IsRightAngleRotation)
+                .WithMessage("La rotación debe ser un ángulo recto (0, 90, 180, 270).");
 
-      });
-      RuleFor(x => x.PlacementsLots)
-      .CustomAsync(async (placements, context, cancellationToken) =>
-      {
-         var command = (RegisterLotsCommand)context.InstanceToValidate;
+            RuleFor(x => x)
+                .MustAsync(async (command, cancellationToken) =>
+                {
+                    var section = await unitOfWork.Sections.Entities
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(s => s.Id == command.SectionId && s.IsActive, cancellationToken);
 
-         var section = await _unitOfWork.Sections.Entities
-               .AsNoTracking()
-               .FirstOrDefaultAsync(s => s.Id == command.SectionId && s.IsActive, cancellationToken);
+                    if (section is null) return false;
 
-         if (section is null)
-         {
-            context.AddFailure("SectionId", "La sección asignada no existe o está inactiva.");
-            return;
-         }
+                    var layout = command.LayoutTransform3DDto!;
+                    var bounds = new WarehouseLayoutValidation.LayoutBounds(
+                        layout.PositionX,
+                        layout.PositionY,
+                        layout.PositionZ,
+                        layout.RotationY,
+                        command.WidthMetres,
+                        command.LengthMetres);
 
-         for (int i = 0; i < placements.Count; i++)
-         {
-            var placement = placements[i];
-            if (placement.LayoutTransform3DDto == null) continue;
-
-            var layout = placement.LayoutTransform3DDto;
-
-            var bounds = new WarehouseLayoutValidation.LayoutBounds(
-                  PositionX: layout.PositionX,
-                  PositionY: layout.PositionY,
-                  PositionZ: layout.PositionZ,
-                  RotationY: layout.RotationY,
-                  WidthMetres: placement.WidthMetres,
-                  LengthMetres: placement.LengthMetres
-              );
-
-            bool isSpatiallyValid = WarehouseLayoutValidation.FitsWithinContainer(
-                  bounds,
-                  containerWidthMetres: section.WidthMetres,
-                  containerLengthMetres: section.LengthMetres
-              );
-
-            if (!isSpatiallyValid)
-            {
-               context.AddFailure($"PlacementsLots[{i}].LayoutTransform3DDto",
-                $"El tramo '{placement.Code}' excede las dimensiones de la sección."); return;
-            }
-         }
-      });
-   }
+                    return WarehouseLayoutValidation.FitsWithinContainer(
+                        bounds,
+                        section.WidthMetres,
+                        section.LengthMetres);
+                })
+                .WithMessage("El tramo excede las dimensiones de la sección.");
+        });
+    }
 }
