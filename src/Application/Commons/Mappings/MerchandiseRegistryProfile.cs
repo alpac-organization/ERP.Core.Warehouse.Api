@@ -2,9 +2,9 @@ using AutoMapper;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Entities.Warehouse;
+using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Commands;
-using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 
@@ -70,6 +70,14 @@ public class MerchandiseRegistryProfile : Profile
             .ForMember(d => d.UpdatedByUserName, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.UpdatedByUserName : null))
             .ForMember(d => d.UpdatedDate, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.UpdatedDate : (DateOnly?)null))
             .ForMember(d => d.UpdatedTime, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.UpdatedTime : (TimeOnly?)null));
+
+        CreateMap<EntranceDucats, GetDucatDetailDto>()
+            .ForMember(d => d.Type, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.Type : default))
+            .ForMember(d => d.MerchandiseName, o => o.MapFrom(s => s.RegistryDetail != null && s.RegistryDetail.Merchandise != null ? s.RegistryDetail.Merchandise.MerchandiseName : null))
+            .ForMember(d => d.TotalBultos, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.TotalBultos : (int?)null))
+            .ForMember(d => d.TotalWeight, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.TotalWeight : (decimal?)null))
+            .ForMember(d => d.MerchandiseDescription, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.MerchandiseDescription : null))
+            .ForMember(d => d.Sender, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.Sender : null));
 
         // ==== 3. Bloque DUCA (Dato General + lista de ducats) ====
         CreateMap<RecordEntrance, MerchandiseDucaRegistryDetailDto>()

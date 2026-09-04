@@ -1,5 +1,5 @@
-using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Queries;
 using FluentValidation;
+using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Validators;
 
@@ -44,4 +44,5 @@ public class GetMerchandiseRegistryDetailValidator : AbstractValidator<GetMercha
         RuleFor(x => x.ReceptionId)
             .NotEqual(Guid.Empty).WithMessage("El identificador de la recepción es obligatorio.");
     }
+
 }

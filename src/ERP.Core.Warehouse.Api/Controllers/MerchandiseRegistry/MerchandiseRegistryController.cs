@@ -82,6 +82,31 @@ public class MerchandiseRegistryControlle(IMediator _mediator) : ApiControllerBa
     }
 
     [Tags("Registro de Mercadería")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/merchandise-registry/ducats/{ducat_id}")]
+    [ProducesResponseType(typeof(GetDucatDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<GetDucatDetailDto> GetDucatDetailAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid ducat_id,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var userId))
+        {
+            userId = Guid.Empty;
+        }
+
+        return await _mediator.Send(new GetDucatDetailQuery
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            DucatId = ducat_id,
+            UserId = userId
+        }, cancellationToken);
+    }
+
+    [Tags("Registro de Mercadería")]
     [HttpPost("companies/{company_id}/modules/{module_code}/receptions/{reception_id}/ducat-registry")]
     [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
