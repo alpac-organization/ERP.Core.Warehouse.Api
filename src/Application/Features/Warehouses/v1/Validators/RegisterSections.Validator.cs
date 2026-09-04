@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
@@ -43,6 +44,22 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Validators
 
             RuleFor(x => x.StorageType)
                 .IsInEnum().WithMessage("El tipo de almacenamiento de la sección no es válido.");
+
+            // Pasillo: no almacena racks ni tramos
+            When(x => x.SectionType == SectionType.Aisle, () =>
+            {
+                RuleFor(x => x.StorageType)
+                    .Equal(SectionStorageType.Empty)
+                    .WithMessage("Una sección de tipo Pasillo no puede almacenar Racks ni Tramos. StorageType debe ser Empty.");
+            });
+
+            // Almacenamiento: debe ser Lots o Racks (coincide con el frontend)
+            When(x => x.SectionType != SectionType.Aisle, () =>
+            {
+                RuleFor(x => x.StorageType)
+                    .Must(st => st is SectionStorageType.Lots or SectionStorageType.Racks)
+                    .WithMessage("Una sección de almacenamiento debe tener StorageType Lots o Racks.");
+            });
 
             RuleFor(x => x.WidthMetres)
                 .GreaterThan(0).WithMessage("El ancho debe ser mayor a 0.");
