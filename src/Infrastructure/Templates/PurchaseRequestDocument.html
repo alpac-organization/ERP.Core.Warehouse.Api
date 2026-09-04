@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>{{DocumentInfo.Title}}</title>
+<style>
+    @page { size: A4; margin: 0; }
+    * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    html, body { margin: 0; padding: 0; width: 100%; }
+    body { font-family: 'Segoe UI', Arial, Helvetica, sans-serif; font-size: 12px; color: #1a1a1a; padding: 18px 24px; }
+    .document { width: 100%; }
+    .doc-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #1a1a1a; padding-bottom: 10px; }
+    .doc-header .logo-wrap { display: flex; flex-direction: column; align-items: center; width: 80px; }
+    .doc-header .logo-wrap img { width: 54px; height: 54px; object-fit: contain; }
+    .doc-header .titles { text-align: center; flex: 1; padding: 0 12px; }
+    .doc-header .titles h1 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+    .doc-header .titles h2 { margin: 3px 0 0; font-size: 14px; font-weight: 600; }
+    .doc-header .titles .num { display: block; font-size: 11px; color: #555; margin-top: 2px; letter-spacing: 0.5px; }
+    .doc-header .spacer { width: 80px; }
+    .section-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #666; margin: 14px 0 5px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 48px; row-gap: 1px; }
+    .field { display: flex; padding: 3px 0; border-bottom: 1px dotted #c6c6c6; line-height: 1.35; }
+    .field .lbl { font-weight: 600; min-width: 150px; white-space: nowrap; }
+    .field .val { flex: 1; text-align: left; padding-left: 2px; }
+    .area-block { margin-top: 14px; page-break-inside: avoid; }
+    .area-block .area-title { font-weight: 700; background: #f0f0f0; padding: 5px 8px; border: 1px solid #1a1a1a; font-size: 11px; letter-spacing: 0.4px; }
+    .items { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .items th, .items td { border: 1px solid #1a1a1a; padding: 5px 8px; vertical-align: top; line-height: 1.3; }
+    .items th { background: #f7f7f7; font-size: 10px; text-align: left; letter-spacing: 0.3px; }
+    .signatures { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 80px; page-break-inside: avoid; }
+    .signature-block { text-align: center; }
+    .signature-line { border-top: 1px solid #1a1a1a; margin-top: 22px; padding-top: 4px; font-size: 11px; font-weight: 600; }
+    .signature-block .role { font-weight: 700; font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase; color: #555; margin-top: 2px; }
+</style>
+</head>
+<body>
+    <div class="document">
+        <div class="doc-header">
+            <div class="logo-wrap">
+                {{#if CompanyInformation.ImageUrl}}
+                    <img src="{{CompanyInformation.ImageUrl}}" alt="Logo {{CompanyInformation.CompanyName}}" />
+                {{/if}}
+            </div>
+            <div class="titles">
+                <h1>{{CompanyInformation.CompanyName}}</h1>
+                <h2>{{DocumentInfo.Title}}</h2>
+                <span class="num">Referencia: {{DocumentInfo.RequestCode}}</span>
+            </div>
+            <div class="spacer"></div>
+        </div>
+
+        <div class="section-label">Información general</div>
+        <div class="info-grid">
+            <div>
+                <div class="field"><span class="lbl">Empresa:</span><span class="val">{{CompanyInformation.CompanyName}}</span></div>
+                <div class="field"><span class="lbl">RUC:</span><span class="val">{{CompanyInformation.Ruc}}</span></div>
+                <div class="field"><span class="lbl">Fecha:</span><span class="val">{{DocumentInfo.Date}}</span></div>
+            </div>
+            <div>
+                <div class="field"><span class="lbl">Referencia:</span><span class="val">{{DocumentInfo.RequestCode}}</span></div>
+                <div class="field"><span class="lbl">Concepto:</span><span class="val">{{Concept}}</span></div>
+                <div class="field"><span class="lbl">Total productos:</span><span class="val">{{DocumentInfo.QuoteCount}}</span></div>
+            </div>
+        </div>
+
+        <div class="section-label">Productos solicitados</div>
+
+        {{#each Areas}}
+        <div class="area-block">
+            <div class="area-title">Área: {{AreaName}}</div>
+            <table class="items">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Descripción</th>
+                        <th>Cantidad</th>
+                        <th>Unidad</th>
+                        <th>Categoría</th>
+                        <th>Justificación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each Items}}
+                    <tr>
+                        <td>{{ProductName}}</td>
+                        <td>{{Description}}</td>
+                        <td>{{Quantity}}{{#if QuantityUnit}} × {{QuantityUnit}}{{/if}}</td>
+                        <td>{{UnitMeasure}}</td>
+                        <td>{{Category}}</td>
+                        <td>{{Justification}}</td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </div>
+        {{/each}}
+
+        <div class="signatures">
+            <div class="signature-block">
+                <div class="signature-line"></div>
+                <div class="role">Solicitado</div>
+            </div>
+            <div class="signature-block">
+                <div class="signature-line"></div>
+                <div class="role">Revisado</div>
+            </div>
+            <div class="signature-block">
+                <div class="signature-line"></div>
+                <div class="role">Aprobado</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
