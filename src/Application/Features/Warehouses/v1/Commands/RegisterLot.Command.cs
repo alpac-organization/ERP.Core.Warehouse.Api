@@ -6,10 +6,6 @@ using System.Text.Json.Serialization;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
-/// <summary>
-/// Crea un único tramo (Lot). El frontend dibuja un rectángulo en el plano 2D
-/// y envía sus medidas + transform; NominalRows/Columns configuran el interior.
-/// </summary>
 public class RegisterLotCommand : BaseRequest, IRequest<bool>
 {
     [JsonIgnore]

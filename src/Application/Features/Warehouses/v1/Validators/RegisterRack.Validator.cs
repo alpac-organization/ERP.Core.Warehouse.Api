@@ -7,72 +7,89 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Validators;
 
-public class RegisterRackCommandValidator : AbstractValidator<RegisterRackCommand>
+public class RegisterRacksBulkCommandValidator : AbstractValidator<RegisterRacksBulkCommand>
 {
-    public RegisterRackCommandValidator(IUnitOfWork unitOfWork)
+    public RegisterRacksBulkCommandValidator(IUnitOfWork unitOfWork)
     {
         RuleFor(x => x.SectionId).NotEmpty().WithMessage("La sección es obligatoria.");
 
-        RuleFor(x => x.Code)
-            .NotEmpty().WithMessage("El código del estante es obligatorio.")
-            .MaximumLength(50);
+        RuleFor(x => x.PlacementsRacks)
+            .NotEmpty().WithMessage("Debe especificar al menos un rack.");
 
-        RuleFor(x => x.Levels)
-            .NotEmpty().WithMessage("Debe especificar al menos un nivel.")
-            .Must(levels => levels.Select(l => l.LevelNumber).Distinct().Count() == levels.Count)
-            .WithMessage("Los números de nivel no pueden repetirse.");
-
-        RuleForEach(x => x.Levels).ChildRules(level =>
+        RuleForEach(x => x.PlacementsRacks).ChildRules(placement =>
         {
-            level.RuleFor(l => l.LevelNumber).GreaterThan(0).WithMessage("El nivel debe ser mayor a 0.");
-            level.RuleFor(l => l.WidthMetres).GreaterThan(0).WithMessage("El ancho debe ser mayor a 0.");
-            level.RuleFor(l => l.LengthMetres).GreaterThan(0).WithMessage("El largo debe ser mayor a 0.");
-            level.RuleFor(l => l.HeightMetres).GreaterThanOrEqualTo(0);
-            level.RuleFor(l => l.MaxPulleys).GreaterThan(0).WithMessage("Máximo de polines debe ser mayor a 0.");
-            level.RuleFor(l => l.UsageProfile).IsInEnum();
-            level.RuleFor(l => l.Status).IsInEnum();
+            placement.RuleFor(p => p.Code)
+                .NotEmpty().WithMessage("El código del estante es obligatorio.")
+                .MaximumLength(50);
 
-            level.RuleFor(l => l.UnavailableReason)
-                .NotEmpty()
-                .MaximumLength(250)
-                .When(l => l.Status is RackStatus.UnderMaintenance or RackStatus.Blocked);
+            placement.RuleFor(p => p.Levels)
+                .NotEmpty().WithMessage("Debe especificar al menos un nivel.")
+                .Must(levels => levels.Select(l => l.LevelNumber).Distinct().Count() == levels.Count)
+                .WithMessage("Los números de nivel no pueden repetirse.");
 
-            level.RuleFor(l => l.UnavailableReason)
-                .Empty()
-                .When(l => l.Status is RackStatus.Available or RackStatus.Occupied);
+            placement.RuleFor(p => p.Levels)
+                .Must(levels =>
+                {
+                    if (levels.Count <= 1) return true;
+                    var first = levels[0];
+                    return levels.All(l => l.WidthMetres == first.WidthMetres && l.LengthMetres == first.LengthMetres);
+                })
+                .WithMessage("Todos los niveles deben tener el mismo ancho y largo.");
+
+            placement.RuleForEach(p => p.Levels).ChildRules(level =>
+            {
+                level.RuleFor(l => l.LevelNumber).GreaterThan(0).WithMessage("El nivel debe ser mayor a 0.");
+                level.RuleFor(l => l.WidthMetres).GreaterThan(0).WithMessage("El ancho debe ser mayor a 0.");
+                level.RuleFor(l => l.LengthMetres).GreaterThan(0).WithMessage("El largo debe ser mayor a 0.");
+                level.RuleFor(l => l.MaxPulleys).GreaterThan(0).WithMessage("Máximo de polines debe ser mayor a 0.");
+                level.RuleFor(l => l.UsageProfile).IsInEnum();
+                level.RuleFor(l => l.Status).IsInEnum();
+
+                level.RuleFor(l => l.UnavailableReason)
+                    .NotEmpty()
+                    .MaximumLength(250)
+                    .When(l => l.Status is RackStatus.UnderMaintenance or RackStatus.Blocked);
+
+                level.RuleFor(l => l.UnavailableReason)
+                    .Empty()
+                    .When(l => l.Status is RackStatus.Available or RackStatus.Occupied);
+            });
+
+            placement.When(p => p.LayoutTransform3DDto != null, () =>
+            {
+                placement.RuleFor(p => p.LayoutTransform3DDto!)
+                    .Must(WarehouseLayoutValidation.HasValidNonNegativeCoordinates)
+                    .WithMessage("Las coordenadas X, Y y Z no pueden ser negativas.");
+
+                placement.RuleFor(p => p.LayoutTransform3DDto!.RotationY)
+                    .Must(WarehouseLayoutValidation.IsRightAngleRotation)
+                    .WithMessage("La rotación debe ser un ángulo recto (0, 90, 180, 270).");
+            });
         });
 
-        // Todos los niveles deben compartir el mismo footprint (como en la UI)
-        RuleFor(x => x.Levels)
-            .Must(levels =>
+        RuleFor(x => x.PlacementsRacks)
+            .CustomAsync(async (placements, context, cancellationToken) =>
             {
-                if (levels.Count <= 1) return true;
-                var first = levels[0];
-                return levels.All(l => l.WidthMetres == first.WidthMetres && l.LengthMetres == first.LengthMetres);
-            })
-            .WithMessage("Todos los niveles deben tener el mismo ancho y largo.");
+                var command = (RegisterRacksBulkCommand)context.InstanceToValidate;
 
-        When(x => x.LayoutTransform3DDto != null, () =>
-        {
-            RuleFor(x => x.LayoutTransform3DDto!)
-                .Must(WarehouseLayoutValidation.HasValidNonNegativeCoordinates)
-                .WithMessage("Las coordenadas X, Y y Z no pueden ser negativas.");
+                var section = await unitOfWork.Sections.Entities
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.Id == command.SectionId && s.IsActive, cancellationToken);
 
-            RuleFor(x => x.LayoutTransform3DDto!.RotationY)
-                .Must(WarehouseLayoutValidation.IsRightAngleRotation)
-                .WithMessage("La rotación debe ser un ángulo recto (0, 90, 180, 270).");
-
-            RuleFor(x => x)
-                .MustAsync(async (command, cancellationToken) =>
+                if (section is null)
                 {
-                    var section = await unitOfWork.Sections.Entities
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(s => s.Id == command.SectionId && s.IsActive, cancellationToken);
+                    context.AddFailure("SectionId", "La sección asignada no existe o está inactiva.");
+                    return;
+                }
 
-                    if (section is null || command.Levels.Count == 0) return false;
+                for (int i = 0; i < placements.Count; i++)
+                {
+                    var placement = placements[i];
+                    if (placement.LayoutTransform3DDto is null || placement.Levels.Count == 0)
+                        continue;
 
-                    var layout = command.LayoutTransform3DDto!;
-                    var first = command.Levels[0];
+                    var layout = placement.LayoutTransform3DDto;
+                    var first = placement.Levels[0];
                     var bounds = new WarehouseLayoutValidation.LayoutBounds(
                         layout.PositionX,
                         layout.PositionY,
@@ -81,12 +98,14 @@ public class RegisterRackCommandValidator : AbstractValidator<RegisterRackComman
                         first.WidthMetres,
                         first.LengthMetres);
 
-                    return WarehouseLayoutValidation.FitsWithinContainer(
-                        bounds,
-                        section.WidthMetres,
-                        section.LengthMetres);
-                })
-                .WithMessage("El rack excede las dimensiones de la sección.");
-        });
+                    if (!WarehouseLayoutValidation.FitsWithinContainer(
+                            bounds, section.WidthMetres, section.LengthMetres))
+                    {
+                        context.AddFailure(
+                            $"PlacementsRacks[{i}].LayoutTransform3DDto",
+                            $"El rack '{placement.Code}' excede las dimensiones de la sección.");
+                    }
+                }
+            });
     }
 }
