@@ -81,6 +81,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 .AsSplitQuery()
                 .ToListAsync(cancellationToken);
 
+            Console.WriteLine($"[DIAG] BuildMonthlyDocument => consolidation={request.ConsolidationType}, found approved/rejected requests={purchaseRequests.Count}, month={month}, year={year}");
+
             if (purchaseRequests.Count == 0)
             {
                 return null;
@@ -92,6 +94,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
             if (request.ConsolidationType == PurchaseRequestConsolidationType.TotalProducts)
             {
+                Console.WriteLine("[DIAG] -> Ramando a TOTAL de productos (TotalProducts)");
                 var totalItems = purchaseRequests
                     .SelectMany(purs => MapItems(purs.PurchaseRequestItems, purs.RequestStatus))
                     .GroupBy(item => new { item.ProductName, item.Description, item.UnitMeasure, item.Category })

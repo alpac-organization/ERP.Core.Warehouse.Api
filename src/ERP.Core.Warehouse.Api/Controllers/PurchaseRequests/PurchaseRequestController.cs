@@ -1,5 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Domain.Entities.Errors;
 using ERP.Core.Infrastructure.Attributes;
@@ -172,7 +174,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
-            return await _mediator.Send(new GetPurchaseRequestDocumentQuery
+            var query = new GetPurchaseRequestDocumentQuery
             {
                 CompanyId       = company_id,
                 ModuleCode      = module_code,
@@ -182,7 +184,14 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
                 PurchaseRequestId = purchase_request_id,
                 Month           = month,
                 Year            = year
-            });
+            };
+
+            var documentLogger = HttpContext.RequestServices.GetRequiredService<ILogger<PurchaseRequestController>>();
+            documentLogger.LogInformation(
+                "[DIAG] document-generator => type={DocumentType}, consolidation={Consolidation}, month={Month}, year={Year}, purchaseRequestId={PurchaseRequestId}",
+                query.DocumentType, query.ConsolidationType, query.Month, query.Year, query.PurchaseRequestId);
+
+            return await _mediator.Send(query);
         }
 
         [Tags("Solicitudes de compras")] 
