@@ -8,8 +8,8 @@ public class GetUnloadingDetailValidator : BaseRequestValidator<GetUnloadingDeta
 {
     public GetUnloadingDetailValidator()
     {
-        RuleFor(x => x.AssignmentId)
-            .NotEmpty().WithMessage("El identificador de la asignación no puede estar vacío.")
-            .NotEqual(Guid.Empty).WithMessage("El identificador de la asignación no es válido.");
+        RuleFor(x => x.UnloadingId)
+            .NotEmpty().WithMessage("El identificador de la descarga no puede estar vacío.")
+            .NotEqual(Guid.Empty).WithMessage("El identificador de la descarga no es válido.");
     }
 }
