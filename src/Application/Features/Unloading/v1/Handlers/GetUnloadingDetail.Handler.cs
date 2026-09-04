@@ -27,7 +27,7 @@ public class GetUnloadingDetailHandler(IUnitOfWork unitOfWork, IErrorManager err
         var detail = await _unitOfWork.UnloadingDetails.Entities
             .AsNoTracking()
             .AsSplitQuery()
-            .Where(d => d.WarehouseAssignmentId == request.AssignmentId && d.DeletedAt == null)
+            .Where(d => d.Id == request.UnloadingId && d.DeletedAt == null)
             .Include(d => d.WarehouseAssignment)
             .Include(d => d.UnloadingPallets.Where(p => p.DeletedAt == null))
             .Include(d => d.UnloadingSupplies.Where(s => s.DeletedAt == null))

@@ -2,6 +2,7 @@ using AutoMapper;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Features.WarehouseTasks.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Features.WarehouseTasks.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 
@@ -9,6 +10,8 @@ public class WarehouseTasksProfile : Profile
 {
     public WarehouseTasksProfile()
     {
+        CreateMap<WarehouseTask, WarehouseTaskDto>();
+
         CreateMap<PauseWarehouseTaskCommand, WarehouseTaskEvent>()
             .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
             .ForMember(d => d.WarehouseTaskId, o => o.MapFrom((s, d, m, ctx) => (Guid)ctx.Items["WarehouseTaskId"]))

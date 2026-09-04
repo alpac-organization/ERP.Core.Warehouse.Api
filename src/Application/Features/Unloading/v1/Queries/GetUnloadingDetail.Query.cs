@@ -6,5 +6,5 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Unloading.v1.Queries;
 
 public class GetUnloadingDetailQuery : BaseRequest, IRequest<UnloadingDetailDto>
 {
-    public Guid AssignmentId { get; set; }
+    public Guid UnloadingId { get; set; }
 }

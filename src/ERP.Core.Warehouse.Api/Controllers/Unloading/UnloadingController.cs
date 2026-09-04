@@ -84,7 +84,7 @@ public class UnloadingController(IMediator mediator) : ApiControllerBase
 
     #region Detalle de descarga
     [Tags("Descarga")]
-    [HttpGet("companies/{company_id}/modules/{module_code}/unloading/assignment-queue/{assignment_id}/detail")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/unloading/{unloading_id}/detail")]
     [ProducesResponseType(typeof(UnloadingDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
@@ -92,7 +92,7 @@ public class UnloadingController(IMediator mediator) : ApiControllerBase
     public async Task<UnloadingDetailDto> GetUnloadingDetailAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
-        [FromRoute] Guid assignment_id,
+        [FromRoute] Guid unloading_id,
         CancellationToken cancellationToken = default)
     {
         if (!TryGetUserId(out var userId))
@@ -103,7 +103,7 @@ public class UnloadingController(IMediator mediator) : ApiControllerBase
             CompanyId = company_id,
             ModuleCode = module_code,
             UserId = userId,
-            AssignmentId = assignment_id
+            UnloadingId = unloading_id
         }, cancellationToken);
     }
     #endregion

@@ -4,6 +4,9 @@ using ERP.Core.Domain.Entities.Errors;
 using ERP.Core.Infrastructure.Attributes;
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Application.Features.WarehouseTasks.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Features.WarehouseTasks.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Features.WarehouseTasks.v1.Queries;
+using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Controllers.WarehouseTasks;
 
@@ -12,6 +15,35 @@ namespace ERP.Core.Warehouse.Api.Controllers.WarehouseTasks;
 [Route("api/v1/")]
 public class WarehouseTasksController(IMediator mediator) : ApiControllerBase
 {
+    [Tags("Tareas de bodega")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/warehouse-tasks")]
+    [ProducesResponseType(typeof(List<WarehouseTaskDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    public async Task<List<WarehouseTaskDto>> GetAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromQuery] Guid? warehouse_id,
+        [FromQuery] WarehouseTaskStatus? status,
+        [FromQuery] WarehouseTaskType? task_type,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var userId))
+        {
+            userId = Guid.Empty;
+        }
+
+        return await mediator.Send(new GetWarehouseTasksQuery
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = userId,
+            WarehouseId = warehouse_id,
+            Status = status,
+            TaskType = task_type
+        }, cancellationToken);
+    }
+
     [Tags("Tareas de bodega")]
     [HttpPost("companies/{company_id}/modules/{module_code}/warehouse-tasks/{warehouse_task_id}/pause")]
     [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
