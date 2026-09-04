@@ -13,6 +13,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Domain.Entities.ObjectValues;
+using ERP.Core.Warehouse.Api.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Queries;
 
@@ -74,6 +75,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 .Where(purs => purs.RequestType == PurchaseRequestType.Monthly)
                 .Where(purs => purs.Branch.CompanyId == request.CompanyId)
                 .Where(purs => purs.CreatedAt >= firstDayOfMonth && purs.CreatedAt < firstDayOfNextMonth)
+                .Where(purs => purs.RequestStatus == PurchaseRequestStatus.Approved
+                            || purs.RequestStatus == PurchaseRequestStatus.Rejected)
                 .AsNoTracking()
                 .AsSplitQuery()
                 .ToListAsync(cancellationToken);
@@ -85,18 +88,59 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
             var culture = new CultureInfo("es-NI");
             var monthName = firstDayOfMonth.ToString("MMMM 'de' yyyy", culture).ToUpperInvariant();
+            var company = purchaseRequests.FirstOrDefault()?.Branch.Company;
+
+            if (request.ConsolidationType == PurchaseRequestConsolidationType.TotalProducts)
+            {
+                var totalItems = purchaseRequests
+                    .SelectMany(purs => MapItems(purs.PurchaseRequestItems, purs.RequestStatus))
+                    .GroupBy(item => new { item.ProductName, item.Description, item.UnitMeasure, item.Category })
+                    .Select(group => new PurchaseRequestDocumentItem
+                    {
+                        ProductName  = group.Key.ProductName,
+                        Description  = group.Key.Description,
+                        Quantity     = group.Sum(item => item.Quantity),
+                        UnitMeasure  = group.Key.UnitMeasure,
+                        Category     = group.Key.Category,
+                        Justification = group.Select(item => item.Justification).FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)),
+                        Status       = "Total"
+                    })
+                    .OrderBy(item => item.ProductName)
+                    .ToList();
+
+                return new PurchaseRequestDocumentTemplateDto
+                {
+                    Title             = $"Total de Productos Mensual - {monthName}",
+                    Concept           = "Total de productos solicitados en el mes",
+                    CompanyInformation = MapCompany(company),
+                    DocumentInfo      = new DocumentInfo
+                    {
+                        Title       = $"Total de productos - {monthName}",
+                        RequestCode = $"PERIODO {month:D2}-{year}",
+                        Date        = DateTime.Now.ToString("dd/MM/yyyy", culture),
+                        QuoteCount  = totalItems.Count
+                    },
+                    Areas = new List<PurchaseRequestDocumentArea>
+                    {
+                        new()
+                        {
+                            AreaName = "Total de productos",
+                            Items    = totalItems
+                        }
+                    }
+                };
+            }
 
             var areas = purchaseRequests
                 .GroupBy(purs => purs.WorkArea?.WorkAreaName ?? purs.WorkArea?.Description ?? "Sin área")
                 .Select(group => new PurchaseRequestDocumentArea
                 {
                     AreaName   = group.Key,
-                    Items      = group.SelectMany(purs => MapItems(purs.PurchaseRequestItems)).ToList()
+                    Items      = group.SelectMany(purs => MapItems(purs.PurchaseRequestItems, purs.RequestStatus)).ToList()
                 })
                 .ToList();
 
-            var company = purchaseRequests.FirstOrDefault()?.Branch.Company;
-            var totalItems = areas.Sum(area => area.Items.Count);
+            var totalItemsByArea = areas.Sum(area => area.Items.Count);
 
             return new PurchaseRequestDocumentTemplateDto
             {
@@ -108,7 +152,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     Title       = $"Consolidado mensual - {monthName}",
                     RequestCode = $"PERIODO {month:D2}-{year}",
                     Date        = DateTime.Now.ToString("dd/MM/yyyy", culture),
-                    QuoteCount  = totalItems
+                    QuoteCount  = totalItemsByArea
                 },
                 Areas = areas
             };
@@ -160,7 +204,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     {
                         AreaName   = areaName,
                         RequestCode = purchaseRequest.Code,
-                        Items      = MapItems(purchaseRequest.PurchaseRequestItems)
+                        Items      = MapItems(purchaseRequest.PurchaseRequestItems, purchaseRequest.RequestStatus)
                     }
                 }
             };
@@ -168,7 +212,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
         #endregion
 
         #region Helpers
-        private static List<PurchaseRequestDocumentItem> MapItems(ICollection<PurchaseRequestItem> items)
+        private static List<PurchaseRequestDocumentItem> MapItems(ICollection<PurchaseRequestItem> items, PurchaseRequestStatus status)
         {
             return items
                 .Select(item => new PurchaseRequestDocumentItem
@@ -179,10 +223,22 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     QuantityUnit = item.QuantityUnit,
                     UnitMeasure  = item.UnitMeasure?.Name ?? item.UnitMeasure?.Symbol,
                     Category     = item.Product?.Category?.Name,
-                    Justification = item.Justification
+                    Justification = item.Justification,
+                    Status       = MapStatus(status)
                 })
                 .ToList();
         }
+
+        private static string MapStatus(PurchaseRequestStatus status) => status switch
+        {
+            PurchaseRequestStatus.Approved => "Aprobada",
+            PurchaseRequestStatus.Rejected => "Rechazada",
+            PurchaseRequestStatus.Pending  => "Pendiente",
+            PurchaseRequestStatus.Revision => "En revisión",
+            PurchaseRequestStatus.Canceled => "Cancelada",
+            PurchaseRequestStatus.Finished => "Finalizada",
+            _                             => status.ToString()
+        };
 
         private CompanyInformation MapCompany(object? company)
         {

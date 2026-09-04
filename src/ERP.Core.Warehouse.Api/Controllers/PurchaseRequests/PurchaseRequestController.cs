@@ -5,6 +5,7 @@ using ERP.Core.Domain.Entities.Errors;
 using ERP.Core.Infrastructure.Attributes;
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+using ERP.Core.Warehouse.Api.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
@@ -164,6 +165,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
         public async Task<PurchaseRequestDocumentDto> GetPurchaseRequestDocumentAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
             [FromQuery] PurchaseRequestType? document_type = null,
+            [FromQuery] PurchaseRequestConsolidationType? consolidation_type = null,
             [FromQuery] Guid? purchase_request_id = null,
             [FromQuery] int? month = null,
             [FromQuery] int? year = null)
@@ -176,6 +178,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
                 ModuleCode      = module_code,
                 UserId          = Guid.Parse(userIdStr ?? ""),
                 DocumentType    = document_type ?? PurchaseRequestType.Monthly,
+                ConsolidationType = consolidation_type ?? PurchaseRequestConsolidationType.ByArea,
                 PurchaseRequestId = purchase_request_id,
                 Month           = month,
                 Year            = year
