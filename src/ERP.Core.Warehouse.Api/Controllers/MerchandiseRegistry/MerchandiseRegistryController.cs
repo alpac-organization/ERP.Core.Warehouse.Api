@@ -92,8 +92,10 @@ public class MerchandiseRegistryControlle(IMediator _mediator) : ApiControllerBa
         [FromRoute] Guid ducat_id,
         CancellationToken cancellationToken)
     {
-        var userIdStr = HttpContext.Items["UserId"] as string;
-        Guid.TryParse(userIdStr, out var userId);
+        if (!TryGetUserId(out var userId))
+        {
+            userId = Guid.Empty;
+        }
 
         return await _mediator.Send(new GetDucatDetailQuery
         {
