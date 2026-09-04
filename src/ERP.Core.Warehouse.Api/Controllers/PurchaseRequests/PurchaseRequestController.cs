@@ -158,6 +158,31 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
         }
 
         [Tags("Solicitudes de compras")] 
+        [HttpGet("companies/{company_id}/modules/{module_code}/purchase-requests/document-generator")]      
+        [ProducesResponseType(typeof(PurchaseRequestDocumentDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
+        public async Task<PurchaseRequestDocumentDto> GetPurchaseRequestDocumentAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
+            [FromQuery] PurchaseRequestType? document_type = null,
+            [FromQuery] Guid? purchase_request_id = null,
+            [FromQuery] int? month = null,
+            [FromQuery] int? year = null)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            return await _mediator.Send(new GetPurchaseRequestDocumentQuery
+            {
+                CompanyId       = company_id,
+                ModuleCode      = module_code,
+                UserId          = Guid.Parse(userIdStr ?? ""),
+                DocumentType    = document_type ?? PurchaseRequestType.Monthly,
+                PurchaseRequestId = purchase_request_id,
+                Month           = month,
+                Year            = year
+            });
+        }
+
+        [Tags("Solicitudes de compras")] 
         [HttpPost("companies/{company_id}/modules/{module_code}/purchase-requests/{purchase_request_id}/send-accounting-review")]      
         [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
