@@ -30,5 +30,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public string? UnitMeasure { get; set; }
         public string? Category { get; set; }
         public string? Justification { get; set; }
+        public string? Status { get; set; }
     }
 }
