@@ -8,10 +8,10 @@ using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
 
-public class RegisterRackHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
-    : BaseValidatorHandler<RegisterRackCommand, bool>(unitOfWork, errorManager)
+public class RegisterLotHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
+    : BaseValidatorHandler<RegisterLotCommand, bool>(unitOfWork, errorManager)
 {
-    public override async Task<bool> Handle(RegisterRackCommand request, CancellationToken cancellationToken)
+    public override async Task<bool> Handle(RegisterLotCommand request, CancellationToken cancellationToken)
     {
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
@@ -27,35 +27,30 @@ public class RegisterRackHandler(IUnitOfWork unitOfWork, IErrorManager errorMana
 
         if (sectionInfo.SectionType == SectionType.Aisle)
             return _errorManager.ThrowBadRequest<bool>(
-                "No se pueden crear racks en una sección de tipo pasillo.",
-                "ERP:SECTION_TYPE_NOT_ALLOWED_FOR_RACKS");
+                "No se pueden crear tramos en una sección de tipo pasillo.",
+                "ERP:SECTION_TYPE_NOT_ALLOWED_FOR_LOTS");
 
-        if (sectionInfo.StorageType == SectionStorageType.Lots)
+        if (sectionInfo.StorageType == SectionStorageType.Racks)
             return _errorManager.ThrowBadRequest<bool>(
-                "Esta sección está configurada para Tramos (Lots). Crea una sección independiente para los Racks.",
+                "Esta sección está configurada para Racks. Crea una sección independiente para Tramos.",
                 "ERP:SECTION_STORAGE_MISMATCH");
 
         if (sectionInfo.StorageType == SectionStorageType.Empty)
             return _errorManager.ThrowBadRequest<bool>(
-                "Esta sección no admite racks (StorageType Empty).",
+                "Esta sección no admite tramos (StorageType Empty).",
                 "ERP:SECTION_STORAGE_MISMATCH");
 
-        var racksToCreate = request.ToRackEntities();
-        var requestedCodes = racksToCreate.Select(r => r.Code).ToList();
+        var code = request.Code.Trim();
+        var exists = await _unitOfWork.Lots.Entities
+            .AnyAsync(l => l.SectionId == request.SectionId && l.Code == code, cancellationToken);
 
-        var existingCodes = await _unitOfWork.Racks.Entities
-            .Where(r => r.SectionId == request.SectionId && requestedCodes.Contains(r.Code))
-            .Select(r => r.Code)
-            .ToListAsync(cancellationToken);
-
-        if (existingCodes.Count > 0)
+        if (exists)
             return _errorManager.ThrowBadRequest<bool>(
-                $"Ya existen racks con estos códigos en la sección: {string.Join(", ", existingCodes)}.",
-                "ERP:RACK_CODE_ALREADY_EXISTS");
+                $"Ya existe un tramo con el código '{code}' en la sección.",
+                "ERP:LOT_CODE_ALREADY_EXISTS");
 
-        foreach (var rack in racksToCreate)
-            await _unitOfWork.Racks.RegisterRack(rack);
-
+        var lot = request.ToLotEntity();
+        await _unitOfWork.Lots.RegisterLot(lot);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return true;
