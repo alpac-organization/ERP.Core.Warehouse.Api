@@ -61,7 +61,7 @@ public class GetMerchandiseRegistryHandler(IUnitOfWork unitOfWork, IErrorManager
             var driverFilter = request.DriverName.Trim().ToLower().Replace(" ", "");
             query = query.Where(r => r.ReceptionEntrance!.DriverName.ToLower().Replace(" ", "").Contains(driverFilter));
         }
-        
+
         if (!string.IsNullOrWhiteSpace(request.VehiclePlateNumber))
         {
             var plateFilter = request.VehiclePlateNumber.Trim().ToLower().Replace(" ", "");
