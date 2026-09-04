@@ -22,18 +22,18 @@ public class RacksController(IMediator mediator) : ApiControllerBase
     [ProducesResponseType(typeof(CreatedResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> RegisterRackAsync(
+    public async Task<IActionResult> RegisterRacksAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
         [FromRoute] Guid section_id,
-        [FromBody] RegisterRackCommand commandRack,
+        [FromBody] RegisterRacksBulkCommand commandRacks,
         CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
         if (!Guid.TryParse(userIdStr, out var userId))
             return Unauthorized();
 
-        var command = commandRack.WithContext(section_id, userId, company_id, module_code);
+        var command = commandRacks.WithContext(section_id, userId, company_id, module_code);
         await mediator.Send(command, cancellationToken);
         return Created();
     }
@@ -52,7 +52,6 @@ public class RacksController(IMediator mediator) : ApiControllerBase
         [FromQuery] RackUsageProfile? usage_profile,
         [FromQuery] decimal? width_metres,
         [FromQuery] decimal? length_metres,
-        [FromQuery] decimal? height_metres,
         [FromQuery] int page_number = 1,
         [FromQuery] int page_size = 10,
         CancellationToken cancellationToken = default)
@@ -64,7 +63,7 @@ public class RacksController(IMediator mediator) : ApiControllerBase
         var query = section_id.ToQuery(
             userId, company_id, module_code,
             level_number, status, usage_profile,
-            width_metres, length_metres, height_metres,
+            width_metres, length_metres,
             page_number, page_size);
 
         var response = await mediator.Send(query, cancellationToken);

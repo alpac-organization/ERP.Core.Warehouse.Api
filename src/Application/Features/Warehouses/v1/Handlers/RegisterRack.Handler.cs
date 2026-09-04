@@ -8,10 +8,10 @@ using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
 
-public class RegisterRackHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
-    : BaseValidatorHandler<RegisterRackCommand, bool>(unitOfWork, errorManager)
+public class RegisterRacksBulkHandler(IUnitOfWork unitOfWork, IErrorManager errorManager)
+    : BaseValidatorHandler<RegisterRacksBulkCommand, bool>(unitOfWork, errorManager)
 {
-    public override async Task<bool> Handle(RegisterRackCommand request, CancellationToken cancellationToken)
+    public override async Task<bool> Handle(RegisterRacksBulkCommand request, CancellationToken cancellationToken)
     {
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
         if (!access.IsSuccess) return access.ErrorResponse!;
@@ -42,6 +42,17 @@ public class RegisterRackHandler(IUnitOfWork unitOfWork, IErrorManager errorMana
 
         var racksToCreate = request.ToRackEntities();
         var requestedCodes = racksToCreate.Select(r => r.Code).ToList();
+
+        var duplicatedInRequest = requestedCodes
+            .GroupBy(c => c)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+
+        if (duplicatedInRequest.Count > 0)
+            return _errorManager.ThrowBadRequest<bool>(
+                $"Se enviaron códigos duplicados en la solicitud: {string.Join(", ", duplicatedInRequest)}.",
+                "ERP:RACK_CODE_DUPLICATED_IN_REQUEST");
 
         var existingCodes = await _unitOfWork.Racks.Entities
             .Where(r => r.SectionId == request.SectionId && requestedCodes.Contains(r.Code))

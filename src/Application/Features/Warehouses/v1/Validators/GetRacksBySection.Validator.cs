@@ -38,10 +38,5 @@ public class GetRacksBySectionValidator : BasePagedQueryValidator<GetRacksBySect
             .GreaterThan(0)
             .When(x => x.LengthMetres.HasValue)
             .WithMessage("El largo del rack debe ser mayor a cero.");
-
-        RuleFor(x => x.HeightMetres)
-            .GreaterThan(0)
-            .When(x => x.HeightMetres.HasValue)
-            .WithMessage("La altura del rack debe ser mayor a cero.");
     }
 }

@@ -9,7 +9,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 public class RegisterSectionCommand : BaseRequest, IRequest<bool>
 {
     [JsonIgnore]
-    public Guid WarehouseId { get; set; } // se asigna desde la ruta, no viene del body
+    public Guid WarehouseId { get; set; }
 
     public string Code { get; set; } = null!;
     public string Name { get; set; } = null!;

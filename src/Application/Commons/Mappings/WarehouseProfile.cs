@@ -216,70 +216,71 @@ public static class SectionMapper
 #region Racks
 public static class RackMapper
 {
-   /// <summary>
-   /// Genera una entidad Racks por cada nivel. Comparte X/Z/RotationY del layout base;
-   /// PositionY se apila: baseY + suma de HeightMetres de niveles inferiores.
-   /// Códigos: Code-L1, Code-L2, ...
-   /// </summary>
-   public static List<Racks> ToRackEntities(this RegisterRackCommand command)
+   public const decimal StandardLevelHeight = 1.70m;
+
+   public static List<Racks> ToRackEntities(this RegisterRacksBulkCommand command)
    {
       var now = NicaraguaClock.Now;
-      var baseCode = command.Code.Trim();
-      var baseX = command.LayoutTransform3DDto?.PositionX ?? 0m;
-      var baseY = command.LayoutTransform3DDto?.PositionY ?? 0m;
-      var baseZ = command.LayoutTransform3DDto?.PositionZ ?? 0m;
-      var baseRot = command.LayoutTransform3DDto?.RotationY ?? 0m;
+      var racks = new List<Racks>();
 
-      var orderedLevels = command.Levels.OrderBy(l => l.LevelNumber).ToList();
-      var racks = new List<Racks>(orderedLevels.Count);
-      decimal cumulativeHeight = 0m;
-
-      foreach (var level in orderedLevels)
+      foreach (var placement in command.PlacementsRacks)
       {
-         var rackId = Guid.NewGuid();
-         var positionY = baseY + cumulativeHeight;
+         var baseCode = placement.Code.Trim();
+         var baseX = placement.LayoutTransform3DDto?.PositionX ?? 0m;
+         var baseY = placement.LayoutTransform3DDto?.PositionY ?? 0m;
+         var baseZ = placement.LayoutTransform3DDto?.PositionZ ?? 0m;
+         var baseRot = placement.LayoutTransform3DDto?.RotationY ?? 0m;
 
-         racks.Add(new Racks
+         var orderedLevels = placement.Levels.OrderBy(l => l.LevelNumber).ToList();
+         decimal cumulativeHeight = 0m;
+
+         foreach (var level in orderedLevels)
          {
-            Id = rackId,
-            SectionId = command.SectionId,
-            Code = $"{baseCode}-L{level.LevelNumber}",
-            WidthMetres = level.WidthMetres,
-            LengthMetres = level.LengthMetres,
-            HeightMetres = level.HeightMetres,
-            UsageProfile = level.UsageProfile,
-            RowNumber = 1,
-            LevelNumber = level.LevelNumber,
-            MaxPulleys = level.MaxPulleys,
-            Status = level.Status,
-            UnavailableReason = level.UnavailableReason,
-            StatusChangedAt = now,
-            TransformWarehouse3D = new TransformWarehouse3D
-            {
-               PositionX = baseX,
-               PositionY = positionY,
-               PositionZ = baseZ,
-               RotationY = baseRot
-            },
-            Positions = Enumerable.Range(1, level.MaxPulleys).Select(i => new RackPositions
-            {
-               Id = Guid.NewGuid(),
-               RackId = rackId,
-               PositionNumber = i,
-               PositionCode = i.ToString().PadLeft(2, '0'),
-               IsBlocked = false,
-               IsOccupied = false
-            }).ToList()
-         });
+            var rackId = Guid.NewGuid();
+            var positionY = baseY + cumulativeHeight;
 
-         cumulativeHeight += level.HeightMetres;
+            racks.Add(new Racks
+            {
+               Id = rackId,
+               SectionId = command.SectionId,
+               Code = $"{baseCode}-L{level.LevelNumber}",
+               WidthMetres = level.WidthMetres,
+               LengthMetres = level.LengthMetres,
+               HeightMetres = StandardLevelHeight,
+               UsageProfile = level.UsageProfile,
+               RowNumber = 1,
+               LevelNumber = level.LevelNumber,
+               MaxPulleys = level.MaxPulleys,
+               Status = level.Status,
+               UnavailableReason = level.UnavailableReason,
+               StatusChangedAt = now,
+               TransformWarehouse3D = new TransformWarehouse3D
+               {
+                  PositionX = baseX,
+                  PositionY = positionY,
+                  PositionZ = baseZ,
+                  RotationY = baseRot
+               },
+               Positions = Enumerable.Range(1, level.MaxPulleys).Select(i => new RackPositions
+               {
+                  Id = Guid.NewGuid(),
+                  RackId = rackId,
+                  PositionNumber = i,
+                  PositionCode = i.ToString().PadLeft(2, '0'),
+                  IsBlocked = false,
+                  IsOccupied = false
+               }).ToList()
+            });
+
+            cumulativeHeight += StandardLevelHeight;
+         }
       }
 
       return racks;
    }
 
-   public static RegisterRackCommand WithContext(
-       this RegisterRackCommand command,
+   public static RegisterRacksBulkCommand WithContext(
+       this RegisterRacksBulkCommand command,
        Guid sectionId, Guid userId, Guid companyId, string moduleCode)
    {
       command.SectionId = sectionId;
@@ -292,7 +293,7 @@ public static class RackMapper
    public static GetRacksBySectionQuery ToQuery(
        this Guid sectionId, Guid userId, Guid companyId, string moduleCode,
        int? levelNumber, RackStatus? status, RackUsageProfile? usageProfile,
-       decimal? widthMetres, decimal? lengthMetres, decimal? heightMetres,
+       decimal? widthMetres, decimal? lengthMetres,
        int pageNumber, int pageSize) => new()
        {
           SectionId = sectionId,
@@ -301,7 +302,6 @@ public static class RackMapper
           UsageProfile = usageProfile,
           WidthMetres = widthMetres,
           LengthMetres = lengthMetres,
-          HeightMetres = heightMetres,
           PageNumber = pageNumber,
           PageSize = pageSize,
           UserId = userId,
