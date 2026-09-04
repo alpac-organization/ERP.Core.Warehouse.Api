@@ -75,7 +75,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 .Where(purs => purs.RequestType == PurchaseRequestType.Monthly)
                 .Where(purs => purs.Branch.CompanyId == request.CompanyId)
                 .Where(purs => purs.CreatedAt >= firstDayOfMonth && purs.CreatedAt < firstDayOfNextMonth)
-                // Solo se agregan las solicitudes aprobadas o rechazadas; se excluyen pendientes y en revisión.
                 .Where(purs => purs.RequestStatus == PurchaseRequestStatus.Approved
                             || purs.RequestStatus == PurchaseRequestStatus.Rejected)
                 .AsNoTracking()
