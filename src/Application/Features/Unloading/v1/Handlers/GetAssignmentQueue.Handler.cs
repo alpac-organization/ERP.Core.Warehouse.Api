@@ -38,12 +38,6 @@ public class GetAssignmentQueueHandler(IUnitOfWork unitOfWork, IErrorManager err
             query = query.Where(a => a.EntranceDucat!.DucatNumber.ToLower().Replace(" ", "").Contains(filter));
         }
 
-        if (!string.IsNullOrWhiteSpace(request.WarehouseName))
-        {
-            var filter = request.WarehouseName.Trim().ToLower().Replace(" ", "");
-            query = query.Where(a => a.Warehouse!.WarehouseName.ToLower().Replace(" ", "").Contains(filter));
-        }
-
         var totalCount = await query.CountAsync(cancellationToken);
 
         var data = await query

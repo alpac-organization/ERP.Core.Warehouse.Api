@@ -6,7 +6,6 @@ using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
-using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
@@ -43,30 +42,7 @@ public class GetSectionsHandler(IUnitOfWork unitOfWork, IErrorManager errorManag
                 .ThenInclude(lot => lot.Positions)
             .ToListAsync(cancellationToken);
 
-        var sectionItems = mapper.Map<List<SectionDto>>(sections);
-
-        foreach (var (section, sectionItem) in sections.Zip(sectionItems))
-        {
-            var metrics = section.StorageType == ERP.Core.Database.Domain.Enums.SectionStorageType.Lots
-                ? PositionMetrics.Summarize(
-                    section.Lots,
-                    lot => lot.Positions,
-                    position => position.IsOccupied || position.IsBlocked || position.IsReserved,
-                    lot => lot.WidthMetres,
-                    lot => lot.LengthMetres)
-                : PositionMetrics.Summarize(
-                    section.Racks,
-                    rack => rack.Positions,
-                    position => position.IsOccupied || position.IsBlocked || position.IsReserved,
-                    rack => rack.WidthMetres,
-                    rack => rack.LengthMetres);
-
-            sectionItem.TotalAreaM2 = metrics.TotalAreaM2;
-            sectionItem.UsedAreaM2 = metrics.UsedAreaM2;
-            sectionItem.TotalPositions = metrics.TotalPositions;
-            sectionItem.UsedPositions = metrics.UsedPositions;
-
-        }
+        var sectionItems = mapper.Map<List<SectionDto>>(sections);        
 
         return new PagedResponse<SectionDto>(
             sectionItems,
@@ -88,9 +64,6 @@ public class GetSectionsHandler(IUnitOfWork unitOfWork, IErrorManager errorManag
 
         if (request.SectionType.HasValue)
             query = query.Where(sect => sect.SectionType == request.SectionType.Value);
-
-        if (request.SectionStorageType.HasValue)
-            query = query.Where(sect => sect.StorageType == request.SectionStorageType.Value);
 
         return query;
     }

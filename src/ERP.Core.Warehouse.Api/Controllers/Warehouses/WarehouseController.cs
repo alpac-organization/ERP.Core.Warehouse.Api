@@ -62,7 +62,6 @@ public class WarehouseController(IMediator _mediator) : ApiControllerBase
         {
             CompanyId = company_id,
             ModuleCode = module_code,
-            BranchCode = branch_code,
             WarehouseCode = warehouse_code,
             WarehouseType = warehouse_type,
             IsActive = is_active,

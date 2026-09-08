@@ -43,10 +43,6 @@ public class GetRacksBySectionHandler(
             query = query.Where(r => r.Status == request.Status.Value);
         if (request.UsageProfile.HasValue)
             query = query.Where(r => r.UsageProfile == request.UsageProfile.Value);
-        if (request.WidthMetres.HasValue)
-            query = query.Where(r => r.WidthMetres == request.WidthMetres.Value);
-        if (request.LengthMetres.HasValue)
-            query = query.Where(r => r.LengthMetres == request.LengthMetres.Value);
 
         var totalRecords = await query.CountAsync(cancellationToken);
 

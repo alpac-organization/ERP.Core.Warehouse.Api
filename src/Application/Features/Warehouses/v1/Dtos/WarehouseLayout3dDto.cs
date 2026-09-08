@@ -12,7 +12,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos
 
         public int MaxPulleys { get; set; }
 
-        public LayoutTransform3DDto Transform { get; set; } = new();
     }
 
     public class LotLayout3DDto
@@ -22,7 +21,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos
 
         public decimal WidthMetres { get; set; }
         public decimal LengthMetres { get; set; }
-        public LayoutTransform3DDto Transform { get; set; } = new();
     }
 
     public class SectionLayout3dDto
@@ -30,11 +28,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos
         public Guid SectionId { get; set; }
         public string Code { get; set; } = null!;
         public SectionType SectionType { get; set; }
-        public SectionStorageType StorageType { get; set; }
 
         public decimal WidthMetres { get; set; }
         public decimal LengthMetres { get; set; }
-        public LayoutTransform3DDto Transform { get; set; } = new();
 
         //Content of this section
 

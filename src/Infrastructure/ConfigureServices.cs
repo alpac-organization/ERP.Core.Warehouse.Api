@@ -32,7 +32,6 @@ namespace ERP.Core.Warehouse.Api.Infrastructure
             services.AddErpDatabaseServices(configuration);
 
             services.AddScoped<IErrorManager, ErrorManager>();
-            services.AddScoped<IWarehouseCapacityCalculator, WarehouseCapacityCalculator>();
             services.AddHttpClient<IScaleServices, ScaleServices>();    
             return services;
         }

@@ -12,10 +12,5 @@ public class GetSectionsValidator : BasePagedQueryValidator<GetSectionsQuery>
             .IsInEnum()
             .When(x => x.SectionType.HasValue)
             .WithMessage("El tipo de seccion no es válido.");
-
-        RuleFor(x => x.SectionStorageType)
-            .IsInEnum()
-            .When(x => x.SectionStorageType.HasValue)
-            .WithMessage("El tipo de almacenamiento de seccion no es válido.");
     }
 }
