@@ -167,47 +167,13 @@ public static class SectionMapper
 {
    public static Sections ToSectionEntity(this Commands.RegisterSectionCommand command, string enabledByUserName)
    {
-      var sectionId = Guid.NewGuid();
-
-      SectionOverflowCapacity? overflowCapacity = null;
-
-      if (command.SectionType == SectionType.Aisle && command.OverflowCapacity is not null)
-      {
-         var nowNica = NicaraguaClock.Now;
-
-         overflowCapacity = new SectionOverflowCapacity
-         {
-            Id = Guid.NewGuid(),
-            SectionId = sectionId,
-            AllowsOverflowStorage = command.OverflowCapacity.AllowsOverflowStorage,
-            IsOverflowEnabled = command.OverflowCapacity.IsOverflowEnabled,
-            MaxOverflowPolines = command.OverflowCapacity.MaxOverflowPolines,
-            EnabledByUserName = enabledByUserName,
-            EnabledDate = DateOnly.FromDateTime(nowNica),
-            EnabledTime = TimeOnly.FromDateTime(nowNica)
-         };
-      }
-
       return new()
       {
-         Id = sectionId,
+         Id = Guid.NewGuid(),
          IsActive = true,
          Code = command.Code,
-         Name = command.Name,
          SectionType = command.SectionType,
-         StorageType = command.StorageType,
-         WidthMetres = command.WidthMetres,
-         LengthMetres = command.LengthMetres,
          WarehouseId = command.WarehouseId,
-         OverflowCapacity = overflowCapacity,
-         TransformWarehouse3D = command.LayoutTransform3DDto is null
-         ? new() : new TransformWarehouse3D
-         {
-            PositionX = command.LayoutTransform3DDto.PositionX,
-            PositionY = command.LayoutTransform3DDto.PositionY,
-            PositionZ = command.LayoutTransform3DDto.PositionZ,
-            RotationY = command.LayoutTransform3DDto.RotationY
-         }
       };
    }
 }
