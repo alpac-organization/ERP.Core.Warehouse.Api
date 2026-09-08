@@ -15,7 +15,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.Warehouses;
 [HasToken]
 [ApiVersion("1.0")]
 [Route("api/v1/")]
-public class RacksController(IMediator mediator) : ApiControllerBase
+public class RacksController(/*IMediator mediator*/) : ApiControllerBase
 {
     [Tags("Racks")]
     [HttpPost("companies/{company_id}/modules/{module_code}/sections/{section_id}/racks")]
@@ -33,8 +33,7 @@ public class RacksController(IMediator mediator) : ApiControllerBase
         if (!Guid.TryParse(userIdStr, out var userId))
             return Unauthorized();
 
-        var command = commandRacks.WithContext(section_id, userId, company_id, module_code);
-        await mediator.Send(command, cancellationToken);
+
         return Created();
     }
 
@@ -57,16 +56,8 @@ public class RacksController(IMediator mediator) : ApiControllerBase
         CancellationToken cancellationToken = default)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
-        if (!Guid.TryParse(userIdStr, out var userId))
-            return Unauthorized();
 
-        var query = section_id.ToQuery(
-            userId, company_id, module_code,
-            level_number, status, usage_profile,
-            width_metres, length_metres,
-            page_number, page_size);
 
-        var response = await mediator.Send(query, cancellationToken);
-        return Ok(response);
+        return Ok();
     }
 }

@@ -28,7 +28,6 @@ public class SectionSummaryDto
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public SectionType SectionType { get; set; }
-    public SectionStorageType StorageType { get; set; }
     public bool IsActive { get; set; }
     public decimal WidthMetres { get; set; }
     public decimal LengthMetres { get; set; }

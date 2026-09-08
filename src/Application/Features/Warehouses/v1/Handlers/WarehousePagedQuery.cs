@@ -15,7 +15,6 @@ internal static class WarehousePagedQuery
         IQueryable<WarehouseEntity> query,
         IPagedQuery request,
         IMapper mapper,
-        IWarehouseCapacityCalculator capacityCalculator,
         CancellationToken cancellationToken)
     {
         var totalRecords = await query.CountAsync(cancellationToken);
@@ -44,7 +43,6 @@ internal static class WarehousePagedQuery
             if (dto.Capacity is null)
                 continue;
 
-            WarehouseCapacityMapper.Apply(dto, capacityCalculator.Calculate(warehouse));
         }
 
         return new PagedResponse<WarehouseDto>(

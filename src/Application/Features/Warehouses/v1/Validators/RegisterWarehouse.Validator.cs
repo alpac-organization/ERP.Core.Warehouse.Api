@@ -38,58 +38,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Validators
                 .NotEqual(Guid.Empty).When(x => x.ParentWarehouseId.HasValue)
                 .WithMessage("El almacén padre no es válido.");
 
-            RuleFor(x => x.WarehouseDetails)
-                .NotNull().WithMessage("Los detalles del almacén son obligatorios.");
 
-            When(x => x.WarehouseDetails != null, () =>
-            {
-                RuleFor(x => x.WarehouseDetails.WidthMetres)
-                    .GreaterThan(0).WithMessage("El ancho debe ser mayor a 0.");
-
-                RuleFor(x => x.WarehouseDetails.LengthMetres)
-                    .GreaterThan(0).WithMessage("El largo debe ser mayor a 0.");
-
-                RuleFor(x => x.WarehouseDetails.RampsCount)
-                    .GreaterThanOrEqualTo(0).When(x => x.WarehouseDetails.RampsCount.HasValue)
-                    .WithMessage("La cantidad de rampas no puede ser negativa.");
-
-                RuleFor(x => x.WarehouseDetails.ParkingSpacesCount)
-                    .GreaterThanOrEqualTo(0).When(x => x.WarehouseDetails.ParkingSpacesCount.HasValue)
-                    .WithMessage("La cantidad de espacios de parqueo no puede ser negativa.");
-            });
-
-            // Code único dentro de la misma sucursal
-            RuleFor(x => x)
-                .MustAsync(async (command, cancellationToken) =>
-                {
-                    var exists = await unitOfWork.Warehouses.Entities
-                        .AnyAsync(w =>
-                            w.BranchId == command.BranchId &&
-                            w.Code == command.Code,
-                            cancellationToken);
-
-                    return !exists;
-                })
-                .WithMessage("Ya existe un almacén registrado con este código en esta sucursal.")
-                .WithName("Code");
-
-            // Duplicado: mismo nombre + mismas dimensiones dentro de la misma sucursal
-            RuleFor(x => x)
-                .MustAsync(async (command, cancellationToken) =>
-                {
-                    var duplicate = await unitOfWork.Warehouses.Entities
-                        .Include(w => w.Details)
-                        .AnyAsync(w =>
-                            w.BranchId == command.BranchId &&
-                            w.WarehouseName == command.WarehouseName &&
-                            w.Details.WitdhMetres == command.WarehouseDetails.WidthMetres &&
-                            w.Details.LengthMetres == command.WarehouseDetails.LengthMetres,
-                            cancellationToken);
-
-                    return !duplicate;
-                })
-                .WithMessage("Ya existe un almacén registrado con el mismo nombre y dimensiones en esta sucursal.")
-                .WithName("WarehouseName");
+            // your validation
         }
     }
 }

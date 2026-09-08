@@ -26,7 +26,6 @@ public class RackListDto
 
     public RackUsageProfile UsageProfile { get; set; }
 
-    public LayoutTransform3DDto? Transform { get; set; }
 
     public int TotalPositions { get; set; }
     public int OccupiedPositions { get; set; }

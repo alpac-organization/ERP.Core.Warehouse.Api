@@ -63,15 +63,5 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Utils
             containerLengthMetres
          );
       }
-
-      public static bool HasValidNonNegativeCoordinates(LayoutTransform3DDto layout)
-      => layout.PositionX >= 0
-      && layout.PositionY >= 0
-      && layout.PositionZ >= 0;
-      public static bool IsRightAngleRotation(decimal rotationY)
-      {
-         var normalized = NormalizeRotationY(rotationY);
-         return normalized is 0m or 90m or 180m or 270m;
-      }
    }
 }
