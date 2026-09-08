@@ -2,7 +2,6 @@ using AutoMapper;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using Commands = ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
-using ERP.Core.Database.Domain.ValueObjects;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 

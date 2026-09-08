@@ -1,10 +1,13 @@
 using Microsoft.Extensions.Logging;
-using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using ERP.Core.Database.Application.Commons.Interfaces.Services;
+using ERP.Core.Database.Domain.Entities.Catalogs;
+using ERP.Core.Database.Domain.Entities.Warehouse;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 {
@@ -13,6 +16,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
         public override async Task<bool> Handle(RegisterSectionCommand request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+
             if (!access.IsSuccess) return access.ErrorResponse!;
 
             if (access.Role?.RoleType == RoleType.Supervisor)
@@ -22,14 +26,22 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 
             logger.LogInformation("🚀Iniciando proceso de registro de sección.");
 
-            //Para calculo de capacidades, Inyectar calculadora.
+            var sectionEntity = SectionMapper.ToSectionEntity(request);
 
-            // var sectionEntity = request.ToSectionEntity(currentUserName);
+            var sectionCapacityEntity = new SectionCapacity();
 
-            // await _unitOfWork.Sections.RegisterSection(sectionEntity);
+            // var warehouseCapacityEntity = new WarehouseCapacity();
+
+            // var calculates = new CalculateSectionResult(sectionCapacityEntity, warehouseCapacityEntity);
+
+            // Para calculo de capacidades, Inyectar calculadora.            
+
+            await _unitOfWork.Sections.RegisterSection(sectionEntity);
+
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             logger.LogInformation("✅Registro de sección correctamente.");
+
             return true;
         }
     }
