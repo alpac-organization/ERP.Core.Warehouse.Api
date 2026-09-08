@@ -11,9 +11,7 @@ using WarehouseEntity = ERP.Core.Database.Domain.Entities.Warehouse.Warehouses;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
 
-public class GetWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager errorManager,
-    IMapper mapper, IWarehouseCapacityCalculator capacityCalculator)
-    : BaseValidatorHandler<GetWarehousesQuery, PagedResponse<WarehouseDto>>(unitOfWork, errorManager)
+public class GetWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager errorManager) : BaseValidatorHandler<GetWarehousesQuery, PagedResponse<WarehouseDto>>(unitOfWork, errorManager)
 {
     public override async Task<PagedResponse<WarehouseDto>> Handle(
         GetWarehousesQuery request,
@@ -26,38 +24,34 @@ public class GetWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager errorMan
             return access.ErrorResponse!;
 
         var warehousesQuery = _unitOfWork.Warehouses.Entities
-            .AsNoTracking()
-            .Where(w => w.ParentWarehouseId == null);
+            .AsNoTracking();
 
         var filteredQuery = ApplyFilters(warehousesQuery, request);
 
-        return await WarehousePagedQuery.ExecuteAsync(
-            filteredQuery, request, mapper, capacityCalculator, cancellationToken);
+        // your mapper here.
+
+        //Modificar mapeo en WarehouseProfie
+        return new PagedResponse<WarehouseDto>(
+            [],
+            0,
+            0,
+            0
+        );
     }
 
-    private static IQueryable<WarehouseEntity> ApplyFilters(
-        IQueryable<WarehouseEntity> query,
-        GetWarehousesQuery request)
+    private static IQueryable<WarehouseEntity> ApplyFilters(IQueryable<WarehouseEntity> query, GetWarehousesQuery request)
     {
         if (request.IsActive.HasValue)
             query = query.Where(ware => ware.IsActive == request.IsActive.Value);
 
-        if (!string.IsNullOrWhiteSpace(request.BranchCode))
-            query = query.Where(ware => ware.Branch.BranchCode == request.BranchCode);
+        // if (!string.IsNullOrWhiteSpace(request.BranchCode))
+        //     query = query.Where(ware => ware.Branch.BranchCode == request.BranchCode);
 
         if (!string.IsNullOrWhiteSpace(request.WarehouseCode))
             query = query.Where(ware => ware.Code == request.WarehouseCode);
 
         if (request.WarehouseType.HasValue)
             query = query.Where(ware => ware.WarehouseType == request.WarehouseType.Value);
-
-        if (request.IsOwner.HasValue)
-            query = query.Where(ware => ware.IsOwner == request.IsOwner.Value);
-
-        if (!string.IsNullOrWhiteSpace(request.Search))
-            query = query.Where(ware =>
-                ware.Code.Contains(request.Search) ||
-                ware.WarehouseName.Contains(request.Search));
 
         return query;
     }

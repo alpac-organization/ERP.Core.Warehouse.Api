@@ -210,7 +210,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                 ReceptionId = record.Id,
                 AssignmentId = assignment?.Id,
                 LicensePlate = record.ReceptionEntrance?.VehiclePlateNumber ?? "N/A",
-                WarehouseName = assignment?.Warehouse?.WarehouseName,
                 DucatNumber = assignment?.EntranceDucat?.DucatNumber,
                 ServiceOrderCode = assignment?.EntranceDucat?.ServiceOrderCode,
                 UnloadingStartTime = assignment?.UnloadingStartTime,
@@ -382,7 +381,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                     LicensePlate = a.RecordEntrance.ReceptionEntrance != null 
                         ? (a.RecordEntrance.ReceptionEntrance.VehiclePlateNumber ?? "N/A") 
                         : "N/A",
-                    WarehouseName = a.Warehouse != null ? a.Warehouse.WarehouseName : "N/A",
                     DucatNumber = a.EntranceDucat != null 
                         ? a.EntranceDucat.DucatNumber 
                         : (a.RecordEntrance.CustomsDeclarations != null ? a.RecordEntrance.CustomsDeclarations.CustomsDeclarationNumber : null),

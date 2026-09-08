@@ -30,8 +30,7 @@ public class GetWarehouseTasksHandler(
         var query = _unitOfWork.WarehouseTasks.Entities
             .AsNoTracking()
             .Where(task =>
-                task.DeletedAt == null &&
-                task.Warehouse.Branch.CompanyId == request.CompanyId);
+                task.DeletedAt == null);
 
         if (request.WarehouseId.HasValue)
             query = query.Where(task => task.WarehouseId == request.WarehouseId.Value);

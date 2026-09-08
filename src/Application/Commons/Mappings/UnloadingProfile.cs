@@ -18,14 +18,12 @@ public class UnloadingProfile : Profile
             .ForMember(d => d.DucatNumber, o => o.MapFrom(s => s.EntranceDucat!.DucatNumber))
             .ForMember(d => d.DucatId, o => o.MapFrom(s => s.EntranceDucatId))
             .ForMember(d => d.ServiceOrderCode, o => o.MapFrom(s => s.EntranceDucat!.ServiceOrderCode))
-            .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.Warehouse.WarehouseName))
             .ForMember(d => d.UnloadingStatus, o => o.MapFrom(s => s.UnloadingStatus));
         #endregion
 
         #region Detalle de asignación
         CreateMap<WarehouseAssignments, UnloadingAssignmentDetailDto>()
             .ForMember(d => d.AssignmentId, o => o.MapFrom(s => s.Id))
-            .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.Warehouse.WarehouseName))
             .ForMember(d => d.UnloadingStatus, o => o.MapFrom(s => s.UnloadingStatus))
             .ForMember(d => d.WarehouseKeeperUserName, o => o.MapFrom((s, d, m, ctx) => (string?)ctx.Items["WarehouseKeeperUserName"] ?? s.WarehouseKeeperUserId.ToString()))
             .ForMember(d => d.Machinery, o => o.MapFrom(s => s.MachineryAssignments))
@@ -57,8 +55,6 @@ public class UnloadingProfile : Profile
             .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
             .ForMember(d => d.RecordEntranceId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["RecordEntranceId"]))
             .ForMember(d => d.WorkflowStepDefinitionCode, o => o.MapFrom(_ => WorkflowStepCodes.Unloading))
-            .ForMember(d => d.StartDate, o => o.MapFrom(s => s.StartDate))
-            .ForMember(d => d.StartTime, o => o.MapFrom(s => s.StartTime))
             .ForMember(d => d.ProcessedByUserId, o => o.MapFrom(s => s.UserId.ToString()))
             .ForMember(d => d.ProcessedByUserName, o => o.MapFrom((src, dest, destMember, ctx) => (string)ctx.Items["ProcessedByUserName"]));
 

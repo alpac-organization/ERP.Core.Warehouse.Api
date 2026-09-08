@@ -30,11 +30,8 @@ public class LotsController(IMediator _mediator) : ApiControllerBase
         CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
-        if (!Guid.TryParse(userIdStr, out var userId))
-            return Unauthorized();
 
-        var command = commandLot.WithContext(section_id, userId, company_id, module_code);
-        await _mediator.Send(command, cancellationToken);
+        
         return Created();
     }
 

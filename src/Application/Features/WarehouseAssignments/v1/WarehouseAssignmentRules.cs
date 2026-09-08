@@ -1,12 +1,7 @@
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using ERP.Core.Database.Application.Commons.Interfaces.Bases;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Database.Domain.Entities.Warehouse;
-using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Commons.Constants;
 using WarehouseAssignmentEntity = ERP.Core.Database.Domain.Entities.Warehouse.WarehouseAssignments;
 
@@ -44,8 +39,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1
             return documentType switch
             {
                 DocumentType.DUCA => WarehouseType.Fiscal,
-                DocumentType.CustomsDeclaration => WarehouseType.General,
-                _ => WarehouseType.General
+                DocumentType.CustomsDeclaration => WarehouseType.Nationalized,
+                _ => WarehouseType.Nationalized
             };
         }
 
