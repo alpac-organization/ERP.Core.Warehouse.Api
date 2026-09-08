@@ -101,6 +101,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Validators
                 .NotNull()
                 .When(x => x.HasGuarantee)
                 .WithMessage("Debe indicar el tipo de período de garantía si la cotización incluye garantía.");
+
+            RuleFor(x => x.SupplierSelectionJustification)
+                .NotEmpty()
+                .WithMessage("La justificación de selección del proveedor es obligatoria.");
         }
     }
 }

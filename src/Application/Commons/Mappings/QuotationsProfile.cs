@@ -23,21 +23,22 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             return new()
             {
-                Id                     = Guid.NewGuid(),
-                IsActive               = true,
-                QuoteDate              = DateOnly.FromDateTime(DateTime.Now),
-                HasDelivery            = command.HasDelivery,
-                HasGuarantee           = command.HasGuarantee,
-                BrandProduct           = command.BrandProduct,
-                DeliveryTime           = command.DeliveryTime,
-                DeliveryTimeType       = command.DeliveryTimeType,
-                SupplierId             = command.SupplierId,
-                Price                  = command.Price,
-                PurchaseRequestItemId  = command.PurchaseRequestItemId,
+                Id = Guid.NewGuid(),
+                IsActive = true,
+                QuoteDate = DateOnly.FromDateTime(DateTime.Now),
+                HasDelivery = command.HasDelivery,
+                HasGuarantee = command.HasGuarantee,
+                BrandProduct = command.BrandProduct,
+                DeliveryTime = command.DeliveryTime,
+                DeliveryTimeType = command.DeliveryTimeType,
+                SupplierId = command.SupplierId,
+                SupplierSelectionJustification = command.SupplierSelectionJustification,
+                Price = command.Price,
+                PurchaseRequestItemId = command.PurchaseRequestItemId,
                 WarrantyPeriodTimeType = command.WarrantyPeriodTimeType,
-                WarrantyPeriod         = command.WarrantyPeriod,
-                Iva                    = command?.Iva ?? 0.0m,
-                PriceUnit              = command?.PriceUnit ?? 0.0m,
+                WarrantyPeriod = command.WarrantyPeriod,
+                Iva = command?.Iva ?? 0.0m,
+                PriceUnit = command?.PriceUnit ?? 0.0m,
             };
         }
     }
