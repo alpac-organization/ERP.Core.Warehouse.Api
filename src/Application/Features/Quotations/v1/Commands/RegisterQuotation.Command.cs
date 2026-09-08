@@ -24,6 +24,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands
 
         public decimal? Iva { get; set; }
         public decimal? PriceUnit { get; set; }
+        public string? SupplierSelectionJustification { get; set; }
 
         public string? BrandProduct { get; set; }
 

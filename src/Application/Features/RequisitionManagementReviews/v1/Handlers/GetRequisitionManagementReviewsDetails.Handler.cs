@@ -10,7 +10,7 @@ using ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementReviews.v
 
 namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementReviews.v1.Handlers
 {
-    public class GetRequisitionManagementReviewsDetailsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) :  BaseValidatorHandler<GetRequisitionManagementReviewsDetailsQuery, PurchaseRequestsReviewedManagementDetailsDto>(_unitOfWork, _errorManager)
+    public class GetRequisitionManagementReviewsDetailsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) : BaseValidatorHandler<GetRequisitionManagementReviewsDetailsQuery, PurchaseRequestsReviewedManagementDetailsDto>(_unitOfWork, _errorManager)
     {
         public override async Task<PurchaseRequestsReviewedManagementDetailsDto> Handle(GetRequisitionManagementReviewsDetailsQuery request, CancellationToken cancellationToken)
         {
@@ -27,7 +27,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
 
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(rev => rev.PurchaseRequestItems)
-
+                        .ThenInclude(item => item.Quotations)
+                            .ThenInclude(q => q.Supplier)
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(rev => rev.RegistrationUser)
                         .ThenInclude(rev => rev.WorkArea)
@@ -44,7 +45,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                 .Where(review => review.Id == request.RequisitionManagementReviewsId)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            var mapped =  _mapper.Map<PurchaseRequestsReviewedManagementDetailsDto>(reviewsQuery);
+            var mapped = _mapper.Map<PurchaseRequestsReviewedManagementDetailsDto>(reviewsQuery);
 
             return mapped;
         }
