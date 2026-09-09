@@ -4,10 +4,14 @@ using ERP.Core.Warehouse.Api.Application.Commons.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Validators;
 
-public class GetLotsBySectionValidator : BasePagedQueryValidator<GetLotsBySectionQuery>
+public class GetLotsBySectionValidator : BaseRequestValidator<GetLotsBySectionQuery>
 {
-    public GetLotsBySectionValidator() : base(100)
+    public GetLotsBySectionValidator()
     {
+        RuleFor(x => x.WarehouseId)
+            .NotEmpty()
+            .WithMessage("El id del almacén es requerido.");
+
         RuleFor(x => x.SectionId)
             .NotEmpty()
             .WithMessage("El id de la sección es requerido.")
