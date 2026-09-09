@@ -9,7 +9,7 @@ using ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 {
-    public class AcceptQuotationForPurchaseHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager) :  BaseValidatorHandler<AcceptQuotationForPurchaseCommand, bool>(_unitOfWork, _errorManager)
+    public class AcceptQuotationForPurchaseHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager) : BaseValidatorHandler<AcceptQuotationForPurchaseCommand, bool>(_unitOfWork, _errorManager)
     {
         public override async Task<bool> Handle(AcceptQuotationForPurchaseCommand request, CancellationToken cancellationToken)
         {
@@ -35,7 +35,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
             {
                 return _errorManager.ThrowNotFound<bool>("La cotización no existe o no pertenece al producto solicitado", "ERP:QUOTATION_NOT_FOUND");
             }
-            
+
             var itemQuotations = await _unitOfWork.Quotations.Entities
                 .Where(quo => quo.PurchaseRequestItemId == request.PurchaseRequestItemId)
                 .Where(quo => quo.IsActive)
@@ -56,7 +56,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
             //Solo una cotización puede estar aceptada para compra por producto solicitado
             foreach (var itemQuotation in itemQuotations)
             {
-                itemQuotation.IsAcceptedForPurchase = itemQuotation.Id == request.QuotationId;
+                var isAccepted = itemQuotation.Id == request.QuotationId;
+                itemQuotation.IsAcceptedForPurchase = isAccepted;
+                if (isAccepted)
+                {
+                    itemQuotation.SupplierSelectionJustification = request.SupplierSelectionJustification;
+                    itemQuotation.SupplierRejectionJustification = null;
+                }
+                else
+                {
+                    itemQuotation.SupplierSelectionJustification = null;
+                    itemQuotation.SupplierRejectionJustification = request.SupplierRejectionJustification;
+                }
                 await _unitOfWork.Quotations.UpdateAsync(itemQuotation);
             }
 
@@ -65,5 +76,5 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
             return true;
         }
     }
-    
+
 }

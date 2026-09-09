@@ -28,6 +28,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Validators
             RuleFor(x => x.PurchaseRequestItemId)
                 .NotEqual(Guid.Empty)
                 .WithMessage("El identificador del producto solicitado no es válido.");
+
+            RuleFor(x => x.SupplierSelectionJustification)
+                .NotEmpty()
+                .WithMessage("La justificación de selección del proveedor es obligatoria");
         }
     }
 }

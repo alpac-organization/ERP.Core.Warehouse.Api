@@ -13,9 +13,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public string? Description { get; set; }
         public string? Justification { get; set; }
 
-        public ProductDetails ProductDetails { get; set; } = new ();
+        public ProductDetails ProductDetails { get; set; } = new();
         public UnitMeasureInformation UnitMeasureInformation { get; set; } = new();
-        
+
         public List<QuotationInformationDto> Quotations { get; set; } = [];
     }
 
@@ -24,14 +24,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         // public string? ProductCode { get; set; }
         public Guid ProductId { get; set; }
         public string? ProductName { get; set; }
-        public CategoryInformation CategoryInformation { get; set; }= new ();
-    } 
+        public CategoryInformation CategoryInformation { get; set; } = new();
+    }
 
     public class CategoryInformation
     {
-        public string? Name {get; set;}
-        public string? Code {get; set;}
-        public Guid CatagoryId { get; set;}
+        public string? Name { get; set; }
+        public string? Code { get; set; }
+        public Guid CatagoryId { get; set; }
     }
 
     public class UnitMeasureInformation
@@ -62,6 +62,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
 
         public decimal? WarrantyPeriod { get; set; }
         public TimeType? WarrantyPeriodTimeType { get; set; }
+
+        public string? SupplierSelectionJustification { get; set; }
+        public string? SupplierRejectionJustification { get; set; }
 
         public Guid SupplierId { get; set; }
         public SupplierInformation SupplierInformation { get; set; } = new();
