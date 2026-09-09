@@ -10,18 +10,13 @@ using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
 
-public class GetSectionsHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
-    : BaseValidatorHandler<GetSectionsQuery, PagedResponse<SectionDto>>(unitOfWork, errorManager)
+public class GetSectionsHandler(IUnitOfWork _unitOfWork, IErrorManager errorManager, IMapper mapper) : BaseValidatorHandler<GetSectionsQuery, PagedResponse<SectionDto>>(_unitOfWork, errorManager)
 {
-    public override async Task<PagedResponse<SectionDto>> Handle(
-        GetSectionsQuery request,
-        CancellationToken cancellationToken)
+    public override async Task<PagedResponse<SectionDto>> Handle(GetSectionsQuery request, CancellationToken cancellationToken)
     {
-        var access = await ValidateAccessAsync(
-            request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
 
-        if (!access.IsSuccess)
-            return access.ErrorResponse!;
+        if (!access.IsSuccess) return access.ErrorResponse!;
 
         var sectionsQuery = _unitOfWork.Sections.Entities
             .AsNoTracking()
@@ -33,27 +28,22 @@ public class GetSectionsHandler(IUnitOfWork unitOfWork, IErrorManager errorManag
         var totalRecords = await sectionsQuery.CountAsync(cancellationToken);
 
         var sections = await sectionsQuery
-            .OrderBy(sect => sect.Code)
+            .OrderByDescending(sect => sect.Code)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
-            .Include(section => section.Racks)
-                .ThenInclude(rack => rack.Positions)
-            .Include(section => section.Lots)
-                .ThenInclude(lot => lot.Positions)
             .ToListAsync(cancellationToken);
 
-        var sectionItems = mapper.Map<List<SectionDto>>(sections);        
+        var sectionItems = mapper.Map<List<SectionDto>>(sections);
 
         return new PagedResponse<SectionDto>(
             sectionItems,
             request.PageNumber,
             request.PageSize,
-            totalRecords);
+            totalRecords
+        );
     }
 
-    private static IQueryable<Sections> ApplyFilters(
-        IQueryable<Sections> query,
-        GetSectionsQuery request)
+    private static IQueryable<Sections> ApplyFilters(IQueryable<Sections> query, GetSectionsQuery request)
     {
         query = request.IsActive.HasValue
             ? query.Where(sect => sect.IsActive == request.IsActive.Value)

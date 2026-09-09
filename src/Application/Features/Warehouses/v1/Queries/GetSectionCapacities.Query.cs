@@ -6,6 +6,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries
 {
    public class GetSectionCapacitiesQuery : BaseRequest, IRequest<SectionCapacitiesDto>
    {
-      public Guid SectionId { get; set; }
+      public Guid WarehouseId { get; set; }
+      public Guid SectionId { get; set; }      
    }
 }

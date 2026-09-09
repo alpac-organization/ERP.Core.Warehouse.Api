@@ -10,7 +10,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
       public SectionProfile()
       {
          CreateMap<Sections, SectionDto>()
-            .ForMember(dest => dest.SectionId, opt => opt.MapFrom(src => src.Id));
+            .ForMember(dest => dest.SectionId, opt => opt.MapFrom(src => src.Id))
+            .ForMember(dest => dest.SectionCode, opt => opt.MapFrom(src => src.Code));
       }
    }
 

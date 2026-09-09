@@ -40,20 +40,11 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
     [ProducesResponseType(typeof(PagedResponse<SectionDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<PagedResponse<SectionDto>> GetSectionsAsync(
-    [FromRoute] Guid company_id,
-    [FromRoute] string module_code,
-    [FromRoute] Guid warehouse_id,
-    [FromQuery] string? section_code = null,
-    [FromQuery] SectionType? section_type = null,
-    [FromQuery] bool? is_active = null,
-    [FromQuery] int page_number = 1,
-    [FromQuery] int page_size = 10,
-    CancellationToken cancellationToken = default)
+    public async Task<PagedResponse<SectionDto>> GetSectionsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid warehouse_id, [FromQuery] string? section_code = null, [FromQuery] SectionType? section_type = null, [FromQuery] bool? is_active = null, [FromQuery] int page_number = 1, [FromQuery] int page_size = 10, CancellationToken cancellationToken = default)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
 
-        return await _mediator.Send(new GetSectionsQuery
+        return await _mediator.Send(new GetSectionsQuery()
         {
             CompanyId = company_id,
             ModuleCode = module_code,
@@ -68,59 +59,37 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
     }
 
     [Tags("Secciones")]
-    [HttpGet("companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}/sections/{section_id}")]
-    [ProducesResponseType(typeof(SectionDto), StatusCodes.Status200OK)]
+    [HttpGet("companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}/sections/{section_id}/details")]
+    [ProducesResponseType(typeof(SectionDetailsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<SectionDto> GetSectionByIdAsync(
-    [FromRoute] Guid company_id,
-    [FromRoute] string module_code,
-    [FromRoute] Guid warehouse_id,
-    [FromRoute] Guid section_id,
-    CancellationToken cancellationToken = default)
+    public async Task<SectionDetailsDto> GetSectionDetailsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid warehouse_id, [FromRoute] Guid section_id, CancellationToken cancellationToken = default)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
 
-        return await _mediator.Send(new GetSectionByIdQuery
+        return await _mediator.Send(new GetSectionDetailsQuery()
         {
+            SectionId = section_id,
+            WarehouseId = warehouse_id,
             CompanyId = company_id,
             ModuleCode = module_code,
-            UserId = Guid.Parse(userIdStr ?? ""),
-            WarehouseId = warehouse_id,
-            SectionId = section_id,
+            UserId = Guid.Parse(userIdStr ?? "")
         }, cancellationToken);
     }
 
-    [Tags("Detalle de Seccion")]
-    [HttpGet("companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}/sections/{section_id}/details")]
-    [ProducesResponseType(typeof(SectionCapacitiesDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<SectionCapacitiesDto> GetSectionDetailsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid warehouse_id, [FromRoute] Guid section_id)
-    {
-        var userIdStr = HttpContext.Items["UserId"] as string;
-
-        return await _mediator.Send(new GetSectionCapacitiesQuery()
-        {
-            CompanyId = company_id,
-            ModuleCode = module_code,
-            UserId = Guid.Parse(userIdStr ?? ""),
-            SectionId = section_id
-        });
-    }
 
     [Tags("Actualizacion de Seccion")]
     [HttpPatch("companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}/sections/{section_id}")]
     [ProducesResponseType(typeof(SectionCapacitiesDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-
     public async Task<SectionCapacitiesDto> UpdateSectionAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid warehouse_id, [FromRoute] Guid section_id)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
 
         return await _mediator.Send(new GetSectionCapacitiesQuery()
         {
+            WarehouseId = warehouse_id,
             CompanyId = company_id,
             ModuleCode = module_code,
             UserId = Guid.Parse(userIdStr ?? ""),
