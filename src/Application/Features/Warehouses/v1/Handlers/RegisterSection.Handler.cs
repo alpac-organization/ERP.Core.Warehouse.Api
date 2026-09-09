@@ -5,13 +5,12 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
-using ERP.Core.Database.Application.Commons.Interfaces.Services;
-using ERP.Core.Database.Domain.Entities.Catalogs;
-using ERP.Core.Database.Domain.Entities.Warehouse;
+using ERP.Core.Database.Application.Commons.Interfaces.Services.WarehouseCapacities;
+using Microsoft.EntityFrameworkCore;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 {
-    public class RegisterSectionHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, ILogger<RegisterSectionHandler> logger) : BaseValidatorHandler<RegisterSectionCommand, bool>(unitOfWork, errorManager)
+    public class RegisterSectionHandler(IUnitOfWork _unitOfWork, IErrorManager errorManager, ISectionCapacityCalculator _sectionCapacityCalculator, ILogger<RegisterSectionHandler> logger) : BaseValidatorHandler<RegisterSectionCommand, bool>(_unitOfWork, errorManager)
     {
         public override async Task<bool> Handle(RegisterSectionCommand request, CancellationToken cancellationToken)
         {
@@ -26,18 +25,37 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 
             logger.LogInformation("🚀Iniciando proceso de registro de sección.");
 
-            var sectionEntity = SectionMapper.ToSectionEntity(request);
+            var section = SectionMapper.ToSectionEntity(request);
+            var capacityCalculation = await _sectionCapacityCalculator.CalculateSectionAsync(request.WarehouseId, request.Width, request.Length, cancellationToken);
 
-            var sectionCapacityEntity = new SectionCapacity();
+            if (capacityCalculation.Section is null || capacityCalculation.Warehouse is null)
+            {
+                return _errorManager.ThrowBadRequest<bool>("No se pudo calcular la capacidad de la sección.", "ERP:01");
+            }
 
-            // var warehouseCapacityEntity = new WarehouseCapacity();
+            var sectionCapacity = SectionMapper.ToSectionCapacityEntity(request, section.Id, capacityCalculation.Section);
 
-            // var calculates = new CalculateSectionResult(sectionCapacityEntity, warehouseCapacityEntity);
+            var warehouseCapacity = await _unitOfWork.WarehouseCapacities.Entities
+                .FirstOrDefaultAsync(c => c.WarehouseId == request.WarehouseId, cancellationToken);
 
-            // Para calculo de capacidades, Inyectar calculadora.            
+            if (warehouseCapacity is null)
+            {
+                return _errorManager.ThrowBadRequest<bool>("El almacén no tiene capacidad registrada", "ERP:01");
+            }
 
-            await _unitOfWork.Sections.RegisterSection(sectionEntity);
+            var calculation = capacityCalculation.Warehouse;
+            warehouseCapacity.UnusedSpaceM2 = calculation.UnusedSpaceM2;
+            warehouseCapacity.UnasedSpaceM3 = calculation.UnasedSpaceM3;
+            warehouseCapacity.AvailableSpaceWithoutSpacingM2 = calculation.AvailableSpaceWithoutSpacingM2;
+            warehouseCapacity.AvailableSpaceWithoutSpacingM3 = calculation.AvailableSpaceWithoutSpacingM3;
+            warehouseCapacity.AvailableSpaceWithSpacingM2 = calculation.AvailableSpaceWithSpacingM2;
+            warehouseCapacity.AvailableSpaceWithSpacingM3 = calculation.AvailableSpaceWithSpacingM3;
+            warehouseCapacity.PercenteAvailableSpaceWithSpacingM2 = calculation.PercenteAvailableSpaceWithSpacingM2;
+            warehouseCapacity.PercenteAvailableSpaceWithSpacingM3 = calculation.PercenteAvailableSpaceWithSpacingM3;
 
+            await _unitOfWork.Sections.RegisterSection(section);
+            await _unitOfWork.SectionCapacities.RegisterSectionCapacity(sectionCapacity);
+            await _unitOfWork.WarehouseCapacities.UpdateAsync(warehouseCapacity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             logger.LogInformation("✅Registro de sección correctamente.");

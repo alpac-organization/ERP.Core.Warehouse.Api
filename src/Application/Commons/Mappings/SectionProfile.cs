@@ -30,11 +30,23 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
          };
       }
 
-      public static SectionCapacity ToSectionCapacityEntity()
-      {
+      public static SectionCapacity ToSectionCapacityEntity(
+         this Commands.RegisterSectionCommand command, Guid SectionId,
+         SectionCapacity sectionCapacity
+      )
+      {         
          return new()
          {
-            Witdh = 
+            Id = Guid.NewGuid(),
+            SectionId = SectionId,
+            Length = command.Length,
+            Witdh = command.Width,
+            UsableAreaM2 = sectionCapacity.UsableAreaM2,
+            UnusableAreaM2 = sectionCapacity.UnusableAreaM2,
+            AvailableSpaceWithSpacingM2 = sectionCapacity.AvailableSpaceWithSpacingM2,
+            AvailableSpaceWithoutSpacingM2 = sectionCapacity.AvailableSpaceWithoutSpacingM2,
+            PercenteAvailableSpaceWithSpacingM2 = sectionCapacity.PercenteAvailableSpaceWithSpacingM2,
+            PercenteAvailableSpaceWithSpacingM3 = sectionCapacity.PercenteAvailableSpaceWithSpacingM3
          };
       }
    }

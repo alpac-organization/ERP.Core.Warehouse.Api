@@ -11,4 +11,6 @@ public class RegisterSectionCommand : BaseRequest, IRequest<bool>
     public Guid WarehouseId { get; set; }
     public string Code { get; set; } = null!;
     public SectionType SectionType { get; set; }
+    public decimal Width { get; set; }
+    public decimal Length { get; set; }
 }

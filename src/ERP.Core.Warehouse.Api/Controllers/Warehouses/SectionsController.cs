@@ -30,9 +30,9 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
         payload.UserId = Guid.Parse(userIdStr ?? "");
         payload.WarehouseId = warehouse_id;
 
-        var response = await _mediator.Send(payload, cancellationToken);
+        await _mediator.Send(payload, cancellationToken);
 
-        return Created(string.Empty, response);
+        return Created();
     }
 
     [Tags("Secciones")]

@@ -10,8 +10,7 @@ public class WarehouseProfile : Profile
    public WarehouseProfile()
    {
       CreateMap<Warehouses, WarehouseDto>();
-      CreateMap<WarehouseCapacity, WarehouseCapacityDto>();   
-      // CreateMap<WarehouseCapacity, WarehouseCapacityDto>();   
+      CreateMap<WarehouseCapacity, WarehouseCapacityDto>();
       //Your mapper location here 
    }
 }
@@ -20,7 +19,6 @@ public static class WarehouseMapper
 {
    public static Warehouses ToWarehouseEntity(this Commands.RegisterWarehouseCommand command)
    {
-      
-      return new ();
+      return new();
    }
 }
