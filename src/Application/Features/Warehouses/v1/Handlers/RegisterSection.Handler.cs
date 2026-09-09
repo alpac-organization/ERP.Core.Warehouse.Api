@@ -16,7 +16,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
 
-            if (!access.IsSuccess) return access.ErrorResponse!;
+            if (!access.IsSuccess) return access.ErrorResponse;
 
             if (access.Role?.RoleType == RoleType.Supervisor)
             {

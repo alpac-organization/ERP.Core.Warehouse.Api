@@ -1,6 +1,3 @@
-
-
-using System.Net;
 using AutoMapper;
 using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
@@ -12,7 +9,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
    {
       public SectionProfile()
       {
-         CreateMap<Sections, SectionDto>();
+         CreateMap<Sections, SectionDto>()
+            .ForMember(dest => dest.SectionId, opt => opt.MapFrom(src => src.Id));
       }
    }
 
@@ -34,7 +32,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
          this Commands.RegisterSectionCommand command, Guid SectionId,
          SectionCapacity sectionCapacity
       )
-      {         
+      {
          return new()
          {
             Id = Guid.NewGuid(),
