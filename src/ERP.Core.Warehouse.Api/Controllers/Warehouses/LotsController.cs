@@ -18,21 +18,30 @@ namespace ERP.Core.Warehouse.Api.Controllers.Warehouses;
 public class LotsController(IMediator _mediator) : ApiControllerBase
 {
     [Tags("Tramos")]
-    [HttpPost("companies/{company_id}/modules/{module_code}/sections/{section_id}/lots")]
-    [ProducesResponseType(typeof(CreatedResult), StatusCodes.Status200OK)]
+    [HttpPost("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{sections_id}/lots")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> RegisterLotAsync(
+    public async Task<CreatedResult> RegisterLotAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
-        [FromRoute] Guid section_id,
+        [FromRoute] Guid warehouse_id,
+        [FromRoute] Guid sections_id,
         [FromBody] RegisterLotCommand commandLot,
         CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
+        Guid.TryParse(userIdStr, out var userId);
 
-        
-        return Created();
+        commandLot.CompanyId = company_id;
+        commandLot.ModuleCode = module_code;
+        commandLot.UserId = userId;
+        commandLot.WarehouseId = warehouse_id;
+        commandLot.SectionId = sections_id;
+
+        var response = await _mediator.Send(commandLot, cancellationToken);
+
+        return Created(string.Empty, response);
     }
 
     #region Get Lots By Section
