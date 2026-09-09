@@ -10,5 +10,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands
         public Guid QuotationId { get; set; }
 
         public Guid PurchaseRequestItemId { get; set; }
+
+        public string? SupplierSelectionJustification { get; set; }
+        public string? SupplierRejectionJustification { get; set; }
     }
 }
