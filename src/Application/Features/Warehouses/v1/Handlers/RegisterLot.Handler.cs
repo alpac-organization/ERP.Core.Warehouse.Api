@@ -1,18 +1,17 @@
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
-using ERP.Core.Database.Application.Commons.Interfaces.Bases;
-using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
-using ERP.Core.Database.Application.Commons.Interfaces.Services;
 using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Entities.Warehouse;
+using ERP.Core.Database.Application.Commons.Interfaces.Bases;
+using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
+using ERP.Core.Database.Application.Commons.Interfaces.Services.WarehouseCapacities;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
 
-public class RegisterLotHandler(
-    IUnitOfWork unitOfWork,
-    IErrorManager errorManager,
-    IWarehouseCapacityCalculator capacityCalculator)
+public class RegisterLotHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper,
+    ILotCapacityCalculator capacityCalculator)
     : BaseValidatorHandler<RegisterLotCommand, bool>(unitOfWork, errorManager)
 {
     public override async Task<bool> Handle(RegisterLotCommand request, CancellationToken cancellationToken)
@@ -34,17 +33,9 @@ public class RegisterLotHandler(
             return _errorManager.ThrowBadRequest<bool>(
                 "La sección no pertenece al almacén indicado.", "ERP:SECTION_WAREHOUSE_MISMATCH");
 
-        var lot = new Lots
-        {
-            Id = Guid.NewGuid(),
-            SectionId = section.Id,
-            Code = request.Code,
-            NominalRows = request.NominalRows,
-            NominalColumns = request.NominalColumns,
-            AllowsStacking = request.AllowsStacking,
-            Status = request.Status,
-            UnavailableReason = request.UnavailableReason
-        };
+        var lot = mapper.Map<Lots>(request);
+        lot.Id = Guid.NewGuid();
+        lot.SectionId = section.Id;
         await _unitOfWork.Lots.RegisterLot(lot);
 
         var calc = await capacityCalculator.CalculateLotAsync(
@@ -78,7 +69,7 @@ public class RegisterLotHandler(
             return;
         }
 
-        CopySection(calculated, section.SectionCapacity);
+        mapper.Map(calculated, section.SectionCapacity);
         await _unitOfWork.SectionCapacities.UpdateAsync(section.SectionCapacity);
     }
 
@@ -103,41 +94,7 @@ public class RegisterLotHandler(
             return;
         }
 
-        CopyWarehouse(calculated, warehouse.WarehouseCapacity);
+        mapper.Map(calculated, warehouse.WarehouseCapacity);
         await _unitOfWork.WarehouseCapacities.UpdateAsync(warehouse.WarehouseCapacity);
-    }
-
-    private static void CopySection(SectionCapacity source, SectionCapacity target)
-    {
-        target.Witdh = source.Witdh;
-        target.Length = source.Length;
-        target.UsableAreaM2 = source.UsableAreaM2;
-        target.UnusableAreaM2 = source.UnusableAreaM2;
-        target.UnusedSpaceM2 = source.UnusedSpaceM2;
-        target.AvailableSpaceWithSpacingM2 = source.AvailableSpaceWithSpacingM2;
-        target.AvailableSpaceWithoutSpacingM2 = source.AvailableSpaceWithoutSpacingM2;
-        target.PercenteAvailableSpaceWithSpacingM2 = source.PercenteAvailableSpaceWithSpacingM2;
-        target.PercenteAvailableSpaceWithSpacingM3 = source.PercenteAvailableSpaceWithSpacingM3;
-    }
-
-    private static void CopyWarehouse(WarehouseCapacity source, WarehouseCapacity target)
-    {
-        target.Witdh = source.Witdh;
-        target.Length = source.Length;
-        target.HasSpaceBetweenWall = source.HasSpaceBetweenWall;
-        target.MinimumHeight = source.MinimumHeight;
-        target.MaximumHeight = source.MaximumHeight;
-        target.SpacingTop = source.SpacingTop;
-        target.SpacingBotton = source.SpacingBotton;
-        target.SpacingRight = source.SpacingRight;
-        target.SpacingLeft = source.SpacingLeft;
-        target.UnusedSpaceM2 = source.UnusedSpaceM2;
-        target.AvailableSpaceWithSpacingM2 = source.AvailableSpaceWithSpacingM2;
-        target.AvailableSpaceWithoutSpacingM2 = source.AvailableSpaceWithoutSpacingM2;
-        target.PercenteAvailableSpaceWithSpacingM2 = source.PercenteAvailableSpaceWithSpacingM2;
-        target.UnasedSpaceM3 = source.UnasedSpaceM3;
-        target.AvailableSpaceWithSpacingM3 = source.AvailableSpaceWithSpacingM3;
-        target.AvailableSpaceWithoutSpacingM3 = source.AvailableSpaceWithoutSpacingM3;
-        target.PercenteAvailableSpaceWithSpacingM3 = source.PercenteAvailableSpaceWithSpacingM3;
     }
 }
