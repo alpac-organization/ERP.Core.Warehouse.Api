@@ -10,8 +10,13 @@ public class WarehouseProfile : Profile
    public WarehouseProfile()
    {
       CreateMap<Warehouses, WarehouseDto>();
-      CreateMap<WarehouseCapacity, WarehouseCapacityDto>();
-      //Your mapper location here 
+      CreateMap<WarehouseCapacity, WarehouseCapacityDto>();   
+      // Actualizacion desde Lots
+      CreateMap<WarehouseCapacity, WarehouseCapacity>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.DeletedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.WarehouseId, opt => opt.Ignore())
+            .ForMember(dest => dest.Warehouse, opt => opt.Ignore()); 
    }
 }
 

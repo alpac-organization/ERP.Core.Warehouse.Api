@@ -1,50 +1,13 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
-using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
-using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
-
-public class GetLotByIdHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
-    : BaseValidatorHandler<GetLotByIdQuery, LotDto>(unitOfWork, errorManager)
-{
-    private readonly IMapper _mapper = mapper;
-
-    public override async Task<LotDto> Handle(
-        GetLotByIdQuery request,
-        CancellationToken cancellationToken)
-    {
-        var access = await ValidateAccessAsync(
-            request.UserId,
-            request.CompanyId,
-            request.ModuleCode,
-            cancellationToken);
-
-        if (!access.IsSuccess)
-            return access.ErrorResponse!;
-
-        var lot = await _unitOfWork.Lots.Entities
-            .AsNoTracking()
-            .Include(l => l.Positions)
-            .FirstOrDefaultAsync(
-                l => l.Id == request.LotId
-                    && l.SectionId == request.SectionId
-                    && l.DeletedAt == null,
-                cancellationToken);
-
-        if (lot is null)
-            return _errorManager.ThrowNotFound<LotDto>(
-                "El tramo no fue encontrado.",
-                "ERP:LOT_NOT_FOUND");
-
-        return _mapper.Map<LotDto>(lot);
-    }
-}
 
 public class GetLotsBySectionHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
     : BaseValidatorHandler<GetLotsBySectionQuery, PagedResponse<LotListItemDto>>(unitOfWork, errorManager)
@@ -60,21 +23,31 @@ public class GetLotsBySectionHandler(IUnitOfWork unitOfWork, IErrorManager error
             request.CompanyId,
             request.ModuleCode,
             cancellationToken);
-
         if (!access.IsSuccess)
             return access.ErrorResponse!;
 
+        var section = await _unitOfWork.Sections.Entities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                s => s.Id == request.SectionId && s.IsActive && s.DeletedAt == null,
+                cancellationToken);
+        if (section is null)
+            return _errorManager.ThrowBadRequest<PagedResponse<LotListItemDto>>(
+                "La sección indicada no existe o no está activa.", "ERP:SECTION_NOT_FOUND");
+
+        if (section.WarehouseId != request.WarehouseId)
+            return _errorManager.ThrowBadRequest<PagedResponse<LotListItemDto>>(
+                "La sección no pertenece al almacén indicado.", "ERP:SECTION_WAREHOUSE_MISMATCH");
+
         var queryLots = _unitOfWork.Lots.Entities
             .AsNoTracking()
-            .Where(lot => lot.DeletedAt == null && lot.SectionId == request.SectionId);
+            .Where(lot => lot.SectionId == request.SectionId && lot.DeletedAt == null);
 
         if (!string.IsNullOrWhiteSpace(request.Code))
             queryLots = queryLots.Where(lot => lot.Code == request.Code);
 
         if (request.RackStatus.HasValue)
             queryLots = queryLots.Where(lot => lot.Status == request.RackStatus.Value);
-
-        queryLots = queryLots.Include(lot => lot.Positions);
 
         var totalRecords = await queryLots.CountAsync(cancellationToken);
 
@@ -92,6 +65,4 @@ public class GetLotsBySectionHandler(IUnitOfWork unitOfWork, IErrorManager error
             request.PageSize,
             totalRecords);
     }
-
 }
-
