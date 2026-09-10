@@ -12,5 +12,7 @@ public class LotsProfile : Profile
         CreateMap<RegisterLotCommand, Lots>();
 
         CreateMap<Lots, LotListItemDto>();
+
+        CreateMap<LotsCapacity, LotCapacitiesDto>();
     }
 }

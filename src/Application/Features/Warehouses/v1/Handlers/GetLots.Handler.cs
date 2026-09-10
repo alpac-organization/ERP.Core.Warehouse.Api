@@ -44,7 +44,10 @@ public class GetLotsBySectionHandler(IUnitOfWork unitOfWork, IErrorManager error
             .Where(lot => lot.SectionId == request.SectionId && lot.DeletedAt == null);
 
         if (!string.IsNullOrWhiteSpace(request.Code))
-            queryLots = queryLots.Where(lot => lot.Code == request.Code);
+        {
+            var codeFilter = request.Code.Trim().ToLower();
+            queryLots = queryLots.Where(lot => lot.Code.ToLower().Contains(codeFilter));
+        }
 
         if (request.RackStatus.HasValue)
             queryLots = queryLots.Where(lot => lot.Status == request.RackStatus.Value);
