@@ -8,7 +8,7 @@ Endpoint para eliminar (soft delete) un tramo específico dentro de una sección
 |---|---|
 | **Método** | `DELETE` |
 | **Endpoint** | `/api/v1/companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{sections_id}/lots/{lot_id}` |
-| **Descripción** | Elimina lógicamente el tramo indicado, marcando su fecha de eliminación junto con su capacidad y posiciones asociadas. |
+| **Descripción** | Elimina lógicamente el tramo indicado, marcando su fecha de eliminación junto con la de su capacidad, y actualiza en cascada las capacidades de la sección y del almacén recalculadas sin el tramo eliminado. |
 
 ---
 
@@ -37,6 +37,8 @@ Endpoint para eliminar (soft delete) un tramo específico dentro de una sección
 ### ✅ 204 No Content
 
 El tramo fue eliminado correctamente. No se retorna cuerpo en la respuesta.
+
+> **Nota:** al eliminar el tramo se recalculan en cascada las capacidades de la sección y del almacén, excluyendo los valores del tramo eliminado.
 
 ### ❌ 400 Bad Request
 
