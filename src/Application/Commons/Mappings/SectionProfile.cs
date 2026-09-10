@@ -39,13 +39,12 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             Id = Guid.NewGuid(),
             SectionId = SectionId,
             Length = command.Length,
-            Witdh = command.Width,
-            UsableAreaM2 = sectionCapacity.UsableAreaM2,
-            UnusableAreaM2 = sectionCapacity.UnusableAreaM2,
-            AvailableSpaceWithSpacingM2 = sectionCapacity.AvailableSpaceWithSpacingM2,
-            AvailableSpaceWithoutSpacingM2 = sectionCapacity.AvailableSpaceWithoutSpacingM2,
-            PercenteAvailableSpaceWithSpacingM2 = sectionCapacity.PercenteAvailableSpaceWithSpacingM2,
-            PercenteAvailableSpaceWithSpacingM3 = sectionCapacity.PercenteAvailableSpaceWithSpacingM3
+            Width = command.Width,
+            UnusedAreaM2 = sectionCapacity.UnusedAreaM2,
+            AvailableAreaWithMarginM2 = sectionCapacity.AvailableAreaWithMarginM2,
+            OccupiedChargeableAreaM2 = sectionCapacity.OccupiedChargeableAreaM2,
+            UnoccupiedChargeableAreaM2 = sectionCapacity.UnoccupiedChargeableAreaM2,
+            PercentageAvailableAreaWithMarginM2 = sectionCapacity.PercentageAvailableAreaWithMarginM2            
          };
       }
    }

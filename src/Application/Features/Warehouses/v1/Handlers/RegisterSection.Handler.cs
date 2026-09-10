@@ -62,6 +62,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
             warehouseCapacity.UnoccupiedChargeableVolumenM3 = calculation.UnoccupiedChargeableVolumenM3;
 
             warehouseCapacity.PercentageAvailableAreaWithMarginM2 = calculation.PercentageAvailableAreaWithMarginM2;
+            warehouseCapacity.PercentageAvailableVolumenWithMarginM3 = calculation.PercentageAvailableVolumenWithMarginM3;
 
             await _unitOfWork.Sections.RegisterSection(section);
             await _unitOfWork.SectionCapacities.RegisterSectionCapacity(sectionCapacity);
