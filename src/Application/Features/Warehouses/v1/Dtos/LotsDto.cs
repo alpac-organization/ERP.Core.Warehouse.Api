@@ -4,9 +4,9 @@ using ERP.Core.Database.Domain.Enums;
 
 public class LotListItemDto
 {
-    public Guid LotId { get; set; }
+    public Guid Id { get; set; }
     public string Code { get; set; } = null!;
-    public RackStatus Status { get; set; }
+    public RackStatus Status { get; set; }      
     public bool AllowsStacking { get; set; }
     public string? UnavailableReason { get; set; }
     public DateTime? StatusChangedAt { get; set; }

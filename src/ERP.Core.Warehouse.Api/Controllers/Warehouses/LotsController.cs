@@ -53,7 +53,7 @@ public class LotsController(IMediator _mediator) : ApiControllerBase
     #region Register Lot
     [Tags("Tramos")]
     [HttpPost("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{sections_id}/lots")]
-    [ProducesResponseType(typeof(bool), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(CreatedResult), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<CreatedResult> RegisterLotAsync(
@@ -72,9 +72,67 @@ public class LotsController(IMediator _mediator) : ApiControllerBase
         commandLot.WarehouseId = warehouse_id;
         commandLot.SectionId = sections_id;
 
-        var response = await _mediator.Send(commandLot, cancellationToken);
+        await _mediator.Send(commandLot, cancellationToken);
 
-        return Created(string.Empty, response);
+        return Created();
+    }
+    #endregion
+
+    #region Get Lot Capacities
+    [Tags("Tramos")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{sections_id}/lots/{lot_id}/capacities")]
+    [ProducesResponseType(typeof(LotCapacitiesDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<LotCapacitiesDto> GetLotCapacitiesAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid warehouse_id,
+        [FromRoute] Guid sections_id,
+        [FromRoute] Guid lot_id,
+        CancellationToken cancellationToken = default)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        return await _mediator.Send(new GetLotCapacitiesQuery
+        {
+            WarehouseId = warehouse_id,
+            SectionId = sections_id,
+            LotId = lot_id,
+            UserId = Guid.Parse(userIdStr ?? ""),
+            CompanyId = company_id,
+            ModuleCode = module_code
+        }, cancellationToken);
+    }
+    #endregion
+
+    #region Delete Lot
+    [Tags("Tramos")]
+    [HttpDelete("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{sections_id}/lots/{lot_id}")]
+    [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<NoContentResult> DeleteLotAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid warehouse_id,
+        [FromRoute] Guid sections_id,
+        [FromRoute] Guid lot_id,
+        CancellationToken cancellationToken = default)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        await _mediator.Send(new DeleteLotCommand
+        {
+            WarehouseId = warehouse_id,
+            SectionId = sections_id,
+            LotId = lot_id,
+            UserId = Guid.Parse(userIdStr ?? ""),
+            CompanyId = company_id,
+            ModuleCode = module_code
+        }, cancellationToken);
+
+        return NoContent();
     }
     #endregion
 }
