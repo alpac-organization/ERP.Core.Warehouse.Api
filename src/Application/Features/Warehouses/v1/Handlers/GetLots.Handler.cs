@@ -46,7 +46,7 @@ public class GetLotsBySectionHandler(IUnitOfWork unitOfWork, IErrorManager error
         if (!string.IsNullOrWhiteSpace(request.Code))
         {
             var codeFilter = request.Code.Trim().ToLower();
-            queryLots = queryLots.Where(lot => lot.Code.ToLower().Contains(codeFilter));
+            queryLots = queryLots.Where(lot => lot.Code.Contains(codeFilter, StringComparison.CurrentCultureIgnoreCase));
         }
 
         if (request.RackStatus.HasValue)
