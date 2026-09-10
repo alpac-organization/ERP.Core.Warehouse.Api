@@ -8,20 +8,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
 
-//Obtener detalles de secciones, CoordenadaInformation, Informacion Capacidade y espacio disponible
-
-/*
-    {
-        parametros
-        parametros
-        parametros
-        coordenadaInformation: {},
-        informationDisponibilidad: {}
-    }
-
-    AGREGAR - PATCH:
+/**
+    Obtener detalles de secciones, información de coordenadas, información de capacidad y espacio disponible
 */
-
 public class GetSectionDetailsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) : BaseValidatorHandler<GetSectionDetailsQuery, SectionDetailsDto>(_unitOfWork, _errorManager)
 {
     public override async Task<SectionDetailsDto> Handle(GetSectionDetailsQuery request, CancellationToken cancellationToken)
