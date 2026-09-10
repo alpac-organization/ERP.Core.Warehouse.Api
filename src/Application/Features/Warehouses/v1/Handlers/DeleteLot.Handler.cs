@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Commons.Bases;
@@ -26,16 +25,14 @@ public class DeleteLotHandler(
         if (!isValid)
             return errorResponse;
 
-        var lot = await _unitOfWork.Lots.Entities
-            .Include(l => l.LotsCapacity)
-            .FirstOrDefaultAsync(
-                l => l.Id == request.LotId
-                    && l.SectionId == request.SectionId
-                    && l.DeletedAt == null,
-                cancellationToken);
-        if (lot is null)
-            return _errorManager.ThrowBadRequest<bool>(
-                "El tramo no fue encontrado.", "ERP:LOT_NOT_FOUND");
+        var (lotCandidate, lotIsValid, lotError) = await GetExistingLotAsync(
+            request.LotId,
+            request.SectionId,
+            cancellationToken);
+        if (!lotIsValid)
+            return lotError;
+
+        var lot = lotCandidate!;
 
         var calc = await capacityCalculator.DeleteLotAsync(request.LotId, cancellationToken);
 

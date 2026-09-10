@@ -106,6 +106,36 @@ public class LotsController(IMediator _mediator) : ApiControllerBase
     }
     #endregion
 
+    #region Update Lot
+    [Tags("Tramos")]
+    [HttpPatch("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{sections_id}/lots/{lot_id}")]
+    [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<OkResult> UpdateLotAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid warehouse_id,
+        [FromRoute] Guid sections_id,
+        [FromRoute] Guid lot_id,
+        [FromBody] UpdateLotCommand commandLot,
+        CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        commandLot.CompanyId = company_id;
+        commandLot.ModuleCode = module_code;
+        commandLot.UserId = Guid.Parse(userIdStr ?? "");
+        commandLot.WarehouseId = warehouse_id;
+        commandLot.SectionId = sections_id;
+        commandLot.LotId = lot_id;
+
+        await _mediator.Send(commandLot, cancellationToken);
+
+        return Ok();
+    }
+    #endregion
+
     #region Delete Lot
     [Tags("Tramos")]
     [HttpDelete("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{sections_id}/lots/{lot_id}")]
