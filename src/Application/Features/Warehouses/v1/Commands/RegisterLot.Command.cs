@@ -16,8 +16,6 @@ public class RegisterLotCommand : BaseRequest, IRequest<bool>
     public string Code { get; set; } = null!;
     public decimal WidthMetres { get; set; }
     public decimal LengthMetres { get; set; }
-    public int NominalRows { get; set; }
-    public int NominalColumns { get; set; }
     public bool AllowsStacking { get; set; } = true;
     public RackStatus Status { get; set; } = RackStatus.Available;
     public string? UnavailableReason { get; set; }

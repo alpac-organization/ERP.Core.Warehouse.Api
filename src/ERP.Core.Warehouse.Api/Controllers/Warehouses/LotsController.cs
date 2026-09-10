@@ -53,7 +53,7 @@ public class LotsController(IMediator _mediator) : ApiControllerBase
     #region Register Lot
     [Tags("Tramos")]
     [HttpPost("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{sections_id}/lots")]
-    [ProducesResponseType(typeof(bool), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(CreatedResult), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<CreatedResult> RegisterLotAsync(
@@ -72,9 +72,9 @@ public class LotsController(IMediator _mediator) : ApiControllerBase
         commandLot.WarehouseId = warehouse_id;
         commandLot.SectionId = sections_id;
 
-        var response = await _mediator.Send(commandLot, cancellationToken);
+        await _mediator.Send(commandLot, cancellationToken);
 
-        return Created(string.Empty, response);
+        return Created();
     }
     #endregion
 

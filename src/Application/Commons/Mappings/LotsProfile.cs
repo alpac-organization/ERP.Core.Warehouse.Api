@@ -11,8 +11,7 @@ public class LotsProfile : Profile
     {
         CreateMap<RegisterLotCommand, Lots>();
 
-        CreateMap<Lots, LotListItemDto>()
-            .ForMember(dest => dest.LotId, opt => opt.MapFrom(src => src.Id));
+        CreateMap<Lots, LotListItemDto>();
 
         CreateMap<LotsCapacity, LotCapacitiesDto>();
     }
