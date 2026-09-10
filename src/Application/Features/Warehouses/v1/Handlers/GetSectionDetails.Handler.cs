@@ -30,9 +30,9 @@ public class GetSectionDetailsHandler(IUnitOfWork _unitOfWork, IErrorManager _er
 
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        var section = _unitOfWork.Sections.Entities
+        var section = await _unitOfWork.Sections.Entities
             .Include(sec => sec.SectionCapacity)
-            .Where(sec => sec.Id == request.SectionId);
+            .FirstOrDefaultAsync(sec => sec.Id == request.SectionId, cancellationToken);
 
         if (section is null)
         {
