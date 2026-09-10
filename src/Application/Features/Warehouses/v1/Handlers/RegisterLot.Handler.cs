@@ -2,6 +2,7 @@ using AutoMapper;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
+using ERP.Core.Warehouse.Api.Application.Commons.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 using ERP.Core.Database.Application.Commons.Interfaces.Services.WarehouseCapacities;
 
@@ -12,7 +13,7 @@ public class RegisterLotHandler(
     IErrorManager errorManager,
     IMapper mapper,
     ILotCapacityCalculator capacityCalculator)
-    : LotsCapacityHandlerBase<RegisterLotCommand>(unitOfWork, errorManager, mapper)
+    : BaseLotsCapacityHandler<RegisterLotCommand>(unitOfWork, errorManager, mapper)
 {
     public override async Task<bool> Handle(RegisterLotCommand request, CancellationToken cancellationToken)
     {

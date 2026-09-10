@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
+using ERP.Core.Warehouse.Api.Application.Commons.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 using ERP.Core.Database.Application.Commons.Interfaces.Services.WarehouseCapacities;
 
@@ -11,7 +12,7 @@ public class DeleteLotHandler(
     IErrorManager errorManager,
     AutoMapper.IMapper mapper,
     ILotCapacityCalculator capacityCalculator)
-    : LotsCapacityHandlerBase<DeleteLotCommand>(unitOfWork, errorManager, mapper)
+    : BaseLotsCapacityHandler<DeleteLotCommand>(unitOfWork, errorManager, mapper)
 {
     public override async Task<bool> Handle(DeleteLotCommand request, CancellationToken cancellationToken)
     {

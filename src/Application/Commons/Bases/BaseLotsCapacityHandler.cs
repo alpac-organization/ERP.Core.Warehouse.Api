@@ -7,9 +7,9 @@ using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
-namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
+namespace ERP.Core.Warehouse.Api.Application.Commons.Bases;
 
-public abstract class LotsCapacityHandlerBase<TRequest>(
+public abstract class BaseLotsCapacityHandler<TRequest>(
     IUnitOfWork unitOfWork,
     IErrorManager errorManager,
     IMapper mapper)
