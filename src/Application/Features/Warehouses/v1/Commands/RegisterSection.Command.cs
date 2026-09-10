@@ -10,6 +10,8 @@ public class RegisterSectionCommand : BaseRequest, IRequest<bool>
     [JsonIgnore]
     public Guid WarehouseId { get; set; }
     public string Code { get; set; } = null!;
+
+    [JsonConverter(typeof(JsonNumberEnumConverter<SectionType>))]
     public SectionType SectionType { get; set; }
     public decimal Width { get; set; }
     public decimal Length { get; set; }

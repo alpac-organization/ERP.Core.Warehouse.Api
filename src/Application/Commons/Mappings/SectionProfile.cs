@@ -40,6 +40,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             SectionId = SectionId,
             Length = command.Length,
             Width = command.Width,
+            TotalAreaM2 = sectionCapacity.TotalAreaM2,
             UnusedAreaM2 = sectionCapacity.UnusedAreaM2,
             AvailableAreaWithMarginM2 = sectionCapacity.AvailableAreaWithMarginM2,
             OccupiedChargeableAreaM2 = sectionCapacity.OccupiedChargeableAreaM2,
