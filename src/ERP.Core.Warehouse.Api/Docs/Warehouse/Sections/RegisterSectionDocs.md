@@ -72,8 +72,8 @@ El recurso se creó correctamente. El cuerpo de la respuesta puede ir vacío.
 | Rol `Supervisor` | Recibe 400: `No tienes permiso para realizar esta acción`. |
 | Cálculo fallido | Recibe 400: `No se pudo calcular la capacidad de la sección.` |
 | Sin capacidad de almacén | Recibe 400: `El almacén no tiene capacidad registrada`. |
-| Código duplicado | Recibe 400: `Ya existe una sección con ese código en el almacén.` |
-| Almacén inválido | Recibe 400: `El almacén indicado no existe o no está activo.` |
+| Código duplicado | Recibe 400 desde el handler: `Ya existe una sección con ese código en el almacén.` |
+| Almacén inválido | Recibe 400 desde el handler: `El almacén indicado no existe o no está activo.` |
 
 ### ❌ 400 Bad Request
 

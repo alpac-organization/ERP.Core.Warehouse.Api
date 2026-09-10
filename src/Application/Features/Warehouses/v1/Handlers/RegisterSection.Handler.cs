@@ -24,6 +24,22 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
                 return _errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:01");
             }
 
+            var warehouseExists = await _unitOfWork.Warehouses.Entities
+                .AnyAsync(w => w.Id == request.WarehouseId && w.IsActive, cancellationToken);
+
+            if (!warehouseExists)
+            {
+                return _errorManager.ThrowBadRequest<bool>("El almacén indicado no existe o no está activo.", "ERP:01");
+            }
+
+            var codeExists = await _unitOfWork.Sections.Entities
+                .AnyAsync(s => s.WarehouseId == request.WarehouseId && s.Code == request.Code, cancellationToken);
+
+            if (codeExists)
+            {
+                return _errorManager.ThrowBadRequest<bool>("Ya existe una sección con ese código en el almacén.", "ERP:01");
+            }
+
             logger.LogInformation("🚀Iniciando proceso de registro de sección.");
 
             var section = SectionMapper.ToSectionEntity(request);
