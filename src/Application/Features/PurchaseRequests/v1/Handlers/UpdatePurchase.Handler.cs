@@ -54,7 +54,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
          {
             return _errorManager.ThrowBadRequest<bool>("El nivel de prioridad solo puede especificarse cuando el tipo de solicitud es Requisición.", "ERP:INVALID_PRIORITY");
          }
-          
           purchase.PriorityLevel = request.PriorityLevel.Value;
       }
 
@@ -66,24 +65,21 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
          if(request.PurchaseRequestItems != null && request.PurchaseRequestItems.Count > 0)
          {
-            var UpdateResult = await UpdateItemAsync(purchase,request.PurchaseRequestItems);
+            var UpdateResult =  UpdateItemAsync(purchase,request.PurchaseRequestItems);
             if (!UpdateResult)
             {
                return false;
             }
-
+         }
             await _unitOfWork.PurchaseRequests.UpdateAsync(purchase);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("✅ Solicitud de compra actualizada exitosamente");
-            return true;
-         }
 
-      
-     return true; 
+      return true; 
    }
 
-   private async Task<bool> UpdateItemAsync(
+   private  bool UpdateItemAsync(
       PurchaseRequest purchase,
       List<UpdatePurchaseRequestItem> payloadItems
       )
