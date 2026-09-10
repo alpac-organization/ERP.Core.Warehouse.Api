@@ -212,5 +212,23 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
             
             return NoContent();
         }
+
+        [Tags("Solicitudes de compras")]
+        [HttpPatch("companies/{company_id}/modules/{module_code}/purchase-requests/{purchase_request_id}")]
+        [ProducesResponseType(typeof(OkResult), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+
+        public async Task<OkResult> UpdatePurchaseAsync([FromRoute] Guid company_id,[FromRoute] string module_code ,Guid purchase_request_id, [FromBody] UpdatePurchaseCommand payload )
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+            payload.CompanyId = company_id;
+            payload.ModuleCode = module_code; 
+            payload.PurchaseRequestId = purchase_request_id;
+            payload.UserId = Guid.Parse(userIdStr!);
+
+            await _mediator.Send(payload);
+            return Ok();
+        }
     }
 }
