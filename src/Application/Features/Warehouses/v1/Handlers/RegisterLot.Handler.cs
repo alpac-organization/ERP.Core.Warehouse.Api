@@ -1,6 +1,5 @@
 using AutoMapper;
 using Microsoft.Extensions.Logging;
-using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Entities.Catalogs;
@@ -39,17 +38,10 @@ public class RegisterLotHandler(
 
         request.Code = request.Code.Trim();
 
-        var codeExists = await _unitOfWork.Lots.Entities
-            .AnyAsync(
-                l => l.SectionId == request.SectionId
-                    && l.Code == request.Code
-                    && l.DeletedAt == null,
-                cancellationToken);
-
-        if (codeExists)
-            return _errorManager.ThrowBadRequest<bool>(
-                $"Ya existe un tramo con el código '{request.Code}' en la sección.",
-                "ERP:LOT_CODE_ALREADY_EXISTS");
+        var (codeIsValid, codeError) = await EnsureLotCodeAvailableAsync(
+            request.Code, null, request.SectionId, cancellationToken);
+        if (!codeIsValid)
+            return codeError;
 
         var lot = _mapper.Map<Lots>(request);
         lot.Id = Guid.NewGuid();

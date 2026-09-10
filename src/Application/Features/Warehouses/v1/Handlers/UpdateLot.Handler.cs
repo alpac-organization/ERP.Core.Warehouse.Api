@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Commons.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
@@ -30,16 +29,14 @@ public class UpdateLotHandler(
         if (!isValid)
             return errorResponse;
 
-        var lot = await _unitOfWork.Lots.Entities
-            .Include(l => l.LotsCapacity)
-            .FirstOrDefaultAsync(
-                l => l.Id == request.LotId
-                    && l.SectionId == request.SectionId
-                    && l.DeletedAt == null,
-                cancellationToken);
-        if (lot is null)
-            return _errorManager.ThrowBadRequest<bool>(
-                "El tramo no fue encontrado.", "ERP:LOT_NOT_FOUND");
+        var (lotCandidate, lotIsValid, lotError) = await GetExistingLotAsync(
+            request.LotId,
+            request.SectionId,
+            cancellationToken);
+        if (!lotIsValid)
+            return lotError;
+
+        var lot = lotCandidate!;
 
         if (request.Code != null)
         {
@@ -47,17 +44,10 @@ public class UpdateLotHandler(
 
             if (request.Code != lot.Code)
             {
-                var codeExists = await _unitOfWork.Lots.Entities
-                    .AnyAsync(
-                        l => l.SectionId == request.SectionId
-                            && l.Code == request.Code
-                            && l.DeletedAt == null,
-                        cancellationToken);
-
-                if (codeExists)
-                    return _errorManager.ThrowBadRequest<bool>(
-                        $"Ya existe un tramo con el código '{request.Code}' en la sección.",
-                        "ERP:LOT_CODE_ALREADY_EXISTS");
+                var (codeIsValid, codeError) = await EnsureLotCodeAvailableAsync(
+                    request.Code, lot.Id, request.SectionId, cancellationToken);
+                if (!codeIsValid)
+                    return codeError;
             }
         }
 

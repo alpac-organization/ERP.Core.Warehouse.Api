@@ -47,6 +47,46 @@ public abstract class BaseLotsCapacityHandler<TRequest>(
         return (true, section, default);
     }
 
+    protected async Task<(Lots? Lot, bool IsValid, bool ErrorResponse)> GetExistingLotAsync(
+        Guid lotId,
+        Guid sectionId,
+        CancellationToken cancellationToken)
+    {
+        var lot = await _unitOfWork.Lots.Entities
+            .Include(l => l.LotsCapacity)
+            .FirstOrDefaultAsync(
+                l => l.Id == lotId
+                    && l.SectionId == sectionId
+                    && l.DeletedAt == null,
+                cancellationToken);
+        if (lot is null)
+            return (null, false, _errorManager.ThrowBadRequest<bool>(
+                "El tramo no fue encontrado.", "ERP:LOT_NOT_FOUND"));
+
+        return (lot, true, default);
+    }
+
+    protected async Task<(bool IsValid, bool ErrorResponse)> EnsureLotCodeAvailableAsync(
+        string code,
+        Guid? excludeLotId,
+        Guid sectionId,
+        CancellationToken cancellationToken)
+    {
+        var codeExists = await _unitOfWork.Lots.Entities
+            .AnyAsync(
+                l => l.SectionId == sectionId
+                    && l.Code == code
+                    && l.DeletedAt == null
+                    && (excludeLotId == null || l.Id != excludeLotId),
+                cancellationToken);
+        if (codeExists)
+            return (false, _errorManager.ThrowBadRequest<bool>(
+                $"Ya existe un tramo con el código '{code}' en la sección.",
+                "ERP:LOT_CODE_ALREADY_EXISTS"));
+
+        return (true, default);
+    }
+
     protected async Task ApplySectionCapacityAsync(
         Sections section,
         SectionCapacity? calculated,
