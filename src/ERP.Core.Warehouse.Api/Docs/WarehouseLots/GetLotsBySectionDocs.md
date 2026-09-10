@@ -52,7 +52,7 @@ Retorna un objeto `PagedResponse<LotListItemDto>`:
 {
   "data": [
     {
-      "lot_id": "56487c1b-9f4d-4b2a-8e1c-1234567890ab",
+      "id": "56487c1b-9f4d-4b2a-8e1c-1234567890ab",
       "code": "LOT-001",
       "status": "Available",
       "allows_stacking": true,
