@@ -14,5 +14,12 @@ public class LotsProfile : Profile
         CreateMap<Lots, LotListItemDto>();
 
         CreateMap<LotsCapacity, LotCapacitiesDto>();
+
+        // Actualizacion desde Lots (Patch)
+        CreateMap<LotsCapacity, LotsCapacity>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.DeletedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.LotsId, opt => opt.Ignore())
+            .ForMember(dest => dest.Lot, opt => opt.Ignore());
     }
 }
