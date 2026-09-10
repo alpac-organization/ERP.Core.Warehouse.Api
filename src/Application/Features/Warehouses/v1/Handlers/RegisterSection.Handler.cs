@@ -26,7 +26,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
             logger.LogInformation("🚀Iniciando proceso de registro de sección.");
 
             var section = SectionMapper.ToSectionEntity(request);
-            var capacityCalculation = await _sectionCapacityCalculator.CalculateSectionAsync(request.WarehouseId, request.Width, request.Length, cancellationToken);
+            var capacityCalculation = await _sectionCapacityCalculator.CalculateSectionAsync(
+                request.WarehouseId,
+                request.Width, request.Length,
+                request.SectionType, cancellationToken
+            );
 
             if (capacityCalculation.Section is null || capacityCalculation.Warehouse is null)
             {
@@ -44,14 +48,20 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
             }
 
             var calculation = capacityCalculation.Warehouse;
-            warehouseCapacity.UnusedSpaceM2 = calculation.UnusedSpaceM2;
-            warehouseCapacity.UnasedSpaceM3 = calculation.UnasedSpaceM3;
-            warehouseCapacity.AvailableSpaceWithoutSpacingM2 = calculation.AvailableSpaceWithoutSpacingM2;
-            warehouseCapacity.AvailableSpaceWithoutSpacingM3 = calculation.AvailableSpaceWithoutSpacingM3;
-            warehouseCapacity.AvailableSpaceWithSpacingM2 = calculation.AvailableSpaceWithSpacingM2;
-            warehouseCapacity.AvailableSpaceWithSpacingM3 = calculation.AvailableSpaceWithSpacingM3;
-            warehouseCapacity.PercenteAvailableSpaceWithSpacingM2 = calculation.PercenteAvailableSpaceWithSpacingM2;
-            warehouseCapacity.PercenteAvailableSpaceWithSpacingM3 = calculation.PercenteAvailableSpaceWithSpacingM3;
+            
+            warehouseCapacity.AvailableAreaWithMarginM2 = calculation.AvailableAreaWithMarginM2;
+            warehouseCapacity.AvailableVolumenWithMarginM3 = calculation.AvailableVolumenWithMarginM3;
+
+            warehouseCapacity.OccupiedChargeableAreaM2 = calculation.OccupiedChargeableAreaM2;
+            warehouseCapacity.OccupiedChargeableVolumenM3 = calculation.OccupiedChargeableVolumenM3;
+
+            warehouseCapacity.UnusedAreaM2 = calculation.UnusedAreaM2;
+            warehouseCapacity.UnusedVolumenM3 = calculation.UnusedVolumenM3;
+
+            warehouseCapacity.UnoccupiedChargeableAreaM2 = calculation.UnoccupiedChargeableAreaM2;
+            warehouseCapacity.UnoccupiedChargeableVolumenM3 = calculation.UnoccupiedChargeableVolumenM3;
+
+            warehouseCapacity.PercentageAvailableAreaWithMarginM2 = calculation.PercentageAvailableAreaWithMarginM2;
 
             await _unitOfWork.Sections.RegisterSection(section);
             await _unitOfWork.SectionCapacities.RegisterSectionCapacity(sectionCapacity);
