@@ -42,7 +42,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
             if (request.AreaId.HasValue)
             {
                 reviewsQuery = reviewsQuery
-                    .Where(rev => rev.PurchaseRequest.AreaId == request.AreaId);
+                    .Where(rev => rev.SentByUser.AreaId == request.AreaId);
             }
 
             if (request.Status.HasValue)
