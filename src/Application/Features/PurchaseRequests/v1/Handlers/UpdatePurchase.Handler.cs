@@ -70,7 +70,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
          if (request.DestinationRequest.HasValue)
             purchase.Destination = request.DestinationRequest.Value;
 
-         if(request.PurchaseRequestItems != null && request.PurchaseRequestItems is {Count: 0})
+         if(request.PurchaseRequestItems != null && request.PurchaseRequestItems is {Count: > 0})
          {
             var UpdateResult =  UpdateItems(purchase,request.PurchaseRequestItems);
             if (!UpdateResult)
