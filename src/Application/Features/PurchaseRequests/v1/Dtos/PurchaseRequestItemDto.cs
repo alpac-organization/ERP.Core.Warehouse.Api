@@ -13,6 +13,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public string? Description { get; set; }
         public string? Justification { get; set; }
 
+        public string? AdditionalData {get; set;}
+
         public ProductDetails ProductDetails { get; set; } = new();
         public UnitMeasureInformation UnitMeasureInformation { get; set; } = new();
 

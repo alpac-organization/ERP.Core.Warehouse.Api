@@ -11,9 +11,15 @@ public class LotsProfile : Profile
     {
         CreateMap<RegisterLotCommand, Lots>();
 
-        CreateMap<Lots, LotListItemDto>()
-            .ForMember(dest => dest.LotId, opt => opt.MapFrom(src => src.Id));
+        CreateMap<Lots, LotListItemDto>();
 
         CreateMap<LotsCapacity, LotCapacitiesDto>();
+
+        // Actualizacion desde Lots (Patch)
+        CreateMap<LotsCapacity, LotsCapacity>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.DeletedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.LotsId, opt => opt.Ignore())
+            .ForMember(dest => dest.Lot, opt => opt.Ignore());
     }
 }

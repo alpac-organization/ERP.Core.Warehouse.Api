@@ -30,6 +30,7 @@ public class UpdatePurchaseCommand : BaseRequest, IRequest<bool>
 
         public string? Description { get; set; }
         public string? Justification { get; set; }
-        public string? AdditionalData { get; set; }
+
+        public List<string>? ImagesProductToChanged {get; set;}
     }
 }

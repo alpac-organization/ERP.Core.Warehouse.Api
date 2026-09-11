@@ -5,7 +5,7 @@ using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
-public class RegisterLotCommand : BaseRequest, IRequest<bool>
+public class UpdateLotCommand : BaseRequest, IRequest<bool>
 {
     [JsonIgnore]
     public Guid WarehouseId { get; set; }
@@ -13,10 +13,13 @@ public class RegisterLotCommand : BaseRequest, IRequest<bool>
     [JsonIgnore]
     public Guid SectionId { get; set; }
 
-    public string Code { get; set; } = null!;
-    public decimal WidthMetres { get; set; }
-    public decimal LengthMetres { get; set; }
-    public bool AllowsStacking { get; set; } = true;
-    public RackStatus Status { get; set; } = RackStatus.Available;
+    [JsonIgnore]
+    public Guid LotId { get; set; }
+
+    public string? Code { get; set; }
+    public decimal? WidthMetres { get; set; }
+    public decimal? LengthMetres { get; set; }
+    public bool? AllowsStacking { get; set; }
+    public RackStatus? Status { get; set; }
     public string? UnavailableReason { get; set; }
 }
