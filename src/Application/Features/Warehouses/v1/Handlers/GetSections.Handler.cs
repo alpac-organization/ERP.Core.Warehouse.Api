@@ -28,7 +28,7 @@ public class GetSectionsHandler(IUnitOfWork _unitOfWork, IErrorManager errorMana
         var totalRecords = await sectionsQuery.CountAsync(cancellationToken);
 
         var sections = await sectionsQuery
-            .OrderByDescending(sect => sect.Code)
+            .OrderByDescending(sect => sect.CreatedAt)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
@@ -54,6 +54,9 @@ public class GetSectionsHandler(IUnitOfWork _unitOfWork, IErrorManager errorMana
 
         if (request.SectionType.HasValue)
             query = query.Where(sect => sect.SectionType == request.SectionType.Value);
+        
+        if (request.SectionStorageType.HasValue)
+            query = query.Where(sect => sect.SectionStorageType == request.SectionStorageType.Value);
 
         return query;
     }

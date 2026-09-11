@@ -81,7 +81,7 @@ Usa la entidad `ErrorResponse` (`ERP.Core.Domain.Entities.Errors`):
     "type_error": "ValidationError",
     "description": "El usuario no tiene acceso a esta compañía o módulo"
   },
-  "created_at": "2026-09-10 15:00:00"
+  "created_at": "2026-09-11 12:00:00"
 }
 ```
 
@@ -94,7 +94,7 @@ Usa la entidad `ErrorResponse` (`ERP.Core.Domain.Entities.Errors`):
     "type_error": "InternalServerError",
     "description": "Ocurrió un error inesperado al procesar la solicitud"
   },
-  "created_at": "2026-09-10 15:00:00"
+  "created_at": "2026-09-11 12:00:00"
 }
 ```
 

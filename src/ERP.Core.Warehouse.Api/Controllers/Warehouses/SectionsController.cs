@@ -40,7 +40,17 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
     [ProducesResponseType(typeof(PagedResponse<SectionDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<PagedResponse<SectionDto>> GetSectionsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid warehouse_id, [FromQuery] string? section_code = null, [FromQuery] SectionType? section_type = null, [FromQuery] bool? is_active = null, [FromQuery] int page_number = 1, [FromQuery] int page_size = 10, CancellationToken cancellationToken = default)
+    public async Task<PagedResponse<SectionDto>> GetSectionsAsync(
+        [FromRoute] Guid company_id, 
+        [FromRoute] string module_code, 
+        [FromRoute] Guid warehouse_id, 
+        [FromQuery] string? section_code = null, 
+        [FromQuery] SectionType? section_type = null, 
+        [FromQuery] SectionStorageType? section_storage_type = null, 
+        [FromQuery] bool? is_active = null, 
+        [FromQuery] int page_number = 1, 
+        [FromQuery] int page_size = 10, 
+        CancellationToken cancellationToken = default)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
 
@@ -51,6 +61,7 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
             UserId = Guid.Parse(userIdStr ?? ""),
             WarehouseId = warehouse_id,
             SectionType = section_type,
+            SectionStorageType = section_storage_type,
             IsActive = is_active,
             SectionCode = section_code,
             PageNumber = page_number,

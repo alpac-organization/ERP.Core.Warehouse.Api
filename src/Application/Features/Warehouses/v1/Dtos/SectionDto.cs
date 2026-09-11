@@ -7,6 +7,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos
         public Guid SectionId { get; set; }
         public string? SectionCode { get; set; }
         public SectionType? SectionType { get; set; }
+        public SectionStorageType? SectionStorageType { get; set; }
         public bool IsActive { get; set; }
     }
 }

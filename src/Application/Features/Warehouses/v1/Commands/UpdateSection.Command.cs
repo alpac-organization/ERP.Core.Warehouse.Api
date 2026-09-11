@@ -12,7 +12,9 @@ public class UpdateSectionCommand : BaseRequest, IRequest<bool>
     [JsonIgnore]
     public Guid SectionId { get; set; }
     public string? Code { get; set; }
-    public SectionType? SectionType { get; set; }
     public decimal? Width { get; set; }
     public decimal? Length { get; set; }
+    public bool? IsActive { get; set; }
+    public SectionType? SectionType { get; set; }
+    public SectionStorageType? SectionStorageType { get; set; }
 }

@@ -43,6 +43,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
             logger.LogInformation("🚀Iniciando proceso de registro de sección.");
 
             var section = SectionMapper.ToSectionEntity(request);
+            
             var capacityCalculation = await _sectionCapacityCalculator.CalculateSectionAsync(
                 request.WarehouseId,
                 request.Width, request.Length,

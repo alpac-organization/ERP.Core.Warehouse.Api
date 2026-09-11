@@ -22,6 +22,12 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive))
             .ForMember(dest => dest.Capacity, opt => opt.MapFrom(src => src.SectionCapacity))
             .ForMember(dest => dest.Coordinates, opt => opt.Ignore());
+
+         CreateMap<SectionCapacity, SectionCapacity>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.SectionId, opt => opt.Ignore())
+            .ForMember(dest => dest.DeletedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.Section, opt => opt.Ignore());
       }
    }
 
@@ -35,7 +41,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             Code = command.Code,
             WarehouseId = command.WarehouseId,
             SectionType = command.SectionType,
-            IsActive = true
+            SectionStorageType = command.SectionStorageType,
          };
       }
 
