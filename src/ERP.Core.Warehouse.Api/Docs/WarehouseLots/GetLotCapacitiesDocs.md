@@ -1,8 +1,6 @@
-## Obtener Capacidades de Tramo
+﻿## Obtener Capacidades de Tramo
 
 Endpoint para consultar las capacidades de un tramo específico dentro de una sección de un almacén, en una compañía y módulo.
-
-## Información General
 
 | Campo | Valor |
 |---|---|

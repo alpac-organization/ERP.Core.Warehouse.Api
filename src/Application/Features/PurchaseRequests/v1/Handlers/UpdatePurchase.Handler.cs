@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
@@ -11,6 +13,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 {
    public class UpdatePurchaseHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, ILogger<UpdatePurchaseHandler> _logger):BaseValidatorHandler<UpdatePurchaseCommand,bool>(_unitOfWork, _errorManager)
 {
+   private static readonly JsonSerializerOptions JsonOPtions = new()
+   {
+      PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,   
+      PropertyNameCaseInsensitive = true
+   };
    public override async Task<bool> Handle(UpdatePurchaseCommand request, CancellationToken cancellationToken)
    {
      
@@ -57,15 +64,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
           purchase.PriorityLevel = request.PriorityLevel.Value;
       }
 
-         if (request.Observations != null)
+         if (request.Observations is not null)
             purchase.Concept = request.Observations;
 
          if (request.DestinationRequest.HasValue)
             purchase.Destination = request.DestinationRequest.Value;
 
-         if(request.PurchaseRequestItems != null && request.PurchaseRequestItems.Count > 0)
+         if(request.PurchaseRequestItems != null && request.PurchaseRequestItems is {Count: > 0})
          {
-            var UpdateResult =  UpdateItemAsync(purchase,request.PurchaseRequestItems);
+            var UpdateResult =  UpdateItems(purchase,request.PurchaseRequestItems);
             if (!UpdateResult)
             {
                return false;
@@ -79,7 +86,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
       return true; 
    }
 
-   private  bool UpdateItemAsync(
+   private  bool UpdateItems(
       PurchaseRequest purchase,
       List<UpdatePurchaseRequestItem> payloadItems
       )
@@ -98,17 +105,35 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                             "ERP:PURCHASE_REQUEST_ITEM_NOT_FOUND");
                }
 
-                    if (itemPayload.Quantity.HasValue) existing.Quantity = itemPayload.Quantity.Value;
-                    if (itemPayload.QuantityUnit.HasValue) existing.QuantityUnit = itemPayload.QuantityUnit;
-                    if (itemPayload.ProductId.HasValue) existing.ProductId = itemPayload.ProductId.Value;
-                    if (itemPayload.UnitMeasureId.HasValue) existing.UnitMeasureId = itemPayload.UnitMeasureId.Value;
+               if (itemPayload.Quantity.HasValue) existing.Quantity = itemPayload.Quantity.Value;
+               if (itemPayload.QuantityUnit.HasValue) existing.QuantityUnit = itemPayload.QuantityUnit;
+               if (itemPayload.ProductId.HasValue) existing.ProductId = itemPayload.ProductId.Value;
+               if (itemPayload.UnitMeasureId.HasValue) existing.UnitMeasureId = itemPayload.UnitMeasureId.Value;
                     
-                    if (itemPayload.Description != null) existing.Description = itemPayload.Description;
-                    if (itemPayload.Justification != null) existing.Justification = itemPayload.Justification;
-                    if (itemPayload.AdditionalData != null) existing.AdditionalData = itemPayload.AdditionalData;
+               if (itemPayload.Description != null) existing.Description = itemPayload.Description;
+               if (itemPayload.Justification != null) existing.Justification = itemPayload.Justification;
+
+               if (itemPayload.ImagesProductToChanged != null)
+               {
+                  var additionalData = DeserializeAdditionalData(existing.AdditionalData);
+                  additionalData.ImagesProductToChanged = itemPayload.ImagesProductToChanged;
+
+                  existing.AdditionalData = JsonSerializer.Serialize(additionalData,JsonOPtions);
+               } 
             } 
       }
          return true;
      }
+   private static PurchaseRequestItemAdditionalData DeserializeAdditionalData (string? json)
+      {
+         if (string.IsNullOrWhiteSpace(json))
+         {
+            return new PurchaseRequestItemAdditionalData(); 
+         }
+
+         return JsonSerializer.Deserialize<PurchaseRequestItemAdditionalData>(json,JsonOPtions)
+                ?? new PurchaseRequestItemAdditionalData();
+      }
    }
+
 }

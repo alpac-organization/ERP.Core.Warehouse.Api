@@ -1,8 +1,6 @@
-## Listar Tramos
+﻿## Listar Tramos
 
 Endpoint para listar con paginación y filtros los tramos registrados dentro de una sección de un almacén, en una compañía y módulo.
-
-## Información General
 
 | Campo | Valor |
 |---|---|

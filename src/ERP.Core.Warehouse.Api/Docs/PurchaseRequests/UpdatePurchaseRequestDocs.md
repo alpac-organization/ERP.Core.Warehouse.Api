@@ -1,10 +1,8 @@
-# Solicitudes de compras
+﻿# Solicitudes de compras
 
 ## Actualizar Solicitud de Compra
 
 Endpoint para actualizar de forma parcial una solicitud de compra y/o sus ítems existentes dentro de el módulo de purchase.
-
-## Información General
 
 | Campo | Valor |
 |-------|-------|
