@@ -1,6 +1,6 @@
 using NUnit.Framework;
 
-namespace ERP.Core.Warehouse.Api.Test.Common
+namespace ERP.Core.Warehouse.Api.Test
 {
     [SetUpFixture]
     public class PostgreSqlContainerFixture
@@ -12,6 +12,12 @@ namespace ERP.Core.Warehouse.Api.Test.Common
         {
             Factory = new();
             await Factory.InitializePostgreSqlContainer();
+
+            //Devolvemos la causa de por que no corren los test.
+            if (!Factory.IsDockerAvailable)
+            {
+                Assert.Ignore("Docker no está disponible. Se omiten las pruebas de integración.");
+            }
         }
 
         [OneTimeTearDown]

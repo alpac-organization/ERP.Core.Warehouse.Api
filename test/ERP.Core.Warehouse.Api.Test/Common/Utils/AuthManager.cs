@@ -2,35 +2,34 @@ using System.Text;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using ERP.Core.Database.Domain.Entities.Auth;
 
 namespace ERP.Core.Warehouse.Api.Test.Common.Utils
 {
-    public class AuthManager
+    public static class AuthManager
     {
-        public static string GenerateJwtToken(string secretKey, string issuer, string audience, int expirationMinutes)
+        public static string GenerateJwtToken(string jwtKey, Guid userId)
         {
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);            
 
-            var tokenDescriptor = new SecurityTokenDescriptor
+            var claims = new List<Claim>
             {
-                Subject = new ClaimsIdentity(
-                [
-                    new Claim(ClaimTypes.Name, "TestUser"),
-                    new Claim(ClaimTypes.Role, "Admin")
-                ]),
-
-                Issuer = issuer,
-                Audience = audience,
-                SigningCredentials = credentials,
-                Expires = DateTime.UtcNow.AddMinutes(expirationMinutes)
+                new(JwtRegisteredClaimNames.Sub, userId.ToString()),
+                new("user_id",   userId.ToString()),
+                new("username", "test.user"),
+                new("fullname", "Test User"),
             };
 
-            var tokenHandler = new JwtSecurityTokenHandler();
-            
-            var token = tokenHandler.CreateToken(tokenDescriptor);
+            var token = new JwtSecurityToken(
+                issuer: "ERP.Core.Wareouse.Api",
+                audience: "ERP.Clients.Web",
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(1),
+                signingCredentials: credentials
+            );
 
-            return tokenHandler.WriteToken(token);
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     } 
 }
