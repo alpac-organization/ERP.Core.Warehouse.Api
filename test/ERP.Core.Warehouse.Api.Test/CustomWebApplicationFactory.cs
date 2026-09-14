@@ -22,7 +22,7 @@ namespace ERP.Core.Warehouse.Api.Test
         #region Public Fields
         public bool IsDockerAvailable { get; private set; }
         public string ApiKey = "integration-test-api-key";
-        public string JwtKey = "integration-test-jwt-key";
+        public string JwtKey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCqGKukO1De7zhY";
 
         #endregion
 
@@ -59,7 +59,10 @@ namespace ERP.Core.Warehouse.Api.Test
                     services.Remove(dbContextTesting);
                 }
 
-                
+                //Agregar el contexto
+                services.AddDbContext<ErpDbContext>(options =>
+                    options.UseNpgsql(_container!.GetConnectionString())
+                );
             }); 
         }
 
@@ -67,10 +70,11 @@ namespace ERP.Core.Warehouse.Api.Test
         public async Task InitializePostgreSqlContainer()
         {
             //Usamos la imagen oficial de PostgreSQL 18.3-alpine para crear un contenedor de prueba.
-            _container = new PostgreSqlBuilder("postgres:18.3-alpine")
+            _container = new PostgreSqlBuilder("postgres:16-alpine")
                 .WithDatabase("testdb")
                 .WithUsername("testuser")
                 .WithPassword("testpassword")
+                .WithPortBinding(5433, 5432)
                 .Build();
 
             // Iniciamos el contenedor de PostgreSQL, con un máximo de 3 intentos en caso de que Docker no esté disponible temporalmente.
