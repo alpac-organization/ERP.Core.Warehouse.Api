@@ -88,7 +88,8 @@ namespace ERP.Core.Warehouse.Api.Test.Common
             {
                 Id = newUserId,
                 UserType = UserType.StandardUser,
-                PasswordHash = "",
+                UserName = "carlos.mendoza",
+                PasswordHash = "$hashpassoword",
                 Fullname = "Carlos Alberto Mendoza Gutiérrez",
                 Email = "testing@domain.com",
                 AreaId = workAreaId,

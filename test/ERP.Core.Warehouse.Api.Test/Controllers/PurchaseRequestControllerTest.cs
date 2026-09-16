@@ -15,13 +15,11 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
         [Test]
         [TestCase("ALPAC")]
         [TestCase("AMINSA")]
+        [Order(1)]
         public async Task RegistePurchaseRequestWhenIsSuccess(string companyAlias)
         {
-            var companies = await _unitOfWork.Companies.Entities
-                .Where(company => company.IsActive)
-                .Where(company => company.Alias == companyAlias)
-                .ToListAsync(default);
-
+            //Creamos nuestro usuario
+            var userId = await CreateUser();
             
 
             //Generar su propio bearer token aqui
