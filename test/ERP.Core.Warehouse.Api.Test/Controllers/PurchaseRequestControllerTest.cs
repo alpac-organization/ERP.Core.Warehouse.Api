@@ -1,11 +1,9 @@
 
-using System.Net;
 using NUnit.Framework;
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Warehouse.Api.Test.Common;
 using ERP.Core.Warehouse.Api.Test.Common.Utils;
-using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Test.Controllers
 {
