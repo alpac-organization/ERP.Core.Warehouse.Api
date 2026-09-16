@@ -1,13 +1,17 @@
+using Respawn;
 using NUnit.Framework;
 using Testcontainers.PostgreSql;
-
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+
+using System.Data;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 using ERP.Core.Database.Infrastructure.Persistence.Context;
-using Microsoft.Extensions.DependencyInjection;
+using ERP.Core.Warehouse.Api.Test.Common.Utils;
+using ERP.Core.Testing.Seeding;
 
 namespace ERP.Core.Warehouse.Api.Test
 {
@@ -18,19 +22,19 @@ namespace ERP.Core.Warehouse.Api.Test
 
         #endregion
 
-
         #region Public Fields
         public bool IsDockerAvailable { get; private set; }
-        public string ApiKey = "integration-test-api-key";
         public string JwtKey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCqGKukO1De7zhY";
 
         #endregion
 
-
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
-            //Usamos el entorno de prueba para probar nuestras APIs.
+            //Usamos el entorno de prueba para probar nuestras APIs. y configuramos todos los enviorement Mokiados
             builder.UseEnvironment("Testing");
+
+            EnvironmentManager.ApplyEnvironmentAws();
+            EnvironmentManager.ApplyEnvironmentCorsAndSecurity();
 
             builder.ConfigureAppConfiguration((context, config) =>
             {
@@ -46,7 +50,6 @@ namespace ERP.Core.Warehouse.Api.Test
                     ["Jwt:SecretKey"] = JwtKey
                 });
             });
-
 
             builder.ConfigureServices(services =>
             {
@@ -64,6 +67,30 @@ namespace ERP.Core.Warehouse.Api.Test
                     options.UseNpgsql(_container!.GetConnectionString())
                 );
             }); 
+        }
+
+        //Metodo para reiniciar la base de datos cada que se levante el contenedor.
+        public async Task ResetDatabase()
+        {
+            var scope = Services.CreateScope();
+
+            var dbContext = scope.ServiceProvider.GetRequiredService<ErpDbContext>();
+
+            var connection = dbContext.Database.GetDbConnection();
+
+            if (connection.State != ConnectionState.Open)
+            {
+                await connection.OpenAsync();
+            }
+
+            var respawner = await Respawner.CreateAsync(connection, new RespawnerOptions
+            {
+                DbAdapter = DbAdapter.Postgres,
+                SchemasToInclude = ["public"],
+                WithReseed = false
+            });
+
+            await respawner.ResetAsync(connection);
         }
 
         //Metodo para inicializar el contenedor de PostgreSQL antes de ejecutar las pruebas
@@ -114,6 +141,25 @@ namespace ERP.Core.Warehouse.Api.Test
                 await _container.StopAsync();
                 await _container.DisposeAsync();
             }   
+        }
+
+
+        //Metodo para sembrar los datos base (compañías, áreas, sucursales, usuarios, perfiles).
+        public async Task SeedDatabase()
+        {
+            var scope = Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ErpDbContext>();
+
+            var data = ErpSeedDataFactory.CreateScenario();
+
+            await dbContext.Companies.AddRangeAsync(data.Companies);
+            await dbContext.Branches.AddRangeAsync(data.Branches);
+            await dbContext.WorkAreas.AddRangeAsync(data.WorkAreas);
+            
+            await dbContext.Users.AddRangeAsync(data.Users);
+            await dbContext.Profiles.AddRangeAsync(data.Profiles);
+
+            await dbContext.SaveChangesAsync();
         }
     }
 }

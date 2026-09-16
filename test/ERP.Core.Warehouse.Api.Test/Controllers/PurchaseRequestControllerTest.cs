@@ -1,19 +1,28 @@
 
-using NUnit.Framework;
-using ERP.Core.Warehouse.Api.Test.Common;
 using System.Net;
+using NUnit.Framework;
+using Microsoft.EntityFrameworkCore;
+
+using ERP.Core.Warehouse.Api.Test.Common;
 
 namespace ERP.Core.Warehouse.Api.Test.Controllers
 {
     [TestFixture]
     public class PurchaseRequestControllerTest : IntegrationTestBase
     {
- 
-        [Test]
-        public async Task RegistePurchaseRequestWhenIsSuccess()
-        {
+        private static string PurchaseRequestBaseUrl(Guid companyId, string moduleCode) => $"/api/v1/companies/${companyId}/modules/${moduleCode}/purchase-requests";
 
-            var response = await SendRequestAsync(HttpMethod.Get, $"/api/v1/companies/aaaaaa/modules/cccccc/purchase-requests", Guid.Empty, null);
+        [Test]
+        [TestCase("")]
+        [TestCase("")]
+        public async Task RegistePurchaseRequestWhenIsSuccess(string companyAlias)
+        {
+            var companies = _unitOfWork.Companies.Entities
+                .Where(company => company.IsActive)
+                .ToListAsync(default);
+
+
+            var response = await SendRequestAsync(HttpMethod.Get, $"{PurchaseRequestBaseUrl(Guid.Empty, "NOMINA")}", Guid.Empty, null);
 
             // 5. Verificamos el resultado
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
