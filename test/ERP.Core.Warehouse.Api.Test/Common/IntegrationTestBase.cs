@@ -7,9 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 using ERP.Core.Warehouse.Api.Test.Common.Utils;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
-using Microsoft.EntityFrameworkCore;
-using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Database.Domain.Entities.Auth;
 
 namespace ERP.Core.Warehouse.Api.Test.Common
 {
@@ -62,45 +59,5 @@ namespace ERP.Core.Warehouse.Api.Test.Common
 
             return await _client.SendAsync(request);
         }
-
-        #region  Method Utils
-
-        public async Task<Guid?> CreateUser(Guid? areaId = null)
-        {
-            Guid workAreaId;
-
-            if (areaId.HasValue) workAreaId = areaId.Value;
-            else
-            {
-                var area = await _unitOfWork.WorkAreas.Entities
-                    .Where(workArea => workArea.IsActive)
-                    .Where(workArea => workArea.WorkAreaCode == 10)
-                    .FirstOrDefaultAsync(default);
-
-                if (area is null) return null;
-
-                workAreaId = area.Id;
-            }
-
-            var newUserId = Guid.NewGuid();
-
-            await _unitOfWork.Users.CreateNewUser(new()
-            {
-                Id = newUserId,
-                UserType = UserType.StandardUser,
-                UserName = "carlos.mendoza",
-                PasswordHash = "$hashpassoword",
-                Fullname = "Carlos Alberto Mendoza Gutiérrez",
-                Email = "testing@domain.com",
-                AreaId = workAreaId,
-                IdentificationNumber = "0010101011052A",
-            });
-
-            await _unitOfWork.SaveChangesAsync();
-
-            return newUserId;
-        }
-
-        #endregion
     }
 }

@@ -24,7 +24,6 @@ namespace ERP.Core.Warehouse.Api.Test
 
         #region Public Fields
         public bool IsDockerAvailable { get; private set; }
-        public string JwtKey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCqGKukO1De7zhY";
 
         #endregion
 
@@ -47,7 +46,7 @@ namespace ERP.Core.Warehouse.Api.Test
 
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {   
-                    ["Jwt:SecretKey"] = JwtKey
+                    ["Jwt:SecretKey"] = EnvironmentManager.JwtKey
                 });
             });
 
