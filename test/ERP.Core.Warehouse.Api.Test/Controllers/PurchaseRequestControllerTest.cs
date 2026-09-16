@@ -12,7 +12,7 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
     [TestFixture]
     public class PurchaseRequestControllerTest : IntegrationTestUtilsBase
     {
-        private static string PurchaseRequestBaseUrl(Guid companyId, string moduleCode) => $"/api/v1/companies/${companyId}/modules/${moduleCode}/purchase-requests";
+        private static string PurchaseRequestBaseUrl(Guid companyId, string moduleCode) => $"/api/v1/companies/{companyId}/modules/{moduleCode}/purchase-requests";
 
         [Test]
         [TestCase("ALPAC")]
@@ -20,9 +20,8 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
         {
             //Creamos nuestro usuario
             Guid userId = await CreateUser("Carlos Alberto Mendoza Gutiérrez");
-            
 
-            var bearerToken = AuthManager.GenerateJwtToken(EnvironmentManager.ApiKey, userId);
+            var bearerToken = AuthManager.GenerateJwtToken(EnvironmentManager.JwtKey, userId);
 
 
             var company = await _unitOfWork.Companies.Entities
@@ -30,13 +29,16 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
                 .Where(company => company.Alias == companyAlias) 
                 .FirstOrDefaultAsync(default);
 
+            //Your payload here!
             object payload = new()
             {
-                
+                //Your body here    
             };
 
-            //Necesitamos crear un producto para la solicitudes de compras
+            //Necesitamos crear un producto para la solicitudes de compras, you module here
             await SendRequestAsync(HttpMethod.Post, PurchaseRequestBaseUrl(company!.Id, "MODULECODE"), bearerToken, payload);
+
+            //Assert here.
 
         }
 

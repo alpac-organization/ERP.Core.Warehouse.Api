@@ -3,7 +3,7 @@ namespace ERP.Core.Warehouse.Api.Test.Common.Utils
     public static class EnvironmentManager
     {
         public static readonly string ApiKey = "integration-test-api-key";
-        public static readonly string JwtKey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCqGKukO1De7zhY";
+        public static readonly string JwtKey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCqGKukO1De7zhY_ERP_TEST_KEY_32BYTES!";
 
         public static void ApplyEnvironmentAws()
         {
