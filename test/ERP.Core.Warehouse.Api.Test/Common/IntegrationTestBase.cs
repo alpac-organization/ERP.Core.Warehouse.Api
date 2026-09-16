@@ -7,6 +7,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 using ERP.Core.Warehouse.Api.Test.Common.Utils;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
+using Microsoft.EntityFrameworkCore;
+using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Database.Domain.Entities.Auth;
 
 namespace ERP.Core.Warehouse.Api.Test.Common
 {
@@ -40,7 +43,7 @@ namespace ERP.Core.Warehouse.Api.Test.Common
             _client.Dispose();
         }
 
-        protected async Task<HttpResponseMessage> SendRequestAsync(HttpMethod method, string pathUrl, Guid userId, object? body)
+        protected async Task<HttpResponseMessage> SendRequestAsync(HttpMethod method, string pathUrl, string BearerToken, object? body = null)
         {
             var request = new HttpRequestMessage(method, pathUrl);
             
@@ -48,8 +51,7 @@ namespace ERP.Core.Warehouse.Api.Test.Common
 
             //Generar un token valido, para poder pasar la validación correctamente, de un usuario que exista, de lo contrario nunca pasara de access!
             request.Headers.Authorization = new AuthenticationHeaderValue(
-                "Bearer", 
-                AuthManager.GenerateJwtToken(Factory.JwtKey, userId)
+                "Bearer", BearerToken
             );
 
             if(body != null && (method == HttpMethod.Post || method == HttpMethod.Put || method == HttpMethod.Patch))
@@ -60,5 +62,44 @@ namespace ERP.Core.Warehouse.Api.Test.Common
 
             return await _client.SendAsync(request);
         }
+
+        #region  Method Utils
+
+        public async Task<Guid?> CreateUser(Guid? areaId = null)
+        {
+            Guid workAreaId;
+
+            if (areaId.HasValue) workAreaId = areaId.Value;
+            else
+            {
+                var area = await _unitOfWork.WorkAreas.Entities
+                    .Where(workArea => workArea.IsActive)
+                    .Where(workArea => workArea.WorkAreaCode == 10)
+                    .FirstOrDefaultAsync(default);
+
+                if (area is null) return null;
+
+                workAreaId = area.Id;
+            }
+
+            var newUserId = Guid.NewGuid();
+
+            await _unitOfWork.Users.CreateNewUser(new()
+            {
+                Id = newUserId,
+                UserType = UserType.StandardUser,
+                PasswordHash = "",
+                Fullname = "Carlos Alberto Mendoza Gutiérrez",
+                Email = "testing@domain.com",
+                AreaId = workAreaId,
+                IdentificationNumber = "0010101011052A",
+            });
+
+            await _unitOfWork.SaveChangesAsync();
+
+            return newUserId;
+        }
+
+        #endregion
     }
 }

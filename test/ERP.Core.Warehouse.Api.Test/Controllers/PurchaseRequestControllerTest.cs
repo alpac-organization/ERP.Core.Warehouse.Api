@@ -13,19 +13,19 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
         private static string PurchaseRequestBaseUrl(Guid companyId, string moduleCode) => $"/api/v1/companies/${companyId}/modules/${moduleCode}/purchase-requests";
 
         [Test]
-        [TestCase("")]
-        [TestCase("")]
+        [TestCase("ALPAC")]
+        [TestCase("AMINSA")]
         public async Task RegistePurchaseRequestWhenIsSuccess(string companyAlias)
         {
             var companies = await _unitOfWork.Companies.Entities
                 .Where(company => company.IsActive)
+                .Where(company => company.Alias == companyAlias)
                 .ToListAsync(default);
 
+            
 
-            var response = await SendRequestAsync(HttpMethod.Get, $"{PurchaseRequestBaseUrl(Guid.Empty, "NOMINA")}", Guid.Empty, null);
+            //Generar su propio bearer token aqui
 
-            // 5. Verificamos el resultado
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         }
     }
 }
