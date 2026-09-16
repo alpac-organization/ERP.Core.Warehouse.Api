@@ -43,6 +43,8 @@ namespace ERP.Core.Warehouse.Api.Test.Common
         protected async Task<HttpResponseMessage> SendRequestAsync(HttpMethod method, string pathUrl, Guid userId, object? body)
         {
             var request = new HttpRequestMessage(method, pathUrl);
+            
+            request.Headers.Add("X-Api-Key", EnvironmentManager.ApiKey);
 
             //Generar un token valido, para poder pasar la validación correctamente, de un usuario que exista, de lo contrario nunca pasara de access!
             request.Headers.Authorization = new AuthenticationHeaderValue(

@@ -17,7 +17,7 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
         [TestCase("")]
         public async Task RegistePurchaseRequestWhenIsSuccess(string companyAlias)
         {
-            var companies = _unitOfWork.Companies.Entities
+            var companies = await _unitOfWork.Companies.Entities
                 .Where(company => company.IsActive)
                 .ToListAsync(default);
 

@@ -2,7 +2,7 @@ namespace ERP.Core.Warehouse.Api.Test.Common.Utils
 {
     public static class EnvironmentManager
     {
-        private static readonly string ApiKey = "integration-test-api-key";
+        public static readonly string ApiKey = "integration-test-api-key";
 
         public static void ApplyEnvironmentAws()
         {
