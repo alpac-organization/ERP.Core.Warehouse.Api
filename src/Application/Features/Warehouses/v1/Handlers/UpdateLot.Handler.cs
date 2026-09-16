@@ -65,8 +65,7 @@ public class UpdateLotHandler(
             lot.Id, request.WidthMetres, request.LengthMetres, cancellationToken);
 
         if (calc.Lot is null || calc.Section is null)
-            return _errorManager.ThrowBadRequest<bool>(
-                "La sección no tiene capacidad registrada para recalcular.", "ERP:SECTION_CAPACITY_NOT_FOUND");
+            return SectionCapacityNotFoundError();
 
         if (lot.LotsCapacity is null)
         {
