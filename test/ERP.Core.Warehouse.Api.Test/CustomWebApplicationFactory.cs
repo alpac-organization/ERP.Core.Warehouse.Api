@@ -150,15 +150,8 @@ namespace ERP.Core.Warehouse.Api.Test
             var dbContext = scope.ServiceProvider.GetRequiredService<ErpDbContext>();
 
             var data = ErpSeedDataFactory.CreateScenario();
-
-            await dbContext.Companies.AddRangeAsync(data.Companies);
-            await dbContext.Branches.AddRangeAsync(data.Branches);
-            await dbContext.WorkAreas.AddRangeAsync(data.WorkAreas);
             
-            await dbContext.Users.AddRangeAsync(data.Users);
-            await dbContext.Profiles.AddRangeAsync(data.Profiles);
-
-            await dbContext.SaveChangesAsync();
+            await ErpDatabaseSeeder.SeedAsync(dbContext,data);
         }
     }
 }
