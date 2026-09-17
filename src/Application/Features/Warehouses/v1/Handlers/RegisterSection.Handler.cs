@@ -11,7 +11,7 @@ using AutoMapper;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 {
-    public class RegisterSectionHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper, ISectionCapacityCalculator _sectionCapacityCalculator, ILogger<RegisterSectionHandler> logger) : BaseValidatorHandler<RegisterSectionCommand, bool>(_unitOfWork, _errorManager)
+    public class RegisterSectionHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper, ISectionCapacityCalculator _sectionCapacityCalculator, ILogger<RegisterSectionHandler> _logger) : BaseValidatorHandler<RegisterSectionCommand, bool>(_unitOfWork, _errorManager)
     {
         public override async Task<bool> Handle(RegisterSectionCommand request, CancellationToken cancellationToken)
         {
@@ -44,7 +44,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
                 return _errorManager.ThrowBadRequest<bool>("Ya existe una sección con ese código en el almacén.", "ERP:01");
             }
 
-            logger.LogInformation("🚀Iniciando proceso de registro de sección.");
+            _logger.LogInformation("🚀Iniciando proceso de registro de sección.");
 
             var section = SectionMapper.ToSectionEntity(request);
 
@@ -60,8 +60,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
             }
 
             var sectionCapacity = SectionMapper.ToSectionCapacityEntity(request, section.Id, capacityCalculation.Section);
-            var sectionCoordinates = SectionMapper.ToSectionCoordinateEntity(request, section.Id);
-
+            
             var warehouseCapacity = await _unitOfWork.WarehouseCapacities.Entities
                 .FirstOrDefaultAsync(c => c.WarehouseId == request.WarehouseId, cancellationToken);
 
@@ -73,12 +72,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
             _mapper.Map(capacityCalculation.Warehouse, warehouseCapacity);
 
             await _unitOfWork.Sections.RegisterSection(section);
-            await _unitOfWork.SectionCapacities.RegisterSectionCapacity(sectionCapacity);
-            await _unitOfWork.SectionCoordinates.RegisterSectionCoordinates(sectionCoordinates);
+            await _unitOfWork.SectionCapacities.RegisterSectionCapacity(sectionCapacity);            
             await _unitOfWork.WarehouseCapacities.UpdateAsync(warehouseCapacity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            logger.LogInformation("✅Registro de sección correctamente.");
+            _logger.LogInformation("✅Registro de sección correctamente.");
 
             return true;
         }

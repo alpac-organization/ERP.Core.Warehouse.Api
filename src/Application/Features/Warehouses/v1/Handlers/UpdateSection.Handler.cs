@@ -30,7 +30,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
                 .FirstOrDefaultAsync(s =>
                     s.Id == request.SectionId &&
                     s.WarehouseId == request.WarehouseId &&
-                    s.IsActive &&
                     s.DeletedAt == null,
                     cancellationToken);
 
@@ -55,6 +54,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
                     .AnyAsync(s =>
                         s.WarehouseId == request.WarehouseId &&
                         s.Code == request.Code &&
+                        s.DeletedAt == null &&
                         s.Id != request.SectionId, cancellationToken);
 
                 if (codeExists)
@@ -65,29 +65,29 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
                 section.Code = request.Code;
             }
 
-            if (request.IsActive.HasValue) section.IsActive = request.IsActive.Value;
-
-            if (request.SectionType.HasValue) section.SectionType = request.SectionType.Value;
-
-            if (request.SectionStorageType.HasValue) section.SectionStorageType = request.SectionStorageType.Value;
-
             var shouldRecalculateCapacity = request.Width.HasValue || request.Length.HasValue;
 
             if (shouldRecalculateCapacity)
             {
-                var width = request.Width ?? section.SectionCapacity?.Width;
-                var length = request.Length ?? section.SectionCapacity?.Length;
+                var sectionCapacity = section.SectionCapacity;
+                var warehouseCapacity = await _unitOfWork.WarehouseCapacities.Entities
+                                    .FirstOrDefaultAsync(c => c.WarehouseId == request.WarehouseId, cancellationToken);
 
-                if (!width.HasValue || !length.HasValue)
+                if (warehouseCapacity is null)
                 {
-                    return _errorManager.ThrowBadRequest<bool>("No se puede recalcular la capacidad porque la sección no tiene ancho y largo registrados.", "ERP:01");
+                    return _errorManager.ThrowBadRequest<bool>("El almacén no tiene capacidad registrada", "ERP:01");
                 }
 
+                if (sectionCapacity is null)
+                {
+                    return _errorManager.ThrowBadRequest<bool>("La sección no tiene capacidad registrada.", "ERP:01");
+                }
+
+                var width = request.Width ?? sectionCapacity.Width;
+                var length = request.Length ?? sectionCapacity.Length;
+
                 var sectionCapacityCalculation = await _sectionCapacityCalculator.UpdateSectionAsync(
-                    request.SectionId,
-                    width.Value,
-                    length.Value,
-                    cancellationToken
+                    request.SectionId, width, length, cancellationToken
                 );
 
                 if (sectionCapacityCalculation.Section is null || sectionCapacityCalculation.Warehouse is null)
@@ -95,21 +95,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
                     return _errorManager.ThrowBadRequest<bool>("No se pudo calcular la capacidad de la sección.", "ERP:01");
                 }
 
-                var warehouseCapacity = await _unitOfWork.WarehouseCapacities.Entities
-                    .FirstOrDefaultAsync(c => c.WarehouseId == request.WarehouseId, cancellationToken);
-
-                if (warehouseCapacity is null)
-                {
-                    return _errorManager.ThrowBadRequest<bool>("El almacén no tiene capacidad registrada", "ERP:01");
-                }
-
-                if (section.SectionCapacity is null)
-                {
-                    return _errorManager.ThrowBadRequest<bool>("La sección no tiene capacidad registrada.", "ERP:01");
-                }
-
-                _mapper.Map(sectionCapacityCalculation.Section, section.SectionCapacity);
-                await _unitOfWork.SectionCapacities.UpdateAsync(section.SectionCapacity);
+                _mapper.Map(sectionCapacityCalculation.Section, sectionCapacity);
+                await _unitOfWork.SectionCapacities.UpdateAsync(sectionCapacity);
 
                 _mapper.Map(sectionCapacityCalculation.Warehouse, warehouseCapacity);
                 await _unitOfWork.WarehouseCapacities.UpdateAsync(warehouseCapacity);

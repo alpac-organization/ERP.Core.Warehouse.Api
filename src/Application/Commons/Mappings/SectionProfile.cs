@@ -66,16 +66,16 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
          };
       }
 
-      public static SectionCoordinates ToSectionCoordinateEntity(this Commands.RegisterSectionCommand command, Guid SectionId)
+      public static SectionCoordinates ToSectionCoordinateEntity(this Commands.RegisterSectionCoordinateCommand command, Guid SectionId)
       {
          return new()
          {
             Id = Guid.NewGuid(),
             SectionId = SectionId,
-            PositionX = command.Coordinates.PositionX,
-            PositionY = command.Coordinates.PositionY,
-            PositionZ = command.Coordinates.PositionZ,
-            RotationY = command.Coordinates.RotationY
+            PositionX = command.PositionX,
+            PositionY = command.PositionY,
+            PositionZ = command.PositionZ,
+            RotationY = command.RotationY
          };
       }
    }

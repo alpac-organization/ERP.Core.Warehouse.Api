@@ -21,7 +21,12 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
     [ProducesResponseType(typeof(CreatedResult), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<CreatedResult> RegisterSectionAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid warehouse_id, [FromBody] RegisterSectionCommand payload, CancellationToken cancellationToken)
+    public async Task<CreatedResult> RegisterSectionAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid warehouse_id,
+        [FromBody] RegisterSectionCommand payload,
+        CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
 
@@ -45,7 +50,7 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
         [FromRoute] string module_code,
         [FromRoute] Guid warehouse_id,
         [FromRoute] Guid section_id,
-        [FromBody] RegisterSectionCommand payload,
+        [FromBody] RegisterSectionCoordinateCommand payload,
         CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
@@ -54,6 +59,7 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
         payload.ModuleCode = module_code;
         payload.UserId = Guid.Parse(userIdStr ?? "");
         payload.WarehouseId = warehouse_id;
+        payload.SectionId = section_id;
 
         await _mediator.Send(payload, cancellationToken);
 
@@ -99,7 +105,12 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
     [ProducesResponseType(typeof(SectionDetailsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<SectionDetailsDto> GetSectionDetailsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid warehouse_id, [FromRoute] Guid section_id, CancellationToken cancellationToken = default)
+    public async Task<SectionDetailsDto> GetSectionDetailsAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid warehouse_id,
+        [FromRoute] Guid section_id,
+        CancellationToken cancellationToken = default)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
 
@@ -118,7 +129,13 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
     [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<OkResult> UpdateSectionAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid warehouse_id, [FromRoute] Guid section_id, [FromBody] UpdateSectionCommand payload, CancellationToken cancellationToken)
+    public async Task<OkResult> UpdateSectionAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid warehouse_id,
+        [FromRoute] Guid section_id,
+        [FromBody] UpdateSectionCommand payload,
+        CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
 
@@ -131,5 +148,33 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
         await _mediator.Send(payload, cancellationToken);
 
         return Ok();
+    }
+
+    [Tags("Actualizacion de Seccion")]
+    [HttpDelete("companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}/sections/{section_id}")]
+    [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<NoContentResult> DeleteSectionAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid warehouse_id,
+        [FromRoute] Guid section_id,
+        CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        var payload = new DeleteSectionCommand()
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = Guid.Parse(userIdStr ?? ""),
+            WarehouseId = warehouse_id,
+            SectionId = section_id
+        };
+
+        await _mediator.Send(payload, cancellationToken);
+
+        return NoContent();
     }
 }
