@@ -22,24 +22,18 @@ public class RegisterLotsControllerTest : IntegrationTestUtilsBase
         var bearerToken = AuthManager.GenerateJwtToken(EnvironmentManager.JwtKey, userId);
 
         var company = await _unitOfWork.Companies.Entities
-            .Where(company => company.IsActive)
+            .Where(company => company.IsActive && company.DeletedAt == null)
             .Where(company => company.Alias == companyAlias)
             .FirstOrDefaultAsync(default);
 
+        var section = await _unitOfWork.Sections.Entities
+            .Where(section => section.IsActive && section.DeletedAt == null)
+            .Where(section => section.SectionStorageType == SectionStorageType.Lots)
+            .FirstAsync() ?? throw new InvalidOperationException
+            ("No se encontró una sección de tipo Tramos.");
 
         var warehouse = await _unitOfWork.Warehouses.Entities
-            .Where(warehouse => warehouse.IsActive)
-            .Where(warehouse => warehouse.WarehouseType != WarehouseType.Granel)
-            .FirstOrDefaultAsync(default) ?? throw new InvalidOperationException
-            ("No se encontró un warehouse activo que no sea tipo Granel.");
-
-        var section = await _unitOfWork.Sections.Entities
-            .Where(section => section.IsActive)
-            .Where(section => section.WarehouseId == warehouse.Id)
-            .Where(section => section.SectionType == SectionType.Storage)
-            .Where(section => section.SectionStorageType == SectionStorageType.Lots)
-            .FirstOrDefaultAsync(default) ?? throw new InvalidOperationException
-            ($"No se encontró una sección de tipo Tramos en la Bodega {warehouse.Code}");
+            .FirstAsync(w => w.Id == section.WarehouseId);
 
         var module = await _unitOfWork.Modules.Entities
             .Where(module => module.IsActive)
@@ -47,6 +41,11 @@ public class RegisterLotsControllerTest : IntegrationTestUtilsBase
             .FirstAsync();
 
         var moduleCode = module.Code;
+
+        var existingLotIds = await _unitOfWork.Lots.Entities
+            .Where(lot => lot.SectionId == section.Id)
+            .Select(lot => lot.Id)
+            .ToListAsync();
 
         var payload = new
         {
@@ -67,6 +66,7 @@ public class RegisterLotsControllerTest : IntegrationTestUtilsBase
         //verificar que las cantidades de lotes creadas sean correctas
         var registeredLots = await _unitOfWork.Lots.Entities
             .Where(lot => lot.SectionId == section.Id)
+            .Where(lot => !existingLotIds.Contains(lot.Id))
             .OrderBy(lot => lot.Code)
             .ToListAsync();
 
