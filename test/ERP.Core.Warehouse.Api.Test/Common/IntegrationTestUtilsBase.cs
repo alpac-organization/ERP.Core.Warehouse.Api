@@ -15,7 +15,7 @@ namespace ERP.Core.Warehouse.Api.Test.Common
             Guid workAreaId;
 
             if (areaId.HasValue) workAreaId = areaId.Value;
-            else
+             else
             {
                 var area = await _unitOfWork.WorkAreas.Entities
                     .Where(workArea => workArea.IsActive)
