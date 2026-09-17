@@ -10,8 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 var root = builder.Environment.ContentRootPath;
 var envPath = Path.Combine(root, "..", "..", ".env");
 
-if (File.Exists(envPath)) DotNetEnv.Env.Load(envPath);
-else DotNetEnv.Env.Load();
+if (File.Exists(envPath)) DotNetEnv.Env.NoClobber().Load(envPath);
+else DotNetEnv.Env.NoClobber().Load();
 
 builder.Configuration.AddEnvironmentVariables();
 
