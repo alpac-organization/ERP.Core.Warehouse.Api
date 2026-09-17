@@ -35,21 +35,46 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
         return Created();
     }
 
+    [Tags("Coordenadas de Secciones")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}/sections/{section_id}/coordinates")]
+    [ProducesResponseType(typeof(CreatedResult), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<CreatedResult> RegisterSectionCoordinatesAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid warehouse_id,
+        [FromRoute] Guid section_id,
+        [FromBody] RegisterSectionCommand payload,
+        CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        payload.CompanyId = company_id;
+        payload.ModuleCode = module_code;
+        payload.UserId = Guid.Parse(userIdStr ?? "");
+        payload.WarehouseId = warehouse_id;
+
+        await _mediator.Send(payload, cancellationToken);
+
+        return Created();
+    }
+
     [Tags("Secciones")]
     [HttpGet("companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}/sections")]
     [ProducesResponseType(typeof(PagedResponse<SectionDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<PagedResponse<SectionDto>> GetSectionsAsync(
-        [FromRoute] Guid company_id, 
-        [FromRoute] string module_code, 
-        [FromRoute] Guid warehouse_id, 
-        [FromQuery] string? section_code = null, 
-        [FromQuery] SectionType? section_type = null, 
-        [FromQuery] SectionStorageType? section_storage_type = null, 
-        [FromQuery] bool? is_active = null, 
-        [FromQuery] int page_number = 1, 
-        [FromQuery] int page_size = 10, 
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid warehouse_id,
+        [FromQuery] string? section_code = null,
+        [FromQuery] SectionType? section_type = null,
+        [FromQuery] SectionStorageType? section_storage_type = null,
+        [FromQuery] bool? is_active = null,
+        [FromQuery] int page_number = 1,
+        [FromQuery] int page_size = 10,
         CancellationToken cancellationToken = default)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;

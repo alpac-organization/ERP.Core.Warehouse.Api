@@ -33,7 +33,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
             }
 
             var codeExists = await _unitOfWork.Sections.Entities
-                .AnyAsync(s => s.WarehouseId == request.WarehouseId && s.Code == request.Code, cancellationToken);
+                .AnyAsync(s =>
+                    s.WarehouseId == request.WarehouseId &&
+                    s.Code == request.Code &&
+                    s.DeletedAt == null &&
+                    s.IsActive, cancellationToken);
 
             if (codeExists)
             {
@@ -43,7 +47,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
             logger.LogInformation("🚀Iniciando proceso de registro de sección.");
 
             var section = SectionMapper.ToSectionEntity(request);
-            
+
             var capacityCalculation = await _sectionCapacityCalculator.CalculateSectionAsync(
                 request.WarehouseId,
                 request.Width, request.Length,
@@ -56,6 +60,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
             }
 
             var sectionCapacity = SectionMapper.ToSectionCapacityEntity(request, section.Id, capacityCalculation.Section);
+            var sectionCoordinates = SectionMapper.ToSectionCoordinateEntity(request, section.Id);
 
             var warehouseCapacity = await _unitOfWork.WarehouseCapacities.Entities
                 .FirstOrDefaultAsync(c => c.WarehouseId == request.WarehouseId, cancellationToken);
@@ -69,6 +74,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 
             await _unitOfWork.Sections.RegisterSection(section);
             await _unitOfWork.SectionCapacities.RegisterSectionCapacity(sectionCapacity);
+            await _unitOfWork.SectionCoordinates.RegisterSectionCoordinates(sectionCoordinates);
             await _unitOfWork.WarehouseCapacities.UpdateAsync(warehouseCapacity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 

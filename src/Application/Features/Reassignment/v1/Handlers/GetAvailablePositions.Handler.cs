@@ -41,7 +41,7 @@ public class GetAvailablePositionsHandler(IUnitOfWork unitOfWork, IErrorManager 
         var rows = await query
             .OrderBy(r => r.Rack.Section.Code)
             .ThenBy(r => r.Rack.Code)
-            .ThenBy(r => r.PositionNumber)
+            //.ThenBy(r => r.PositionNumber)
             .ToListAsync(cancellationToken);
 
         return ApplyStatusFilter(request.Status, rows
@@ -66,8 +66,8 @@ public class GetAvailablePositionsHandler(IUnitOfWork unitOfWork, IErrorManager 
         var rows = await query
             .OrderBy(l => l.Lot.Section.Code)
             .ThenBy(l => l.Lot.Code)
-            .ThenBy(l => l.RowNumber)
-            .ThenBy(l => l.ColumnNumber)
+            //.ThenBy(l => l.RowNumber)
+            //.ThenBy(l => l.ColumnNumber)
             .ToListAsync(cancellationToken);
 
         return ApplyStatusFilter(request.Status, rows

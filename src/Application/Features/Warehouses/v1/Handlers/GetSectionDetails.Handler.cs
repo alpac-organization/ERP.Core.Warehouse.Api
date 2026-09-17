@@ -21,6 +21,7 @@ public class GetSectionDetailsHandler(IUnitOfWork _unitOfWork, IErrorManager _er
 
         var section = await _unitOfWork.Sections.Entities
             .Include(sec => sec.SectionCapacity)
+            .Include(sec => sec.SectionCoordinates)
             .FirstOrDefaultAsync(sec => sec.Id == request.SectionId, cancellationToken);
 
         if (section is null)

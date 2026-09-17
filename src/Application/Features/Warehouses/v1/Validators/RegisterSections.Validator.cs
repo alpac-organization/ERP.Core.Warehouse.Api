@@ -39,6 +39,26 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Validators
             RuleFor(x => x.Length)
                 .GreaterThan(0).WithMessage("El largo debe ser mayor a cero")
                 .PrecisionScale(18, 2, ignoreTrailingZeros: true).WithMessage("El largo admite máximo 2 decimales");
+
+            RuleFor(x => x.Coordinates)
+                .NotNull()
+                .WithMessage("Las coordenadas de la sección son requerida");
+
+            RuleFor(x => x.Coordinates.PositionX)
+                .PrecisionScale(18, 2, ignoreTrailingZeros: true).WithMessage("La posición X admite máximo 2 decimales")
+                .When(x => x.Coordinates is not null);
+
+            RuleFor(x => x.Coordinates.PositionY)
+                .PrecisionScale(18, 2, ignoreTrailingZeros: true).WithMessage("La posición Y admite máximo 2 decimales")
+                .When(x => x.Coordinates is not null);
+
+            RuleFor(x => x.Coordinates.PositionZ)
+                .PrecisionScale(18, 2, ignoreTrailingZeros: true).WithMessage("La posición Z admite máximo 2 decimales")
+                .When(x => x.Coordinates is not null);
+
+            RuleFor(x => x.Coordinates.RotationY)
+                .InclusiveBetween(0, 360).WithMessage("La rotación Y debe estar entre 0 y 360")
+                .When(x => x.Coordinates is not null);
         }
     }
 }

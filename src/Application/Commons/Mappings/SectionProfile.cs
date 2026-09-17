@@ -1,3 +1,4 @@
+using System.Net;
 using AutoMapper;
 using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
@@ -16,12 +17,15 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
          CreateMap<SectionCapacity, SectionCapacityDto>()
             .ForMember(dest => dest.SectionCapacityId, opt => opt.MapFrom(src => src.Id));
 
+         CreateMap<SectionCoordinates, SectionCoordinatesDto>()
+            .ForMember(dest => dest.SectionCoordinateId, opt => opt.MapFrom(src => src.Id));
+
          CreateMap<Sections, SectionDetailsDto>()
             .ForMember(dest => dest.SectionId, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.SectionCode, opt => opt.MapFrom(src => src.Code))
             .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive))
             .ForMember(dest => dest.Capacity, opt => opt.MapFrom(src => src.SectionCapacity))
-            .ForMember(dest => dest.Coordinates, opt => opt.Ignore());
+            .ForMember(dest => dest.Coordinates, opt => opt.MapFrom(src => src.SectionCoordinates));
 
          CreateMap<SectionCapacity, SectionCapacity>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -59,6 +63,19 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             OccupiedChargeableAreaM2 = sectionCapacity.OccupiedChargeableAreaM2,
             UnoccupiedChargeableAreaM2 = sectionCapacity.UnoccupiedChargeableAreaM2,
             PercentageAvailableAreaWithMarginM2 = sectionCapacity.PercentageAvailableAreaWithMarginM2
+         };
+      }
+
+      public static SectionCoordinates ToSectionCoordinateEntity(this Commands.RegisterSectionCommand command, Guid SectionId)
+      {
+         return new()
+         {
+            Id = Guid.NewGuid(),
+            SectionId = SectionId,
+            PositionX = command.Coordinates.PositionX,
+            PositionY = command.Coordinates.PositionY,
+            PositionZ = command.Coordinates.PositionZ,
+            RotationY = command.Coordinates.RotationY
          };
       }
    }
