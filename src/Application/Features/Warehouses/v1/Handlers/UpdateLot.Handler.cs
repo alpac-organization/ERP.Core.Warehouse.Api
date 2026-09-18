@@ -64,17 +64,16 @@ public class UpdateLotHandler(
         var calc = await capacityCalculator.UpdateLotAsync(
             lot.Id, request.WidthMetres, request.LengthMetres, cancellationToken);
 
-        if (calc.Lot is null || calc.Section is null)
-            return SectionCapacityNotFoundError();
+        var calculatedLot = calc.Lot!;
 
         if (lot.LotsCapacity is null)
         {
-            calc.Lot.LotsId = lot.Id;
-            await _unitOfWork.LotsCapacities.RegisterLotsCapacity(calc.Lot);
+            calculatedLot.LotsId = lot.Id;
+            await _unitOfWork.LotsCapacities.RegisterLotsCapacity(calculatedLot);
         }
         else
         {
-            _mapper.Map(calc.Lot, lot.LotsCapacity);
+            _mapper.Map(calculatedLot, lot.LotsCapacity);
             await _unitOfWork.LotsCapacities.UpdateAsync(lot.LotsCapacity);
         }
 
