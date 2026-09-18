@@ -1,6 +1,5 @@
 using FluentValidation;
 using ERP.Core.Warehouse.Api.Application.Commons.Bases;
-using ERP.Core.Warehouse.Api.Application.Commons.Constants;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Validators;
@@ -20,8 +19,8 @@ public class RegisterLotsValidator : BaseRequestValidator<RegisterLotsCommand>
         RuleFor(x => x.Quantity)
             .GreaterThan(0)
             .WithMessage("La cantidad de tramos debe ser mayor que 0.")
-            .LessThanOrEqualTo(LotsConstants.MaxLotsPerSection)
-            .WithMessage($"Se permite un máximo de {LotsConstants.MaxLotsPerSection} tramos por petición.");
+            .LessThanOrEqualTo(10)
+            .WithMessage($"Se permite un máximo de 10 tramos por petición.");
 
         RuleFor(x => x.NominalRows)
             .NotNull()
@@ -38,13 +37,13 @@ public class RegisterLotsValidator : BaseRequestValidator<RegisterLotsCommand>
         RuleFor(x => x.Width)
             .GreaterThan(0)
             .WithMessage("El ancho (metros) debe ser mayor que 0.")
-            .PrecisionScale(LotsConstants.MaxDecimalPrecision, LotsConstants.MaxDecimalPlaces, ignoreTrailingZeros: true)
-            .WithMessage($"El ancho admite máximo {LotsConstants.MaxDecimalPlaces} decimales.");
+            .PrecisionScale(10, 2, ignoreTrailingZeros: true)
+            .WithMessage($"El ancho admite máximo 2 decimales.");
 
         RuleFor(x => x.Length)
             .GreaterThan(0)
             .WithMessage("El largo (metros) debe ser mayor que 0.")
-            .PrecisionScale(LotsConstants.MaxDecimalPrecision, LotsConstants.MaxDecimalPlaces, ignoreTrailingZeros: true)
-            .WithMessage($"El largo admite máximo {LotsConstants.MaxDecimalPlaces} decimales.");
+            .PrecisionScale(10, 2, ignoreTrailingZeros: true)
+            .WithMessage($"El largo admite máximo 2 decimales.");
     }
 }

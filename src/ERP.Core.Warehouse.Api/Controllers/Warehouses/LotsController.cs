@@ -61,8 +61,7 @@ public class LotsController(IMediator _mediator) : ApiControllerBase
     [FromRoute] string module_code,
     [FromRoute] Guid warehouse_id,
     [FromRoute] Guid sections_id,
-    [FromBody] RegisterLotsCommand commandLots,
-    CancellationToken cancellationToken)
+    [FromBody] RegisterLotsCommand commandLots)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
 
@@ -72,7 +71,7 @@ public class LotsController(IMediator _mediator) : ApiControllerBase
         commandLots.WarehouseId = warehouse_id;
         commandLots.SectionId = sections_id;
 
-        await _mediator.Send(commandLots, cancellationToken);
+        await _mediator.Send(commandLots);
 
         return Created();
     }

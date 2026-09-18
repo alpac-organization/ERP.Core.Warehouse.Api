@@ -5,8 +5,6 @@ using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Warehouse.Api.Application.Commons.Bases;
-using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
-using ERP.Core.Warehouse.Api.Application.Commons.Constants;
 using ERP.Core.Database.Application.Commons.Interfaces.Services;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
@@ -39,9 +37,9 @@ public class RegisterLotsHandler(IUnitOfWork unitOfWork, IErrorManager errorMana
         var existingLotsCount = await _unitOfWork.Lots.Entities
             .CountAsync(l => l.SectionId == section.Id && l.DeletedAt == null, cancellationToken);
 
-        if (existingLotsCount + request.Quantity > LotsConstants.MaxLotsPerSection)
+        if (existingLotsCount + request.Quantity > 10)
             return _errorManager.ThrowBadRequest<bool>(
-                $"La sección solo permite un máximo de {LotsConstants.MaxLotsPerSection} tramos ({existingLotsCount} existentes + {request.Quantity} solicitados).",
+                $"La sección solo permite un máximo de 10 tramos ({existingLotsCount} existentes + {request.Quantity} solicitados).",
                 "ERP:SECTION_LOT_LIMIT_EXCEEDED");
 
         var (codesAreValid, codes) = await codeGenerator.GenerateUniqueStorageCodesAsync(
@@ -56,7 +54,9 @@ public class RegisterLotsHandler(IUnitOfWork unitOfWork, IErrorManager errorMana
 
         for (int i = 0; i < request.Quantity; i++)
         {
-            var lot = LotsMapper.ToLotsEntity(_mapper, request, codes[i], section.Id);
+            var lot = _mapper.Map<Lots>(request);
+            lot.Id = Guid.NewGuid();
+            lot.Code = codes[i];
 
             await _unitOfWork.Lots.RegisterLot(lot);
 
@@ -64,12 +64,14 @@ public class RegisterLotsHandler(IUnitOfWork unitOfWork, IErrorManager errorMana
             {
                 for (int column = 1; column <= lot.NominalColumns!.Value; column++)
                 {
-                    var position = LotsMapper.ToLotsPositionEntity(
-                        lot.Id,
-                        codeGenerator.GeneratePositionCode(lot.Code, row, column),
-                        row, column);
-
-                    await _unitOfWork.LotsPositions.RegisterLotPosition(position);
+                    await _unitOfWork.LotsPositions.RegisterLotPosition(new LotsPositions
+                    {
+                        LotId        = lot.Id,
+                        PositionCode = codeGenerator.GeneratePositionCode(lot.Code, row, column),
+                        Row          = row,
+                        Column       = column,
+                        Level        = 1
+                    });
                 }
             }
 
