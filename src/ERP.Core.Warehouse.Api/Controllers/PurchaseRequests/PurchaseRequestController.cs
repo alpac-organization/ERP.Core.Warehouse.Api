@@ -229,5 +229,26 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
             await _mediator.Send(payload);
             return Ok();
         }
+
+        [Tags("Solicitudes de compras")]
+        [HttpPost("companies/{company_id}/modules/{module_code}/purchase-requests/{purchase_request_id}/annul")]
+        [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<OkResult> AnnulPurchaseRequestAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid purchase_request_id, [FromBody] AnnulPurchaseRequestCommand payload)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            payload.CompanyId = company_id;
+            payload.ModuleCode = module_code;
+            payload.UserId = Guid.Parse(userIdStr ?? "");
+            payload.PurchaseRequestId = purchase_request_id;
+
+            await _mediator.Send(payload);
+
+            return Ok();
+        }
     }
 }

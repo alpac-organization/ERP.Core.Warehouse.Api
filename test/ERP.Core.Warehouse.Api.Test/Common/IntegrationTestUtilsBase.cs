@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Warehouse.Api.Test.Common.Utils;
 using ERP.Core.Database.Domain.Entities.Auth;
-using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Entities.Shopping;
-using ERP.Core.Database.Domain.Entities.Warehouse;
+using ERP.Core.Database.Domain.Entities.Catalogs;
+using ERP.Core.Database.Domain.Entities.Accounting;
+using ERP.Core.Warehouse.Api.Test.Common.Utils;
 using System.Text.Json;
 
 namespace ERP.Core.Warehouse.Api.Test.Common
@@ -51,9 +51,11 @@ namespace ERP.Core.Warehouse.Api.Test.Common
                 .Where(b => b.IsActive && b.CompanyId == company.Id)
                 .FirstAsync();
 
+            var profileId = Guid.NewGuid();
+
             await _unitOfWork.Profiles.CreateNewUserProfile(new()
             {
-                Id = Guid.NewGuid(),
+                Id = profileId,
                 UserId = newUserId,
                 BranchId = branch.Id,
                 IsActive = true,
@@ -201,5 +203,201 @@ namespace ERP.Core.Warehouse.Api.Test.Common
                          value = default;
                          return false;
         }
+
+        #region Extensiones de Soporte para Flujos de Aprobación, Anulación y Reactivación
+
+        /// Crea una solicitud de compra base vinculada a un usuario registrado, estableciendo su estado
+        /// y opcionalmente sembrando dos cotizaciones iniciales para simular un proceso en marcha.
+        public async Task<Guid> CreatePurchaseRequest(
+            Guid userId, 
+            PurchaseRequestStatus status = PurchaseRequestStatus.Approved,
+            bool withQuotations = true)
+        {
+            var (requestId, itemId) = await CreateBasePurchaseRequest(userId, req =>
+            {
+                req.RequestStatus = status;
+                req.Destination = Enum.GetValues<DestinationRequest>().First();
+                req.PriorityLevel = PriorityLevel.None;
+                req.Concept = "Solicitud de prueba";
+            });
+
+            if (withQuotations)
+            {
+                var supplier = await GetOrCreateSupplierAsync(userId);
+
+                var quote1 = new Quotation
+                {
+                    Id = Guid.NewGuid(),
+                    PurchaseRequestItemId = itemId,
+                    SupplierId = supplier.Id,
+                    Price = 100m,
+                    PriceUnit = 10m,
+                    PriceTotal = 100m,
+                    Iva = 0m,
+                    IsActive = true,
+                    IsAcceptedForPurchase = true,
+                    QuoteDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    BrandProduct = "Marca A",
+                    DeletedAt = null
+                };
+
+                var quote2 = new Quotation
+                {
+                    Id = Guid.NewGuid(),
+                    PurchaseRequestItemId = itemId,
+                    SupplierId = supplier.Id,
+                    Price = 150m,
+                    PriceUnit = 15m,
+                    PriceTotal = 150m,
+                    Iva = 0m,
+                    IsActive = true,
+                    IsAcceptedForPurchase = false,
+                    QuoteDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    BrandProduct = "Marca B",
+                    DeletedAt = null
+                };
+
+                await _unitOfWork.Quotations.RegisterQuotation(quote1);
+                await _unitOfWork.Quotations.RegisterQuotation(quote2);
+
+                var item = await _unitOfWork.PurchaseRequestItems.Entities
+                    .FirstAsync(i => i.Id == itemId);
+                item.HasQuotation = true;
+                await _unitOfWork.PurchaseRequestItems.UpdateAsync(item);
+
+                await _unitOfWork.SaveChangesAsync(default);
+            }
+
+            return requestId;
+        }
+
+        /// Obtiene un proveedor activo existente o crea uno nuevo de prueba si no existe ninguno en la base de datos.
+        public async Task<Supplier> GetOrCreateSupplierAsync(Guid? userId = null)
+        {
+            var supplier = await _unitOfWork.Suppliers.Entities
+                .FirstOrDefaultAsync();
+
+            if (supplier == null)
+            {
+                var targetUserId = userId.HasValue && userId.Value != Guid.Empty
+                    ? userId.Value
+                    : await _unitOfWork.Users.Entities.Select(u => u.Id).FirstOrDefaultAsync();
+
+                supplier = new Supplier
+                {
+                    Id = Guid.NewGuid(),
+                    SuppliersLegalName = "Proveedor de Prueba S.A.",
+                    CommercialName = "Proveedor Prueba",
+                    IdentificationNumber = "0999999999001",
+                    ConstitutionType = ConstitutionType.Legal,
+                    IdentificationType = IdentificationType.Ruc,
+                    UserId = targetUserId,
+                    IsActive = true
+                };
+                await _unitOfWork.Suppliers.RegisterSupplier(supplier);
+                await _unitOfWork.SaveChangesAsync(default);
+            }
+
+            return supplier;
+        }
+
+        /// Registra una revisión contable vinculada a la solicitud de compra especificada.
+        public async Task<Guid> CreateAccountingReview(Guid purchaseRequestId, Guid userId, AccountingReviewStatus status = AccountingReviewStatus.Pending)
+        {
+            var accountingReview = new PurchaseRequestsReviewedAccounting
+            {
+                Id = Guid.NewGuid(),
+                PurchaseRequestId = purchaseRequestId,
+                Status = status,
+                SentByUserId = userId,
+                SentToReviewAt = DateOnly.FromDateTime(DateTime.UtcNow),
+                Comments = "Revisión contable de prueba",
+                DeletedAt = null
+            };
+
+            await _unitOfWork.PurchaseRequestsReviewedAccounting.RegisterPurchaseRequestsReviewedAccounting(accountingReview);
+            await _unitOfWork.SaveChangesAsync(default);
+
+            return accountingReview.Id;
+        }
+
+        /// Registra una revisión de gerencia vinculada a la solicitud de compra especificada.
+        public async Task<Guid> CreateManagementReview(Guid purchaseRequestId, Guid userId, ManagementReviewStatus status = ManagementReviewStatus.Pending)
+        {
+            var managementReview = new PurchaseRequestsReviewedManagement
+            {
+                Id = Guid.NewGuid(),
+                PurchaseRequestId = purchaseRequestId,
+                Status = status,
+                SentByUserId = userId,
+                SentToReviewAt = DateOnly.FromDateTime(DateTime.UtcNow),
+                Comments = "Revisión de gerencia de prueba",
+                DeletedAt = null
+            };
+
+            await _unitOfWork.PurchaseRequestsReviewedManagement.RegisterRequisitionManagementReview(managementReview);
+            await _unitOfWork.SaveChangesAsync(default);
+
+            return managementReview.Id;
+        }
+
+        /// Crea una orden de compra vinculada a la solicitud de compra para simular solicitudes que ya fueron emitidas.
+        public async Task<Guid> CreatePurchaseOrder(Guid purchaseRequestId, Guid userId)
+        {
+            var purchaseOrder = new PurchaseOrder
+            {
+                Id = Guid.NewGuid(),
+                IsActive = true,
+                Comments = "Orden de compra de prueba",
+                SentToReviewAt = DateOnly.FromDateTime(DateTime.UtcNow),
+                SentByUserId = userId,
+                ReviewedByUserId = userId,
+                PurchaseRequestId = purchaseRequestId
+            };
+
+            await _unitOfWork.PurchaseOrders.RegisterPurchaseOrder(purchaseOrder);
+            await _unitOfWork.SaveChangesAsync(default);
+
+            return purchaseOrder.Id;
+        }
+
+        /// Agrega una nueva cotización activa a la solicitud de compra y actualiza la bandera HasQuotation en el ítem.
+        public async Task<Guid> AddQuotation(Guid purchaseRequestId, bool isAccepted = true)
+        {
+            var item = await _unitOfWork.PurchaseRequestItems.Entities
+                .FirstOrDefaultAsync(i => i.PurchaseRequestId == purchaseRequestId);
+
+            var purchaseRequest = await _unitOfWork.PurchaseRequests.Entities
+                .FirstOrDefaultAsync(pr => pr.Id == purchaseRequestId);
+
+            var supplier = await GetOrCreateSupplierAsync(purchaseRequest?.RegisteredByUserId);
+
+            var quotation = new Quotation
+            {
+                Id = Guid.NewGuid(),
+                PurchaseRequestItemId = item!.Id,
+                SupplierId = supplier.Id,
+                Price = 200m,
+                PriceUnit = 20m,
+                PriceTotal = 200m,
+                Iva = 0m,
+                IsActive = true,
+                IsAcceptedForPurchase = isAccepted,
+                QuoteDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                BrandProduct = "Marca Nueva",
+                DeletedAt = null
+            };
+
+            await _unitOfWork.Quotations.RegisterQuotation(quotation);
+
+            item.HasQuotation = true;
+            await _unitOfWork.PurchaseRequestItems.UpdateAsync(item);
+
+            await _unitOfWork.SaveChangesAsync(default);
+
+            return quotation.Id;
+        }
+
+        #endregion
     }
 }
