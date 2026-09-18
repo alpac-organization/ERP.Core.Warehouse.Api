@@ -2,6 +2,7 @@ using NUnit.Framework;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Test.Common;
+using ERP.Core.Database.Domain.Entities.Auth;
 using ERP.Core.Warehouse.Api.Test.Common.Utils;
 
 namespace ERP.Core.Warehouse.Api.Test.Controllers.Warehouse;
