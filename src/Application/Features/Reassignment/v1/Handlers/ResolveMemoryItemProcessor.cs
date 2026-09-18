@@ -3,7 +3,6 @@ using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Database.Domain.Entities.Warehouse;
-using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Handlers;
 
@@ -73,7 +72,7 @@ public class ResolveMemoryItemProcessor(
             return;
         }
 
-        if (target.Status != RackStatus.Reserved)
+        if (!target.IsReserved || target.IsOccupied || target.IsBlocked)
         {
             errorManager.ThrowBadRequest<object>(
                 $"La posición destino rack {target.PositionCode} no está reservada para este polín.",
@@ -81,7 +80,8 @@ public class ResolveMemoryItemProcessor(
             return;
         }
 
-        target.Status = RackStatus.Occupied;
+        target.IsReserved = false;
+        target.IsOccupied = true;
 
         await InsertDestinationPlacement(memoryItem, target.Id, null, userIdStr, nowDate, nowTime, ct);
 
@@ -106,7 +106,7 @@ public class ResolveMemoryItemProcessor(
             return;
         }
 
-        if (target.Status != RackStatus.Reserved)
+        if (!target.IsReserved || target.IsOccupied || target.IsBlocked)
         {
             errorManager.ThrowBadRequest<object>(
                 $"La posición destino tramo {target.PositionCode} no está reservada para este polín.",
@@ -114,7 +114,8 @@ public class ResolveMemoryItemProcessor(
             return;
         }
 
-        target.Status = RackStatus.Occupied;
+        target.IsReserved = false;
+        target.IsOccupied = true;
 
         await InsertDestinationPlacement(memoryItem, null, target.Id, userIdStr, nowDate, nowTime, ct);
 

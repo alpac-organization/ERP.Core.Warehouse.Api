@@ -87,10 +87,6 @@ public abstract class BaseLotsCapacityHandler<TRequest>(
         return (true, default);
     }
 
-    protected bool SectionCapacityNotFoundError() => _errorManager.ThrowBadRequest<bool>(
-        "La sección no tiene capacidad registrada para recalcular.",
-        "ERP:SECTION_CAPACITY_NOT_FOUND");
-
     protected async Task ApplySectionCapacityAsync(
         Sections section,
         SectionCapacity? calculated,

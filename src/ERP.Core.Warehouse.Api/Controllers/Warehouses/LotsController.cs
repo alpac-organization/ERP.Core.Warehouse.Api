@@ -50,28 +50,29 @@ public class LotsController(IMediator _mediator) : ApiControllerBase
     }
     #endregion
 
-    #region Register Lots
+    #region Register Lot
     [Tags("Tramos")]
     [HttpPost("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{sections_id}/lots")]
     [ProducesResponseType(typeof(CreatedResult), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<CreatedResult> RegisterLotsAsync(
+    public async Task<CreatedResult> RegisterLotAsync(
     [FromRoute] Guid company_id,
     [FromRoute] string module_code,
     [FromRoute] Guid warehouse_id,
     [FromRoute] Guid sections_id,
-    [FromBody] RegisterLotsCommand commandLots)
+    [FromBody] RegisterLotCommand commandLot,
+    CancellationToken cancellationToken)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
 
-        commandLots.CompanyId = company_id;
-        commandLots.ModuleCode = module_code;
-        commandLots.UserId = Guid.Parse(userIdStr ?? "");
-        commandLots.WarehouseId = warehouse_id;
-        commandLots.SectionId = sections_id;
+        commandLot.CompanyId = company_id;
+        commandLot.ModuleCode = module_code;
+        commandLot.UserId = Guid.Parse(userIdStr ?? "");
+        commandLot.WarehouseId = warehouse_id;
+        commandLot.SectionId = sections_id;
 
-        await _mediator.Send(commandLots);
+        await _mediator.Send(commandLot, cancellationToken);
 
         return Created();
     }

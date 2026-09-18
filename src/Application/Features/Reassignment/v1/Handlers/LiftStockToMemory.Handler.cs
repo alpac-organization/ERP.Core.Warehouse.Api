@@ -2,7 +2,6 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Entities.Warehouse;
-using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
@@ -89,7 +88,7 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
                 return;
             }
 
-            if (target.Status is RackStatus.Occupied or RackStatus.Reserved or RackStatus.Blocked)
+            if (target.IsOccupied || target.IsReserved || target.IsBlocked)
             {
                 _errorManager.ThrowBadRequest<object>(
                     $"La posición destino rack {target.PositionCode} no está disponible.",
@@ -97,7 +96,7 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
                 return;
             }
 
-            target.Status = RackStatus.Reserved;
+            target.IsReserved = true;
         }
 
         if (item.TargetLotPositionId.HasValue)
@@ -113,7 +112,7 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
                 return;
             }
 
-            if (target.Status is RackStatus.Occupied or RackStatus.Reserved or RackStatus.Blocked)
+            if (target.IsOccupied || target.IsReserved || target.IsBlocked)
             {
                 _errorManager.ThrowBadRequest<object>(
                     $"La posición destino tramo {target.PositionCode} no está disponible.",
@@ -121,7 +120,7 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
                 return;
             }
 
-            target.Status = RackStatus.Reserved;
+            target.IsReserved = true;
         }
     }
 
@@ -133,9 +132,9 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
         placement.VacatedByMemoryItemId = memoryItem.Id;
 
         if (placement.RackPosition is not null)
-            placement.RackPosition.Status = RackStatus.Available;
+            placement.RackPosition.IsOccupied = false;
 
         if (placement.LotPosition is not null)
-            placement.LotPosition.Status = RackStatus.Available;
+            placement.LotPosition.IsOccupied = false;
     }
 }
