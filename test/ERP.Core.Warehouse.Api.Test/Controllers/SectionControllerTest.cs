@@ -1,6 +1,5 @@
 using NUnit.Framework;
 using ERP.Core.Warehouse.Api.Test.Common;
-using ERP.Core.Warehouse.Api.Test.Common.Utils;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
 using ERP.Core.Database.Domain.Enums;
@@ -32,16 +31,8 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
       [TestCase("ALPAC", "ALM-MAN-2KE4")]
       public async Task RegisterSectionWhenIsSucess(string companyAlias, string moduleCode)
       {
-         // 1. Usuario con acceso de administrador al módulo
-         Guid userId = await CreateUser("Carlos Alberto Mendoza Gutiérrez");
-         await AssignProfileToModule(userId, moduleCode, RoleType.Administrator);
-
-         var bearerToken = AuthManager.GenerateJwtToken(EnvironmentManager.JwtKey, userId);
-
-         var company = await _unitOfWork.Companies.Entities
-            .Where(c => c.IsActive)
-            .Where(c => c.Alias == companyAlias)
-            .FirstOrDefaultAsync(default);
+         // 1. Usuario con acceso de administrador al módulo         
+         var (companyId, userId, token) = await ArrangeUserWithRole(RoleType.Administrator, companyAlias, moduleCode);
 
          // 2. Almacén y capacidad: el handler exige capacidad registrada
          var warehouse = new Warehouses
@@ -90,8 +81,8 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
             ["length"] = 25
          };
 
-         var url = SectionBaseUrl(company!.Id, moduleCode, warehouseId);
-         var response = await SendRequestAsync(HttpMethod.Post, url, bearerToken, payload);
+         var url = SectionBaseUrl(companyId, moduleCode, warehouseId);
+         var response = await SendRequestAsync(HttpMethod.Post, url, token, payload);
 
          Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
       }
@@ -102,16 +93,8 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
       [TestCaseSource(nameof(SectionCoordinateCases))]
       public async Task RegisterSectionCoordinatesWhenIsSuccess(string companyAlias, string moduleCode, decimal positionX, decimal positionY, decimal positionZ, decimal rotationY)
       {
-         // 1. Usuario con acceso de administrador al módulo
-         Guid userId = await CreateUser("Carlos Alberto Mendoza Gutiérrez");
-         await AssignProfileToModule(userId, moduleCode, RoleType.Administrator);
-
-         var bearerToken = AuthManager.GenerateJwtToken(EnvironmentManager.JwtKey, userId);
-
-         var company = await _unitOfWork.Companies.Entities
-            .Where(c => c.IsActive)
-            .Where(c => c.Alias == companyAlias)
-            .FirstOrDefaultAsync(default);
+         // 1. Usuario con acceso de administrador al módulo         
+         var (companyId, userId, token) = await ArrangeUserWithRole(RoleType.Administrator, companyAlias, moduleCode);
 
          // 2. Almacén y sección sobre la que se van a guardar coordenadas
          var warehouse = new Warehouses
@@ -135,7 +118,7 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
 
          var sectionId = await CreateSection(section);
 
-         var baseUrl = SectionBaseUrl(company!.Id, moduleCode, warehouseId);
+         var baseUrl = SectionBaseUrl(companyId, moduleCode, warehouseId);
          var url = $"{baseUrl}/{sectionId}/coordinates";
 
          // 3. Body de la petición
@@ -147,7 +130,7 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
             ["rotation_y"] = rotationY
          };
 
-         var response = await SendRequestAsync(HttpMethod.Post, url, bearerToken, payload);
+         var response = await SendRequestAsync(HttpMethod.Post, url, token, payload);
          Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
       }
 
@@ -158,16 +141,8 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
       [TestCase("ALPAC", "ALM-MAN-2KE4", 1, 4)]
       public async Task GetSectionsWhenIsSuccess(string companyAlias, string moduleCode, int pageNumber, int pageSize)
       {
-         // 1. Usuario con acceso de administrador al módulo
-         Guid userId = await CreateUser("Carlos Alberto Mendoza Gutiérrez");
-         await AssignProfileToModule(userId, moduleCode, RoleType.Administrator);
-
-         var bearerToken = AuthManager.GenerateJwtToken(EnvironmentManager.JwtKey, userId);
-
-         var company = await _unitOfWork.Companies.Entities
-            .Where(c => c.IsActive)
-            .Where(c => c.Alias == companyAlias)
-            .FirstOrDefaultAsync(default);
+         // 1. Usuario con acceso de administrador al módulo         
+         var (companyId, userId, token) = await ArrangeUserWithRole(RoleType.Administrator, companyAlias, moduleCode);
 
          // 2. Almacén con cuatro secciones para poder paginar
          var warehouse = new Warehouses()
@@ -220,10 +195,10 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
             SectionStorageType = SectionStorageType.Racks
          });
 
-         var baseUrl = SectionBaseUrl(company!.Id, moduleCode, warehouseId);
+         var baseUrl = SectionBaseUrl(companyId, moduleCode, warehouseId);
          var url = $"{baseUrl}?page_size={pageSize}&page_number={pageNumber}";
 
-         var response = await SendRequestAsync(HttpMethod.Get, url, bearerToken);
+         var response = await SendRequestAsync(HttpMethod.Get, url, token);
 
          Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
@@ -241,15 +216,7 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
       public async Task GetSectionDetailsWhenIsSuccess(string companyAlias, string moduleCode)
       {
          // 1. Usuario con acceso de administrador al módulo
-         Guid userId = await CreateUser("Carlos Alberto Mendoza Gutiérrez");
-         await AssignProfileToModule(userId, moduleCode, RoleType.Administrator);
-
-         var bearerToken = AuthManager.GenerateJwtToken(EnvironmentManager.JwtKey, userId);
-
-         var company = await _unitOfWork.Companies.Entities
-            .Where(c => c.IsActive)
-            .Where(c => c.Alias == companyAlias)
-            .FirstOrDefaultAsync(default);
+         var (companyId, userId, token) = await ArrangeUserWithRole(RoleType.Administrator, companyAlias, moduleCode);
 
          // 2. Almacén, sección, capacidad y coordenadas (el detalle las incluye)
          var warehouse = new Warehouses()
@@ -298,10 +265,10 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
             RotationY = 1.0m
          });
 
-         var baseUrl = SectionBaseUrl(company!.Id, moduleCode, warehouseId);
+         var baseUrl = SectionBaseUrl(companyId, moduleCode, warehouseId);
          var url = $"{baseUrl}/{sectionId}/details";
 
-         var response = await SendRequestAsync(HttpMethod.Get, url, bearerToken);
+         var response = await SendRequestAsync(HttpMethod.Get, url, token);
 
          Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
@@ -324,9 +291,8 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
       [TestCase("ALPAC", "ALM-MAN-2KE4")]
       public async Task UpdateSectionWhenIsSuccess(string companyAlias, string moduleCode)
       {
-         // 1. Usuario con acceso de administrador al módulo
-         Guid userId = await CreateUser("Carlos Alberto Mendoza Gutiérrez");
-         await AssignProfileToModule(userId, moduleCode, RoleType.Administrator);
+         // 1. Usuario con acceso de administrador al módulo         
+         var (companyId, userId, token) = await ArrangeUserWithRole(RoleType.Administrator, companyAlias, moduleCode);
 
          // Valores de antes y después para contrastar el update
          var testData = new
@@ -337,14 +303,7 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
             sectionCodeAfter = "UPDATED_SECTION_002",
             widthAfter = 100,
             lengthAfter = 100
-         };
-
-         var bearerToken = AuthManager.GenerateJwtToken(EnvironmentManager.JwtKey, userId);
-
-         var company = await _unitOfWork.Companies.Entities
-            .Where(c => c.IsActive)
-            .Where(c => c.Alias == companyAlias)
-            .FirstOrDefaultAsync(default);
+         };         
 
          // 2. Almacén, capacidad de almacén y sección con su capacidad (el handler las exige)
          var warehouse = new Warehouses
@@ -417,10 +376,10 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
             ["length"] = testData.lengthAfter
          };
 
-         var baseUrl = SectionBaseUrl(company!.Id, moduleCode, warehouseId);
+         var baseUrl = SectionBaseUrl(companyId, moduleCode, warehouseId);
          var url = $"{baseUrl}/{sectionId}";
 
-         var response = await SendRequestAsync(HttpMethod.Patch, url, bearerToken, payload);
+         var response = await SendRequestAsync(HttpMethod.Patch, url, token, payload);
 
          // 4. Lectura del registro actualizado (AsNoTracking para no devolver la instancia en memoria)
          var updatedSection = await _unitOfWork.Sections.Entities
@@ -448,16 +407,8 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
       [TestCase("ALPAC", "ALM-MAN-2KE4")]
       public async Task DeleteSectionWhenIsSuccess(string companyAlias, string moduleCode)
       {
-         // 1. Usuario con acceso de administrador al módulo
-         Guid userId = await CreateUser("Carlos Alberto Mendoza Gutiérrez");
-         await AssignProfileToModule(userId, moduleCode, RoleType.Administrator);
-
-         var bearerToken = AuthManager.GenerateJwtToken(EnvironmentManager.JwtKey, userId);
-
-         var company = await _unitOfWork.Companies.Entities
-            .Where(c => c.IsActive)
-            .Where(c => c.Alias == companyAlias)
-            .FirstOrDefaultAsync(default);
+         // 1. Usuario con acceso de administrador al módulo         
+         var (companyId, userId, token) = await ArrangeUserWithRole(RoleType.Administrator, companyAlias, moduleCode);
 
          // 2. Almacén y sección a eliminar
          var warehouse = new Warehouses
@@ -481,10 +432,10 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
 
          var sectionId = await CreateSection(section);
 
-         var baseUrl = SectionBaseUrl(company!.Id, moduleCode, warehouseId);
+         var baseUrl = SectionBaseUrl(companyId, moduleCode, warehouseId);
          var url = $"{baseUrl}/{sectionId}";
 
-         var response = await SendRequestAsync(HttpMethod.Delete, url, bearerToken);
+         var response = await SendRequestAsync(HttpMethod.Delete, url, token);
 
          Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
 

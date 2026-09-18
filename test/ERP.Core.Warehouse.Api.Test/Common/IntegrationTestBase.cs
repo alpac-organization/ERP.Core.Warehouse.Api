@@ -19,6 +19,12 @@ namespace ERP.Core.Warehouse.Api.Test.Common
         protected IUnitOfWork _unitOfWork = null!;
         protected static CustomWebApplicationFactory Factory => PostgreSqlContainerFixture.Factory;
 
+        protected static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+            PropertyNameCaseInsensitive = true
+        };
+
         [SetUp]
         public async Task SetUp()
         {
@@ -53,7 +59,7 @@ namespace ERP.Core.Warehouse.Api.Test.Common
 
             if(body != null && (method == HttpMethod.Post || method == HttpMethod.Put || method == HttpMethod.Patch))
             {
-                var jsonBody = JsonSerializer.Serialize(body);
+                var jsonBody = JsonSerializer.Serialize(body, JsonOptions);
                 request.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
             }
 
