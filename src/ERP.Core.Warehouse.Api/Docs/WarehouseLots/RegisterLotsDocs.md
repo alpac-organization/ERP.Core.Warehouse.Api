@@ -77,13 +77,13 @@ Por cada tramo se crea una **matriz `nominal_rows × nominal_columns`** de posic
 
 | Regla | Valor |
 |---|---|
-| `PositionCode` | `{lotCode}-{fila}{columna}` (concatenación de fila y columna, tipo índice de matriz). Ej: tramo `SEC-A-LOT-01`, fila 3 columna 2 → `SEC-A-LOT-01-32`. |
+| `PositionCode` | `{lotCode}-F{fila}C{columna}`. Ej: tramo `SEC-A-LOT-01`, fila 3 columna 2 → `SEC-A-LOT-01-F3C2`. |
 | `Row`, `Column` | Índices de la matriz (filas y columnas 1..N). |
 | `Level` | Siempre `1` (a piso). Los niveles de estibado se registran por otro flujo. |
 | `Status` | `Available`. |
 | `AllowsStocking` | `true`. |
 
-> ⚠️ Al concatenar fila y columna sin separador, un tramo de más de 9 filas o columnas puede generar códigos ambiguos (ej: fila 1 columna 23 y fila 12 columna 3 producen el mismo sufijo `123`).
+
 
 ---
 
