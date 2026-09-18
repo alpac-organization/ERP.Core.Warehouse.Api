@@ -65,6 +65,7 @@ public class RegisterLotsControllerTest : IntegrationTestUtilsBase
             .OrderBy(lot => lot.Code)
             .ToListAsync();
 
+
         Assert.That(registeredLots.Count, Is.EqualTo(payload.quantity));
 
         var lotIds = registeredLots.Select(l => l.Id).ToList();
