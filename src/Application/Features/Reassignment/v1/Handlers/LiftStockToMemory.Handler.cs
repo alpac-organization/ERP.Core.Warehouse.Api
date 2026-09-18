@@ -88,7 +88,7 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
                 return;
             }
 
-            /* if (target.IsOccupied || target.IsReserved || target.IsBlocked)
+            if (target.IsOccupied || target.IsReserved || target.IsBlocked)
             {
                 _errorManager.ThrowBadRequest<object>(
                     $"La posición destino rack {target.PositionCode} no está disponible.",
@@ -96,7 +96,7 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
                 return;
             }
 
-            target.IsReserved = true; */
+            target.IsReserved = true;
         }
 
         if (item.TargetLotPositionId.HasValue)
@@ -112,7 +112,7 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
                 return;
             }
 
-            /* if (target.IsOccupied || target.IsReserved || target.IsBlocked)
+            if (target.IsOccupied || target.IsReserved || target.IsBlocked)
             {
                 _errorManager.ThrowBadRequest<object>(
                     $"La posición destino tramo {target.PositionCode} no está disponible.",
@@ -120,13 +120,13 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
                 return;
             }
 
-            target.IsReserved = true; */
+            target.IsReserved = true;
         }
     }
 
     private static void VacatePlacement(StockPlacements placement, ReassignmentMemoryItems memoryItem, string userId)
     {
-/*         placement.VacatedAtDate = memoryItem.LiftedAtDate;
+        placement.VacatedAtDate = memoryItem.LiftedAtDate;
         placement.VacatedAtTime = memoryItem.LiftedAtTime;
         placement.VacatedByUserId = userId;
         placement.VacatedByMemoryItemId = memoryItem.Id;
@@ -135,6 +135,6 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
             placement.RackPosition.IsOccupied = false;
 
         if (placement.LotPosition is not null)
-            placement.LotPosition.IsOccupied = false; */
+            placement.LotPosition.IsOccupied = false;
     }
 }

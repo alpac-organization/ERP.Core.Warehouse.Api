@@ -98,12 +98,12 @@ public static class GetAvailablePositionsMapper
             PositionId = position.Id,
             PositionCode = position.PositionCode,
             Type = "Rack",
-            //Status = ResolveStatus(position.IsOccupied, position.IsReserved, position.IsBlocked),
+            Status = ResolveStatus(position.IsOccupied, position.IsReserved, position.IsBlocked),
             SectionId = position.Rack.SectionId,
-            // SectionCode = position.Rack.Section.Code,
+            SectionCode = position.Rack.Section.Code,
             RackId = position.RackId,
             RackCode = position.Rack.Code,
-            //PositionNumber = position.PositionNumber,
+            PositionNumber = position.PositionNumber,
             StockId = stockId,
             ReservedBySessionId = reservedBySessionId
         };
@@ -119,13 +119,13 @@ public static class GetAvailablePositionsMapper
             PositionId = position.Id,
             PositionCode = position.PositionCode,
             Type = "Lot",
-            //Status = ResolveStatus(position.IsOccupied, position.IsReserved, position.IsBlocked),
+            Status = ResolveStatus(position.IsOccupied, position.IsReserved, position.IsBlocked),
             SectionId = position.Lot.SectionId,
-            // SectionCode = position.Lot.Section.Code,
+            SectionCode = position.Lot.Section.Code,
             LotId = position.LotId,
             LotCode = position.Lot.Code,
-            //RowNumber = position.RowNumber,
-            //ColumnNumber = position.ColumnNumber,
+            RowNumber = position.RowNumber,
+            ColumnNumber = position.ColumnNumber,
             StockId = stockId,
             ReservedBySessionId = reservedBySessionId
         };

@@ -117,14 +117,14 @@ public class ReserveUnloadingPositionsHandler(IUnitOfWork unitOfWork, IErrorMana
             var item = request.Positions[i];
             var position = validated[i];
 
-            /* if (position.rack is RackPositions rackTarget)
+            if (position.rack is RackPositions rackTarget)
             {
                 rackTarget.IsReserved = true;
             }
             else if (position.lot is LotsPositions lotTarget)
             {
                 lotTarget.IsReserved = true;
-            } */
+            }
 
             var entity = _mapper.Map<UnloadingPositionReservations>(item, opts =>
             {
@@ -162,9 +162,9 @@ public class ReserveUnloadingPositionsHandler(IUnitOfWork unitOfWork, IErrorMana
                 return ValidatedPosition.Empty();
             }
 
-/*             await ValidateAvailabilityAsync(
+            await ValidateAvailabilityAsync(
                 target.IsOccupied, target.IsReserved, target.IsBlocked,
-                "rack", target.PositionCode, target.Id, unloadingDetailsId, ct); */
+                "rack", target.PositionCode, target.Id, unloadingDetailsId, ct);
 
             return new ValidatedPosition(target, null);
         }
@@ -182,9 +182,9 @@ public class ReserveUnloadingPositionsHandler(IUnitOfWork unitOfWork, IErrorMana
                 return ValidatedPosition.Empty();
             }
 
-            /* await ValidateAvailabilityAsync(
+            await ValidateAvailabilityAsync(
                 target.IsOccupied, target.IsReserved, target.IsBlocked,
-                "tramo", target.PositionCode, target.Id, unloadingDetailsId, ct); */
+                "tramo", target.PositionCode, target.Id, unloadingDetailsId, ct);
 
             return new ValidatedPosition(null, target);
         }
