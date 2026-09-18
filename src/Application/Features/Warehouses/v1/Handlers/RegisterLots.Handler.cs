@@ -8,6 +8,7 @@ using ERP.Core.Warehouse.Api.Application.Commons.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Services;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Database.Application.Commons.Interfaces.Services.WarehouseCapacities;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
@@ -54,9 +55,7 @@ public class RegisterLotsHandler(IUnitOfWork unitOfWork, IErrorManager errorMana
 
         for (int i = 0; i < request.Quantity; i++)
         {
-            var lot = _mapper.Map<Lots>(request);
-            lot.Id = Guid.NewGuid();
-            lot.Code = codes[i];
+            var lot = LotsProfile.ToLotsEntity(request, codes[i]);
 
             await _unitOfWork.Lots.RegisterLot(lot);
 
@@ -64,14 +63,12 @@ public class RegisterLotsHandler(IUnitOfWork unitOfWork, IErrorManager errorMana
             {
                 for (int column = 1; column <= lot.NominalColumns!.Value; column++)
                 {
-                    await _unitOfWork.LotsPositions.RegisterLotPosition(new LotsPositions
-                    {
-                        LotId        = lot.Id,
-                        PositionCode = codeGenerator.GeneratePositionCode(lot.Code, row, column),
-                        Row          = row,
-                        Column       = column,
-                        Level        = 1
-                    });
+                    var position = LotsProfile.ToLotsPositionEntity(
+                        lot.Id,
+                        codeGenerator.GeneratePositionCode(lot.Code, row, column),
+                        row,
+                        column);
+                    await _unitOfWork.LotsPositions.RegisterLotPosition(position);
                 }
             }
 
