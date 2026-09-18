@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text.Json;
-using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using NUnit.Framework;
 
@@ -37,19 +36,22 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers.purchasing
             var response = await SendRequestAsync(HttpMethod.Patch, UpdatePurchaseUrl(companyId, requestId), token, payload);
 
             // Assert aqui
-            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
             var purchase = await _unitOfWork.PurchaseRequests.Entities
                 .AsNoTracking()
                 .Include(p => p.PurchaseRequestItems)
                 .FirstAsync(p => p.Id == requestId);
 
-            purchase.Concept.Should().Be("Cabecera actualizada");
-            purchase.PriorityLevel.Should().Be(PriorityLevel.Critical);
-
             var updatedItem = purchase.PurchaseRequestItems.First();
-            updatedItem.Quantity.Should().Be(15);
-            updatedItem.Description.Should().Be("Ítem actualizado");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(purchase.Concept, Is.EqualTo("Cabecera actualizada"));
+                Assert.That(purchase.PriorityLevel, Is.EqualTo(PriorityLevel.Critical));
+                Assert.That(updatedItem.Quantity, Is.EqualTo(15));
+                Assert.That(updatedItem.Description, Is.EqualTo("Ítem actualizado"));
+            });
         }
 
         [Test]
@@ -71,13 +73,13 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers.purchasing
             var response = await SendRequestAsync(HttpMethod.Patch, UpdatePurchaseUrl(companyId, requestId), token, payload);
 
             // Assert
-            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
             var item = await _unitOfWork.PurchaseRequestItems.Entities
                       .AsNoTracking()
                       .FirstAsync(i => i.Id == itemId);
             
-            item.AdditionalData.Should().Contain("imgtesting.png");
+            Assert.That(item.AdditionalData, Does.Contain("imgtesting.png"));
         }
 
 
@@ -90,11 +92,14 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers.purchasing
             var (requestId, _) = await CreateBasePurchaseRequest (userId);
 
             var response = await SendRequestAsync(HttpMethod.Patch, UpdatePurchaseUrl(companyId, requestId), token, new { observations = "test" });
+            var errorType = await ReadErrorType(response);
 
             // Assert
-            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-            var errorType = await ReadErrorType(response);
-            errorType.Should().Be("ERP:INVALID_ACCESS");
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+                Assert.That(errorType, Is.EqualTo("ERP:INVALID_ACCESS"));
+            });
         }
 
         // test: Estados invalidos 
@@ -110,10 +115,13 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers.purchasing
             var body =  new { observations = "test" };
 
             var response = await SendRequestAsync(HttpMethod.Patch, UpdatePurchaseUrl(companyId, requestId), token, body);
-
-            response.StatusCode.Should().Be(HttpStatusCode.NotFound);
             var errorType = await ReadErrorType(response);
-            errorType.Should().Be("ERP:QUOTATION_NOT_FOUND");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+                Assert.That(errorType, Is.EqualTo("ERP:QUOTATION_NOT_FOUND"));
+            });
         }
 
         [Test]
@@ -128,10 +136,13 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers.purchasing
             
             var payload = new { observations = "test" };
             var response = await SendRequestAsync(HttpMethod.Patch, UpdatePurchaseUrl(companyId, requestId), token, payload );
-
-            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
             var errorType = await ReadErrorType(response);
-            errorType.Should().Be("ERP:PURCHASE_REQUEST_NOT_PENDING");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+                Assert.That(errorType, Is.EqualTo("ERP:PURCHASE_REQUEST_NOT_PENDING"));
+            });
         }
 
         // test: Reglas de prioridad
@@ -146,10 +157,13 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers.purchasing
 
             // Requisición no puede ser tipo None
             var response = await SendRequestAsync(HttpMethod.Patch, UpdatePurchaseUrl(companyId, requestId), token,body); 
-
-            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
             var errorType = await ReadErrorType(response);
-            errorType.Should().Be("ERP:INVALID_PRIORITY");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+                Assert.That(errorType, Is.EqualTo("ERP:INVALID_PRIORITY"));
+            });
         }
 
         [Test]
@@ -167,10 +181,13 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers.purchasing
 
             // Eventual debe ser None de tipo (Ninguna)
             var response = await SendRequestAsync(HttpMethod.Patch, UpdatePurchaseUrl(companyId, requestId), token,body); 
-
-            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
             var errorType = await ReadErrorType(response);
-            errorType.Should().Be("ERP:INVALID_PRIORITY");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+                Assert.That(errorType, Is.EqualTo("ERP:INVALID_PRIORITY"));
+            });
         }
 
         //test: Validacion de items de la solicitud de compra 
@@ -186,10 +203,13 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers.purchasing
             var payload = new { purchase_request_items = new[] { new { id = Guid.NewGuid(), quantity = 10 } } }; 
 
             var response = await SendRequestAsync(HttpMethod.Patch, UpdatePurchaseUrl(companyId, requestId), token, payload);
-
-            response.StatusCode.Should().Be(HttpStatusCode.NotFound);
             var errorType = await ReadErrorType(response);
-            errorType.Should().Be("ERP:PURCHASE_REQUEST_ITEM_NOT_FOUND");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+                Assert.That(errorType, Is.EqualTo("ERP:PURCHASE_REQUEST_ITEM_NOT_FOUND"));
+            });
         }
 
         [Test]
@@ -203,7 +223,7 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers.purchasing
 
             var response = await SendRequestAsync(HttpMethod.Patch, UpdatePurchaseUrl(companyId, requestId), token, payload);
 
-            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         }
     }
 }
