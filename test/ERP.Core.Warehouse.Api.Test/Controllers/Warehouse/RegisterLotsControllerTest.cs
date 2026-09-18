@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Test.Common;
 using ERP.Core.Warehouse.Api.Test.Common.Utils;
+using ERP.Core.Database.Domain.Entities.Auth;
 
 namespace ERP.Core.Warehouse.Api.Test.Controllers.Warehouse;
 
@@ -18,6 +19,25 @@ public class RegisterLotsControllerTest : IntegrationTestUtilsBase
     public async Task RegisterLotsWhenIsSuccess(string companyAlias)
     {
         Guid userId = await CreateUser("Adonis José Luis Carlos Rodriguez Pérez Aguilar");
+
+        var profile = await _unitOfWork.Profiles.Entities
+            .FirstAsync(p => p.UserId == userId && p.IsActive);
+        
+        var role = await _unitOfWork.Roles.Entities
+            .FirstAsync(r => r.RoleType == RoleType.Administrator);
+        
+        var lostModule = await _unitOfWork.Modules.Entities
+            .FirstAsync(m => m.Code == "ALM-MAN-2KE4");
+
+        await _unitOfWork.UserModules.AssignRolesModule(new UserModuleRoles
+        {
+           Id = Guid.NewGuid(),
+           RoleId = role.Id,
+           UserProfileId = profile.Id,
+           ModuleId = lostModule.Id,
+           ModuleCode = lostModule.Code,
+           IsActive = true 
+        });
 
         var bearerToken = AuthManager.GenerateJwtToken(EnvironmentManager.JwtKey, userId);
 
@@ -50,8 +70,8 @@ public class RegisterLotsControllerTest : IntegrationTestUtilsBase
         var payload = new
         {
             quantity = 8,
-            nominalRows = 4,
-            nominalColumns = 5,
+            nominal_rows = 4,
+            nominal_columns = 5,
             width = 10.00,
             length = 15.00
         };
@@ -80,7 +100,7 @@ public class RegisterLotsControllerTest : IntegrationTestUtilsBase
 
         Assert.That(capacities.Count, Is.EqualTo(payload.quantity));
 
-        var positionPerLot = payload.nominalColumns * payload.nominalRows;
+        var positionPerLot = payload.nominal_columns * payload.nominal_rows;
         var expectedTotalPositions = payload.quantity * positionPerLot;
 
         var positions = await _unitOfWork.LotsPositions.Entities
@@ -96,8 +116,8 @@ public class RegisterLotsControllerTest : IntegrationTestUtilsBase
         //validar que los campos en cada lot sean correctos
         foreach (var lot in registeredLots)
         {
-            Assert.That(lot.NominalColumns, Is.EqualTo(payload.nominalColumns));
-            Assert.That(lot.NominalRows, Is.EqualTo(payload.nominalRows));
+            Assert.That(lot.NominalColumns, Is.EqualTo(payload.nominal_columns));
+            Assert.That(lot.NominalRows, Is.EqualTo(payload.nominal_rows));
             Assert.That(lot.Status, Is.EqualTo(RackStatus.Available));
 
             Assert.That(positionsByLot.ContainsKey(lot.Id), Is.True,

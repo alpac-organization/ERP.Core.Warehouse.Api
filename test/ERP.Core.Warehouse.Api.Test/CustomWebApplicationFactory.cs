@@ -159,6 +159,7 @@ namespace ERP.Core.Warehouse.Api.Test
             await dbContext.Profiles.AddRangeAsync(data.Profiles);
 
             await dbContext.Modules.AddRangeAsync(data.Modules);
+            await dbContext.Roles.AddRangeAsync(data.Roles);
             await dbContext.Warehouses.AddRangeAsync(data.Warehouses);
             await dbContext.WarehouseCapacities.AddRangeAsync(data.WarehouseCapacities);
             await dbContext.Sections.AddRangeAsync(data.Sections);

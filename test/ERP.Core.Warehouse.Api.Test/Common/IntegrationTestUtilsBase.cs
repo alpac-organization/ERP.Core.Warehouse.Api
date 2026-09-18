@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Database.Domain.Entities.Auth;
 
 namespace ERP.Core.Warehouse.Api.Test.Common
 {
@@ -53,6 +54,27 @@ namespace ERP.Core.Warehouse.Api.Test.Common
                 IsActive = true,
                 CompanyId = branch.CompanyId
             });
+
+            var profileId = Guid.NewGuid();
+
+            var role = await _unitOfWork.Roles.Entities
+                .FirstOrDefaultAsync(r => r.RoleType == RoleType.Administrator);
+
+            var module = await _unitOfWork.Modules.Entities
+                .FirstOrDefaultAsync(m => m.Code == "COM-129U");
+
+            if (role != null)
+            {
+                await _unitOfWork.UserModules.AssignRolesModule(new UserModuleRoles
+                {
+                    Id = Guid.NewGuid(),
+                    RoleId = role.Id,
+                    UserProfileId = profileId,
+                    ModuleId = module!.Id,
+                    ModuleCode = module.Code,
+                    IsActive = true
+                });
+            }
 
             await _unitOfWork.SaveChangesAsync(default);
             
