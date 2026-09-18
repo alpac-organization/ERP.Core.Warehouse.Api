@@ -56,7 +56,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 }
 
                 //Solicitud enviada a gerencia
-                if (purchaseRequest.ManagementReview is not null)
+                if (purchaseRequest.ManagementReview is not null && 
+                    purchaseRequest.ManagementReview.DeletedAt == null && 
+                    purchaseRequest.ManagementReview.Status != ManagementReviewStatus.Rejected)
                 {
                     return _errorManager.ThrowBadRequest<bool>("La solicitud de compra ya fue enviada a revisión", "ERP:REVIEW_ALREADY_EXISTS");
                 }
@@ -69,7 +71,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 foreach (var item in items)
                 {
                     var activeQuotations = item.Quotations
-                        .Where(quo => quo.IsActive)
+                        .Where(quo => quo.IsActive && quo.DeletedAt == null)
                         .ToList();
 
                     if (activeQuotations.Count < 2)
@@ -83,8 +85,21 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     }
                 }
 
-                var requisitionManagementReviewEntity = PurchaseRequestsReviewedManagementMapper.ToPurchaseRequestsReviewedManagementEntity(request, access.User.Id, requisitionPending.PurchaseRequestId);
-                await _unitOfWork.PurchaseRequestsReviewedManagement.RegisterRequisitionManagementReview(requisitionManagementReviewEntity);
+                if (purchaseRequest.ManagementReview is not null)
+                {
+                    purchaseRequest.ManagementReview.Status = ManagementReviewStatus.Pending;
+                    purchaseRequest.ManagementReview.DeletedAt = null;
+                    purchaseRequest.ManagementReview.ReviewedByUserId = null;
+                    purchaseRequest.ManagementReview.SentByUserId = access.User.Id;
+                    purchaseRequest.ManagementReview.Comments = request.Comments;
+                    purchaseRequest.ManagementReview.SentToReviewAt = DateOnly.FromDateTime(DateTime.UtcNow);
+                    await _unitOfWork.PurchaseRequestsReviewedManagement.UpdateAsync(purchaseRequest.ManagementReview);
+                }
+                else
+                {
+                    var requisitionManagementReviewEntity = PurchaseRequestsReviewedManagementMapper.ToPurchaseRequestsReviewedManagementEntity(request, access.User.Id, requisitionPending.PurchaseRequestId);
+                    await _unitOfWork.PurchaseRequestsReviewedManagement.RegisterRequisitionManagementReview(requisitionManagementReviewEntity);
+                }
 
                 requisitionPending.Status = AccountingReviewStatus.Approved;
                 await _unitOfWork.PurchaseRequestsReviewedAccounting.UpdateAsync(requisitionPending);

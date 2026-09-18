@@ -43,18 +43,20 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return _errorManager.ThrowBadRequest<bool>("La solicitud de compra se encuentra inactiva", "ERP:PURCHASE_REQUEST_INACTIVE");
             }
 
-            if (purchaseRequest.RequestStatus != PurchaseRequestStatus.Approved)
+            if (purchaseRequest.RequestStatus != PurchaseRequestStatus.Approved && purchaseRequest.RequestStatus != PurchaseRequestStatus.Revision)
             {
-                return _errorManager.ThrowBadRequest<bool>("La solicitud de compra no se encuentra en estado aprobada", "ERP:PURCHASE_REQUEST_NOT_PENDING");
+                return _errorManager.ThrowBadRequest<bool>("La solicitud de compra no se encuentra en estado aprobada o en revisión", "ERP:PURCHASE_REQUEST_NOT_PENDING");
             }
 
-            if (purchaseRequest.AccountingReview is not null)
+            if (purchaseRequest.AccountingReview is not null &&
+                purchaseRequest.AccountingReview.Status != AccountingReviewStatus.Returned &&
+                purchaseRequest.AccountingReview.DeletedAt == null)
             {
                 return _errorManager.ThrowBadRequest<bool>("La solicitud de compra ya fue enviada a revisión", "ERP:REVIEW_ALREADY_EXISTS");
             }
 
             var itemsWithoutQuotation = purchaseRequest.PurchaseRequestItems
-                .Where(item => !item.Quotations.Any(quo => quo.IsActive))
+                .Where(item => !item.Quotations.Any(quo => quo.IsActive && quo.DeletedAt == null))
                 .ToList();
 
             if (itemsWithoutQuotation.Count > 0)
@@ -62,9 +64,21 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return _errorManager.ThrowBadRequest<bool>("Todos los productos solicitados deben tener al menos una cotización asociada", "ERP:ITEMS_WITHOUT_QUOTATION");
             }
 
-            var purchaseRequestsReviewedAccountingEntity = PurchaseRequestsReviewedAccountingMapper.ToPurchaseRequestsReviewedAccountingEntity(request, access.User.Id);
-
-            await _unitOfWork.PurchaseRequestsReviewedAccounting.RegisterPurchaseRequestsReviewedAccounting(purchaseRequestsReviewedAccountingEntity);
+            if (purchaseRequest.AccountingReview is not null)
+            {
+                purchaseRequest.AccountingReview.Status = AccountingReviewStatus.Pending;
+                purchaseRequest.AccountingReview.DeletedAt = null;
+                purchaseRequest.AccountingReview.ReviewedByUserId = null;
+                purchaseRequest.AccountingReview.SentByUserId = access.User.Id;
+                purchaseRequest.AccountingReview.Comments = request.Comments;
+                purchaseRequest.AccountingReview.SentToReviewAt = DateOnly.FromDateTime(DateTime.UtcNow);
+                await _unitOfWork.PurchaseRequestsReviewedAccounting.UpdateAsync(purchaseRequest.AccountingReview);
+            }
+            else
+            {
+                var purchaseRequestsReviewedAccountingEntity = PurchaseRequestsReviewedAccountingMapper.ToPurchaseRequestsReviewedAccountingEntity(request, access.User.Id);
+                await _unitOfWork.PurchaseRequestsReviewedAccounting.RegisterPurchaseRequestsReviewedAccounting(purchaseRequestsReviewedAccountingEntity);
+            }
 
             purchaseRequest.RequestStatus = PurchaseRequestStatus.Revision;
             await _unitOfWork.PurchaseRequests.UpdateAsync(purchaseRequest);
