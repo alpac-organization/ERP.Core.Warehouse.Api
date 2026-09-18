@@ -73,24 +73,16 @@ namespace ERP.Core.Warehouse.Api.Test.Common
             var role = await _unitOfWork.Roles.Entities
                 .FirstOrDefaultAsync(r => r.RoleType == roleType, default);
 
-            var moduleId = Guid.NewGuid();
-
-            await _unitOfWork.Modules.CreateModuleAssociatedWithCompany(new()
-            {
-                Id = moduleId,
-                Code = moduleCode,
-                Description = "",
-                IsActive = true,
-                ModuleName = "Modulo de Prueba",
-            }, default);
+            var module = await _unitOfWork.Modules.Entities
+                .FirstOrDefaultAsync(m => m.Code == moduleCode, default);
 
             await _unitOfWork.UserModules.AssignRolesModule(new()
             {
                 UserProfileId = profile!.Id,
-                ModuleId = moduleId,
+                ModuleId = module!.Id,
                 RoleId = role!.Id,
                 ModuleCode = moduleCode,
-                IsActive = true,
+                IsActive = true
             });
 
             await _unitOfWork.SaveChangesAsync(default);
