@@ -1,9 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Database.Domain.Entities.Auth;
-using ERP.Core.Database.Domain.Entities.Catalogs;
-using ERP.Core.Database.Domain.Entities.Warehouse;
 
 namespace ERP.Core.Warehouse.Api.Test.Common
 {
@@ -24,7 +21,7 @@ namespace ERP.Core.Warehouse.Api.Test.Common
                     .Where(workArea => workArea.IsActive)
                     .Where(workArea => workArea.WorkAreaCode == 10)
                     .FirstOrDefaultAsync(default);
-
+                    
                 workAreaId = area!.Id;
             }
 
@@ -57,117 +54,9 @@ namespace ERP.Core.Warehouse.Api.Test.Common
                 CompanyId = branch.CompanyId
             });
 
-            var profileId = Guid.NewGuid();
-
-            var role = await _unitOfWork.Roles.Entities
-                .FirstOrDefaultAsync(r => r.RoleType == RoleType.Administrator);
-
-            var module = await _unitOfWork.Modules.Entities
-                .FirstOrDefaultAsync(m => m.Code == "COM-129U");
-
-            if (role != null)
-            {
-                await _unitOfWork.UserModules.AssignRolesModule(new UserModuleRoles
-                {
-                    Id = Guid.NewGuid(),
-                    RoleId = role.Id,
-                    UserProfileId = profileId,
-                    ModuleId = module!.Id,
-                    ModuleCode = module.Code,
-                    IsActive = true
-                });
-            }
-
             await _unitOfWork.SaveChangesAsync(default);
-
+            
             return newUserId;
-        }
-
-        public async Task GrantModuleAccessAsync(Guid userProfileId, string moduleCode)
-            => await SetModuleAccessAsync(userProfileId, moduleCode, isActive: true);
-
-        public async Task DenyModuleAccessAsync(Guid userProfileId, string moduleCode)
-            => await SetModuleAccessAsync(userProfileId, moduleCode, isActive: false);
-
-        private async Task SetModuleAccessAsync(Guid userProfileId, string moduleCode, bool isActive)
-        {
-            var role = await _unitOfWork.Roles.Entities
-                .FirstAsync(r => r.RoleType == RoleType.Administrator);
-
-            var module = await _unitOfWork.Modules.Entities
-                .FirstAsync(m => m.Code == moduleCode);
-
-            await _unitOfWork.UserModules.AssignRolesModule(new UserModuleRoles
-            {
-                Id = Guid.NewGuid(),
-                RoleId = role.Id,
-                UserProfileId = userProfileId,
-                ModuleId = module.Id,
-                ModuleCode = module.Code,
-                IsActive = true
-            });
-
-            await _unitOfWork.SaveChangesAsync();
-        }
-
-        public async Task<Warehouses> GetOrCreateWarehouseAsync()
-        {
-            var warehouse = await _unitOfWork.Warehouses.Entities
-                .Where(w => w.IsActive && w.DeletedAt == null)
-                .FirstOrDefaultAsync();
-
-            if (warehouse is not null) return warehouse;
-
-            warehouse = await _unitOfWork.Warehouses.RegisterWarehouse(new Warehouses
-            {
-                Id = Guid.NewGuid(),
-                Code = "B-Test-01",
-                IsActive = true,
-                WarehouseType = WarehouseType.Fiscal
-            });
-
-            await _unitOfWork.SaveChangesAsync();
-            return warehouse;
-        }
-
-        public async Task<Sections> GetOrCreateSectionToLotsAsync()
-        {
-            var section = await _unitOfWork.Sections.Entities
-                .Where(s => s.IsActive && s.DeletedAt == null)
-                .Where(s => s.SectionStorageType == SectionStorageType.Lots)
-                .FirstOrDefaultAsync();
-
-            if (section is not null)
-                return section;
-
-            var warehouse = await GetOrCreateWarehouseAsync();
-
-            section = await _unitOfWork.Sections.RegisterSection(new Sections
-            {
-                Id = Guid.NewGuid(),
-                Code = "SEC-Test-01",
-                IsActive = true,
-                SectionType = SectionType.Storage,
-                SectionStorageType = SectionStorageType.Lots,
-                WarehouseId = warehouse.Id
-            });
-
-            await _unitOfWork.SectionCapacities.RegisterSectionCapacity(new SectionCapacity
-            {
-                Id = Guid.NewGuid(),
-                SectionId = section.Id,
-                Width = 8.00m,
-                Length = 20.00m,
-                UnusedAreaM2 = 16.00m,
-                AvailableAreaWithMarginM2 = 120.00m,
-                TotalAreaM2 = 160.00m,
-                UnoccupiedChargeableAreaM2 = 0m,
-                OccupiedChargeableAreaM2 = 0m,
-                PercentageAvailableAreaWithMarginM2 = 75.00m
-            });
-
-            await _unitOfWork.SaveChangesAsync();
-            return section;
         }
     }
 }

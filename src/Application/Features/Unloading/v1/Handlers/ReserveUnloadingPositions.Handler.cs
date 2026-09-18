@@ -119,11 +119,11 @@ public class ReserveUnloadingPositionsHandler(IUnitOfWork unitOfWork, IErrorMana
 
             if (position.rack is RackPositions rackTarget)
             {
-                rackTarget.Status = RackStatus.Reserved;
+                rackTarget.IsReserved = true;
             }
             else if (position.lot is LotsPositions lotTarget)
             {
-                lotTarget.Status = RackStatus.Reserved;
+                lotTarget.IsReserved = true;
             }
 
             var entity = _mapper.Map<UnloadingPositionReservations>(item, opts =>
@@ -163,7 +163,7 @@ public class ReserveUnloadingPositionsHandler(IUnitOfWork unitOfWork, IErrorMana
             }
 
             await ValidateAvailabilityAsync(
-                target.Status is RackStatus.Occupied, target.Status is RackStatus.Reserved, target.Status is RackStatus.Blocked,
+                target.IsOccupied, target.IsReserved, target.IsBlocked,
                 "rack", target.PositionCode, target.Id, unloadingDetailsId, ct);
 
             return new ValidatedPosition(target, null);
@@ -183,14 +183,14 @@ public class ReserveUnloadingPositionsHandler(IUnitOfWork unitOfWork, IErrorMana
             }
 
             await ValidateAvailabilityAsync(
-                target.Status is RackStatus.Occupied, target.Status is RackStatus.Reserved, target.Status is RackStatus.Blocked,
+                target.IsOccupied, target.IsReserved, target.IsBlocked,
                 "tramo", target.PositionCode, target.Id, unloadingDetailsId, ct);
 
             return new ValidatedPosition(null, target);
         }
 
         _errorManager.ThrowBadRequest<object>(
-            "Cada posición debe indicar una posición de rack o de tramo.",
+            "Cada posición debe indicar una posición de rack o de lot.",
             "ERP:TARGET_POSITION_REQUIRED");
         return ValidatedPosition.Empty();
     }
