@@ -18,15 +18,21 @@ public class RegisterLotsControllerTest : IntegrationTestUtilsBase
     [TestCase("ALPAC")]
     public async Task RegisterLotsWhenIsSuccess(string companyAlias)
     {
-        Guid userId = await CreateUser("Adonis José Luis Carlos Rodriguez Pérez Aguilar");
+        var company = await _unitOfWork.Companies.Entities
+            .Where(company => company.IsActive && company.DeletedAt == null)
+            .Where(company => company.Alias == companyAlias)
+            .FirstAsync();
 
         var profile = await _unitOfWork.Profiles.Entities
-            .FirstAsync(p => p.UserId == userId && p.IsActive);
+            .Where(p => p.CompanyId == company.Id)
+            .FirstAsync();
+        
+        var bearerToken = AuthManager.GenerateJwtToken(EnvironmentManager.JwtKey, profile.UserId);
         
         var role = await _unitOfWork.Roles.Entities
             .FirstAsync(r => r.RoleType == RoleType.Administrator);
         
-        var lostModule = await _unitOfWork.Modules.Entities
+        var lotsModule = await _unitOfWork.Modules.Entities
             .FirstAsync(m => m.Code == "ALM-MAN-2KE4");
 
         await _unitOfWork.UserModules.AssignRolesModule(new UserModuleRoles
@@ -34,33 +40,22 @@ public class RegisterLotsControllerTest : IntegrationTestUtilsBase
            Id = Guid.NewGuid(),
            RoleId = role.Id,
            UserProfileId = profile.Id,
-           ModuleId = lostModule.Id,
-           ModuleCode = lostModule.Code,
+           ModuleId = lotsModule.Id,
+           ModuleCode = lotsModule.Code,
            IsActive = true 
         });
 
-        var bearerToken = AuthManager.GenerateJwtToken(EnvironmentManager.JwtKey, userId);
-
-        var company = await _unitOfWork.Companies.Entities
-            .Where(company => company.IsActive && company.DeletedAt == null)
-            .Where(company => company.Alias == companyAlias)
-            .FirstOrDefaultAsync(default);
+        await _unitOfWork.SaveChangesAsync(default);
 
         var section = await _unitOfWork.Sections.Entities
             .Where(section => section.IsActive && section.DeletedAt == null)
             .Where(section => section.SectionStorageType == SectionStorageType.Lots)
-            .FirstAsync() ?? throw new InvalidOperationException
-            ("No se encontró una sección de tipo Tramos.");
+            .FirstAsync();
 
         var warehouse = await _unitOfWork.Warehouses.Entities
             .FirstAsync(w => w.Id == section.WarehouseId);
 
-        var module = await _unitOfWork.Modules.Entities
-            .Where(module => module.IsActive)
-            .Where(module => module.Code == "ALM-MAN-2KE4")
-            .FirstAsync();
-
-        var moduleCode = module.Code;
+        var moduleCode = lotsModule.Code;
 
         var existingLotIds = await _unitOfWork.Lots.Entities
             .Where(lot => lot.SectionId == section.Id)
@@ -78,7 +73,7 @@ public class RegisterLotsControllerTest : IntegrationTestUtilsBase
 
         //capturar respuesta de la peticion
         var response = await SendRequestAsync(HttpMethod.Post, RegisterLotsBaseUrl
-            (company!.Id, moduleCode!, warehouse.Id, section.Id), bearerToken, payload);
+            (company.Id, moduleCode!, warehouse.Id, section.Id), bearerToken, payload);
 
         //confirmar que el resultado sea el correcto
         Assert.That(response.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.Created));
