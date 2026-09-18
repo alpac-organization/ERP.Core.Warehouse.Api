@@ -15,52 +15,14 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers.purchasing
         private const string ModuleCode = "COM-129U";
         private static string UpdatePurchaseUrl(Guid companyId, Guid purchaseRequestId) => 
             $"/api/v1/companies/{companyId}/modules/{ModuleCode}/purchase-requests/{purchaseRequestId}";
-       private static async Task<string?> ReadErrorType(HttpResponseMessage response)
-        {
-            var json = await response.Content.ReadAsStringAsync();
-            if (string.IsNullOrWhiteSpace(json)) return null;
-
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-
-            if (!TryGetPropertyIgnoreCase(root, "error", out var error))
-                return null;
-
-            if (TryGetPropertyIgnoreCase(error, "typeError", out var type) ||
-                TryGetPropertyIgnoreCase(error, "type_error", out type))
-            {
-                return type.GetString();
-            }
-
-            return null;
-        }
-
-        private static bool TryGetPropertyIgnoreCase(JsonElement element, string name, out JsonElement value)
-        {
-            if (element.TryGetProperty(name, out value))
-                return true;
-
-            foreach (var prop in element.EnumerateObject())
-            {
-                if (string.Equals(prop.Name, name, StringComparison.OrdinalIgnoreCase))
-                {
-                    value = prop.Value;
-                    return true;
-                }
-            }
-
-            value = default;
-            return false;
-        }
-
 
         [Test]
-        [TestCase("ALPAC")]
+        [TestCaseSource(nameof(AllCompanies))]
         public async Task UpdatePurchaseHeaderAndItem(string companyAlias)
         {
             // Arrange
             var (companyId, userId, token) = await ArrangeUserWithRole(RoleType.Operator, companyAlias);
-            var (requestId, itemId) = await SeedPurchaseRequestAsync(userId);
+            var (requestId, itemId) = await CreateBasePurchaseRequest(userId);
 
             var payload = new
             {
@@ -74,7 +36,7 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers.purchasing
 
             var response = await SendRequestAsync(HttpMethod.Patch, UpdatePurchaseUrl(companyId, requestId), token, payload);
 
-            // Assert
+            // Assert aqui
             response.StatusCode.Should().Be(HttpStatusCode.OK);
 
             var purchase = await _unitOfWork.PurchaseRequests.Entities
@@ -84,23 +46,25 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers.purchasing
 
             purchase.Concept.Should().Be("Cabecera actualizada");
             purchase.PriorityLevel.Should().Be(PriorityLevel.Critical);
-            purchase.PurchaseRequestItems.First().Quantity.Should().Be(15);
-            purchase.PurchaseRequestItems.First().Description.Should().Be("Ítem actualizado");
+
+            var updatedItem = purchase.PurchaseRequestItems.First();
+            updatedItem.Quantity.Should().Be(15);
+            updatedItem.Description.Should().Be("Ítem actualizado");
         }
 
         [Test]
-        [TestCase("ALPAC")]
+        [TestCaseSource(nameof(AllCompanies))]
         public async Task UpdatePurchaseImages(string companyAlias)
         {
             // Arrange
             var (companyId, userId, token) = await ArrangeUserWithRole(RoleType.Operator, companyAlias);
-            var (requestId, itemId) = await SeedPurchaseRequestAsync(userId);
+            var (requestId, itemId) = await CreateBasePurchaseRequest(userId);
 
             var payload = new
             {
                 purchase_request_items = new[]
                 {
-                    new { id = itemId, images_product_to_changed = new[] { "https://img1.png" } }
+                    new { id = itemId, images_product_to_changed = new[] { "https://imgtesting.png" } }
                 }
             };
 
@@ -108,18 +72,22 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers.purchasing
 
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.OK);
-            var item = await _unitOfWork.PurchaseRequestItems.Entities.AsNoTracking().FirstAsync(i => i.Id == itemId);
-            item.AdditionalData.Should().Contain("img1.png");
+
+            var item = await _unitOfWork.PurchaseRequestItems.Entities
+                      .AsNoTracking()
+                      .FirstAsync(i => i.Id == itemId);
+            
+            item.AdditionalData.Should().Contain("imgtesting.png");
         }
 
 
         [Test]
-        [TestCase("ALPAC")]
+        [TestCaseSource(nameof(AllCompanies))]
         public async Task UpdatePurchaseAsSupervisor(string companyAlias)
         {
             //Supervisor no puede actualizar
             var (companyId, userId, token) = await ArrangeUserWithRole(RoleType.Supervisor, companyAlias);
-            var (requestId, _) = await SeedPurchaseRequestAsync(userId);
+            var (requestId, _) = await CreateBasePurchaseRequest (userId);
 
             var response = await SendRequestAsync(HttpMethod.Patch, UpdatePurchaseUrl(companyId, requestId), token, new { observations = "test" });
 
@@ -130,15 +98,18 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers.purchasing
         }
 
         // test: Estados invalidos 
-
         [Test]
-        [TestCase("ALPAC")]
+        [TestCaseSource(nameof(AllCompanies))]
         public async Task UpdatePurchaseNotFoundOrInactive(string companyAlias)
         {
             var (companyId, userId, token) = await ArrangeUserWithRole(RoleType.Operator, companyAlias);
-            var (requestId, _) = await SeedPurchaseRequestAsync(userId, isActive: false); // Inactiva
 
-            var response = await SendRequestAsync(HttpMethod.Patch, UpdatePurchaseUrl(companyId, requestId), token, new { observations = "test" });
+            // aqui este usa el configure Invoke para setear a Inactiva
+            var (requestId, _) = await CreateBasePurchaseRequest(userId, req => req.IsActive = false); 
+
+            var body =  new { observations = "test" };
+
+            var response = await SendRequestAsync(HttpMethod.Patch, UpdatePurchaseUrl(companyId, requestId), token, body);
 
             response.StatusCode.Should().Be(HttpStatusCode.NotFound);
             var errorType = await ReadErrorType(response);
@@ -146,13 +117,17 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers.purchasing
         }
 
         [Test]
-        [TestCase("ALPAC")]
+        [TestCaseSource(nameof(AllCompanies))]
         public async Task UpdatePurchaseAsNotPending(string companyAlias)
         {
             var (companyId, userId, token) = await ArrangeUserWithRole(RoleType.Operator, companyAlias);
-            var (requestId, _) = await SeedPurchaseRequestAsync(userId, status: PurchaseRequestStatus.Approved); // Ya aprobada
+            
+            // volvemos a usar el configure para setear Approved la purchase.
+            var (requestId, _) = await CreateBasePurchaseRequest(userId, req=> req.RequestStatus = PurchaseRequestStatus.Approved); 
 
-            var response = await SendRequestAsync(HttpMethod.Patch, UpdatePurchaseUrl(companyId, requestId), token, new { observations = "test" });
+            
+            var payload = new { observations = "test" };
+            var response = await SendRequestAsync(HttpMethod.Patch, UpdatePurchaseUrl(companyId, requestId), token, payload );
 
             response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
             var errorType = await ReadErrorType(response);
@@ -161,11 +136,11 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers.purchasing
 
         // test: Reglas de prioridad
         [Test]
-        [TestCase("ALPAC")]
+        [TestCaseSource(nameof(AllCompanies))]
         public async Task UpdatePurchaseAsInvalidType(string companyAlias)
         {
             var (companyId, userId, token) = await ArrangeUserWithRole(RoleType.Operator, companyAlias);
-            var (requestId, _) = await SeedPurchaseRequestAsync(userId, requestType: PurchaseRequestType.Requisition);
+            var (requestId, _) = await CreateBasePurchaseRequest(userId, req=> req.RequestType = PurchaseRequestType.Requisition);
 
             var body = new { priority_level = PriorityLevel.None }; 
 
@@ -178,15 +153,20 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers.purchasing
         }
 
         [Test]
-        [TestCase("ALPAC")]
+        [TestCaseSource(nameof(AllCompanies))]
         public async Task UpdatePurchaseEventual(string companyAlias)
         {
             var (companyId, userId, token) = await ArrangeUserWithRole(RoleType.Operator, companyAlias);
-            var (requestId, _) = await SeedPurchaseRequestAsync(userId, requestType: PurchaseRequestType.Eventual, priority: PriorityLevel.None);
+            var (requestId, _) = await CreateBasePurchaseRequest(userId, req =>
+            {
+                req.RequestType =  PurchaseRequestType.Eventual;
+                req.PriorityLevel =  PriorityLevel.None;
+            });
 
-            var body = new { priority_level = PriorityLevel.Critical }; 
-            var response = await SendRequestAsync(HttpMethod.Patch, UpdatePurchaseUrl(companyId, requestId), token, 
-                body); // Eventual debe ser None de tipo (Ninguna)
+            var body = new { priority_level = PriorityLevel.Critical}; 
+
+            // Eventual debe ser None de tipo (Ninguna)
+            var response = await SendRequestAsync(HttpMethod.Patch, UpdatePurchaseUrl(companyId, requestId), token,body); 
 
             response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
             var errorType = await ReadErrorType(response);
@@ -196,13 +176,14 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers.purchasing
         //test: Validacion de items de la solicitud de compra 
 
         [Test]
-        [TestCase("ALPAC")]
+        [TestCaseSource(nameof(AllCompanies))]
         public async Task UpdatePurchaseWithItemIdNotFound(string companyAlias)
         {
             var (companyId, userId, token) = await ArrangeUserWithRole(RoleType.Operator, companyAlias);
-            var (requestId, _) = await SeedPurchaseRequestAsync(userId);
+            var (requestId, _) = await CreateBasePurchaseRequest(userId);
 
-            var payload = new { purchase_request_items = new[] { new { id = Guid.NewGuid(), quantity = 10 } } }; // ID Falso
+            // testeando ID Falso
+            var payload = new { purchase_request_items = new[] { new { id = Guid.NewGuid(), quantity = 10 } } }; 
 
             var response = await SendRequestAsync(HttpMethod.Patch, UpdatePurchaseUrl(companyId, requestId), token, payload);
 
@@ -212,11 +193,11 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers.purchasing
         }
 
         [Test]
-        [TestCase("ALPAC")]
+        [TestCaseSource(nameof(AllCompanies))]
         public async Task UpdatePurchaseWithQuantityZero(string companyAlias)
         {
             var (companyId, userId, token) = await ArrangeUserWithRole(RoleType.Operator, companyAlias);
-            var (requestId, itemId) = await SeedPurchaseRequestAsync(userId);
+            var (requestId, itemId) = await CreateBasePurchaseRequest(userId);
 
             var payload = new { purchase_request_items = new[] { new { id = itemId, quantity = 0 } } }; // Cantidad 0
 

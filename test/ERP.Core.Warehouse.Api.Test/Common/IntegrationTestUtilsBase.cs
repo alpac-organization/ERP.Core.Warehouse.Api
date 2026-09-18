@@ -5,11 +5,16 @@ using ERP.Core.Database.Domain.Entities.Auth;
 using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Database.Domain.Entities.Warehouse;
+using System.Text.Json;
 
 namespace ERP.Core.Warehouse.Api.Test.Common
 {
     public class IntegrationTestUtilsBase : IntegrationTestBase
     {
+        
+        //All companies here for ERP-System!, las demas clases lo heredan la Data structure.
+        protected static readonly string[] AllCompanies = ["ALPAC", "AMINSA", "AVASA", "VIGEMSA", "TMN"];  
+
         // crear usuario Dinámico por compañía
         public async Task<Guid> CreateUser(string fullname, Guid? areaId = null, string companyAlias = "ALPAC")
         {
@@ -31,14 +36,14 @@ namespace ERP.Core.Warehouse.Api.Test.Common
 
             await _unitOfWork.Users.CreateNewUser(new()
             {
-                Id = newUserId,
-                UserStatus = UserStatus.Active,
-                UserType = UserType.StandardUser,
-                UserName = $"user.{suffix}",
-                PasswordHash = "$hashpassword",
-                Fullname = fullname,
-                Email = $"testing.{suffix}@domain.com",
-                AreaId = workAreaId,
+                Id                   = newUserId,
+                UserStatus           = UserStatus.Active,
+                UserType             = UserType.StandardUser,
+                UserName             = $"user.{suffix}",
+                PasswordHash         = "$hashpassword",
+                Fullname             = fullname,
+                Email                = $"testing.{suffix}@domain.com",
+                AreaId               = workAreaId,
                 IdentificationNumber = $"001{suffix}A",
             });
 
@@ -76,115 +81,59 @@ namespace ERP.Core.Warehouse.Api.Test.Common
             
             await _unitOfWork.UserModules.AssignRolesModule(new UserModuleRoles
             {
-                Id = Guid.NewGuid(),
+                Id            = Guid.NewGuid(),
                 UserProfileId = profile!.Id,
-                RoleId = role!.Id,
-                ModuleId = module!.Id,
-                ModuleCode = moduleCode,
-                IsActive = true
+                RoleId        = role!.Id,
+                ModuleId      = module!.Id,
+                ModuleCode    = moduleCode,
+                IsActive      = true
             });
 
             await _unitOfWork.SaveChangesAsync(default);
-        }
-
-        //  Crear catalogo  
-        public async Task<(List<Guid> ProductIds, List<Guid> MeasureIds)> SeedCatalogForPurchase(
-            int productCount = 1, 
-            int measureCount = 1)
-        {
-            // 1. Crear algunas categorías variadas
-            var categoryIds = new List<Guid>();
-            for (int i = 0; i < Math.Max(1, productCount / 2); i++) // Crea 1 categoría por cada 2 productos
-            {
-                var category = await _unitOfWork.CategoryProducts.CreateCategoryProduct(new CategoryProducts
-                {
-                    Id = Guid.NewGuid(),
-                    Name = $"Categoría test {i}",
-                    Code = $"CAT-{i}",
-                    IsActive = true
-                });
-                categoryIds.Add(category.Id);
-            }
-
-            //  Crear unidades de medida variadas
-            var measureIds = new List<Guid>();
-            var measureTypes = Enum.GetValues<UnitMeasureType>(); // Obtiene todos los tipos 
-
-            for (int i = 0; i < measureCount; i++)
-            {
-                // Rota entre los diferentes tipos de medida
-                var type = measureTypes[i % measureTypes.Length]; 
-
-                var unit = await _unitOfWork.UnitsMeasurement.RegisterUnitMeasure(new UnitMeasure
-                {
-                    Id = Guid.NewGuid(),
-                    Code = $"U-{i}",
-                    Name = $"Medida {type} {i}",
-                    Symbol = $"s{i}",
-                    Description = $"Unidad de prueba tipo {type}",
-                    Type = type,
-                    IsActive = true
-                });
-                measureIds.Add(unit.Id);
-            }
-
-            //  Crear productos asignándoles categorías variadas
-            var productIds = new List<Guid>();
-            for (int i = 0; i < productCount; i++)
-            {
-                var product = await _unitOfWork.Products.InsertProduct(new Product
-                {
-                    Id = Guid.NewGuid(),
-                    ProductName = $"Producto test {i}",
-                    Description = "Producto para integration test",
-                    CategoryId = categoryIds[i % categoryIds.Count] // Rota entre las categorías creadas
-                });
-                productIds.Add(product.Id);
-            }
-
-            await _unitOfWork.SaveChangesAsync(default);
-
-            return (productIds, measureIds);
-        }
-
-        //  solicitud  base de compra 
-        protected async Task<(Guid RequestId, Guid ItemId)> SeedPurchaseRequestAsync(
+        } 
+        //  solicitud base de compra 
+        protected async Task<(Guid RequestId, Guid ItemId)> CreateBasePurchaseRequest(
             Guid registeredByUserId,
-            PurchaseRequestType requestType = PurchaseRequestType.Requisition,
-            PurchaseRequestStatus status = PurchaseRequestStatus.Pending,
-            bool isActive = true,
-            PriorityLevel priority = PriorityLevel.Normal,
-            DestinationRequest destination = DestinationRequest.Internal,
-            string? concept = "Solicitud inicial")
+            Action<PurchaseRequest>? configurePurchaseReq = null)
         {
-            var userProfile = await _unitOfWork.Profiles.Entities
-                .FirstAsync(p => p.UserId == registeredByUserId && p.IsActive);
+                var userProfile = await _unitOfWork.Profiles.Entities
+                                .FirstAsync(p => p.UserId == registeredByUserId && p.IsActive);
 
-            var user = await _unitOfWork.Users.Entities
-                .FirstAsync(u => u.Id == registeredByUserId);
+                var user = await _unitOfWork.Users.Entities
+                                .FirstAsync(u => u.Id == registeredByUserId);
 
-            var (productIds, unitMeasureIds) = await SeedCatalogForPurchase();
-            var productId = productIds.First();
-            var unitMeasureId = unitMeasureIds.First();
+                var productId = await _unitOfWork.Products.Entities
+                                .Select(p => p.Id).FirstAsync();
 
-            var requestId = Guid.NewGuid();
-            var itemId = Guid.NewGuid();
+                var unitMeasureId = await _unitOfWork.UnitsMeasurement.Entities
+                                .Select(u => u.Id).FirstAsync();
 
-            await _unitOfWork.PurchaseRequests.RegisterPurchaseRequest(new PurchaseRequest
+
+                var requestId = Guid.NewGuid();
+                var itemId = Guid.NewGuid();
+
+                var req = new PurchaseRequest
             {
                 Id = requestId,
-                IsActive = isActive,
-                Code = $"PR-{requestId.ToString("N")[..8]}",
-                Concept = concept,
+                IsActive = true,
+                Code = $"PR-{requestId}",
+                Concept = "Solicitud inicial de compra",
                 RequestDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                PriorityLevel = priority,
-                Destination = destination,
-                RequestType = requestType,
-                RequestStatus = status,
+                PriorityLevel = PriorityLevel.Normal,
+                Destination = DestinationRequest.Internal,
+                RequestType = PurchaseRequestType.Requisition,
+                RequestStatus = PurchaseRequestStatus.Pending,
                 RegisteredByUserId = registeredByUserId,
                 BranchId = userProfile.BranchId,
                 AreaId = user.AreaId
-            });
+            }; 
+
+            /* esto permite que el invoke ajuste propiedades específicas que se necesiten para el test
+             antes de crear el object,  dando flexibilidad para el testcase. */
+
+            configurePurchaseReq?.Invoke(req);
+
+            await _unitOfWork.PurchaseRequests.RegisterPurchaseRequest(req);
 
             await _unitOfWork.PurchaseRequestItems.RegisterPurchaseRequestItem(new PurchaseRequestItem
             {
@@ -217,6 +166,40 @@ namespace ERP.Core.Warehouse.Api.Test.Common
                     
             var token = AuthManager.GenerateJwtToken(EnvironmentManager.JwtKey, userId);
             return (company.Id, userId, token);
+        }
+
+        protected static async Task<string?> ReadErrorType(HttpResponseMessage response)
+        {
+            var json = await response.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(json)) return null;
+
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            if (!TryGetPropertyIgnoreCase(root, "error", out var error))
+            return null;
+
+            if (TryGetPropertyIgnoreCase(error, "typeError", out var type) || TryGetPropertyIgnoreCase(error, "type_error", out type))
+            {
+                return type.GetString();
+            }
+
+            return null;
+        }
+
+        private static bool TryGetPropertyIgnoreCase(JsonElement element, string name, out JsonElement value)
+        {
+                if (element.TryGetProperty(name, out value)) return true;
+                foreach (var prop in element.EnumerateObject())
+                {
+                     if (string.Equals(prop.Name, name, StringComparison.OrdinalIgnoreCase))
+                    {
+                         value = prop.Value;
+                         return true;
+                    }
+                }
+                         value = default;
+                         return false;
         }
     }
 }
