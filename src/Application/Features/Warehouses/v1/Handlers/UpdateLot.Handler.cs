@@ -64,16 +64,18 @@ public class UpdateLotHandler(
         var calc = await capacityCalculator.UpdateLotAsync(
             lot.Id, request.WidthMetres, request.LengthMetres, cancellationToken);
 
-        var calculatedLot = calc.Lot!;
+        if (calc.Lot is null || calc.Section is null)
+            return _errorManager.ThrowBadRequest<bool>(
+                "La sección no tiene capacidad registrada para recalcular.", "ERP:SECTION_CAPACITY_NOT_FOUND");
 
         if (lot.LotsCapacity is null)
         {
-            calculatedLot.LotsId = lot.Id;
-            await _unitOfWork.LotsCapacities.RegisterLotsCapacity(calculatedLot);
+            calc.Lot.LotsId = lot.Id;
+            await _unitOfWork.LotsCapacities.RegisterLotsCapacity(calc.Lot);
         }
         else
         {
-            _mapper.Map(calculatedLot, lot.LotsCapacity);
+            _mapper.Map(calc.Lot, lot.LotsCapacity);
             await _unitOfWork.LotsCapacities.UpdateAsync(lot.LotsCapacity);
         }
 
