@@ -2,8 +2,8 @@ using NUnit.Framework;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Test.Common;
-using ERP.Core.Warehouse.Api.Test.Common.Utils;
 using ERP.Core.Database.Domain.Entities.Auth;
+using ERP.Core.Warehouse.Api.Test.Common.Utils;
 
 namespace ERP.Core.Warehouse.Api.Test.Controllers.Warehouse;
 
@@ -29,33 +29,13 @@ public class RegisterLotsControllerTest : IntegrationTestUtilsBase
         
         var bearerToken = AuthManager.GenerateJwtToken(EnvironmentManager.JwtKey, profile.UserId);
         
-        var role = await _unitOfWork.Roles.Entities
-            .FirstAsync(r => r.RoleType == RoleType.Administrator);
-        
-        var lotsModule = await _unitOfWork.Modules.Entities
-            .FirstAsync(m => m.Code == "ALM-MAN-2KE4");
+        var moduleCode = "ALM-MAN-2KE4";
 
-        await _unitOfWork.UserModules.AssignRolesModule(new UserModuleRoles
-        {
-           Id = Guid.NewGuid(),
-           RoleId = role.Id,
-           UserProfileId = profile.Id,
-           ModuleId = lotsModule.Id,
-           ModuleCode = lotsModule.Code,
-           IsActive = true 
-        });
+        await GrantModuleAccessAsync(profile.Id, moduleCode);
 
-        await _unitOfWork.SaveChangesAsync(default);
+        var section = await GetOrCreateSectionToLotsAsync();
 
-        var section = await _unitOfWork.Sections.Entities
-            .Where(section => section.IsActive && section.DeletedAt == null)
-            .Where(section => section.SectionStorageType == SectionStorageType.Lots)
-            .FirstAsync();
-
-        var warehouse = await _unitOfWork.Warehouses.Entities
-            .FirstAsync(w => w.Id == section.WarehouseId);
-
-        var moduleCode = lotsModule.Code;
+        var warehouseId = section.WarehouseId;
 
         var existingLotIds = await _unitOfWork.Lots.Entities
             .Where(lot => lot.SectionId == section.Id)
@@ -73,7 +53,7 @@ public class RegisterLotsControllerTest : IntegrationTestUtilsBase
 
         //capturar respuesta de la peticion
         var response = await SendRequestAsync(HttpMethod.Post, RegisterLotsBaseUrl
-            (company.Id, moduleCode!, warehouse.Id, section.Id), bearerToken, payload);
+            (company.Id, moduleCode, warehouseId, section.Id), bearerToken, payload);
 
         //confirmar que el resultado sea el correcto
         Assert.That(response.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.Created));
