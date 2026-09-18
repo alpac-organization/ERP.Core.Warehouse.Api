@@ -98,7 +98,7 @@ jobs:
           ${{ runner.temp }}\scanner\dotnet-sonarscanner begin /k:"alpac-organization_ERP.Core.Warehouse.Api" /o:"alpac-organization" /d:sonar.token="$env:SONAR_TOKEN"
           dotnet build
           ${{ runner.temp }}\scanner\dotnet-sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
-          
+
   notify-docs:
     name: Disparar actualización de documentación
     if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
@@ -119,3 +119,4 @@ jobs:
                 repo: context.payload.repository?.full_name ?? context.ref,
               },
             });
+          
