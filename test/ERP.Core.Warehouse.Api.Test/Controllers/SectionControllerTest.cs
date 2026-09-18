@@ -17,6 +17,15 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
       private static string SectionBaseUrl(Guid companyId, string moduleCode, Guid warehouseId)
          => $"/api/v1/companies/{companyId}/modules/{moduleCode}/warehouses/{warehouseId}/sections";
 
+      // Testeo de coordenadas de secciones para insercion de coordenadas 
+      private static readonly object[] SectionCoordinateCases =
+      [
+         new object[] { "ALPAC", "ALM-MAN-2KE4", 1.00m, 2.00m, 3.00m, 0.00m },
+         new object[] { "ALPAC", "ALM-MAN-2KE4", -1.00m, 2.00m, 3.00m, 90.00m },
+         new object[] { "ALPAC", "ALM-MAN-2KE4", 1.00m, -2.00m, 3.00m, 270.00m },
+         new object[] { "ALPAC", "ALM-MAN-2KE4", 1.00m, 2.00m, -3.00m, 360.00m },
+      ];
+
       /*
          POST: registra una sección en un almacén que ya tiene capacidad.
       */
@@ -90,8 +99,8 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
       /*
          POST: registra coordenadas de una sección existente.
       */
-      [TestCase("ALPAC", "ALM-MAN-2KE4")]
-      public async Task RegisterSectionCoordinatesWhenIsSuccess(string companyAlias, string moduleCode)
+      [TestCaseSource(nameof(SectionCoordinateCases))]
+      public async Task RegisterSectionCoordinatesWhenIsSuccess(string companyAlias, string moduleCode, decimal positionX, decimal positionY, decimal positionZ, decimal rotationY)
       {
          // 1. Usuario con acceso de administrador al módulo
          Guid userId = await CreateUser("Carlos Alberto Mendoza Gutiérrez");
@@ -132,10 +141,10 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
          // 3. Body de la petición
          var payload = new Dictionary<string, object>
          {
-            ["position_x"] = 1.0,
-            ["position_y"] = 2,
-            ["position_z"] = 3,
-            ["rotation_y"] = 4
+            ["position_x"] = positionX,
+            ["position_y"] = positionY,
+            ["position_z"] = positionZ,
+            ["rotation_y"] = rotationY
          };
 
          var response = await SendRequestAsync(HttpMethod.Post, url, bearerToken, payload);

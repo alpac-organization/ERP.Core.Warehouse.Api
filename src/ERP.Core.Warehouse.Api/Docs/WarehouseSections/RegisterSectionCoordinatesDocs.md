@@ -68,7 +68,7 @@ Las coordenadas se registraron correctamente. El cuerpo de la respuesta puede ir
 | Persistencia | Se crea un registro en `section_coordinates` ligado a `section_id`. |
 | Sección inválida | Recibe 400: `La sección indicada no existe o no está activa.` |
 | Almacén distinto | Recibe 400: `La sección no pertenece al almacén indicado.` |
-| Validación | FluentValidation: `La coordenada en X es requerida` (igual para Y/Z), `La rotación en Y es requerida`, `La rotación Y debe estar entre 0 y 360`. |
+| Validación | `0` es válido en coordenadas y en `rotation_y`. FluentValidation: precisión de 2 decimales; `rotation_y` entre `0` y `360`. |
 
 ### ❌ 400 Bad Request
 

@@ -25,20 +25,17 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Validators
             .NotEqual(Guid.Empty).WithMessage("El almacén es requerido.");
 
          RuleFor(x => x.PositionX)
-            .NotEmpty().WithMessage("La coordenada en X es requerida")
             .PrecisionScale(18, 2, ignoreTrailingZeros: true).WithMessage("La coordenada X admite máximo 2 decimales");
 
          RuleFor(x => x.PositionY)
-            .NotEmpty().WithMessage("La coordenada en Y es requerida")
             .PrecisionScale(18, 2, ignoreTrailingZeros: true).WithMessage("La coordenada Y admite máximo 2 decimales");
 
          RuleFor(x => x.PositionZ)
-            .NotEmpty().WithMessage("La coordenada en Z es requerida")
             .PrecisionScale(18, 2, ignoreTrailingZeros: true).WithMessage("La coordenada Z admite máximo 2 decimales");
 
          RuleFor(x => x.RotationY)
-            .NotEmpty().WithMessage("La rotación en Y es requerida")
-            .InclusiveBetween(0, 360).WithMessage("La rotación Y debe estar entre 0 y 360");
+            .InclusiveBetween(0, 360).WithMessage("La rotación Y debe estar entre 0 y 360")
+            .PrecisionScale(18, 2, ignoreTrailingZeros: true).WithMessage("La rotación Y admite máximo 2 decimales");
       }
    }
 }
