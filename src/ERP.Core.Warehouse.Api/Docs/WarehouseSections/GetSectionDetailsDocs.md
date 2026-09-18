@@ -1,3 +1,5 @@
+# Almacén
+
 ## Detalle de Sección
 
 Endpoint para obtener el detalle de una sección dentro de un almacén.
@@ -7,7 +9,7 @@ Endpoint para obtener el detalle de una sección dentro de un almacén.
 | Campo | Valor |
 |-------|-------|
 | **Método**      | `GET` |
-| **Endpoint**    | `/api/v1/companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}/sections/{section_id}/details` |
+| **Endpoint**    | `/api/v1/companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{section_id}/details` |
 | **Descripción** | Retorna el detalle de una sección (`SectionDetailsDto`): código, estado, capacidad y coordenadas. |
 
 ---
@@ -54,9 +56,11 @@ Retorna un `SectionDetailsDto`.
     "percentage_available_area_with_margin_m2": 84.00
   },
   "coordinates": {
-    "position_x": 0,
-    "position_y": 0,
-    "position_z": 0
+    "section_coordinate_id": "5f8d0d55-6c8a-4a2b-9d3f-000000000021",
+    "position_x": 1.00,
+    "position_y": 2.00,
+    "position_z": 3.00,
+    "rotation_y": 4.00
   }
 }
 ```
@@ -65,9 +69,9 @@ Retorna un `SectionDetailsDto`.
 
 | Campo / regla | Descripción |
 |---|---|
-| Búsqueda | El handler localiza la sección por `section_id` e incluye `section_capacity`. |
+| Búsqueda | El handler localiza la sección por `section_id` e incluye `section_capacity` y `section_coordinates`. |
 | `capacity` | Se mapea desde `SectionCapacity`. Si la sección no tiene capacidad, el objeto puede ir vacío o nulo. |
-| `coordinates` | El mapper ignora este miembro, así que `position_x`, `position_y` y `position_z` salen con el valor por defecto (`0`). |
+| `coordinates` | Se mapea desde `SectionCoordinates` (`section_coordinate_id`, `position_x`, `position_y`, `position_z`, `rotation_y`). Si la sección no tiene coordenadas, el objeto puede ir vacío o con valores por defecto. |
 | No encontrada | Recibe 400: `No se encontro el detalle de esta solicitud`. |
 
 ### ❌ 400 Bad Request

@@ -17,7 +17,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.Warehouses;
 public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBase
 {
     [Tags("Secciones")]
-    [HttpPost("companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}/sections")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections")]
     [ProducesResponseType(typeof(CreatedResult), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
@@ -41,7 +41,7 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
     }
 
     [Tags("Coordenadas de Secciones")]
-    [HttpPost("companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}/sections/{section_id}/coordinates")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{section_id}/coordinates")]
     [ProducesResponseType(typeof(CreatedResult), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
@@ -67,7 +67,7 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
     }
 
     [Tags("Secciones")]
-    [HttpGet("companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}/sections")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections")]
     [ProducesResponseType(typeof(PagedResponse<SectionDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
@@ -101,7 +101,7 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
     }
 
     [Tags("Secciones")]
-    [HttpGet("companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}/sections/{section_id}/details")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{section_id}/details")]
     [ProducesResponseType(typeof(SectionDetailsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
@@ -125,7 +125,7 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
     }
 
     [Tags("Actualizacion de Seccion")]
-    [HttpPatch("companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}/sections/{section_id}")]
+    [HttpPatch("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{section_id}")]
     [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
@@ -151,7 +151,7 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
     }
 
     [Tags("Actualizacion de Seccion")]
-    [HttpDelete("companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}/sections/{section_id}")]
+    [HttpDelete("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{section_id}")]
     [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]

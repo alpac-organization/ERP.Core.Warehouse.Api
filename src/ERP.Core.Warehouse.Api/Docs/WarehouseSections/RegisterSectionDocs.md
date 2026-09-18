@@ -1,11 +1,15 @@
+# Almacén
+
 ## Registrar Sección
 
 Endpoint para registrar una sección dentro de un almacén de una compañía/módulo.
 
+## Información General
+
 | Campo | Valor |
 |-------|-------|
 | **Método**      | `POST` |
-| **Endpoint**    | `/api/v1/companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}/sections` |
+| **Endpoint**    | `/api/v1/companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections` |
 | **Descripción** | Registra una sección en el almacén, calcula y persiste su capacidad (`section_capacity`) y actualiza la capacidad existente del almacén (`warehouse_capacity`). |
 
 ---
@@ -43,8 +47,8 @@ Endpoint para registrar una sección dentro de un almacén de una compañía/mó
 ```json
 {
   "code": "SEC-A2",
-  "section_type": "Aisle",
-  "section_storage_type": "Racks",
+  "section_type": "Storage",
+  "section_storage_type": "Lots",
   "width": 20.00,
   "length": 25.00
 }
@@ -64,8 +68,8 @@ El recurso se creó correctamente. El cuerpo de la respuesta puede ir vacío.
 |---|---|
 | Capacidad de sección | Se calcula con `width`, `length` y `section_type` (`CalculateSectionAsync`) y se persiste en `section_capacity` (`width`, `length`, `total_area_m2`, `unused_area_m2`, `available_area_with_margin_m2`, `occupied_chargeable_area_m2`, `unoccupied_chargeable_area_m2`, `percentage_available_area_with_margin_m2`). |
 | Capacidad de almacén | El almacén **debe** tener ya un registro en `warehouse_capacity`. Tras el cálculo se actualiza ese registro con el resultado. |
-| Enums | `SectionType` y `SectionStorageType` viven en `ERP.Core.Database.Domain.Enums`. Este command no tiene `JsonNumberEnumConverter`; aplica el converter global (`JsonStringEnumConverter`). FluentValidation: `El tipo de sección no es válido.` / `El tipo de almacenaje para sección no es válido.` |
-| Valores conocidos en este repo | `SectionType.Aisle`. `SectionStorageType.Lots` y `SectionStorageType.Racks`. El catálogo puede incluir más valores. |
+| Enums | `SectionType` y `SectionStorageType` viven en `ERP.Core.Database.Domain.Enums`. Aplica el converter global (`JsonStringEnumConverter`). FluentValidation: `El tipo de sección no es válido.` / `El tipo de almacenaje para sección no es válido.` |
+| Valores conocidos en este repo | `SectionType.Storage`, `SectionType.Aisle`. `SectionStorageType.Lots` y `SectionStorageType.Racks`. El catálogo puede incluir más valores. |
 | Rol `Supervisor` | Recibe 400: `No tienes permiso para realizar esta acción`. |
 | Almacén inválido | Recibe 400: `El almacén indicado no existe o no está activo.` |
 | Código duplicado | Recibe 400: `Ya existe una sección con ese código en el almacén.` |
