@@ -22,11 +22,10 @@ jobs:
           GH_PACKAGE_TOKEN: ${{ secrets.GH_PACKAGE_TOKEN }}
         run: |
           docker build \
-            --build-arg GH_USER="$GH_USER" \
-            --build-arg GH_PACKAGE_TOKEN="$GH_PACKAGE_TOKEN" \
-            -t erp-test .
+          --build-arg GH_USER="$GH_USER" \
+          --build-arg GH_PACKAGE_TOKEN="$GH_PACKAGE_TOKEN" \
+          -t erp-test .
 
-      # ✅ SMOKE TEST REAL (esto reemplaza todo lo de chromium)
       - name: Run app and capture logs
         run: |
           echo "🚀 Iniciando contenedor..."
@@ -42,8 +41,11 @@ jobs:
   sonarqube:
     name: Build and analyze
     needs: docker-validate
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     environment: EnvironmentalVariables
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - name: Set up JDK 17
         uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
@@ -58,7 +60,7 @@ jobs:
       - name: Cache SonarQube Cloud packages
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
-          path: ~\sonar\cache
+          path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
@@ -66,39 +68,141 @@ jobs:
         id: cache-sonar-scanner
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
-          path: ${{ runner.temp }}\scanner
+          path: ${{ runner.temp }}/scanner
           key: ${{ runner.os }}-sonar-scanner
           restore-keys: ${{ runner.os }}-sonar-scanner
 
       - name: Install SonarQube Cloud scanner
         if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
-        shell: powershell
+        shell: bash
         run: |
-          New-Item -Path ${{ runner.temp }}\scanner -ItemType Directory
-          dotnet tool update dotnet-sonarscanner --tool-path ${{ runner.temp }}\scanner
+          mkdir -p "${{ runner.temp }}/scanner"
+          dotnet tool update dotnet-sonarscanner --tool-path "${{ runner.temp }}/scanner"
 
       # Necesario porque los paquetes ERP.Core.* son privados (mismo feed que usa Docker)
       - name: Setup private NuGet feed
         env:
           GH_USER: ${{ secrets.GH_USER }}
           GH_PACKAGE_TOKEN: ${{ secrets.GH_PACKAGE_TOKEN }}
-        shell: powershell
+        shell: bash
         run: |
-          dotnet nuget add source "https://nuget.pkg.github.com/alpac-organization/index.json" `
-            -n "github" `
-            -u "$env:GH_USER" `
-            -p "$env:GH_PACKAGE_TOKEN" `
+          dotnet nuget add source "https://nuget.pkg.github.com/alpac-organization/index.json" \
+            -n "github" \
+            -u "$GH_USER" \
+            -p "$GH_PACKAGE_TOKEN" \
             --store-password-in-clear-text
 
-      - name: Build and analyze
+      - name: Ensure Postgres test image
+        shell: bash
+        run: docker pull postgres:16-alpine
+
+      - name: Verify Docker daemon can run containers
+        shell: bash
+        run: |
+          docker info > /dev/null
+          docker run --rm postgres:16-alpine postgres --version
+
+      - name: Begin Sonar analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        shell: powershell
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          BRANCH_NAME: ${{ github.ref_name }}
+        shell: bash
         run: |
-          ${{ runner.temp }}\scanner\dotnet-sonarscanner begin /k:"alpac-organization_ERP.Core.Warehouse.Api" /o:"alpac-organization" /d:sonar.token="$env:SONAR_TOKEN"
-          dotnet build
-          ${{ runner.temp }}\scanner\dotnet-sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
-          
+          BRANCH_ARG=""
+          # En push a una rama (develop/main) se fija el nombre de la rama para que Sonar
+          # publique la COBERTURA TOTAL de esa rama. En PRs, SonarCloud lo detecta solo.
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            BRANCH_ARG="/d:sonar.branch.name=$BRANCH_NAME"
+          fi
+          "${{ runner.temp }}/scanner/dotnet-sonarscanner" begin \
+            /k:"alpac-organization_ERP.Core.Warehouse.Api" \
+            /o:"alpac-organization" \
+            /d:sonar.token="$SONAR_TOKEN" \
+            /d:sonar.cs.opencover.reportsPaths="$GITHUB_WORKSPACE/coverage/coverage.opencover.xml" \
+            $BRANCH_ARG
+
+      - name: Restore
+        shell: bash
+        run: dotnet restore
+
+      - name: Build
+        shell: bash
+        run: dotnet build -c Release --no-restore
+
+      - name: Run tests with coverage
+        shell: bash
+        run: |
+          # coverlet.msbuild escribe en una ruta FIJA y determinista (sin GUID aleatorio),
+          # alineada con sonar.cs.opencover.reportsPaths del paso "Begin".
+          dotnet test -c Release --no-build \
+            /p:CollectCoverage=true \
+            /p:CoverletOutput="$GITHUB_WORKSPACE/coverage/coverage.opencover.xml" \
+            /p:CoverletOutputFormat=opencover \
+            /p:IncludeTestAssembly=false \
+            --logger "console;verbosity=normal"
+
+      - name: Prepare coverage report for Sonar
+        shell: bash
+        run: |
+          # La ruta ya es determinista. Se valida que el profiler haya emitido el reporte.
+          COV="$GITHUB_WORKSPACE/coverage/coverage.opencover.xml"
+          if [ ! -f "$COV" ]; then
+            echo "::error::No se generó $COV — el profiler de coverlet no emitió reporte."
+            ls -la "$GITHUB_WORKSPACE/coverage" || true
+            exit 1
+          fi
+          echo "Reporte de cobertura: $COV"
+          head -c 500 "$COV"
+          echo ""
+
+          # Falla si el reporte no tiene NINGUNA línea cubierta: significa que los tests de
+          # integración se omitieron (p. ej. Testcontainers no levantó) y Sonar leería 0%.
+          VISITED=$(grep -m 1 -o 'visitedSequencePoints="[0-9]*"' "$COV" | tr -dc '0-9' || true)
+          echo "visitedSequencePoints: ${VISITED:-desconocido}"
+
+          if [ -z "$VISITED" ] || [ "$VISITED" -eq 0 ]; then
+            echo "::error::El reporte no tiene líneas cubiertas (visitedSequencePoints=0). Los tests de integración probablemente se omitieron por Docker/Testcontainers."
+            exit 1
+          fi
+
+      # Deja la cobertura TOTAL visible en el resumen del run (útil al fusionar a develop).
+      - name: Publish total coverage in job summary
+        if: always()
+        env:
+          BRANCH_NAME: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          COV="$GITHUB_WORKSPACE/coverage/coverage.opencover.xml"
+          if [ ! -f "$COV" ]; then
+            echo "No hay reporte de cobertura para resumir." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          COVERAGE=$(grep -m 1 -o 'sequenceCoverage="[0-9.]*"' "$COV" | tr -dc '0-9.' || true)
+          VISITED=$(grep -m 1 -o 'visitedSequencePoints="[0-9]*"' "$COV" | tr -dc '0-9' || true)
+          TOTAL=$(grep -m 1 -o 'numSequencePoints="[0-9]*"' "$COV" | tr -dc '0-9' || true)
+
+          {
+            echo "## Cobertura total de pruebas (OpenCover)"
+            echo ""
+            echo "| Métrica | Valor |"
+            echo "|---|---|"
+            echo "| Cobertura total (líneas) | ${COVERAGE:-0}% |"
+            echo "| Líneas cubiertas | ${VISITED:-0} / ${TOTAL:-0} |"
+            echo "| Rama | ${BRANCH_NAME:-N/A} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: End Sonar analysis
+        if: always()
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          "${{ runner.temp }}/scanner/dotnet-sonarscanner" end /d:sonar.token="$SONAR_TOKEN"
+
   notify-docs:
     name: Disparar actualización de documentación
     if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
