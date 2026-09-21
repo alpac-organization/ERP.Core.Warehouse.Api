@@ -54,6 +54,7 @@ public abstract class BaseLotsCapacityHandler<TRequest>(
     {
         var lot = await _unitOfWork.Lots.Entities
             .Include(l => l.LotsCapacity)
+            .Include(l => l.Positions)
             .FirstOrDefaultAsync(
                 l => l.Id == lotId
                     && l.SectionId == sectionId

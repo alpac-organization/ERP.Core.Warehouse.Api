@@ -20,10 +20,15 @@ public class UpdateLotValidator : BaseRequestValidator<UpdateLotCommand>
             .NotEmpty()
             .WithMessage("El tramo es obligatorio.");
 
-        RuleFor(x => x.Code)
-            .MaximumLength(50)
-            .When(x => x.Code != null)
-            .WithMessage("El código del tramo no puede superar los 50 caracteres.");
+        RuleFor(x => x.NominalRows)
+            .GreaterThan(0)
+            .When(x => x.NominalRows.HasValue)
+            .WithMessage("Las filas deben ser mayor que 0.");
+
+        RuleFor(x => x.NominalColumns)
+            .GreaterThan(0)
+            .When(x => x.NominalColumns.HasValue)
+            .WithMessage("Las columnas deben ser mayor que 0.");
 
         RuleFor(x => x.WidthMetres)
             .GreaterThan(0)

@@ -16,7 +16,8 @@ public class UpdateLotCommand : BaseRequest, IRequest<bool>
     [JsonIgnore]
     public Guid LotId { get; set; }
 
-    public string? Code { get; set; }
+    public int? NominalRows { get; set; }
+    public int? NominalColumns { get; set; }
     public decimal? WidthMetres { get; set; }
     public decimal? LengthMetres { get; set; }
     public bool? AllowsStacking { get; set; }
