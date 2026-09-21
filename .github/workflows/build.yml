@@ -121,6 +121,7 @@ jobs:
             /o:"alpac-organization" \
             /d:sonar.token="$SONAR_TOKEN" \
             /d:sonar.cs.opencover.reportsPaths="$GITHUB_WORKSPACE/coverage/coverage.opencover.xml" \
+            /d:sonar.sources="$GITHUB_WORKSPACE/src" \
             $BRANCH_ARG
 
       - name: Restore
