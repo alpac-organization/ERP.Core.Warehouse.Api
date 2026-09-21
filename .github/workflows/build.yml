@@ -41,7 +41,6 @@ jobs:
   sonarqube:
     name: Build and analyze
     needs: docker-validate
-    # Linux: Testcontainers + Postgres (Linux) funcionan de forma estable, no así en windows-latest.
     runs-on: ubuntu-latest
     environment: EnvironmentalVariables
     permissions:
