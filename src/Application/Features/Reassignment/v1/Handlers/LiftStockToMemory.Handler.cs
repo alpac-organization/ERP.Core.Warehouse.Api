@@ -11,7 +11,7 @@ using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Handlers;
 
-public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper, SessionAccessValidator sessionValidator)
+public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
     : BaseValidatorHandler<LiftStockToMemoryCommand, List<ReassignmentMemoryItemDto>>(unitOfWork, errorManager)
 {
     public override async Task<List<ReassignmentMemoryItemDto>> Handle(LiftStockToMemoryCommand request, CancellationToken cancellationToken)
