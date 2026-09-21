@@ -88,7 +88,7 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
                 return;
             }
 
-            if (target.IsOccupied || target.IsReserved || target.IsBlocked)
+      /*       if (target.IsOccupied || target.IsReserved || target.IsBlocked)
             {
                 _errorManager.ThrowBadRequest<object>(
                     $"La posición destino rack {target.PositionCode} no está disponible.",
@@ -96,7 +96,7 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
                 return;
             }
 
-            target.IsReserved = true;
+            target.IsReserved = true; */
         }
 
         if (item.TargetLotPositionId.HasValue)
@@ -112,7 +112,7 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
                 return;
             }
 
-            if (target.IsOccupied || target.IsReserved || target.IsBlocked)
+           /*  if (target.IsOccupied || target.IsReserved || target.IsBlocked)
             {
                 _errorManager.ThrowBadRequest<object>(
                     $"La posición destino tramo {target.PositionCode} no está disponible.",
@@ -120,7 +120,7 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
                 return;
             }
 
-            target.IsReserved = true;
+            target.IsReserved = true; */
         }
     }
 
@@ -131,10 +131,10 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
         placement.VacatedByUserId = userId;
         placement.VacatedByMemoryItemId = memoryItem.Id;
 
-        if (placement.RackPosition is not null)
+       /*  if (placement.RackPosition is not null)
             placement.RackPosition.IsOccupied = false;
 
         if (placement.LotPosition is not null)
-            placement.LotPosition.IsOccupied = false;
+            placement.LotPosition.IsOccupied = false; */
     }
 }
