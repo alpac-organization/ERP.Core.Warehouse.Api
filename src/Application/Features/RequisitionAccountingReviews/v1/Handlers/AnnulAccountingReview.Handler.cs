@@ -58,66 +58,35 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 return _errorManager.ThrowBadRequest<bool>("La solicitud ya fue aprobada por gerencia o tiene una orden de compra emitida, no se puede anular ni retornar desde contabilidad", "ERP:PURCHASE_REQUEST_ALREADY_APPROVED");
             }
 
-            var now = DateTime.UtcNow;
-            accountingReview.ReviewedByUserId = access.User.Id;
-
-            switch (request.Scope)
+            if (request.Scope != AnnulmentScope.QuotationOnly && request.Scope != AnnulmentScope.FullProcess)
             {
-                case AnnulmentScope.QuotationOnly:
+                return _errorManager.ThrowBadRequest<bool>("El alcance de la anulación no es válido", "ERP:INVALID_SCOPE");
+            }
+
+            var now = DateTime.UtcNow;
+            var isQuotationOnly = request.Scope == AnnulmentScope.QuotationOnly;
+
+            accountingReview.ReviewedByUserId = access.User.Id;
+            accountingReview.Status = isQuotationOnly ? AccountingReviewStatus.Returned : AccountingReviewStatus.Rejected;
+            accountingReview.DeletedAt = now;
+
+            purchaseRequest.RequestStatus = isQuotationOnly ? PurchaseRequestStatus.Approved : PurchaseRequestStatus.Rejected;
+            purchaseRequest.AnnulmentReason = request.Reason;
+            purchaseRequest.AnnulledByUserId = access.User.Id;
+            purchaseRequest.DeletedAt = isQuotationOnly ? null : now;
+
+            foreach (var item in purchaseRequest.PurchaseRequestItems)
+            {
+                item.HasQuotation = false;
+                await _unitOfWork.PurchaseRequestItems.UpdateAsync(item);
+
+                foreach (var quote in item.Quotations)
                 {
-                    accountingReview.Status = AccountingReviewStatus.Returned;
-                    accountingReview.DeletedAt = now;
-
-                    // Desmarcar y anular lógicamente cotizaciones y resetear bandera en items
-                    foreach (var item in purchaseRequest.PurchaseRequestItems)
-                    {
-                        item.HasQuotation = false;
-                        await _unitOfWork.PurchaseRequestItems.UpdateAsync(item);
-
-                        foreach (var quote in item.Quotations)
-                        {
-                            quote.IsActive = false;
-                            quote.IsAcceptedForPurchase = false;
-                            quote.DeletedAt = now;
-                            await _unitOfWork.Quotations.UpdateAsync(quote);
-                        }
-                    }
-
-                    // La solicitud se mantiene viva y con estado Approved para que Compras vuelva a cotizar
-                    purchaseRequest.RequestStatus = PurchaseRequestStatus.Approved;
-                    purchaseRequest.AnnulmentReason = request.Reason;
-                    purchaseRequest.AnnulledByUserId = access.User.Id;
-                    purchaseRequest.DeletedAt = null;
-                    break;
+                    quote.IsActive = false;
+                    quote.IsAcceptedForPurchase = false;
+                    quote.DeletedAt = now;
+                    await _unitOfWork.Quotations.UpdateAsync(quote);
                 }
-                case AnnulmentScope.FullProcess:
-                {
-                    accountingReview.Status = AccountingReviewStatus.Rejected;
-                    accountingReview.DeletedAt = now;
-
-                    foreach (var item in purchaseRequest.PurchaseRequestItems)
-                    {
-                        item.HasQuotation = false;
-                        await _unitOfWork.PurchaseRequestItems.UpdateAsync(item);
-
-                        foreach (var quote in item.Quotations)
-                        {
-                            quote.IsActive = false;
-                            quote.IsAcceptedForPurchase = false;
-                            quote.DeletedAt = now;
-                            await _unitOfWork.Quotations.UpdateAsync(quote);
-                        }
-                    }
-
-                    // Se anula definitivamente la solicitud completa
-                    purchaseRequest.RequestStatus = PurchaseRequestStatus.Rejected;
-                    purchaseRequest.AnnulmentReason = request.Reason;
-                    purchaseRequest.AnnulledByUserId = access.User.Id;
-                    purchaseRequest.DeletedAt = now;
-                    break;
-                }
-                default:
-                    return _errorManager.ThrowBadRequest<bool>("El alcance de la anulación no es válido", "ERP:INVALID_SCOPE");
             }
 
             await _unitOfWork.PurchaseRequestsReviewedAccounting.UpdateAsync(accountingReview);
