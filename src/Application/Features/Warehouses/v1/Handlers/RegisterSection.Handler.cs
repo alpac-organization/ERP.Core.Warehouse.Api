@@ -32,6 +32,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
                 return _errorManager.ThrowBadRequest<bool>("El almacén indicado no existe o no está activo.", "ERP:01");
             }
 
+            if (request.SectionType == SectionType.Aisle && request.SectionStorageType == SectionStorageType.Racks)
+            {
+                return _errorManager.ThrowBadRequest<bool>("Una sección de tipo pasillo no admite almacenamiento en racks.", "ERP:SECTION_STORAGE_MISMATCH");
+            }
+
             var codeExists = await _unitOfWork.Sections.Entities
                 .AnyAsync(s =>
                     s.WarehouseId == request.WarehouseId &&
@@ -60,7 +65,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
             }
 
             var sectionCapacity = SectionMapper.ToSectionCapacityEntity(request, section.Id, capacityCalculation.Section);
-            
+
             var warehouseCapacity = await _unitOfWork.WarehouseCapacities.Entities
                 .FirstOrDefaultAsync(c => c.WarehouseId == request.WarehouseId, cancellationToken);
 
@@ -72,7 +77,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
             _mapper.Map(capacityCalculation.Warehouse, warehouseCapacity);
 
             await _unitOfWork.Sections.RegisterSection(section);
-            await _unitOfWork.SectionCapacities.RegisterSectionCapacity(sectionCapacity);            
+            await _unitOfWork.SectionCapacities.RegisterSectionCapacity(sectionCapacity);
             await _unitOfWork.WarehouseCapacities.UpdateAsync(warehouseCapacity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
