@@ -16,10 +16,10 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
 {
     public override async Task<List<ReassignmentMemoryItemDto>> Handle(LiftStockToMemoryCommand request, CancellationToken cancellationToken)
     {
-        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
-        if (!access.IsSuccess) return access.ErrorResponse!;
+        //var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+        //if (!access.IsSuccess) return access.ErrorResponse!;
 
-        var session = await sessionValidator.ValidateSession(request.SessionId, request.UserId.ToString(), cancellationToken);
+        //var session = await sessionValidator.ValidateSession(request.SessionId, request.UserId.ToString(), cancellationToken);
 
         var nowNica = NicaraguaClock.Now;
         var nowDate = DateOnly.FromDateTime(nowNica);
@@ -27,8 +27,8 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
 
         var createdItems = new List<ReassignmentMemoryItemDto>();
 
-        foreach (var item in request.Items)
-            createdItems.Add(await ProcessLiftItem(item, session, request.UserId.ToString(), nowDate, nowTime, cancellationToken));
+        /* foreach (var item in request.Items)
+            createdItems.Add(await ProcessLiftItem(item, session, request.UserId.ToString(), nowDate, nowTime, cancellationToken)); */
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -131,10 +131,11 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
         placement.VacatedByUserId = userId;
         placement.VacatedByMemoryItemId = memoryItem.Id;
 
-        if (placement.RackPosition is not null)
+       /*  if (placement.RackPosition is not null)
             placement.RackPosition.IsOccupied = false;
 
         if (placement.LotPosition is not null)
+            placement.LotPosition.IsOccupied = false;
             placement.LotPosition.IsOccupied = false; */
     }
 }

@@ -283,6 +283,7 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
          Assert.That(root.TryGetProperty("is_active", out _), Is.True);
          Assert.That(root.TryGetProperty("capacity", out _), Is.True);
          Assert.That(root.TryGetProperty("coordinates", out _), Is.True);
+         Assert.That(root.TryGetProperty("warehouse", out _), Is.True);
       }
 
       /*

@@ -23,6 +23,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
             }
 
             var reviewsQuery = _unitOfWork.PurchaseRequestsReviewedAccounting.Entities
+                .Where(rev => rev.DeletedAt == null)
                 .Include(rev => rev.SentByUser)
                     .ThenInclude(user => user.WorkArea)
                 .Include(rev => rev.PurchaseRequest)
