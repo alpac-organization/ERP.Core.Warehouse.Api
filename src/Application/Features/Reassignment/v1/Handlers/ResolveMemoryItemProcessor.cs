@@ -72,7 +72,7 @@ public class ResolveMemoryItemProcessor(
             return;
         }
 
-    /*     if (!target.IsReserved || target.IsOccupied || target.IsBlocked)
+        /* if (!target.IsReserved || target.IsOccupied || target.IsBlocked)
         {
             errorManager.ThrowBadRequest<object>(
                 $"La posición destino rack {target.PositionCode} no está reservada para este polín.",
@@ -81,8 +81,8 @@ public class ResolveMemoryItemProcessor(
         }
 
         target.IsReserved = false;
-        target.IsOccupied = true;
- */
+        target.IsOccupied = true; */
+
         await InsertDestinationPlacement(memoryItem, target.Id, null, userIdStr, nowDate, nowTime, ct);
 
         ResolveMemoryItem(memoryItem, userIdStr, nowDate, nowTime);
@@ -107,6 +107,7 @@ public class ResolveMemoryItemProcessor(
         }
 
         /* if (!target.IsReserved || target.IsOccupied || target.IsBlocked)
+        /* if (!target.IsReserved || target.IsOccupied || target.IsBlocked)
         {
             errorManager.ThrowBadRequest<object>(
                 $"La posición destino tramo {target.PositionCode} no está reservada para este polín.",
@@ -115,6 +116,7 @@ public class ResolveMemoryItemProcessor(
         }
 
         target.IsReserved = false;
+        target.IsOccupied = true;
         target.IsOccupied = true; */
 
         await InsertDestinationPlacement(memoryItem, null, target.Id, userIdStr, nowDate, nowTime, ct);
