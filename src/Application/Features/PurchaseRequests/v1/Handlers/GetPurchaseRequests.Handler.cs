@@ -44,8 +44,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 if (access.Role?.RoleType == RoleType.Manager)
                 {
                     //Obtener todas las solicitudes del area del usuario
-                    // purchaseRequestsQuery = purchaseRequestsQuery
-                    //     .Where(pur => pur.AreaId == access.User.AreaId);
+                    purchaseRequestsQuery = purchaseRequestsQuery
+                        .Where(pur => pur.AreaId == access.Profile.AreaId);
                 }
             }
 
@@ -56,7 +56,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             var totalRecords = await purchaseRequestsQuery.CountAsync(cancellationToken);
 
             var purchaseRequests = await purchaseRequestsQuery
-                .OrderByDescending(quo => quo.CreatedAt)
+                .OrderByDescending(purs => purs.CreatedAt)
                 .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .ToListAsync(cancellationToken);
