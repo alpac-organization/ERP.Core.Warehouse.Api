@@ -25,6 +25,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
             var reviewsQuery = _unitOfWork.PurchaseRequestsReviewedManagement.Entities
                 .Where(rev => rev.DeletedAt == null)
                 .Include(rev => rev.SentByUser)
+                    .ThenInclude(pur => pur.Profiles
+                        .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                        .Take(1)
+                    )
+                    .ThenInclude(profile => profile.WorkArea)
 
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(rev => rev.WorkArea)
@@ -33,10 +38,23 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                     .ThenInclude(rev => rev.PurchaseRequestItems)
 
                 .Include(rev => rev.PurchaseRequest)
+                    .ThenInclude(rev => rev.CostCenter)
+
+                .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(rev => rev.UserRevision)
+                        .ThenInclude(pur => pur.Profiles
+                            .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                            .Take(1)
+                        )
+                        .ThenInclude(profile => profile.WorkArea)
 
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(rev => rev.RegistrationUser)
+                        .ThenInclude(pur => pur.Profiles
+                            .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                            .Take(1)
+                        )
+                        .ThenInclude(profile => profile.WorkArea)
                 .AsNoTracking();
 
             if (request.BranchId.HasValue)

@@ -20,8 +20,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 
                 //Agregar un tercer nivel de centros de costo para contabilidad.
                 .ForPath(dest => dest.PurchaseRequest, opt => opt.MapFrom(src => src.PurchaseRequest))
+                .ForPath(dest => dest.PurchaseRequest.CostCenterInformation, opt => opt.MapFrom(src => src.PurchaseRequest.CostCenter))
                 .ForPath(dest => dest.PurchaseRequest.InformationFromRequestingArea, opt => opt.MapFrom(src => src.PurchaseRequest.WorkArea))
-                .ForPath(dest => dest.PurchaseRequest.InformationFromRequestingArea.CostCenters, opt => opt.MapFrom(src => src.PurchaseRequest.WorkArea.CostCenters))
                 
                 .ForPath(dest => dest.SentByUserInformation,                     opt => opt.MapFrom(src => src.SentByUser));
 
