@@ -32,6 +32,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 //your methond here
 
                 .ForPath(dest => dest.PurchaseRequestDetails, opt => opt.MapFrom(src => src.PurchaseRequest))
+                .ForPath(dest => dest.PurchaseRequestDetails.CostCenterInformation, opt => opt.MapFrom(src => src.PurchaseRequest.CostCenter))
                 .ForPath(dest => dest.PurchaseRequestDetails.BranchInformation, opt => opt.MapFrom(src => src.PurchaseRequest.Branch))
 
                 .ForPath(dest => dest.PurchaseRequestDetails.CreatorUserInformation, opt => opt.MapFrom(src => src.PurchaseRequest.RegistrationUser));

@@ -23,13 +23,24 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
 
             var reviewsQuery = await _unitOfWork.PurchaseRequestsReviewedManagement.Entities
                 .Include(rev => rev.SentByUser)
-
+                    .ThenInclude(pur => pur.Profiles
+                        .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                        .Take(1)
+                    )
+                    .ThenInclude(profile => profile.WorkArea)
+                    
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(rev => rev.PurchaseRequestItems)
                         .ThenInclude(item => item.Quotations.Where(q => q.IsActive && q.DeletedAt == null))
                             .ThenInclude(q => q.Supplier)
+
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(rev => rev.RegistrationUser)
+                        .ThenInclude(pur => pur.Profiles
+                            .Where(profile => profile.CompanyId == access.Profile.CompanyId)  // ← Filtra por compañía ACTUAL
+                            .Take(1)
+                        )
+                        .ThenInclude(profile => profile.WorkArea)
 
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(rev => rev.Branch)
@@ -39,6 +50,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
 
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(rev => rev.WorkArea)
+
+                .Include(rev => rev.PurchaseRequest)
+                    .ThenInclude(rev => rev.CostCenter)
 
                 .Where(review => review.Id == request.RequisitionManagementReviewsId)
                 .FirstOrDefaultAsync(cancellationToken);

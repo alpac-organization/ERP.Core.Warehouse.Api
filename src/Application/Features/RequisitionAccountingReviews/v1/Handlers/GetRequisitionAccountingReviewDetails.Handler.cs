@@ -22,6 +22,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
             }
 
             var review = await _unitOfWork.PurchaseRequestsReviewedAccounting.Entities
+                .Include(rev => rev.PurchaseRequest)
+                    .ThenInclude(purs => purs.CostCenter)
+
                 //Usuario que envia la solicitud a revición
                 .Include(rev => rev.SentByUser)
 
@@ -37,9 +40,19 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 //Usuario que registro la solicitud de compra
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.RegistrationUser)
+                        .ThenInclude(pur => pur.Profiles
+                            .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                            .Take(1)
+                        )
+                        .ThenInclude(profile => profile.WorkArea)
 
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.UserRevision)
+                        .ThenInclude(pur => pur.Profiles
+                            .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                            .Take(1)
+                        )
+                        .ThenInclude(profile => profile.WorkArea)
 
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.PurchaseRequestItems)
@@ -48,6 +61,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.PurchaseRequestItems)
                         .ThenInclude(item => item.Product)
+
+                .Include(rev => rev.PurchaseRequest)
+                    .ThenInclude(pur => pur.CostCenter)
 
                 .AsNoTracking()
                 .Where(rev => rev.Id == request.RequisitionAccountingReviewId)
