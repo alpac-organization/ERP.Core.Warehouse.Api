@@ -49,7 +49,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             {
 
                 //Cambiar esto.
-                Guid areaId = access.Profile.AreaId ?? Guid.Empty;
+                Guid areaId = access.Profile.AreaId;
 
                 if (access.Role?.RoleType == RoleType.Administrator && purchaseRequest.AreaId.HasValue)
                 {

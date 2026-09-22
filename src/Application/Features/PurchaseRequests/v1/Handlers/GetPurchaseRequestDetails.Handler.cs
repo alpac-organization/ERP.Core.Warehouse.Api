@@ -20,14 +20,22 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             }
 
             var purchaseRequest = await _unitOfWork.PurchaseRequests.Entities
-                .Include(pur => pur.UserRevision)
-
-                .Include(pur => pur.RegistrationUser)
-
                 .Include(pur => pur.Branch)
+                .Include(pur => pur.RegistrationUser)
+                    .ThenInclude(pur => pur.Profiles
+                        .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                        .Take(1)
+                    )
+                    .ThenInclude(profile => profile.WorkArea)
+
+                .Include(pur => pur.UserRevision)
+                    .ThenInclude(pur => pur.Profiles
+                        .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                        .Take(1)
+                    )
+                    .ThenInclude(profile => profile.WorkArea)
 
                 .Include(pur => pur.WorkArea)
-                    .ThenInclude(area => area.CostCenters)
 
                 .Include(pur => pur.PurchaseRequestItems)
                     .ThenInclude(item => item.Product)
@@ -37,11 +45,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     .ThenInclude(item => item.UnitMeasure)
 
                 .Where(pur => pur.Id == request.PurchaseRequestId)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (purchaseRequest is null)
             {
-                return _errorManager.ThrowBadRequest<PurchaseRequestDetailsDto>("No se encontro el detalle de esta solicitud", "ERP:NOT_FOUND");
+                return _errorManager.ThrowNotFound<PurchaseRequestDetailsDto>("No se encontro el detalle de esta solicitud", "ERP:NOT_FOUND");
             }
 
             return _mapper.Map<PurchaseRequestDetailsDto>(purchaseRequest);        
