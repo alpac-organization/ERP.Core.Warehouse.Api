@@ -8,9 +8,17 @@ public class GetSectionsValidator : BasePagedQueryValidator<GetSectionsQuery>
 {
     public GetSectionsValidator()
     {
+        RuleFor(x => x.WarehouseId)
+            .NotEmpty().WithMessage("El id del almacén es requerido");
+
         RuleFor(x => x.SectionType)
             .IsInEnum()
             .When(x => x.SectionType.HasValue)
             .WithMessage("El tipo de seccion no es válido.");
+
+        RuleFor(x => x.SectionStorageType)
+            .IsInEnum()
+            .When(x => x.SectionStorageType.HasValue)
+            .WithMessage("El tipo de almacenaje no es válido.");
     }
 }

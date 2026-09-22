@@ -13,6 +13,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Comman
     {
         public Guid? AreaId { get; set; }
         public Guid BranchId { get; set; }
+        public Guid CostCenterId { get; set; }
         public string? Observations { get; set; }
 
         public PriorityLevel? PriorityLevel { get; set; }

@@ -8,7 +8,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Dtos
 
         public string Code { get; set; } = null!;
 
-        public OSStatus Status { get; set; }
 
         public string? Observations { get; set; }
 

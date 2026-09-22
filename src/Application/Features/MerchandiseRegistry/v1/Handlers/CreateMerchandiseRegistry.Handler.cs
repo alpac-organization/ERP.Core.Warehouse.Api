@@ -8,7 +8,6 @@ using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Commons.Constants;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
-using ServiceOrderEntity = ERP.Core.Database.Domain.Entities.Warehouse.ServiceOrder;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Commands;
 namespace ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Handlers;
 
@@ -157,11 +156,6 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
             return _errorManager.ThrowBadRequest<bool>(
                 "Este DUCA ya tiene un detalle registrado. Use la edición para modificarlo.",
                 "ERP:DUCAT_DETAIL_ALREADY_EXISTS");
-            
-        if (entranceDucat.ServiceOrderId != null)
-            return _errorManager.ThrowBadRequest<bool>(
-                "Este DUCA ya tiene una orden de servicio asignada.",
-                "ERP:DUCAT_SERVICE_ORDER_ALREADY_ASSIGNED");
         #endregion
 
         #region 2. Validacion de Mercaderia
@@ -175,12 +169,6 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
                 "ERP:MERCHANDISE_NOT_FOUND");
         #endregion
 
-        #region 2.b Validacion de orden de servicio
-        var serviceOrder = await MerchandiseWorkflowHelper.ValidateAndFindServiceOrderAsync(
-            _unitOfWork, _errorManager, request.ServiceOrderId, cancellationToken);
-        if (serviceOrder == null)
-            return false;
-        #endregion
 
         #region 3. Usuario actual
         var user = await _unitOfWork.Users.Entities
@@ -211,8 +199,6 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
         registryDetail.RegisteredEndTime = now;
 
         await _unitOfWork.DucatRegistryDetails.RegisterDucatRegistryDetails(registryDetail);
-        entranceDucat.ServiceOrderId = serviceOrder.Id;
-        entranceDucat.ServiceOrderCode = serviceOrder.Code;
         entranceDucat.Status = DucaStatus.Completed;
         #endregion
 
@@ -247,96 +233,6 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
     }
 }
 
-#region Asignar OS a Declaracion Aduanera
-public class AssignServiceOrderToCustomsDeclarationHandlers(IUnitOfWork unitOfWork, IErrorManager errorManager)
-    : BaseValidatorHandler<AssignServiceOrderToCustomsDeclarationCommand, bool>(unitOfWork, errorManager)
-{
-    public override async Task<bool> Handle(AssignServiceOrderToCustomsDeclarationCommand request, CancellationToken cancellationToken)
-    {
-        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
-        if (!access.IsSuccess) return access.ErrorResponse!;
-
-        var workflowError = await MerchandiseWorkflowHelper.ValidateMerchandiseWorkflowStepAsync(_unitOfWork, _errorManager, cancellationToken);
-        if (workflowError.HasValue) return workflowError.Value;
-
-        var recordEntrance = await _unitOfWork.RecordEntrance.Entities
-            .Include(r => r.ReceptionEntrance!)
-            .Include(r => r.CustomsDeclarations!)
-            .FirstOrDefaultAsync(r => r.Id == request.ReceptionId && r.DeletedAt == null, cancellationToken);
-
-        if (recordEntrance == null || recordEntrance.ReceptionEntrance == null)
-            return _errorManager.ThrowBadRequest<bool>(
-                "El registro de recepción no fue encontrado o ya ha sido eliminado.",
-                "ERP:RECEPTION_NOT_FOUND");
-
-        if (recordEntrance.ReceptionEntrance.DocumentType != DocumentType.CustomsDeclaration)
-            return _errorManager.ThrowBadRequest<bool>(
-                "Esta operación solo aplica para recepciones de tipo Declaración Aduanera.",
-                "ERP:INVALID_DOCUMENT_TYPE");
-
-        if (recordEntrance.CustomsDeclarations == null)
-            return _errorManager.ThrowBadRequest<bool>(
-                "Esta recepción no tiene una declaración aduanera registrada.",
-                "ERP:CUSTOMS_DECLARATION_NOT_FOUND");
-
-        if (recordEntrance.CustomsDeclarations.ServiceOrderId != null)
-            return _errorManager.ThrowBadRequest<bool>(
-                "Esta declaración aduanera ya tiene una orden de servicio asignada.",
-                "ERP:CUSTOMS_DECLARATION_SERVICE_ORDER_ALREADY_ASSIGNED");
-
-        var serviceOrder = await MerchandiseWorkflowHelper.ValidateAndFindServiceOrderAsync(
-            _unitOfWork, _errorManager, request.ServiceOrderId, cancellationToken);
-        if (serviceOrder == null)
-            return false;
-
-        var currentUserName = await MerchandiseWorkflowHelper.GetProcessedUserNameAsync(_unitOfWork, request.UserId, cancellationToken);
-        if (currentUserName == null)
-            return _errorManager.ThrowBadRequest<bool>(
-                "No se pudo identificar al usuario autenticado en el sistema.",
-                "ERP:USER_NOT_FOUND");
-
-        var today = NicaraguaClock.Today;
-        var now = NicaraguaClock.TimeNow;
-
-        recordEntrance.CustomsDeclarations.ServiceOrderId = serviceOrder.Id;
-        recordEntrance.CustomsDeclarations.ServiceOrderCode = serviceOrder.Code;
-        recordEntrance.CustomsDeclarations.Status = DucaStatus.Completed;
-
-        #region StepExecutionLog - Registro de Mercadería (Declaración Aduanera)
-        var executionLog = await _unitOfWork.StepExecutionLogs.Entities
-            .FirstOrDefaultAsync(l =>
-                l.RecordEntranceId == recordEntrance.Id &&
-                l.WorkflowStepDefinitionCode == WorkflowStepCodes.Merchandise,
-                cancellationToken);
-
-        if (executionLog == null)
-        {
-            executionLog = new StepExecutionLogs
-            {
-                Id = Guid.NewGuid(),
-                RecordEntranceId = recordEntrance.Id,
-                WorkflowStepDefinitionCode = WorkflowStepCodes.Merchandise,
-                StartDate = request.RegisteredStartDate ?? today,
-                StartTime = request.RegisteredStartTime ?? now,
-                EndDate = today,
-                EndTime = now,
-                ProcessedByUserId = request.UserId.ToString(),
-                ProcessedByUserName = currentUserName,
-                FinishedByUserId = request.UserId.ToString(),
-                FinishedByUserName = currentUserName
-            };
-            await _unitOfWork.StepExecutionLogs.InsertExecutionLog(executionLog);
-        }
-        #endregion
-
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        return true;
-
-    }
-}
-#endregion
-
 #region Helpers compartidos
 internal static class MerchandiseWorkflowHelper
 {
@@ -365,37 +261,6 @@ internal static class MerchandiseWorkflowHelper
 
         if (user == null) return null;
         return user.Fullname ?? user.UserName ?? userId.ToString();
-    }
-
-    internal static async Task<ServiceOrderEntity?> ValidateAndFindServiceOrderAsync(
-        IUnitOfWork unitOfWork, IErrorManager errorManager, Guid serviceOrderId, CancellationToken ct)
-    {
-        var serviceOrder = await unitOfWork.ServiceOrders.Entities
-            .AsNoTracking()
-            .FirstOrDefaultAsync(so => so.Id == serviceOrderId && so.DeletedAt == null, ct);
-
-        if (serviceOrder == null)
-        {
-            errorManager.ThrowBadRequest<bool>(
-                "La orden de servicio indicada no existe.",
-                "ERP:SERVICE_ORDER_NOT_FOUND");
-            return null;
-        }
-
-        var alreadyUsed = await unitOfWork.EntranceDucats.Entities
-            .AnyAsync(d => d.ServiceOrderId == serviceOrderId && d.DeletedAt == null, ct)
-            || await unitOfWork.CustomsDeclarations.Entities
-                .AnyAsync(c => c.ServiceOrderId == serviceOrderId && c.DeletedAt == null, ct);
-
-        if (alreadyUsed)
-        {
-            errorManager.ThrowBadRequest<bool>(
-                "La orden de servicio indicada ya está asignada a otro documento.",
-                "ERP:SERVICE_ORDER_ALREADY_IN_USE");
-            return null;
-        }
-
-        return serviceOrder;
     }
 }
 #endregion

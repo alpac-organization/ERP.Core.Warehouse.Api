@@ -20,25 +20,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Handlers
 
             if (!access.IsSuccess) return access.ErrorResponse!;
 
-            var serviceOrdersQuery = _unitOfWork.ServiceOrders.Entities
+            var serviceOrdersQuery = _unitOfWork.ServicesOrders.Entities
                 .Where(so => so.DeletedAt == null)
-                .Include(so => so.Customer)
                 .AsNoTracking();
 
-            if (!string.IsNullOrEmpty(request.Code))
-            {
-                serviceOrdersQuery = serviceOrdersQuery
-                    .Where(so => so.Code == request.Code);
-            }
-
-            if (!string.IsNullOrWhiteSpace(request.CustomerCif))
-            {
-                var cifFilter = request.CustomerCif.Trim().ToLower().Replace(" ", "");
-
-                serviceOrdersQuery = serviceOrdersQuery
-                    .Where(so => so.Customer.Cif != null &&
-                        so.Customer.Cif.ToLower().Replace(" ", "").Contains(cifFilter));
-            }
 
             var totalRecords = await serviceOrdersQuery.CountAsync(cancellationToken);
 

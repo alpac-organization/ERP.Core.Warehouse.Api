@@ -9,7 +9,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             CreateMap<WorkArea, WorkAreaInformation>()
                 .ForMember(dest => dest.WorkAreaId, opt => opt.MapFrom(src => src.Id))
-                .ForPath(dest => dest.CostCenters, opt => opt.MapFrom(src => src.CostCenters));
+                .ForPath(dest => dest.CostCenters, opt => opt.Ignore());
         }
     }
 }

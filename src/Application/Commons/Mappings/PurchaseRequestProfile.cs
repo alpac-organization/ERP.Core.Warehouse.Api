@@ -35,7 +35,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 AreaId              = areaId,
                 Code                = codeGenerated,
                 BranchId            = command.BranchId,
-
+                CostCenterId        = command.CostCenterId,
                 UserRevisionId      = null,
                 RegisteredByUserId  = userId,
                 

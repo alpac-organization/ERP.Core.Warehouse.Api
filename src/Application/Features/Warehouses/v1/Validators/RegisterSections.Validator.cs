@@ -29,6 +29,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Validators
             RuleFor(x => x.SectionType)
                 .IsInEnum().WithMessage("El tipo de sección no es válido.");
 
+            RuleFor(x => x.SectionStorageType)
+                .IsInEnum().WithMessage("El tipo de almacenaje para sección no es válido.");
+
             RuleFor(x => x.Width)
                 .GreaterThan(0).WithMessage("El ancho debe ser mayor a cero")
                 .PrecisionScale(18, 2, ignoreTrailingZeros: true).WithMessage("El ancho admite máximo 2 decimales");

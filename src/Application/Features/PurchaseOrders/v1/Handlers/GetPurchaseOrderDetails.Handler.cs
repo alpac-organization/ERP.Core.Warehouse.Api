@@ -23,7 +23,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             var purchaseOrder = await _unitOfWork.PurchaseOrders.Entities
                 .Include(purs => purs.SentByUser)
-                    .ThenInclude(user => user.WorkArea)
 
                 .Include(purs => purs.ReviewedByUser)
 
@@ -36,11 +35,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.RegistrationUser)
-                        .ThenInclude(user => user.WorkArea)
 
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.UserRevision)
-                        .ThenInclude(user => user.WorkArea)
 
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.PurchaseRequestItems)

@@ -27,7 +27,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
             //Inicializar IQuerable<T>
             var purchaseRequestsQuery = _unitOfWork.PurchaseRequests.Entities
-                .Where(purs => purs.IsActive)
+                .Where(purs => purs.IsActive && purs.DeletedAt == null) 
                 .Include(purs => purs.Branch)
                 .Where(purs => purs.Branch.CompanyId == request.CompanyId)
                 .AsNoTracking();
@@ -45,7 +45,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 {
                     //Obtener todas las solicitudes del area del usuario
                     purchaseRequestsQuery = purchaseRequestsQuery
-                        .Where(pur => pur.AreaId == access.User.AreaId);
+                        .Where(pur => pur.AreaId == access.Profile.AreaId);
                 }
             }
 
@@ -56,7 +56,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             var totalRecords = await purchaseRequestsQuery.CountAsync(cancellationToken);
 
             var purchaseRequests = await purchaseRequestsQuery
-                .OrderByDescending(quo => quo.CreatedAt)
+                .OrderByDescending(purs => purs.CreatedAt)
                 .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .ToListAsync(cancellationToken);

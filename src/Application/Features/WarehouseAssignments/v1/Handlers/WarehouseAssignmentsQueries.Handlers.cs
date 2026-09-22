@@ -48,7 +48,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                     r.IsConsolidated,
                     DocumentType = r.ReceptionEntrance.DocumentType,
                     CustomsNumber = r.CustomsDeclarations != null ? r.CustomsDeclarations.CustomsDeclarationNumber : null,
-                    CustomsOrderCode = r.CustomsDeclarations != null ? r.CustomsDeclarations.ServiceOrderCode : null,
                     CustomsStatus = r.CustomsDeclarations != null ? r.CustomsDeclarations.Status : DucaStatus.Pending,
                     ActiveDucats = r.EntranceDucats
                         .Where(d => d.DeletedAt == null && d.Status == DucaStatus.Completed)
@@ -57,7 +56,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                             d.Id,
                             d.DucatNumber,
                             d.Status,
-                            d.ServiceOrderCode,
                             AlreadyAssigned = _unitOfWork.WarehouseAssignments.Entities
                                 .Any(a => a.RecordEntranceId == r.Id && a.EntranceDucatId == d.Id && a.DeletedAt == null)
                         })
@@ -66,7 +64,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                 .ToListAsync(cancellationToken);
 
             var data = new List<PendingWarehouseAssignmentDto>();
-            var osSearch = request.ServiceOrderCode?.Trim().ToLower();
 
             foreach (var r in pagedRecords)
             {
@@ -74,12 +71,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                 {
                     foreach (var d in r.ActiveDucats.Where(x => !x.AlreadyAssigned))
                     {
-                        if (!string.IsNullOrEmpty(osSearch))
-                        {
-                            if (string.IsNullOrEmpty(d.ServiceOrderCode) || !d.ServiceOrderCode.ToLower().Contains(osSearch))
-                                continue;
-                        }
-
                         data.Add(new PendingWarehouseAssignmentDto
                         {
                             ReceptionId = r.Id,
@@ -91,18 +82,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                             EntranceDucatId = d.Id,
                             DocumentType = "DUCA",
                             DocumentNumber = d.DucatNumber ?? "N/A",
-                            ServiceOrderCode = d.ServiceOrderCode
                         });
                     }
                 }
                 else if (r.DocumentType == DocumentType.CustomsDeclaration)
                 {
-                    if (!string.IsNullOrEmpty(osSearch))
-                    {
-                        if (string.IsNullOrEmpty(r.CustomsOrderCode) || !r.CustomsOrderCode.ToLower().Contains(osSearch))
-                            continue;
-                    }
-
                     data.Add(new PendingWarehouseAssignmentDto
                     {
                         ReceptionId = r.Id,
@@ -114,7 +98,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                         EntranceDucatId = null,
                         DocumentType = "Declaración Aduanera",
                         DocumentNumber = r.CustomsNumber ?? "N/A",
-                        ServiceOrderCode = r.CustomsOrderCode
                     });
                 }
             }
@@ -161,18 +144,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                 baseQuery = baseQuery.Where(r => r.ReceptionEntrance!.DocumentType == request.DocumentType.Value);
             }
 
-            if (!string.IsNullOrWhiteSpace(request.ServiceOrderCode))
-            {
-                var osSearch = request.ServiceOrderCode.Trim().ToLower();
-                baseQuery = baseQuery.Where(r => 
-                    (r.ReceptionEntrance!.DocumentType == DocumentType.DUCA 
-                        && r.EntranceDucats.Any(d => d.DeletedAt == null && d.ServiceOrderCode != null && EF.Functions.Like(d.ServiceOrderCode.ToLower(), $"%{osSearch}%")))
-                    ||
-                    (r.ReceptionEntrance.DocumentType == DocumentType.CustomsDeclaration 
-                        && r.CustomsDeclarations != null && r.CustomsDeclarations.ServiceOrderCode != null && EF.Functions.Like(r.CustomsDeclarations.ServiceOrderCode.ToLower(), $"%{osSearch}%"))
-                );
-            }
-
             return baseQuery;
         }
     }
@@ -211,7 +182,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                 AssignmentId = assignment?.Id,
                 LicensePlate = record.ReceptionEntrance?.VehiclePlateNumber ?? "N/A",
                 DucatNumber = assignment?.EntranceDucat?.DucatNumber,
-                ServiceOrderCode = assignment?.EntranceDucat?.ServiceOrderCode,
                 UnloadingStartTime = assignment?.UnloadingStartTime,
                 UnloadingEndTime = assignment?.UnloadingEndTime
             };
@@ -355,16 +325,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                                               && a.RecordEntrance.ReceptionEntrance.DocumentType == request.DocumentType.Value);
             }
 
-            if (!string.IsNullOrWhiteSpace(request.ServiceOrderCode))
-            {
-                var osSearch = request.ServiceOrderCode.Trim().ToLower();
-                baseQuery = baseQuery.Where(a => 
-                    (a.EntranceDucat != null && a.EntranceDucat.ServiceOrderCode != null && EF.Functions.Like(a.EntranceDucat.ServiceOrderCode.ToLower(), $"%{osSearch}%"))
-                    ||
-                    (a.RecordEntrance.CustomsDeclarations != null && a.RecordEntrance.CustomsDeclarations.ServiceOrderCode != null && EF.Functions.Like(a.RecordEntrance.CustomsDeclarations.ServiceOrderCode.ToLower(), $"%{osSearch}%"))
-                );
-            }
-
             var totalCount = await baseQuery.CountAsync(cancellationToken);
 
             var pageNumber = request.PageNumber > 0 ? request.PageNumber : 1;
@@ -384,9 +344,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Ha
                     DucatNumber = a.EntranceDucat != null 
                         ? a.EntranceDucat.DucatNumber 
                         : (a.RecordEntrance.CustomsDeclarations != null ? a.RecordEntrance.CustomsDeclarations.CustomsDeclarationNumber : null),
-                    ServiceOrderCode = a.EntranceDucat != null 
-                        ? a.EntranceDucat.ServiceOrderCode 
-                        : (a.RecordEntrance.CustomsDeclarations != null ? a.RecordEntrance.CustomsDeclarations.ServiceOrderCode : null),
                     UnloadingStartTime = a.UnloadingStartTime,
                     UnloadingEndTime = a.UnloadingEndTime
                 })

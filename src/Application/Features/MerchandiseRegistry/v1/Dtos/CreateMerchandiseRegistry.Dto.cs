@@ -13,7 +13,6 @@ public record CreateDucatRegistryDto
 
 public record CreateDucatRegistryDetailDto
 {
-    public Guid ServiceOrderId { get; set; }
     public Guid MerchandiseId { get; set; }
     public DucaType Type { get; set; }
     public int TotalBultos { get; set; }
@@ -21,13 +20,6 @@ public record CreateDucatRegistryDetailDto
     public string? MerchandiseDescription { get; set; }
     public string Sender { get; set; } = string.Empty;
     public string? DestinationAreaObservation { get; set; }
-    public DateOnly? RegisteredStartDate { get; set; }
-    public TimeOnly? RegisteredStartTime { get; set; }
-}
-
-public record AssignServiceOrderToCustomsDeclarationDto
-{
-    public Guid ServiceOrderId { get; set; }
     public DateOnly? RegisteredStartDate { get; set; }
     public TimeOnly? RegisteredStartTime { get; set; }
 }

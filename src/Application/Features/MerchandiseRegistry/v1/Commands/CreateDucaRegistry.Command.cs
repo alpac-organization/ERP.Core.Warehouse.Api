@@ -18,7 +18,6 @@ public class CreateDucatRegistryDetailCommand : BaseRequest, IRequest<bool>
 {
     public Guid ReceptionId { get; set; }
     public Guid EntranceDucatId { get; set; }
-    public Guid ServiceOrderId { get; set; }
 
     public Guid MerchandiseId { get; set; }
     public DucaType Type { get; set; }
@@ -27,14 +26,6 @@ public class CreateDucatRegistryDetailCommand : BaseRequest, IRequest<bool>
     public string? MerchandiseDescription { get; set; }
     public string Sender { get; set; } = string.Empty;
     public string? DestinationAreaObservation { get; set; }
-    public DateOnly? RegisteredStartDate { get; set; }
-    public TimeOnly? RegisteredStartTime { get; set; }
-}
-
-public class AssignServiceOrderToCustomsDeclarationCommand : BaseRequest, IRequest<bool>
-{
-    public Guid ReceptionId { get; set; }
-    public Guid ServiceOrderId { get; set; }
     public DateOnly? RegisteredStartDate { get; set; }
     public TimeOnly? RegisteredStartTime { get; set; }
 }
