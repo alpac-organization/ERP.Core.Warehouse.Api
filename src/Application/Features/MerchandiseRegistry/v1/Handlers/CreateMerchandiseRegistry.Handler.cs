@@ -169,6 +169,7 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
                 "ERP:MERCHANDISE_NOT_FOUND");
         #endregion
 
+
         #region 3. Usuario actual
         var user = await _unitOfWork.Users.Entities
             .AsNoTracking()

@@ -1,5 +1,5 @@
-using System.Globalization;
 using AutoMapper;
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
@@ -29,7 +29,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             //Incluir información de mapeo
             var purchaseOrder = await _unitOfWork.PurchaseOrders.Entities
                 .Include(purs => purs.SentByUser)
-                    .ThenInclude(user => user.WorkArea)
 
                 .Include(purs => purs.ReviewedByUser)
 
@@ -43,11 +42,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.RegistrationUser)
-                        .ThenInclude(user => user.WorkArea)
 
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.UserRevision)
-                        .ThenInclude(user => user.WorkArea)
 
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.PurchaseRequestItems)
