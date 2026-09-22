@@ -13,7 +13,13 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
       {
          CreateMap<Sections, SectionDto>()
             .ForMember(dest => dest.SectionId, opt => opt.MapFrom(src => src.Id))
-            .ForMember(dest => dest.SectionCode, opt => opt.MapFrom(src => src.Code));
+            .ForMember(dest => dest.SectionCode, opt => opt.MapFrom(src => src.Code))
+            .ForMember(d => d.Width, o => o.MapFrom(s => s.SectionCapacity != null ? s.SectionCapacity.Width : (decimal?)null))
+            .ForMember(d => d.Length, o => o.MapFrom(s => s.SectionCapacity != null ? s.SectionCapacity.Length : (decimal?)null))
+            .ForMember(d => d.PositionX, o => o.MapFrom(s => s.SectionCoordinates != null ? s.SectionCoordinates.PositionX : (decimal?)null))
+            .ForMember(d => d.PositionY, o => o.MapFrom(s => s.SectionCoordinates != null ? s.SectionCoordinates.PositionY : (decimal?)null))
+            .ForMember(d => d.PositionZ, o => o.MapFrom(s => s.SectionCoordinates != null ? s.SectionCoordinates.PositionZ : (decimal?)null))
+            .ForMember(d => d.RotationY, o => o.MapFrom(s => s.SectionCoordinates != null ? s.SectionCoordinates.RotationY : (decimal?)null));
 
          CreateMap<SectionCapacity, SectionCapacityDto>()
             .ForMember(dest => dest.SectionCapacityId, opt => opt.MapFrom(src => src.Id));

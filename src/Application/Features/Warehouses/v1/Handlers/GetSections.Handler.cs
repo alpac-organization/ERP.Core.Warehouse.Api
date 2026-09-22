@@ -38,6 +38,8 @@ public class GetSectionsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorMan
         var totalRecords = await sectionsQuery.CountAsync(cancellationToken);
 
         var sections = await sectionsQuery
+            .Include(s => s.SectionCapacity)
+            .Include(s => s.SectionCoordinates)
             .OrderByDescending(sect => sect.CreatedAt)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
