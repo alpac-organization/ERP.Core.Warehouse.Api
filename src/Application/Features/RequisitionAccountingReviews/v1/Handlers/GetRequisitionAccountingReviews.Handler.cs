@@ -25,7 +25,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
             var reviewsQuery = _unitOfWork.PurchaseRequestsReviewedAccounting.Entities
                 .Where(rev => rev.DeletedAt == null)
                 .Include(rev => rev.SentByUser)
+                .Include(rev => rev.ReviewedByUser)
                 .Include(rev => rev.PurchaseRequest)
+                    .ThenInclude(purs => purs.CostCenter)
                 .AsNoTracking();
 
             if (request.BranchId.HasValue)
@@ -41,8 +43,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
 
             if (request.AreaId.HasValue)
             {
-                // reviewsQuery = reviewsQuery
-                //     .Where(rev => rev.SentByUser.AreaId == request.AreaId);
+                reviewsQuery = reviewsQuery
+                    .Where(rev => rev.SentByUser.Profiles
+                        .Any(profile => profile.CompanyId == request.CompanyId
+                                    && profile.AreaId == request.AreaId));
             }
 
             if (request.Status.HasValue)
