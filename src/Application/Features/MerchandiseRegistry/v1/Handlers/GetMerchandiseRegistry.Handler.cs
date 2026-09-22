@@ -89,15 +89,6 @@ public class GetMerchandiseRegistryHandler(IUnitOfWork unitOfWork, IErrorManager
         if(request.DucatId.HasValue)
             query = query.Where(r => r.EntranceDucats.Any(d => d.Id == request.DucatId.Value));
 
-        if (!string.IsNullOrWhiteSpace(request.ServiceOrderCode))
-        {
-            var osFilter = request.ServiceOrderCode.Trim().ToLower().Replace(" ", "");
-            query = query.Where(r =>
-                r.EntranceDucats.Any(d => d.ServiceOrderCode != null &&
-                    d.ServiceOrderCode.ToLower().Replace(" ", "").Contains(osFilter)) ||
-                (r.CustomsDeclarations != null && r.CustomsDeclarations.ServiceOrderCode != null &&
-                    r.CustomsDeclarations.ServiceOrderCode.ToLower().Replace(" ", "").Contains(osFilter)));
-        }
         #endregion
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -156,7 +147,6 @@ public class GetMerchandiseRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorM
             .Where(l => l.RecordEntranceId == recordEntrance.Id && l.DeletedAt == null)
             .Include(d => d.RegistryDetail!)
                 .ThenInclude(rd => rd.Merchandise)
-            .Include(d => d.ServiceOrder)
             .ToListAsync(cancellationToken);
 
         recordEntrance.ExecutionLogs = await _unitOfWork.StepExecutionLogs.Entities

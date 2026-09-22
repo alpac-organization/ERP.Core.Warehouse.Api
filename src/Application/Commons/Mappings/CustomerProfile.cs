@@ -1,6 +1,5 @@
 using AutoMapper;
 using ERP.Core.Database.Domain.Entities.Warehouse;
-using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 

@@ -26,12 +26,6 @@ public class GetAssignmentQueueHandler(IUnitOfWork unitOfWork, IErrorManager err
             .AsNoTracking()
             .Where(a => a.DeletedAt == null && a.UnloadingStatus == (request.UnloadingStatus ?? UnloadingStatus.Pending));
 
-        if (!string.IsNullOrWhiteSpace(request.ServiceOrderCode))
-        {
-            var filter = request.ServiceOrderCode.Trim().ToLower().Replace(" ", "");
-            query = query.Where(a => a.EntranceDucat!.ServiceOrderCode!.ToLower().Replace(" ", "").Contains(filter));
-        }
-
         if (!string.IsNullOrWhiteSpace(request.DucatNumber))
         {
             var filter = request.DucatNumber.Trim().ToLower().Replace(" ", "");
