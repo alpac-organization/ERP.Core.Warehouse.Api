@@ -59,7 +59,7 @@ public class DeleteLotHandler(IUnitOfWork unitOfWork, IErrorManager errorManager
         if (positions.Count == 0)
             return;
 
-        var positionIds = positions.Select(p => p.Id!.Value).ToList();
+        var positionIds = positions.Select(p => p.Id).ToList();
 
         var hasActiveStock = await _unitOfWork.StockPlacements.Entities
             .AnyAsync(
