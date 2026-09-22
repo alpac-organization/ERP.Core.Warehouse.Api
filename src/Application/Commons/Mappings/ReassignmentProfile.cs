@@ -98,12 +98,12 @@ public static class GetAvailablePositionsMapper
             PositionId = position.Id,
             PositionCode = position.PositionCode,
             Type = "Rack",
-            //Status = ResolveStatus(position.IsOccupied, position.IsReserved, position.IsBlocked),
+            Status = position.Status.ToString(),
             SectionId = position.Rack.SectionId,
-            //SectionCode = position.Rack.Section.Code,
+            SectionCode = position.Rack.Section.Code!,
             RackId = position.RackId,
             RackCode = position.Rack.Code,
-            //PositionNumber = position.PositionNumber,
+            PositionNumber = position.Row,
             StockId = stockId,
             ReservedBySessionId = reservedBySessionId
         };
@@ -119,24 +119,16 @@ public static class GetAvailablePositionsMapper
             PositionId = position.Id,
             PositionCode = position.PositionCode,
             Type = "Lot",
-            //Status = ResolveStatus(position.IsOccupied, position.IsReserved, position.IsBlocked),
+            Status = position.Status.ToString(),
             SectionId = position.Lot.SectionId,
-            //SectionCode = position.Lot.Section.Code,
+            SectionCode = position.Lot.Section.Code!,
             LotId = position.LotId,
             LotCode = position.Lot.Code,
-            //RowNumber = position.RowNumber,
-            //ColumnNumber = position.ColumnNumber,
+            RowNumber = position.Row,
+            ColumnNumber = position.Column,
             StockId = stockId,
             ReservedBySessionId = reservedBySessionId
         };
-    }
-
-    public static string ResolveStatus(bool isOccupied, bool isReserved, bool isBlocked)
-    {
-        if (isOccupied) return "Occupied";
-        if (isReserved) return "Reserved";
-        if (isBlocked) return "Blocked";
-        return "Free";
     }
 }
 #endregion

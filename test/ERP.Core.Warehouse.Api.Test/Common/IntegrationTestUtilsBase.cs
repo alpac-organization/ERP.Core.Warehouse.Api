@@ -268,6 +268,69 @@ namespace ERP.Core.Warehouse.Api.Test.Common
             return false;
         }
 
+        #region warehouse
+
+        public async Task<Warehouses> GetOrCreateWarehouseAsync()
+        {
+            var warehouse = await _unitOfWork.Warehouses.Entities
+                .Where(w => w.IsActive && w.DeletedAt == null)
+                .FirstOrDefaultAsync();
+
+            if (warehouse is not null) return warehouse;
+
+            warehouse = await _unitOfWork.Warehouses.RegisterWarehouse(new Warehouses
+            {
+                Id = Guid.NewGuid(),
+                Code = "B-Test-01",
+                IsActive = true,
+                WarehouseType = WarehouseType.Fiscal
+            });
+
+            await _unitOfWork.SaveChangesAsync();
+            return warehouse;
+        }
+
+        public async Task<Sections> GetOrCreateSectionToLotsAsync()
+        {
+            var section = await _unitOfWork.Sections.Entities
+                .Where(s => s.IsActive && s.DeletedAt == null)
+                .Where(s => s.SectionStorageType == SectionStorageType.Lots)
+                .FirstOrDefaultAsync();
+
+            if (section is not null)
+                return section;
+
+            var warehouse = await GetOrCreateWarehouseAsync();
+
+            section = await _unitOfWork.Sections.RegisterSection(new Sections
+            {
+                Id = Guid.NewGuid(),
+                Code = "SEC-Test-01",
+                IsActive = true,
+                SectionType = SectionType.Storage,
+                SectionStorageType = SectionStorageType.Lots,
+                WarehouseId = warehouse.Id
+            });
+
+            await _unitOfWork.SectionCapacities.RegisterSectionCapacity(new SectionCapacity
+            {
+                Id = Guid.NewGuid(),
+                SectionId = section.Id,
+                Width = 8.00m,
+                Length = 20.00m,
+                UnusedAreaM2 = 16.00m,
+                AvailableAreaWithMarginM2 = 120.00m,
+                TotalAreaM2 = 160.00m,
+                UnoccupiedChargeableAreaM2 = 0m,
+                OccupiedChargeableAreaM2 = 0m,
+                PercentageAvailableAreaWithMarginM2 = 75.00m
+            });
+
+            await _unitOfWork.SaveChangesAsync();
+            return section;
+        }
+
+        #endregion
         #region Extensiones de Soporte para Flujos de Aprobación, Anulación y Reactivación
 
         /// Crea una solicitud de compra base vinculada a un usuario registrado, estableciendo su estado

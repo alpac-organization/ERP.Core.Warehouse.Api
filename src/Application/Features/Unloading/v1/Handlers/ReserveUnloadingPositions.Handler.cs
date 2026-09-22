@@ -20,8 +20,8 @@ public class ReserveUnloadingPositionsHandler(IUnitOfWork unitOfWork, IErrorMana
         ReserveUnloadingPositionsCommand request,
         CancellationToken cancellationToken)
     {
-        // var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
-        // if (!access.IsSuccess) return access.ErrorResponse!;
+        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+        if (!access.IsSuccess) return access.ErrorResponse!;
 
         #region 1. Obtener y validar la asignación
         var assignment = await _unitOfWork.WarehouseAssignments.Entities
@@ -117,14 +117,14 @@ public class ReserveUnloadingPositionsHandler(IUnitOfWork unitOfWork, IErrorMana
             var item = request.Positions[i];
             var position = validated[i];
 
-            /* if (position.rack is RackPositions rackTarget)
+            if (position.rack is RackPositions rackTarget)
             {
-                rackTarget.IsReserved = true;
+                rackTarget.Status = RackStatus.Reserved;
             }
             else if (position.lot is LotsPositions lotTarget)
             {
-                lotTarget.IsReserved = true;
-            } */            
+                lotTarget.Status = RackStatus.Reserved;
+            }
 
             var entity = _mapper.Map<UnloadingPositionReservations>(item, opts =>
             {
@@ -132,7 +132,7 @@ public class ReserveUnloadingPositionsHandler(IUnitOfWork unitOfWork, IErrorMana
                 opts.Items["WarehouseAssignmentId"] = assignment.Id;
                 opts.Items["WarehouseId"] = assignment.WarehouseId;
                 opts.Items["UnloadingDetailsId"] = unloading.Id;
-                // opts.Items["ReservedByUserId"] = request.UserId.ToString();
+                opts.Items["ReservedByUserId"] = request.UserId.ToString();
                 opts.Items["ReservedAtDate"] = nowDate;
                 opts.Items["ReservedAtTime"] = nowTime;
                 opts.Items["Quantity"] = 1;
@@ -162,9 +162,9 @@ public class ReserveUnloadingPositionsHandler(IUnitOfWork unitOfWork, IErrorMana
                 return ValidatedPosition.Empty();
             }
 
-            /* await ValidateAvailabilityAsync(
-                target.IsOccupied, target.IsReserved, target.IsBlocked,
-                "rack", target.PositionCode, target.Id, unloadingDetailsId, ct); */
+            await ValidateAvailabilityAsync(
+                target.Status is RackStatus.Occupied, target.Status is RackStatus.Reserved, target.Status is RackStatus.Blocked,
+                "rack", target.PositionCode, target.Id, unloadingDetailsId, ct);
 
             return new ValidatedPosition(target, null);
         }
@@ -182,15 +182,15 @@ public class ReserveUnloadingPositionsHandler(IUnitOfWork unitOfWork, IErrorMana
                 return ValidatedPosition.Empty();
             }
 
-            /* await ValidateAvailabilityAsync(
-                target.IsOccupied, target.IsReserved, target.IsBlocked,
-                "tramo", target.PositionCode, target.Id, unloadingDetailsId, ct); */
+            await ValidateAvailabilityAsync(
+                target.Status is RackStatus.Occupied, target.Status is RackStatus.Reserved, target.Status is RackStatus.Blocked,
+                "tramo", target.PositionCode, target.Id, unloadingDetailsId, ct);
 
             return new ValidatedPosition(null, target);
         }
 
         _errorManager.ThrowBadRequest<object>(
-            "Cada posición debe indicar una posición de rack o de lot.",
+            "Cada posición debe indicar una posición de rack o de tramo.",
             "ERP:TARGET_POSITION_REQUIRED");
         return ValidatedPosition.Empty();
     }

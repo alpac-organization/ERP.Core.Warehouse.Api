@@ -2,6 +2,7 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Entities.Warehouse;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
@@ -11,15 +12,15 @@ using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Handlers;
 
-public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
+public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper, SessionAccessValidator sessionValidator)
     : BaseValidatorHandler<LiftStockToMemoryCommand, List<ReassignmentMemoryItemDto>>(unitOfWork, errorManager)
 {
     public override async Task<List<ReassignmentMemoryItemDto>> Handle(LiftStockToMemoryCommand request, CancellationToken cancellationToken)
     {
-        //var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
-        //if (!access.IsSuccess) return access.ErrorResponse!;
+        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+        if (!access.IsSuccess) return access.ErrorResponse!;
 
-        //var session = await sessionValidator.ValidateSession(request.SessionId, request.UserId.ToString(), cancellationToken);
+        var session = await sessionValidator.ValidateSession(request.SessionId, request.UserId.ToString(), cancellationToken);
 
         var nowNica = NicaraguaClock.Now;
         var nowDate = DateOnly.FromDateTime(nowNica);
@@ -27,8 +28,8 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
 
         var createdItems = new List<ReassignmentMemoryItemDto>();
 
-        /* foreach (var item in request.Items)
-            createdItems.Add(await ProcessLiftItem(item, session, request.UserId.ToString(), nowDate, nowTime, cancellationToken)); */
+        foreach (var item in request.Items)
+            createdItems.Add(await ProcessLiftItem(item, session, request.UserId.ToString(), nowDate, nowTime, cancellationToken));
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -88,7 +89,7 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
                 return;
             }
 
-            /* if (target.IsOccupied || target.IsReserved || target.IsBlocked)
+            if (target.Status is RackStatus.Occupied or RackStatus.Reserved or RackStatus.Blocked)
             {
                 _errorManager.ThrowBadRequest<object>(
                     $"La posición destino rack {target.PositionCode} no está disponible.",
@@ -96,7 +97,7 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
                 return;
             }
 
-            target.IsReserved = true; */
+            target.Status = RackStatus.Reserved;
         }
 
         if (item.TargetLotPositionId.HasValue)
@@ -112,7 +113,7 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
                 return;
             }
 
-            /* if (target.IsOccupied || target.IsReserved || target.IsBlocked)
+            if (target.Status is RackStatus.Occupied or RackStatus.Reserved or RackStatus.Blocked)
             {
                 _errorManager.ThrowBadRequest<object>(
                     $"La posición destino tramo {target.PositionCode} no está disponible.",
@@ -120,22 +121,21 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
                 return;
             }
 
-            target.IsReserved = true; */
+            target.Status = RackStatus.Reserved;
         }
     }
 
     private static void VacatePlacement(StockPlacements placement, ReassignmentMemoryItems memoryItem, string userId)
     {
-        /* placement.VacatedAtDate = memoryItem.LiftedAtDate;
+        placement.VacatedAtDate = memoryItem.LiftedAtDate;
         placement.VacatedAtTime = memoryItem.LiftedAtTime;
         placement.VacatedByUserId = userId;
         placement.VacatedByMemoryItemId = memoryItem.Id;
 
-       /*  if (placement.RackPosition is not null)
-            placement.RackPosition.IsOccupied = false;
+        if (placement.RackPosition is not null)
+            placement.RackPosition.Status = RackStatus.Available;
 
         if (placement.LotPosition is not null)
-            placement.LotPosition.IsOccupied = false;
-            placement.LotPosition.IsOccupied = false; */
+            placement.LotPosition.Status = RackStatus.Available;
     }
 }

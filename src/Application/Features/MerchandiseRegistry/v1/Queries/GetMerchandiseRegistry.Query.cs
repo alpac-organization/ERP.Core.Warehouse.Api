@@ -16,7 +16,6 @@ public class GetMerchandiseRegistryQuery : IRequest<GetMerchandiseRegistryDto>
     public string? DocumentNumber { get; set; }
     public string? DucatNumber { get; set; }
     public Guid? DucatId { get; set; }
-    public string? ServiceOrderCode { get; set; }
 
     public DateTime? StarDate {get;set;}
     public DateTime? EndDate {get;set;}

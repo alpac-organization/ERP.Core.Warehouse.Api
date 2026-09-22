@@ -32,7 +32,6 @@ public class MerchandiseRegistryControlle(IMediator _mediator) : ApiControllerBa
         [FromQuery] DocumentType? document_type,
         [FromQuery] string? document_number,
         [FromQuery] string? ducat_number,
-        [FromQuery] string? service_order_code,
         [FromQuery] int page_number = 1,
         [FromQuery] int page_size = 10,
         CancellationToken cancellationToken = default)
@@ -52,7 +51,6 @@ public class MerchandiseRegistryControlle(IMediator _mediator) : ApiControllerBa
             DocumentType = document_type,
             DocumentNumber = document_number,
             DucatNumber = ducat_number,
-            ServiceOrderCode = service_order_code,
             PageNumber = page_number,
             PageSize = page_size
         }, cancellationToken);
@@ -158,36 +156,6 @@ public class MerchandiseRegistryControlle(IMediator _mediator) : ApiControllerBa
 
         var response = await _mediator.Send(command, cancellationToken);
 
-        return Ok(response);
-    }
-
-    [Tags("Registro de Mercadería")]
-    [HttpPost("companies/{company_id}/modules/{module_code}/receptions/{reception_id}/customs-declaration/service-order")]
-    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<OkObjectResult> AssignServiceOrderToCustomsDeclarationAsync(
-    [FromRoute] Guid company_id,
-    [FromRoute] string module_code,
-    [FromRoute] Guid reception_id,
-    [FromBody] AssignServiceOrderToCustomsDeclarationDto dto,
-    CancellationToken cancellationToken)
-    {
-        var userIdStr = HttpContext.Items["UserId"] as string;
-        Guid.TryParse(userIdStr, out var userId);
-
-        var command = new AssignServiceOrderToCustomsDeclarationCommand
-        {
-            ReceptionId = reception_id,
-            ServiceOrderId = dto.ServiceOrderId,
-            UserId = userId,
-            CompanyId = company_id,
-            ModuleCode = module_code,
-            RegisteredStartDate = dto.RegisteredStartDate,
-            RegisteredStartTime = dto.RegisteredStartTime
-        };
-
-        var response = await _mediator.Send(command, cancellationToken);
         return Ok(response);
     }
 

@@ -15,7 +15,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Dt
         public Guid? EntranceDucatId { get; set; }
         public string DocumentType { get; set; } = string.Empty;
         public string DocumentNumber { get; set; } = string.Empty;
-        public string? ServiceOrderCode { get; set; }
     }
 
 
@@ -28,7 +27,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Dt
 
         // Informacion del documento vinculado
         public string? DucatNumber { get; set; }        // poblado si es DUCA
-        public string? ServiceOrderCode { get; set; }   // OS de la DUCA (si aplica)
 
         public DateTime? UnloadingStartTime { get; set; }
         public DateTime? UnloadingEndTime { get; set; }
