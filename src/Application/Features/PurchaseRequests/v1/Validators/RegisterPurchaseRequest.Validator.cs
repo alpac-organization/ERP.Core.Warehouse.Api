@@ -1,7 +1,8 @@
-using ERP.Core.Database.Domain.Enums;
 using FluentValidation;
+using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
-namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands
+namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Validators
 {
     public class RegisterPurchaseRequestCommandValidator : AbstractValidator<RegisterPurchaseRequestCommand>
     {
@@ -39,6 +40,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Comman
                 .NotEmpty().WithMessage("El id de la sucursal no puede estar vacío.")
                 .NotEqual(Guid.Empty)
                 .WithMessage("El id de la sucursal es requerido.");
+
+            RuleFor(x => x.CostCenterId)
+                .NotEmpty().WithMessage("El centro de costo es requerido")
+                .NotEqual(Guid.Empty)
+                .WithMessage("El centro de costo es requerido");
 
             RuleFor(x => x.RequestType)
                 .IsInEnum()
