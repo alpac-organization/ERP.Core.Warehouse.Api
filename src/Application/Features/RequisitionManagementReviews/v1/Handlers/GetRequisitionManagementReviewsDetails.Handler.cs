@@ -23,7 +23,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
 
             var reviewsQuery = await _unitOfWork.PurchaseRequestsReviewedManagement.Entities
                 .Include(rev => rev.SentByUser)
-                    .ThenInclude(user => user.WorkArea)
 
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(rev => rev.PurchaseRequestItems)
@@ -31,7 +30,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                             .ThenInclude(q => q.Supplier)
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(rev => rev.RegistrationUser)
-                        .ThenInclude(rev => rev.WorkArea)
 
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(rev => rev.Branch)

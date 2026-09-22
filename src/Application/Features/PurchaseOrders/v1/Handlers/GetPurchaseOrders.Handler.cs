@@ -27,7 +27,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             var purchaseOrdersQuery = _unitOfWork.PurchaseOrders.Entities
                 .Where(purs => purs.IsActive)
                 .Include(purs => purs.SentByUser)
-                    .ThenInclude(user => user.WorkArea)
 
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.Branch)
@@ -37,13 +36,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.RegistrationUser)
-                        .ThenInclude(us => us.WorkArea)
 
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.UserRevision)
 
                 .Where(purs => purs.PurchaseRequest.Branch.CompanyId == request.CompanyId)
                 .AsNoTracking();
+
 
             if (access.Role?.RoleType != RoleType.Administrator && access.Role?.RoleType != RoleType.Supervisor)
             {
@@ -53,11 +52,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                         .Where(purs => purs.SentByUserId == request.UserId);
                 }
 
-                if (access.Role?.RoleType == RoleType.Manager)
-                {
-                    purchaseOrdersQuery = purchaseOrdersQuery
-                        .Where(purs => purs.PurchaseRequest.AreaId == access.User.AreaId);
-                }
+                // if (access.Role?.RoleType == RoleType.Manager)
+                // {
+                //     purchaseOrdersQuery = purchaseOrdersQuery
+                //         .Where(purs => purs.PurchaseRequest.AreaId == access.User.AreaId);
+                // }
             }
 
             if (request.AreaId.HasValue)

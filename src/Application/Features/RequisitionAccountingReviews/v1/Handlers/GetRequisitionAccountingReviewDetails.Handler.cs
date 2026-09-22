@@ -24,7 +24,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
             var review = await _unitOfWork.PurchaseRequestsReviewedAccounting.Entities
                 //Usuario que envia la solicitud a revición
                 .Include(rev => rev.SentByUser)
-                    .ThenInclude(user => user.WorkArea)
 
                 //Solicitud de compras
                 .Include(rev => rev.PurchaseRequest)
@@ -38,11 +37,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 //Usuario que registro la solicitud de compra
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.RegistrationUser)
-                        .ThenInclude(user => user.WorkArea)
 
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.UserRevision)
-                        .ThenInclude(user => user.WorkArea)
 
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.PurchaseRequestItems)

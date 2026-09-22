@@ -68,10 +68,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             }
             else if (access.Role?.RoleType == RoleType.Manager)
             {
-                if (purchaseRequest.AreaId != access.User.AreaId)
-                {
-                    return _errorManager.ThrowForbidden<bool>("Solo puedes anular solicitudes pertenecientes a tu área", "ERP:FORBIDDEN");
-                }
+                // if (purchaseRequest.AreaId != access.User.AreaId)
+                // {
+                //     return _errorManager.ThrowForbidden<bool>("Solo puedes anular solicitudes pertenecientes a tu área", "ERP:FORBIDDEN");
+                // }
             }
 
             var now = DateTime.UtcNow;
