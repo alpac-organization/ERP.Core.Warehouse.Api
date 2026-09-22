@@ -20,8 +20,8 @@ public class ReserveUnloadingPositionsHandler(IUnitOfWork unitOfWork, IErrorMana
         ReserveUnloadingPositionsCommand request,
         CancellationToken cancellationToken)
     {
-        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
-        if (!access.IsSuccess) return access.ErrorResponse!;
+        // var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+        // if (!access.IsSuccess) return access.ErrorResponse!;
 
         #region 1. Obtener y validar la asignación
         var assignment = await _unitOfWork.WarehouseAssignments.Entities
@@ -117,7 +117,7 @@ public class ReserveUnloadingPositionsHandler(IUnitOfWork unitOfWork, IErrorMana
             var item = request.Positions[i];
             var position = validated[i];
 
-            if (position.rack is RackPositions rackTarget)
+            /* if (position.rack is RackPositions rackTarget)
             {
                 rackTarget.Status = RackStatus.Reserved;
             }
@@ -132,7 +132,7 @@ public class ReserveUnloadingPositionsHandler(IUnitOfWork unitOfWork, IErrorMana
                 opts.Items["WarehouseAssignmentId"] = assignment.Id;
                 opts.Items["WarehouseId"] = assignment.WarehouseId;
                 opts.Items["UnloadingDetailsId"] = unloading.Id;
-                opts.Items["ReservedByUserId"] = request.UserId.ToString();
+                // opts.Items["ReservedByUserId"] = request.UserId.ToString();
                 opts.Items["ReservedAtDate"] = nowDate;
                 opts.Items["ReservedAtTime"] = nowTime;
                 opts.Items["Quantity"] = 1;

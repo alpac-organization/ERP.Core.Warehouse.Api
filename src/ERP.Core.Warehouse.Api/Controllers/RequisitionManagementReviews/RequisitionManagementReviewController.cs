@@ -5,6 +5,7 @@ using ERP.Core.Domain.Entities.Errors;
 using ERP.Core.Infrastructure.Attributes;
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+using ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementReviews.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementReviews.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementReviews.v1.Queries;
 
@@ -60,6 +61,27 @@ namespace ERP.Core.Warehouse.Api.Controllers.RequisitionManagementReviews
                 UserId = Guid.Parse(userIdStr ?? ""),
                 RequisitionManagementReviewsId = requisition_management_reviews_id
             });
+        }
+
+        [Tags("Revisiones de gerencia")]
+        [HttpPost("companies/{company_id}/modules/{module_code}/requisition-management-reviews/{requisition_management_reviews_id}/annul")]
+        [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<OkResult> AnnulManagementReviewAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid requisition_management_reviews_id, [FromBody] AnnulManagementReviewCommand payload)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            payload.CompanyId = company_id;
+            payload.ModuleCode = module_code;
+            payload.UserId = Guid.Parse(userIdStr ?? "");
+            payload.RequisitionManagementReviewId = requisition_management_reviews_id;
+
+            await _mediator.Send(payload);
+
+            return Ok();
         }
     }
 }

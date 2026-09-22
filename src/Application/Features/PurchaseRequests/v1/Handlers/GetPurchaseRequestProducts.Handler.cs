@@ -28,7 +28,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 .Include(item => item.Product)
                     .ThenInclude(product => product.Category)
                 .Include(item => item.UnitMeasure)
-                .Include(item => item.Quotations)
+                .Include(item => item.Quotations.Where(quo => quo.IsActive && quo.DeletedAt == null))
                     .ThenInclude(quote => quote.Supplier)
                 .ToListAsync(cancellationToken);
 

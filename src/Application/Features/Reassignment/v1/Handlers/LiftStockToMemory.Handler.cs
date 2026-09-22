@@ -12,15 +12,15 @@ using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Handlers;
 
-public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper, SessionAccessValidator sessionValidator)
+public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper)
     : BaseValidatorHandler<LiftStockToMemoryCommand, List<ReassignmentMemoryItemDto>>(unitOfWork, errorManager)
 {
     public override async Task<List<ReassignmentMemoryItemDto>> Handle(LiftStockToMemoryCommand request, CancellationToken cancellationToken)
     {
-        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
-        if (!access.IsSuccess) return access.ErrorResponse!;
+        //var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+        //if (!access.IsSuccess) return access.ErrorResponse!;
 
-        var session = await sessionValidator.ValidateSession(request.SessionId, request.UserId.ToString(), cancellationToken);
+        //var session = await sessionValidator.ValidateSession(request.SessionId, request.UserId.ToString(), cancellationToken);
 
         var nowNica = NicaraguaClock.Now;
         var nowDate = DateOnly.FromDateTime(nowNica);
@@ -28,8 +28,8 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
 
         var createdItems = new List<ReassignmentMemoryItemDto>();
 
-        foreach (var item in request.Items)
-            createdItems.Add(await ProcessLiftItem(item, session, request.UserId.ToString(), nowDate, nowTime, cancellationToken));
+        /* foreach (var item in request.Items)
+            createdItems.Add(await ProcessLiftItem(item, session, request.UserId.ToString(), nowDate, nowTime, cancellationToken)); */
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -127,7 +127,7 @@ public class LiftStockToMemoryHandler(IUnitOfWork unitOfWork, IErrorManager erro
 
     private static void VacatePlacement(StockPlacements placement, ReassignmentMemoryItems memoryItem, string userId)
     {
-        placement.VacatedAtDate = memoryItem.LiftedAtDate;
+        /* placement.VacatedAtDate = memoryItem.LiftedAtDate;
         placement.VacatedAtTime = memoryItem.LiftedAtTime;
         placement.VacatedByUserId = userId;
         placement.VacatedByMemoryItemId = memoryItem.Id;

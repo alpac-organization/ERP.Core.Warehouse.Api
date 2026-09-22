@@ -6,6 +6,7 @@ using ERP.Core.Infrastructure.Attributes;
 
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Queries;
 
@@ -81,6 +82,27 @@ namespace ERP.Core.Warehouse.Api.Controllers.RequisitionAccountingReviews
             await _mediator.Send(payload);
             
             return NoContent();
+        }
+
+        [Tags("Revisiones contables")]
+        [HttpPost("companies/{company_id}/modules/{module_code}/requisition-accounting-reviews/{requisition_accounting_review_id}/annul")]
+        [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<OkResult> AnnulAccountingReviewAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid requisition_accounting_review_id, [FromBody] AnnulAccountingReviewCommand payload)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            payload.CompanyId = company_id;
+            payload.ModuleCode = module_code;
+            payload.UserId = Guid.Parse(userIdStr ?? "");
+            payload.RequisitionAccountingReviewId = requisition_accounting_review_id;
+
+            await _mediator.Send(payload);
+
+            return Ok();
         }
     }
 }

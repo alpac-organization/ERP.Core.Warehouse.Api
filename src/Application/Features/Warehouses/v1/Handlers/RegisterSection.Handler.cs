@@ -11,7 +11,7 @@ using AutoMapper;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 {
-    public class RegisterSectionHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper, ISectionCapacityCalculator _sectionCapacityCalculator, ILogger<RegisterSectionHandler> logger) : BaseValidatorHandler<RegisterSectionCommand, bool>(_unitOfWork, _errorManager)
+    public class RegisterSectionHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper, ISectionCapacityCalculator _sectionCapacityCalculator, ILogger<RegisterSectionHandler> _logger) : BaseValidatorHandler<RegisterSectionCommand, bool>(_unitOfWork, _errorManager)
     {
         public override async Task<bool> Handle(RegisterSectionCommand request, CancellationToken cancellationToken)
         {
@@ -32,17 +32,27 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
                 return _errorManager.ThrowBadRequest<bool>("El almacén indicado no existe o no está activo.", "ERP:01");
             }
 
+            if (request.SectionType == SectionType.Aisle && request.SectionStorageType == SectionStorageType.Racks)
+            {
+                return _errorManager.ThrowBadRequest<bool>("Una sección de tipo pasillo no admite almacenamiento en racks.", "ERP:SECTION_STORAGE_MISMATCH");
+            }
+
             var codeExists = await _unitOfWork.Sections.Entities
-                .AnyAsync(s => s.WarehouseId == request.WarehouseId && s.Code == request.Code, cancellationToken);
+                .AnyAsync(s =>
+                    s.WarehouseId == request.WarehouseId &&
+                    s.Code == request.Code &&
+                    s.DeletedAt == null &&
+                    s.IsActive, cancellationToken);
 
             if (codeExists)
             {
                 return _errorManager.ThrowBadRequest<bool>("Ya existe una sección con ese código en el almacén.", "ERP:01");
             }
 
-            logger.LogInformation("🚀Iniciando proceso de registro de sección.");
+            _logger.LogInformation("🚀Iniciando proceso de registro de sección.");
 
             var section = SectionMapper.ToSectionEntity(request);
+
             var capacityCalculation = await _sectionCapacityCalculator.CalculateSectionAsync(
                 request.WarehouseId,
                 request.Width, request.Length,
@@ -71,7 +81,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
             await _unitOfWork.WarehouseCapacities.UpdateAsync(warehouseCapacity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            logger.LogInformation("✅Registro de sección correctamente.");
+            _logger.LogInformation("✅Registro de sección correctamente.");
 
             return true;
         }
