@@ -44,6 +44,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 .Include(pur => pur.PurchaseRequestItems)
                     .ThenInclude(item => item.UnitMeasure)
 
+                .Include(pur => pur.CostCenter)
+                
                 .Where(pur => pur.Id == request.PurchaseRequestId)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(cancellationToken);

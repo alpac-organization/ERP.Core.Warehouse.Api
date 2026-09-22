@@ -12,5 +12,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public UserInformation? ReviewerUserInformation { get; set; } = null;
         public BranchInformation BranchInformation { get; set; } = new ();
         public WorkAreaInformation InformationFromRequestingArea { get; set; } = new ();
+        public CostCenterInformation CostCenterInformation { get; set; } = new();
     }
 }
