@@ -13,8 +13,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             CreateMap<PurchaseRequestsReviewedAccounting, PurchaseRequestsReviewedAccountingDto>()
                 .ForMember(dest => dest.PurchaseRequestsReviewedAccountingId, opt => opt.MapFrom(src => src.Id))
-                .ForPath(dest => dest.SentByUserInformation,           opt => opt.MapFrom(src => src.SentByUser))
-                .ForPath(dest => dest.SentByUserInformation.WorkAreaInformation, opt => opt.MapFrom(src => src.SentByUser.WorkArea));
+                .ForPath(dest => dest.SentByUserInformation,           opt => opt.MapFrom(src => src.SentByUser));
 
             CreateMap<PurchaseRequestsReviewedAccounting, PurchaseRequestsReviewedAccountingDetailsDto>()
                 .ForMember(dest => dest.PurchaseRequestsReviewedAccountingId, opt => opt.MapFrom(src => src.Id))
@@ -24,8 +23,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForPath(dest => dest.PurchaseRequest.InformationFromRequestingArea, opt => opt.MapFrom(src => src.PurchaseRequest.WorkArea))
                 .ForPath(dest => dest.PurchaseRequest.InformationFromRequestingArea.CostCenters, opt => opt.MapFrom(src => src.PurchaseRequest.WorkArea.CostCenters))
                 
-                .ForPath(dest => dest.SentByUserInformation,                     opt => opt.MapFrom(src => src.SentByUser))
-                .ForPath(dest => dest.SentByUserInformation.WorkAreaInformation, opt => opt.MapFrom(src => src.SentByUser.WorkArea));
+                .ForPath(dest => dest.SentByUserInformation,                     opt => opt.MapFrom(src => src.SentByUser));
 
         }
     }

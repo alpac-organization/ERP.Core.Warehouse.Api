@@ -44,7 +44,6 @@ namespace ERP.Core.Warehouse.Api.Test.Common
                 PasswordHash = "$hashpassword",
                 Fullname = fullname,
                 Email = $"testing.{suffix}@domain.com",
-                AreaId = workAreaId,
                 IdentificationNumber = $"001{suffix}A",
             });
 
@@ -190,7 +189,7 @@ namespace ERP.Core.Warehouse.Api.Test.Common
                 RequestStatus = PurchaseRequestStatus.Pending,
                 RegisteredByUserId = registeredByUserId,
                 BranchId = userProfile.BranchId,
-                AreaId = user.AreaId
+                AreaId = Guid.Parse("11111111-0000-0000-0000-000000000001")
             };
 
             /* esto permite que el invoke ajuste propiedades específicas que se necesiten para el test

@@ -8,7 +8,6 @@ using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Commons.Constants;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
-using ServiceOrderEntity = ERP.Core.Database.Domain.Entities.Warehouse.ServiceOrder;
 using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Commands;
 namespace ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Handlers;
 
@@ -175,12 +174,6 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
                 "ERP:MERCHANDISE_NOT_FOUND");
         #endregion
 
-        #region 2.b Validacion de orden de servicio
-        var serviceOrder = await MerchandiseWorkflowHelper.ValidateAndFindServiceOrderAsync(
-            _unitOfWork, _errorManager, request.ServiceOrderId, cancellationToken);
-        if (serviceOrder == null)
-            return false;
-        #endregion
 
         #region 3. Usuario actual
         var user = await _unitOfWork.Users.Entities
@@ -211,8 +204,6 @@ public class CreateDucatRegistryDetailHandler(IUnitOfWork unitOfWork, IErrorMana
         registryDetail.RegisteredEndTime = now;
 
         await _unitOfWork.DucatRegistryDetails.RegisterDucatRegistryDetails(registryDetail);
-        entranceDucat.ServiceOrderId = serviceOrder.Id;
-        entranceDucat.ServiceOrderCode = serviceOrder.Code;
         entranceDucat.Status = DucaStatus.Completed;
         #endregion
 
@@ -284,11 +275,6 @@ public class AssignServiceOrderToCustomsDeclarationHandlers(IUnitOfWork unitOfWo
                 "Esta declaración aduanera ya tiene una orden de servicio asignada.",
                 "ERP:CUSTOMS_DECLARATION_SERVICE_ORDER_ALREADY_ASSIGNED");
 
-        var serviceOrder = await MerchandiseWorkflowHelper.ValidateAndFindServiceOrderAsync(
-            _unitOfWork, _errorManager, request.ServiceOrderId, cancellationToken);
-        if (serviceOrder == null)
-            return false;
-
         var currentUserName = await MerchandiseWorkflowHelper.GetProcessedUserNameAsync(_unitOfWork, request.UserId, cancellationToken);
         if (currentUserName == null)
             return _errorManager.ThrowBadRequest<bool>(
@@ -298,8 +284,6 @@ public class AssignServiceOrderToCustomsDeclarationHandlers(IUnitOfWork unitOfWo
         var today = NicaraguaClock.Today;
         var now = NicaraguaClock.TimeNow;
 
-        recordEntrance.CustomsDeclarations.ServiceOrderId = serviceOrder.Id;
-        recordEntrance.CustomsDeclarations.ServiceOrderCode = serviceOrder.Code;
         recordEntrance.CustomsDeclarations.Status = DucaStatus.Completed;
 
         #region StepExecutionLog - Registro de Mercadería (Declaración Aduanera)
@@ -365,37 +349,6 @@ internal static class MerchandiseWorkflowHelper
 
         if (user == null) return null;
         return user.Fullname ?? user.UserName ?? userId.ToString();
-    }
-
-    internal static async Task<ServiceOrderEntity?> ValidateAndFindServiceOrderAsync(
-        IUnitOfWork unitOfWork, IErrorManager errorManager, Guid serviceOrderId, CancellationToken ct)
-    {
-        var serviceOrder = await unitOfWork.ServiceOrders.Entities
-            .AsNoTracking()
-            .FirstOrDefaultAsync(so => so.Id == serviceOrderId && so.DeletedAt == null, ct);
-
-        if (serviceOrder == null)
-        {
-            errorManager.ThrowBadRequest<bool>(
-                "La orden de servicio indicada no existe.",
-                "ERP:SERVICE_ORDER_NOT_FOUND");
-            return null;
-        }
-
-        var alreadyUsed = await unitOfWork.EntranceDucats.Entities
-            .AnyAsync(d => d.ServiceOrderId == serviceOrderId && d.DeletedAt == null, ct)
-            || await unitOfWork.CustomsDeclarations.Entities
-                .AnyAsync(c => c.ServiceOrderId == serviceOrderId && c.DeletedAt == null, ct);
-
-        if (alreadyUsed)
-        {
-            errorManager.ThrowBadRequest<bool>(
-                "La orden de servicio indicada ya está asignada a otro documento.",
-                "ERP:SERVICE_ORDER_ALREADY_IN_USE");
-            return null;
-        }
-
-        return serviceOrder;
     }
 }
 #endregion

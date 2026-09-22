@@ -4,7 +4,7 @@ using MediatR;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Commands;
 
-public class CreateServiceOrderCommand : BaseRequest, IRequest<CreateServiceOrderResponse>
+public class CreateServiceOrderCommand : BaseRequest, IRequest<Unit>
 {
     public Guid BranchId { get; set; }
     public Guid? CustomerId { get; set; }

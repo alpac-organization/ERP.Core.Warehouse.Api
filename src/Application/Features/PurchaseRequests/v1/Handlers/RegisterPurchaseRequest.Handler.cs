@@ -47,7 +47,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
             foreach(var purchaseRequest in request.PurchaseRequests)
             {
-                Guid areaId = access.User.AreaId;
+
+                //Cambiar esto.
+                Guid areaId = access.Profile.AreaId ?? Guid.Empty;
 
                 if (access.Role?.RoleType == RoleType.Administrator && purchaseRequest.AreaId.HasValue)
                 {

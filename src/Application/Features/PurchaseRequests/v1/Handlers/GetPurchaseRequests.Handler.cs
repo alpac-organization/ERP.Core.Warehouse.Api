@@ -44,8 +44,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 if (access.Role?.RoleType == RoleType.Manager)
                 {
                     //Obtener todas las solicitudes del area del usuario
-                    purchaseRequestsQuery = purchaseRequestsQuery
-                        .Where(pur => pur.AreaId == access.User.AreaId);
+                    // purchaseRequestsQuery = purchaseRequestsQuery
+                    //     .Where(pur => pur.AreaId == access.User.AreaId);
                 }
             }
 
