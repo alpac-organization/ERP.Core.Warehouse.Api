@@ -20,7 +20,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             {
                 Id = Guid.NewGuid(),
                 CostCenterId = costCenterId,
-                Status = OperationalOrderStatus.InProgress,
+                Status = OperationalOrderStatus.PendingDocument,
             };
         }
     }

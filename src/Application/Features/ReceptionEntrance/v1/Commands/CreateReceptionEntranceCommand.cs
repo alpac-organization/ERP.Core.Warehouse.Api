@@ -10,6 +10,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Comma
 
         public required GeneralInformation GeneralInformation { get; set; } = new();
         public required TransportInformation TransportInformation { get; set; } = new();
+        public CustomsDeclarationInformation? CustomsDeclarationInformation { get; set; }
     }
 
     public class TransportInformation
@@ -30,8 +31,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Comma
         public string CountryOrigin { get; set; } = default!;
         public string ContainerNumber { get; set; } = default!;
         public DocumentType DocumentType { get; set; }
-        
+
         public List<string> DucatNumbers { get; set; } = [];
         public string? CustomsDeclarationNumber { get; set; }
+    }
+
+    public class CustomsDeclarationInformation
+    {
+        public decimal TotalWeight { get; set; }
+        public decimal PackageNumber { get; set; }
+        public string? ProductDescription { get; set; }
     }
 }

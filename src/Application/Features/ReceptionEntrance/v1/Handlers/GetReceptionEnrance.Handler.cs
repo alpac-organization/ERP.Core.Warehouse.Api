@@ -38,7 +38,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                 receptionEntrancesQuery = receptionEntrancesQuery
                     .Where(reception => reception.ContainerNumber == request.ContainerNumber);
             }
-            
 
             var totalRecords = await receptionEntrancesQuery.CountAsync(cancellationToken);
 
