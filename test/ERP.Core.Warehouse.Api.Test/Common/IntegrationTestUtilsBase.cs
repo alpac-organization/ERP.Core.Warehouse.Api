@@ -59,7 +59,8 @@ namespace ERP.Core.Warehouse.Api.Test.Common
                 UserId = newUserId,
                 BranchId = branch.Id,
                 IsActive = true,
-                CompanyId = company.Id
+                CompanyId = company.Id,
+                CostCenterId = Guid.Parse("ffffffff-0000-0000-0000-000000000001")
             });
 
             await _unitOfWork.SaveChangesAsync(default);
