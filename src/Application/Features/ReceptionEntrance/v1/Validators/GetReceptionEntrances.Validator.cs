@@ -1,30 +1,13 @@
-using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queries;
 using FluentValidation;
+using ERP.Core.Warehouse.Api.Application.Commons.Bases;
+using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Validators;
 
-public class GetReceptionEntrancesValidator : AbstractValidator<GetReceptionEntrancesQuery>
+public class GetReceptionEntrancesValidator : BaseRequestValidator<GetReceptionEntrancesQuery>
 {
     public GetReceptionEntrancesValidator()
     {
-        RuleFor(x => x.CompanyId)
-            .NotEmpty()
-                .WithMessage("El id de la empresa no puedes vacio.")
-            .NotNull()
-                .WithMessage("El id de la empresa es requerido");
-
-        RuleFor(x => x.ModuleCode)
-            .NotEmpty()
-                .WithMessage("El codigo de modulo es requerido")
-            .NotNull()
-                .WithMessage("El codigo de modulo es requerido");
-
-        RuleFor(x => x.UserId)
-            .NotEmpty()
-                .WithMessage("El id de usuario es requerido")
-            .NotNull()
-                .WithMessage("El id de usuario es requerido");
-
         RuleFor(x => x.PageNumber)
             .GreaterThan(0)
             .WithMessage("El número de página debe ser mayor que 0.");
@@ -32,10 +15,6 @@ public class GetReceptionEntrancesValidator : AbstractValidator<GetReceptionEntr
         RuleFor(x => x.PageSize)
             .GreaterThan(0)
             .WithMessage("El tamaño de página debe ser mayor que 0.");
-
-        RuleFor(x => x)
-            .Must(x => !x.StartDate.HasValue || !x.EndDate.HasValue || x.EndDate.Value.Date >= x.StartDate.Value.Date)
-            .WithMessage("La fecha final del rango debe ser mayor o igual a la fecha inicial.");
     }
 }
 

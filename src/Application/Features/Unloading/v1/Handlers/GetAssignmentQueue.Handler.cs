@@ -29,7 +29,6 @@ public class GetAssignmentQueueHandler(IUnitOfWork unitOfWork, IErrorManager err
         if (!string.IsNullOrWhiteSpace(request.DucatNumber))
         {
             var filter = request.DucatNumber.Trim().ToLower().Replace(" ", "");
-            query = query.Where(a => a.EntranceDucat!.DucatNumber.ToLower().Replace(" ", "").Contains(filter));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);

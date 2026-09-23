@@ -15,7 +15,6 @@ public class UnloadingProfile : Profile
         CreateMap<WarehouseAssignments, AssignmentQueueItemDto>()
             .ForMember(d => d.AssignmentId, o => o.MapFrom(s => s.Id))
             .ForMember(d => d.RecordEntranceId, o => o.MapFrom(s => s.RecordEntranceId))
-            .ForMember(d => d.DucatNumber, o => o.MapFrom(s => s.EntranceDucat!.DucatNumber))
             .ForMember(d => d.DucatId, o => o.MapFrom(s => s.EntranceDucatId))
             .ForMember(d => d.UnloadingStatus, o => o.MapFrom(s => s.UnloadingStatus));
         #endregion
