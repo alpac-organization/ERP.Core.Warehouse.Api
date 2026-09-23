@@ -13,7 +13,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queri
         public DocumentType? DocumentType { get; set; }
 
 
-
         ///Adminstración.
         public int PageSize { get; set; } = 10;
         public int PageNumber { get; set; } = 1;

@@ -8,6 +8,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queries;
+using System.Text.Json;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers
 {
@@ -38,6 +39,23 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                 receptionEntrancesQuery = receptionEntrancesQuery
                     .Where(reception => reception.ContainerNumber == request.ContainerNumber);
             }
+
+            if(!string.IsNullOrEmpty(request.PlateNumber))
+            {
+                receptionEntrancesQuery = receptionEntrancesQuery
+                    .Where(reception => reception.ReceptionTransport.VehiclePlateNumber == request.PlateNumber);
+            }
+
+            // if (!request.DocumentType.HasValue && !string.IsNullOrEmpty(request.DocumentNumber))
+            // {
+            //     var containsFilter = JsonSerializer.Serialize(new AdditionalReceptionEntranceData
+            //     {
+            //         DocumentNumbers = [request.DocumentNumber]
+            //     });
+
+            //     receptionEntrancesQuery = receptionEntrancesQuery
+            //         .Where(reception => EF.Functions.JsonContains(reception.AdditionalData!, containsFilter));
+            // }
             
 
             var totalRecords = await receptionEntrancesQuery.CountAsync(cancellationToken);
