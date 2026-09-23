@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Domain.Entities.Errors;
 using ERP.Core.Infrastructure.Attributes;
+
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
-using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
@@ -21,10 +21,15 @@ namespace ERP.Core.Warehouse.Api.Controllers.Reception
         [ProducesResponseType(typeof(CreatedResult), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<CreatedResult> CreateReceptionEntranceAsync([FromRoute] Guid company_id, [FromRoute] string module_code)
+        public async Task<CreatedResult> CreateReceptionEntranceAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromBody] CreateReceptionEntranceCommand payload)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
-            //Lanzar mediator de creación de reception entrance.
+
+            payload.CompanyId = company_id;
+            payload.ModuleCode = module_code;
+            payload.UserId = Guid.Parse(userIdStr ?? "");
+
+            await _mediator.Send(payload);
 
             return Created();
         }
@@ -34,24 +39,28 @@ namespace ERP.Core.Warehouse.Api.Controllers.Reception
         [ProducesResponseType(typeof(GetReceptionEntrancesDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<OkResult> GetReceptionEntrancesAsync(
-            [FromRoute] Guid company_id,
-            [FromRoute] string module_code,
-            [FromQuery] string? driver_name,
-            [FromQuery] string? plate_number,
-            [FromQuery] DocumentType? document_type,
-            [FromQuery] string? document_number,
-            [FromQuery] string? ducat_number,
-            [FromQuery] Guid? ducat_id,
-            [FromQuery] DateTime? start_date,
-            [FromQuery] DateTime? end_date,
+        public async Task<OkResult> GetReceptionEntrancesAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
+            [FromQuery] string? plate_number = null,
+            [FromQuery] string? document_number = null,
+            [FromQuery] DocumentType? document_type = null,
+
             [FromQuery] int page_number = 1,
             [FromQuery] int page_size = 10
         )
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
-            //Lanzar el mediator de obtener listado de registros de entradas.
 
+            await _mediator.Send(new GetReceptionEntrancesQuery()
+            {
+                UserId = Guid.Parse(userIdStr ?? ""),
+                CompanyId = company_id, 
+                ModuleCode = module_code,
+                DocumentNumber = document_number,
+                PlateNumber = plate_number,
+                PageSize = page_size,
+                PageNumber = page_number,
+                DocumentType = document_type
+            });
 
             return Ok();
         }
@@ -80,112 +89,16 @@ namespace ERP.Core.Warehouse.Api.Controllers.Reception
         }
 
         [Tags("Control de Acceso")]
-        [HttpPatch("companies/{company_id}/modules/{module_code}/receptions/{reception_id}")]
-        [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<OkObjectResult> UpdateReceptionEntranceAsync(
-            [FromRoute] Guid company_id,
-            [FromRoute] string module_code,
-            [FromRoute] Guid reception_id,
-            [FromBody] UpdateReceptionEntranceDto dto,
-            CancellationToken cancellationToken)
-        {
-            var userIdStr = HttpContext.Items["UserId"] as string;
-            Guid.TryParse(userIdStr, out var userId);
-
-            var command = dto.ToUpdateCommand(
-                receptionId: reception_id,
-                userId: userId,
-                companyId: company_id,
-                moduleCode: module_code
-            );
-
-            var response = await _mediator.Send(command, cancellationToken);
-
-            return Ok(response);
-        }
-
-
-        [Tags("Control de Acceso")]
-        [HttpPost("companies/{company_id}/modules/{module_code}/receptions/{reception_id}/ducats")]
-        [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<OkObjectResult> AddDucatsToReceptionAsync(
-            [FromRoute] Guid company_id,
-            [FromRoute] string module_code,
-            [FromRoute] Guid reception_id,
-            [FromBody] AddDucatsToReceptionDto dto,
-            CancellationToken cancellationToken)
-        {
-            var userIdStr = HttpContext.Items["UserId"] as string;
-            Guid.TryParse(userIdStr, out var userId);
-
-            var command = dto.ToAddDucatsCommand(
-                receptionId: reception_id,
-                userId: userId,
-                companyId: company_id,
-                moduleCode: module_code
-            );
-
-            var response = await _mediator.Send(command, cancellationToken);
-
-            return Ok(response);
-        }
-
-        [Tags("Control de Acceso")]
         [HttpPost("companies/{company_id}/modules/{module_code}/receptions/{reception_id}/exit")]
         [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<OkObjectResult> RegisterVehicleExitAsync(
-        [FromRoute] Guid company_id,
-        [FromRoute] string module_code,
-        [FromRoute] Guid reception_id,
-        [FromBody] ExitVehicleDto dto,
-        CancellationToken cancellationToken)
+        public async Task<OkResult> Exit([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid reception_id, [FromBody] ExitVehicleDto dto
+        )
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
-            Guid.TryParse(userIdStr, out var userId);
 
-            var command = dto.ToExitVehicleCommand(
-                receptionId: reception_id,
-                userId: userId,
-                companyId: company_id,
-                moduleCode: module_code
-            );
-
-            var response = await _mediator.Send(command, cancellationToken);
-
-            return Ok(response);
-        }
-
-        [Tags("Control de Acceso")]
-        [HttpDelete("companies/{company_id}/modules/{module_code}/receptions/{reception_id}")]
-        [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<OkObjectResult> DeleteReceptionEntranceAsync(
-        [FromRoute] Guid company_id,
-        [FromRoute] string module_code,
-        [FromRoute] Guid reception_id,
-        CancellationToken cancellationToken)
-        {
-            var userIdStr = HttpContext.Items["UserId"] as string;
-            Guid.TryParse(userIdStr, out var userId);
-
-            var command = new DeleteReceptionEntranceCommand
-            {
-                UserId = userId,
-                CompanyId = company_id,
-                ModuleCode = module_code,
-                ReceptionId = reception_id
-            };
-
-            var response = await _mediator.Send(command, cancellationToken);
-
-            return Ok(response);
+            return Ok();
         }
     }
 }
