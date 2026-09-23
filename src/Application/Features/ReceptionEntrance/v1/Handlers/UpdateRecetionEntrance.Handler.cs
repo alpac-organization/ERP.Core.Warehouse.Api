@@ -7,8 +7,6 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
-using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
-using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Application.Commons.Interfaces.AWS;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers;
@@ -141,8 +139,6 @@ public class UpdateReceptionEntranceHandler(
                         $"La DUCA con id '{item.Id}' no pertenece a este registro de recepción.",
                         "ERP:DUCA_NOT_FOUND");
                 }
-
-                ducat.ApplyUpdate(item.DucatNumber);
             }
         }
         #endregion
@@ -174,9 +170,6 @@ public class UpdateReceptionEntranceHandler(
                         "ERP:GLOBAL_DUPLICATED_CUSTOMS_DECLARATION");
                 }
             }
-
-            declaration.ApplyUpdate(request);
-            declaration.Details?.ApplyUpdate(request);
         }
         #endregion
 
@@ -188,13 +181,6 @@ public class UpdateReceptionEntranceHandler(
                 .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
 
             var nowNica = NicaraguaClock.Now;
-
-            recordEntrance.ReceptionEntrance.ApplyUpdate(
-                request,
-                request.UserId.ToString(),
-                user?.Fullname ?? user?.UserName ?? request.UserId.ToString(),
-                DateOnly.FromDateTime(nowNica),
-                TimeOnly.FromDateTime(nowNica));
         }
         #endregion
 
