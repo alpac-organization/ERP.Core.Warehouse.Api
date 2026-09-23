@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 {
-   public class DeleteSectionHandler(IUnitOfWork _unitOfWork, IErrorManager _erroManager, ILogger<DeleteSectionHandler> _logger) : BaseValidatorHandler<DeleteSectionCommand, bool>(_unitOfWork, _erroManager) 
+   public class DeleteSectionHandler(IUnitOfWork _unitOfWork, IErrorManager _erroManager, ILogger<DeleteSectionHandler> _logger) : BaseValidatorHandler<DeleteSectionCommand, bool>(_unitOfWork, _erroManager)
    {
       public override async Task<bool> Handle(DeleteSectionCommand request, CancellationToken cancellationToken)
       {
@@ -16,8 +16,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 
          if (!access.IsSuccess)
          {
-            return access.ErrorResponse!;
-         }         
+            return access.ErrorResponse;
+         }
+
+         if (access.Role?.RoleType != RoleType.Administrator)
+         {
+            return _errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:01");
+         }
 
          _logger.LogInformation("🚩Iniciando proceso de eliminación de sección.");
 
@@ -27,11 +32,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
          if (section is null)
          {
             return _errorManager.ThrowBadRequest<bool>("No se encontró la sección a eliminar", "ERP:NOT_FOUND");
-         }
-
-         if (section.WarehouseId != request.WarehouseId)
-         {
-            return _errorManager.ThrowBadRequest<bool>("La sección no pertenece al almacén indicado.", "ERP:01");
          }
 
          section.IsActive = false;

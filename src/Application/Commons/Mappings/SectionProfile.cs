@@ -2,6 +2,7 @@ using System.Net;
 using AutoMapper;
 using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Entities.Warehouse;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using Commands = ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
@@ -51,6 +52,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             WarehouseId = command.WarehouseId,
             SectionType = command.SectionType,
             SectionStorageType = command.SectionStorageType,
+            AllowsStorageAisle = command.SectionType == SectionType.Aisle && command.AllowsStorageAisle == true,
+            MaxPalletsPerLevelAisle = command.SectionType == SectionType.Aisle ? command.MaximumNumberOfPalletsPerLevel : null
          };
       }
 

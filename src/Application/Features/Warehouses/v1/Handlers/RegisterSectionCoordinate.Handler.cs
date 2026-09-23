@@ -5,6 +5,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using Microsoft.EntityFrameworkCore;
+using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 {
@@ -15,6 +16,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
          var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
 
          if (!access.IsSuccess) return access.ErrorResponse;
+
+         if (access.Role?.RoleType != RoleType.Administrator)
+         {
+            return _errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:01");
+         }
 
          _logger.LogInformation("🚀Iniciando proceso de registro de coordenadas de sección.");
 

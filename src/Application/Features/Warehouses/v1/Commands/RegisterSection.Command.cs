@@ -13,5 +13,7 @@ public class RegisterSectionCommand : BaseRequest, IRequest<bool>
     public SectionType SectionType { get; set; }
     public SectionStorageType SectionStorageType { get; set; }
     public decimal Width { get; set; }
-    public decimal Length { get; set; }    
+    public decimal Length { get; set; }
+    public bool? AllowsStorageAisle { get; set; }
+    public int? MaximumNumberOfPalletsPerLevel { get; set; }
 }

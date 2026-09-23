@@ -19,7 +19,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 
             if (!access.IsSuccess) return access.ErrorResponse;
 
-            if (access.Role?.RoleType == RoleType.Supervisor)
+            if (access.Role?.RoleType != RoleType.Administrator)
             {
                 return _errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:01");
             }
@@ -35,6 +35,31 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
             if (request.SectionType == SectionType.Aisle && request.SectionStorageType == SectionStorageType.Racks)
             {
                 return _errorManager.ThrowBadRequest<bool>("Una sección de tipo pasillo no admite almacenamiento en racks.", "ERP:SECTION_STORAGE_MISMATCH");
+            }
+
+            if (request.SectionType != SectionType.Aisle && request.AllowsStorageAisle.HasValue && request.AllowsStorageAisle.Value)
+            {
+                return _errorManager.ThrowBadRequest<bool>("No se puede habilitar el almacenamiento en pasillo en una sección que no es de tipo pasillo (Aisle).", "ERP:SECTION_STORAGE_MISMATCH");
+            }
+
+            if (request.SectionType != SectionType.Aisle && request.MaximumNumberOfPalletsPerLevel.HasValue)
+            {
+                return _errorManager.ThrowBadRequest<bool>("El número máximo de polines por nivel solo es para tipo pasillo (Aisle).", "ERP:SECTION_STORAGE_MISMATCH");
+            }
+
+            if (request.SectionType == SectionType.Aisle && request.AllowsStorageAisle == true &&
+                (!request.MaximumNumberOfPalletsPerLevel.HasValue || request.MaximumNumberOfPalletsPerLevel <= 0))
+            {
+                return _errorManager.ThrowBadRequest<bool>(
+                    "Si el pasillo permite almacenamiento, el número máximo de polines por nivel debe ser mayor a cero.",
+                    "ERP:SECTION_STORAGE_MISMATCH");
+            }
+
+            if (request.AllowsStorageAisle != true && request.MaximumNumberOfPalletsPerLevel.HasValue)
+            {
+                return _errorManager.ThrowBadRequest<bool>(
+                    "El número máximo de polines por nivel solo aplica cuando el pasillo permite almacenamiento.",
+                    "ERP:SECTION_STORAGE_MISMATCH");
             }
 
             var codeExists = await _unitOfWork.Sections.Entities
