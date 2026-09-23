@@ -112,7 +112,6 @@ public class MerchandiseRegistryProfile : Profile
         // ==== 5. Bloque de recepción ====
         CreateMap<RecordEntrance, MerchandiseReceptionDetailDto>()
             .ForMember(d => d.CountryOfOrigin, o => o.MapFrom(s => s.ReceptionEntrance!.CountryOfOrigin))
-            .ForMember(d => d.CustomBranch, o => o.MapFrom(s => s.ReceptionEntrance!.CustomsBranches != null ? s.ReceptionEntrance!.CustomsBranches.Name : string.Empty))
             .ForMember(d => d.VehiclePlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.VehiclePlateNumber))
             .ForMember(d => d.VehicleChassisNumber, o => o.MapFrom(s => s.ReceptionEntrance!.VehicleChassisNumber))
             .ForMember(d => d.ContainerNumber, o => o.MapFrom(s => s.ReceptionEntrance!.ContainerNumber))
