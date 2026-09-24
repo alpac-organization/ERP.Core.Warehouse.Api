@@ -8,14 +8,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Queries;
 
 public class GetRacksBySectionQuery : BaseRequest, IPagedQuery, IRequest<PagedResponse<RackListDto>>
 {
+    public Guid WarehouseId { get; set; }
     public Guid SectionId { get; set; }
 
+    public string? Code { get; set; }
+    public int? RowNumber { get; set; }
     public int? LevelNumber { get; set; }
     public RackStatus? Status { get; set; }
     public RackUsageProfile? UsageProfile { get; set; }
-    public decimal? WidthMetres { get; set; }
-    public decimal? LengthMetres { get; set; }
 
     public int PageNumber { get; set; } = 1;
-    public int PageSize { get; set; } = 10;
+    public int PageSize { get; set; } = 24;
 }
