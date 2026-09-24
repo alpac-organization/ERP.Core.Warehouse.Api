@@ -64,8 +64,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
             //Manejo de  información de (PO)
             var operationOrderEntity = OperationalOrderMapper.ToOperationalOrderEntity(access.Profile.CostCenterId);
 
-            // var PoCode = _codeGenerator.
+            var (IsSucceded, PoCode) = await _codeGenerator.GenerateUniqueOperationalOrderCodeAsync(access.Profile.CostCenterId, cancellationToken);
 
+            if (!IsSucceded)
+            {
+                return _errorManager.ThrowInternalError<Unit>("Ocurrio un error al generar la generación de archivo", "ERP:INTERNAL_ERROR");
+            }
+            
+            operationOrderEntity.OpCode = PoCode;
             operationOrderEntity.ReceptionId = receptionEntranceEntity.Id;
             operationOrderEntity.DocumentType = request.GeneralInformation.DocumentType;
 
