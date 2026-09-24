@@ -12,195 +12,8 @@ public class MerchandiseRegistryProfile : Profile
 {
     public MerchandiseRegistryProfile()
     {
-        string receptionStepCode = null!;
 
-        // ==== 1. Lista de registros ====
-        CreateMap<RecordEntrance, MerchandiseRegistryListItemDto>()
-            .ForMember(d => d.VehiclePlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.VehiclePlateNumber))
-            .ForMember(d => d.DriverName, o => o.MapFrom(s => s.ReceptionEntrance!.DriverName))
-            .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType))
-            .ForMember(d => d.ContainerNumber, o => o.MapFrom(s => s.ReceptionEntrance!.ContainerNumber))
-            .ForMember(d => d.Status, o => o.MapFrom(s =>
-                s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration
-                    ? (s.CustomsDeclarations != null ? s.CustomsDeclarations.Status : (DucaStatus?)null)
-                    : (s.DucatRegistry != null ? s.DucatRegistry.Status : (DucaStatus?)null)))
-            .ForMember(d => d.ArrivalDate, o => o.MapFrom(s => s.ExecutionLogs
-                .Where(l => l.WorkflowStepDefinitionCode == receptionStepCode)
-                .Select(l => l.StartDate).First()))
-            .ForMember(d => d.ArrivalTime, o => o.MapFrom(s => s.ExecutionLogs
-                .Where(l => l.WorkflowStepDefinitionCode == receptionStepCode)
-                .Select(l => l.StartTime).First()))
-            .ForMember(d => d.TotalDocuments, o => o.MapFrom(s =>
-                s.ReceptionEntrance!.DocumentType == DocumentType.DUCA
-                    ? s.EntranceDucats.Count(x => x.DeletedAt == null)
-                    : (s.CustomsDeclarations != null ? 1 : 0)))
-            .ForMember(d => d.CompletedDocuments, o => o.MapFrom(s =>
-                s.ReceptionEntrance!.DocumentType == DocumentType.DUCA
-                    ? s.EntranceDucats.Count(x => x.DeletedAt == null && x.Status == DucaStatus.Completed)
-                    : (s.CustomsDeclarations != null && s.CustomsDeclarations.Details != null ? 1 : 0)));
-
-        // ==== 2. Detalle de un DUCA (item hijo) ====
-        CreateMap<EntranceDucats, MerchandiseDucatDetailDto>()
-            .ForMember(d => d.Type, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.Type : (DucaType?)null))
-            .ForMember(d => d.MerchandiseId, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.MerchandiseId : (Guid?)null))
-            .ForMember(d => d.MerchandiseName, o => o.MapFrom(s => s.RegistryDetail != null && s.RegistryDetail.Merchandise != null ? s.RegistryDetail.Merchandise.MerchandiseName : null))
-            .ForMember(d => d.TotalBultos, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.TotalBultos : (int?)null))
-            .ForMember(d => d.TotalWeight, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.TotalWeight : (decimal?)null))
-            .ForMember(d => d.MerchandiseDescription, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.MerchandiseDescription : null))
-            .ForMember(d => d.Sender, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.Sender : null))
-            .ForMember(d => d.DestinationAreaObservation, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.DestinationAreaObservation : null))
-            .ForMember(d => d.Status, o => o.MapFrom(s => s.Status))
-
-            // Datos de creación / registro
-            .ForMember(d => d.RegisteredByUserName, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.RegisteredByUserName : null))
-            .ForMember(d => d.RegisteredStartDate, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.RegisteredStartDate : (DateOnly?)null))
-            .ForMember(d => d.RegisteredStartTime, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.RegisteredStartTime : (TimeOnly?)null))
-            .ForMember(d => d.RegisteredEndDate, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.RegisteredEndDate : (DateOnly?)null))
-            .ForMember(d => d.RegisteredEndTime, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.RegisteredEndTime : (TimeOnly?)null))
-
-            // Cálculos directos de duración usando Start y End
-            .ForMember(d => d.DurationInSeconds, o => o.MapFrom(s => ComputeEachDucaDurationSeconds(s)))
-            .ForMember(d => d.DurationFormatted, o => o.MapFrom(s => ComputeEachDucaDurationFormatted(s)))
-
-            // Datos de auditoría de actualización
-            .ForMember(d => d.UpdatedByUserName, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.UpdatedByUserName : null))
-            .ForMember(d => d.UpdatedDate, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.UpdatedDate : (DateOnly?)null))
-            .ForMember(d => d.UpdatedTime, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.UpdatedTime : (TimeOnly?)null));
-
-        CreateMap<EntranceDucats, GetDucatDetailDto>()
-            .ForMember(d => d.Type, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.Type : default))
-            .ForMember(d => d.MerchandiseName, o => o.MapFrom(s => s.RegistryDetail != null && s.RegistryDetail.Merchandise != null ? s.RegistryDetail.Merchandise.MerchandiseName : null))
-            .ForMember(d => d.TotalBultos, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.TotalBultos : (int?)null))
-            .ForMember(d => d.TotalWeight, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.TotalWeight : (decimal?)null))
-            .ForMember(d => d.MerchandiseDescription, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.MerchandiseDescription : null))
-            .ForMember(d => d.Sender, o => o.MapFrom(s => s.RegistryDetail != null ? s.RegistryDetail.Sender : null));
-
-        // ==== 3. Bloque DUCA (Dato General + lista de ducats) ====
-        CreateMap<RecordEntrance, MerchandiseDucaRegistryDetailDto>()
-            .ForMember(d => d.ShippingCompanyId, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.ShippingCompanyId : (Guid?)null))
-            .ForMember(d => d.SippingCompanyName, o => o.MapFrom(s => s.DucatRegistry != null && s.DucatRegistry.ShippingCompany != null ? s.DucatRegistry.ShippingCompany.Name : null))
-            .ForMember(d => d.GeneralObservations, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.GeneralObservations : null))
-            .ForMember(d => d.IsInTransit, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.IsInTransit : (bool?)null))
-            .ForMember(d => d.Status, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.Status : DucaStatus.Pending))
-
-            // Datos de creación / registro
-            .ForMember(d => d.RegisteredByUserName, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.RegisteredByUserName : null))
-            .ForMember(d => d.RegisteredStartDate, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.RegisteredStartDate : (DateOnly?)null))
-            .ForMember(d => d.RegisteredStartTime, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.RegisteredStartTime : (TimeOnly?)null))
-            .ForMember(d => d.RegisteredEndDate, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.RegisteredEndDate : (DateOnly?)null))
-            .ForMember(d => d.RegisteredEndTime, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.RegisteredEndTime : (TimeOnly?)null))
-
-            // Cálculos directos de duración usando Start y End del Dato General
-            .ForMember(d => d.DurationInSeconds, o => o.MapFrom(s => ComputeDatoGeneralDurationSeconds(s)))
-            .ForMember(d => d.DurationFormatted, o => o.MapFrom(s => ComputeDatoGeneralDurationFormatted(s)))
-
-            // Datos de auditoría de actualización
-            .ForMember(d => d.UpdatedByUserName, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.UpdatedByUserName : null))
-            .ForMember(d => d.UpdatedDate, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.UpdatedDate : (DateOnly?)null))
-            .ForMember(d => d.UpdatedTime, o => o.MapFrom(s => s.DucatRegistry != null ? s.DucatRegistry.UpdatedTime : (TimeOnly?)null))
-
-            .ForMember(d => d.Ducats, o => o.MapFrom(s => s.EntranceDucats));
-
-        // ==== 4. Bloque Declaración Aduanera ====
-        CreateMap<CustomsDeclarations, MerchandiseCustomsDeclarationDetailDto>()
-            .ForMember(d => d.CustomsDeclarationNumber, o => o.MapFrom(s => s.CustomsDeclarationNumber))
-            .ForMember(d => d.Packages, o => o.MapFrom(s => s.Details != null ? s.Details.Packages : (int?)null))
-            .ForMember(d => d.Customer, o => o.MapFrom(s => s.Details != null ? s.Details.Customer : null))
-            .ForMember(d => d.Product, o => o.MapFrom(s => s.Details != null ? s.Details.Product : null))
-            .ForMember(d => d.Status, o => o.MapFrom(s => s.Status));
-
-        // ==== 5. Bloque de recepción ====
-        CreateMap<RecordEntrance, MerchandiseReceptionDetailDto>()
-            .ForMember(d => d.CountryOfOrigin, o => o.MapFrom(s => s.ReceptionEntrance!.CountryOfOrigin))
-            .ForMember(d => d.VehiclePlateNumber, o => o.MapFrom(s => s.ReceptionEntrance!.VehiclePlateNumber))
-            .ForMember(d => d.VehicleChassisNumber, o => o.MapFrom(s => s.ReceptionEntrance!.VehicleChassisNumber))
-            .ForMember(d => d.ContainerNumber, o => o.MapFrom(s => s.ReceptionEntrance!.ContainerNumber))
-            .ForMember(d => d.DriverLicense, o => o.MapFrom(s => s.ReceptionEntrance!.DriverLicense))
-            .ForMember(d => d.Transportista, o => o.MapFrom(s => s.ReceptionEntrance!.Transportista))
-            .ForMember(d => d.DriverName, o => o.MapFrom(s => s.ReceptionEntrance!.DriverName))
-            .ForMember(d => d.SealNumber, o => o.MapFrom(s => s.ReceptionEntrance!.SealNumber))
-            .ForMember(d => d.SealEvidence, o => o.MapFrom(s => s.ReceptionEntrance!.EvidenceUrls))
-            .ForMember(d => d.DocumentType, o => o.MapFrom(s => s.ReceptionEntrance!.DocumentType))
-            .ForMember(d => d.TransportUnit, o => o.MapFrom(s => s.ReceptionEntrance!.TransportUnit))
-            .ForMember(d => d.VehicleExitDate, o => o.MapFrom(s => s.ReceptionEntrance!.VehicleExitDate))
-            .ForMember(d => d.VehicleExitTime, o => o.MapFrom(s => s.ReceptionEntrance!.VehicleExitTime))
-            .ForMember(d => d.ContainerExitDate, o => o.MapFrom(s => s.ReceptionEntrance!.ContainerExitDate))
-            .ForMember(d => d.ContainerExitTime, o => o.MapFrom(s => s.ReceptionEntrance!.ContainerExitTime));
-
-        // ==== 6. Log de registro de mercancía (Workflow Step Execution Log) ====
-        CreateMap<RecordEntrance, MerchandiseRegistrationLogDto>()
-            .ForMember(d => d.MerchandiseRegistrationDate, o => o.MapFrom(s => ResolveMerchandiseLog(s) != null ? ResolveMerchandiseLog(s)!.StartDate : (DateOnly?)null))
-            .ForMember(d => d.MerchandiseRegistrationTime, o => o.MapFrom(s => ResolveMerchandiseLog(s) != null ? ResolveMerchandiseLog(s)!.StartTime : (TimeOnly?)null))
-            .ForMember(d => d.MerchandiseRegisteredByUserName, o => o.MapFrom(s => ResolveMerchandiseLog(s) != null ? ResolveMerchandiseLog(s)!.ProcessedByUserName : null))
-            .ForMember(d => d.MerchandiseRegistrationEndDate, o => o.MapFrom(s => ResolveMerchandiseLog(s) != null ? ResolveMerchandiseLog(s)!.EndDate : null))
-            .ForMember(d => d.MerchandiseRegistrationEndTime, o => o.MapFrom(s => ResolveMerchandiseLog(s) != null ? ResolveMerchandiseLog(s)!.EndTime : null))
-            .ForMember(d => d.MerchandiseFinishedByUserName, o => o.MapFrom(s => ResolveMerchandiseLog(s) != null ? ResolveMerchandiseLog(s)!.FinishedByUserName : null))
-            .ForMember(d => d.DurationTotalSeconds, o => o.MapFrom(s => ComputeDurationSeconds(ResolveMerchandiseLog(s))))
-            .ForMember(d => d.DurationFormatted, o => o.MapFrom(s => ComputeDurationFormatted(ResolveMerchandiseLog(s))));
-
-        // ==== 7. DTO raíz del detalle ====
-        CreateMap<RecordEntrance, GetMerchandiseRegistryDetailDto>()
-            .ForMember(d => d.Reception, o => o.MapFrom(s => s))
-            .ForMember(d => d.MerchandiseRegistration, o => o.MapFrom(s => s))
-            .ForMember(d => d.DucaRegistry, o => o.MapFrom(s =>
-                s.ReceptionEntrance!.DocumentType == DocumentType.DUCA ? s : null))
-            .ForMember(d => d.CustomsDeclaration, o => o.MapFrom(s =>
-                s.ReceptionEntrance!.DocumentType == DocumentType.CustomsDeclaration ? s.CustomsDeclarations : null));
-    }
-
-    private static string ResolveReceptionStepCode(RecordEntrance s)
-    {
-        return s.ReceptionEntrance?.DocumentType == DocumentType.CustomsDeclaration
-            ? MerchandiseRegistrationSteps.CustomsDeclaration
-            : MerchandiseRegistrationSteps.Duca;
-    }
-
-    private static StepExecutionLogs? ResolveMerchandiseLog(RecordEntrance s)
-    {
-        var stepCode = ResolveReceptionStepCode(s);
-        return s.ExecutionLogs.FirstOrDefault(l => l.WorkflowStepDefinitionCode == stepCode);
-    }
-
-    // ==== MÉTODOS DE CÁLCULO DE DURACIÓN ====
-
-    private static int? ComputeDatoGeneralDurationSeconds(RecordEntrance s)
-    {
-        if (s.DucatRegistry == null) return null;
-        return ComputeDurationSeconds(
-            s.DucatRegistry.RegisteredStartDate,
-            s.DucatRegistry.RegisteredStartTime,
-            s.DucatRegistry.RegisteredEndDate,
-            s.DucatRegistry.RegisteredEndTime);
-    }
-
-    private static string? ComputeDatoGeneralDurationFormatted(RecordEntrance s)
-    {
-        if (s.DucatRegistry == null) return null;
-        return ComputeDurationFormatted(
-            s.DucatRegistry.RegisteredStartDate,
-            s.DucatRegistry.RegisteredStartTime,
-            s.DucatRegistry.RegisteredEndDate,
-            s.DucatRegistry.RegisteredEndTime);
-    }
-
-    private static int? ComputeEachDucaDurationSeconds(EntranceDucats current)
-    {
-        if (current.RegistryDetail == null) return null;
-        return ComputeDurationSeconds(
-            current.RegistryDetail.RegisteredStartDate,
-            current.RegistryDetail.RegisteredStartTime,
-            current.RegistryDetail.RegisteredEndDate,
-            current.RegistryDetail.RegisteredEndTime);
-    }
-
-    private static string? ComputeEachDucaDurationFormatted(EntranceDucats current)
-    {
-        if (current.RegistryDetail == null) return null;
-        return ComputeDurationFormatted(
-            current.RegistryDetail.RegisteredStartDate,
-            current.RegistryDetail.RegisteredStartTime,
-            current.RegistryDetail.RegisteredEndDate,
-            current.RegistryDetail.RegisteredEndTime);
+        
     }
 
     // ==== SOBRECARGAS PARA StepExecutionLogs ====
@@ -260,7 +73,6 @@ public class DucatRegistryProfile : Profile
             .ForMember(d => d.UpdatedTime, o => o.Ignore())
             .ForMember(d => d.Status, o => o.Ignore())
             .ForMember(d => d.Details, o => o.Ignore())
-            .ForMember(d => d.RecordEntrance, o => o.Ignore())
             .ForMember(d => d.ShippingCompany, o => o.Ignore());
 
     }
@@ -321,7 +133,6 @@ public class DucatRegistryDetailProfile : Profile
             .ForMember(d => d.UpdatedDate, o => o.Ignore())
             .ForMember(d => d.UpdatedTime, o => o.Ignore())
             .ForMember(d => d.DucatRegistry, o => o.Ignore())
-            .ForMember(d => d.EntranceDucat, o => o.Ignore())
             .ForMember(d => d.Merchandise, o => o.Ignore());
     }
 }
