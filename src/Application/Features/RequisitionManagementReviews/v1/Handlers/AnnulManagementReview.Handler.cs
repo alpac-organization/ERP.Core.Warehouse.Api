@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Domain.Enums;
@@ -83,6 +84,20 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
             purchaseRequest.AnnulledByUserId = access.User.Id;
             purchaseRequest.DeletedAt = isQuotationOnly ? null : now;
 
+            await AnnulItemsAndQuotationsAsync(purchaseRequest, now, cancellationToken);
+
+            await _unitOfWork.PurchaseRequestsReviewedManagement.UpdateAsync(managementReview);
+            await _unitOfWork.PurchaseRequests.UpdateAsync(purchaseRequest);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return true;
+        }
+
+        private async Task AnnulItemsAndQuotationsAsync(
+            PurchaseRequest purchaseRequest,
+            DateTime now,
+            CancellationToken cancellationToken)
+        {
             foreach (var item in purchaseRequest.PurchaseRequestItems)
             {
                 item.HasQuotation = false;
@@ -96,12 +111,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                     await _unitOfWork.Quotations.UpdateAsync(quote);
                 }
             }
-
-            await _unitOfWork.PurchaseRequestsReviewedManagement.UpdateAsync(managementReview);
-            await _unitOfWork.PurchaseRequests.UpdateAsync(purchaseRequest);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            return true;
         }
     }
 }

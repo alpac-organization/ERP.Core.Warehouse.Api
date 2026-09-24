@@ -7,6 +7,7 @@ using ERP.Core.Application.Commons.Interfaces.AWS;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
+using ERP.Core.Database.Application.Commons.Interfaces.Services;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
@@ -14,7 +15,7 @@ using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers
 {
-    public class CreateReceptionEntranceHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IS3StorageService _s3Services /* ICodeGenerator _codeGenerator */) : BaseValidatorHandler<CreateReceptionEntranceCommand, Unit>(_unitOfWork, _errorManager)
+    public class CreateReceptionEntranceHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IS3StorageService _s3Services, ICodeGenerator _codeGenerator) : BaseValidatorHandler<CreateReceptionEntranceCommand, Unit>(_unitOfWork, _errorManager)
     {
         private static readonly (TimeSpan Start, TimeSpan End)[] AllowedCustomsWindows =
         [
@@ -30,7 +31,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
             {
                 return access.ErrorResponse!;
             }
-            
+
             if (access.Role?.RoleType == RoleType.Supervisor)
             {
                 return _errorManager.ThrowUnauthorized<Unit>("No tienes acceso a realizar esta acción","ERP:INVALID_ACCESS");
@@ -39,6 +40,20 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
             //Designar centro de costo de (PO)
             var receptionEntranceEntity = ReceptionEntranceMapper.ToReceptionEntranceEntity(request);
 
+            //Manejar  el control de  pruebas de imagenes.
+            AdditionalReceptionEntranceData additionalData = new();
+
+            foreach (var image in request.EvidenceBase64)
+            {
+                var url = await _s3Services.UploadImageAsync("Warehouse", "ReceptionEntrance", image, cancellationToken);
+                var imageEntity = ReceptionEntranceMapper.ToImagesInformation(url);
+
+                //Agregamos a la lista la url 
+                additionalData.EvidenceUrls.Add(imageEntity);
+            }
+
+            receptionEntranceEntity.AdditionalData = JsonSerializer.Serialize(additionalData);
+
             //Registro de información de recepción.
             await _unitOfWork.ReceptionEntrance.InsertReceptionEntrance(receptionEntranceEntity);
 
@@ -46,21 +61,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
             var receptionTransportInfoEntity = ReceptionEntranceMapper.ToTransportEntranceEntity(request, receptionEntranceEntity.Id);
             await _unitOfWork.ReceptionTransportEntrance.RegisterTransport(receptionTransportInfoEntity);
 
-            //Manejar  el control de  pruebas de imagenes.
-            AdditionalReceptionEntranceData additionalData = new();
-
-            foreach (var image in request.EvidenceBase64)
-            {
-                var url = await _s3Services.UploadImageAsync("Warehouse", "ReceptionEntrance", image, cancellationToken);
-
-                //Agregamos a la lista la url 
-                additionalData.EvidenceUrls.Add(url);
-            }
-
-            receptionEntranceEntity.AdditionalData = JsonSerializer.Serialize(additionalData);
-
             //Manejo de  información de (PO)
             var operationOrderEntity = OperationalOrderMapper.ToOperationalOrderEntity(access.Profile.CostCenterId);
+
+            // var PoCode = _codeGenerator.
+
             operationOrderEntity.ReceptionId = receptionEntranceEntity.Id;
             operationOrderEntity.DocumentType = request.GeneralInformation.DocumentType;
 

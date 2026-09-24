@@ -49,11 +49,24 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 Transportista = command.TransportInformation.Transportista,
                 DriverLicense = command.TransportInformation.DriverLicense,
                 TransportUnit = command.TransportInformation.TransportUnit,
-                VehiclePlateNumber = command.TransportInformation.VehicleChassisNumber,
+                VehiclePlateNumber = command.TransportInformation.VehiclePlateNumber,
                 VehicleChassisNumber = command.TransportInformation.VehicleChassisNumber,
             };
         }
         
+        #endregion
+
+        #region Mapear imagenes
+
+        public static ImagesInformation ToImagesInformation(string imageUrl)
+        {
+            return new()
+            {
+                ImageId = Guid.NewGuid(),
+                ImageUrl = imageUrl
+            };
+        }
+
         #endregion
     }
 }
