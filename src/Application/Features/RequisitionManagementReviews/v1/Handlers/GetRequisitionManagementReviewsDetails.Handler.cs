@@ -22,6 +22,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
             }
 
             var reviewsQuery = await _unitOfWork.PurchaseRequestsReviewedManagement.Entities
+                .AsSplitQuery()
                 .Include(rev => rev.SentByUser)
                     .ThenInclude(pur => pur.Profiles
                         .Where(profile => profile.CompanyId == access.Profile.CompanyId)

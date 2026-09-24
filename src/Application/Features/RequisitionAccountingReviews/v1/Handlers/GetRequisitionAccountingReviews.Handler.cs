@@ -24,6 +24,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
 
             var reviewsQuery = _unitOfWork.PurchaseRequestsReviewedAccounting.Entities
                 .Where(rev => rev.DeletedAt == null)
+                .AsSplitQuery()
                 .Include(rev => rev.SentByUser)
                     .ThenInclude(rev => rev.Profiles
                         .Where(profile => profile.CompanyId == access.Profile.CompanyId)
