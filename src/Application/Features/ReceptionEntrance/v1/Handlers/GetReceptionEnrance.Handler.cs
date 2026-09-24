@@ -36,7 +36,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                             .Any(po => po.DocumentType == request.DocumentType)  
                     );
             }
-            
+
             if (!string.IsNullOrEmpty(request.ContainerNumber))
             {
                 receptionEntrancesQuery = receptionEntrancesQuery

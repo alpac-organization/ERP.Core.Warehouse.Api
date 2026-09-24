@@ -1,7 +1,7 @@
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
-
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers
@@ -17,7 +17,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                 return access.ErrorResponse!;
             }
 
-            
+            if (access.Role?.RoleType == RoleType.Supervisor)
+            {
+                return _errorManager.ThrowUnauthorized<bool>("No tienes acceso a realizar esta acción","ERP:INVALID_ACCESS");
+            }
 
 
 

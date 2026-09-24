@@ -30,6 +30,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
             {
                 return access.ErrorResponse!;
             }
+            
+            if (access.Role?.RoleType == RoleType.Supervisor)
+            {
+                return _errorManager.ThrowUnauthorized<Unit>("No tienes acceso a realizar esta acción","ERP:INVALID_ACCESS");
+            }
 
             //Designar centro de costo de (PO)
             var receptionEntranceEntity = ReceptionEntranceMapper.ToReceptionEntranceEntity(request);
@@ -100,7 +105,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                     return _errorManager.ThrowBadRequest<Unit>("Error al registrar la información, el tipo de documento no es aceptable", "ERP:INVALID_DOCUMENT");    
                 }
             }
-            
+
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             return Unit.Value;
         }
