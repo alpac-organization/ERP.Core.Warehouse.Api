@@ -6,7 +6,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
     {
         public string? Observations { get; set; }
         public string? ReasonRejection { get; set; }
-        public string? AnnulmentReason { get; set; }
 
         public UserInformation  CreatorUserInformation { get; set; } = new();
         public UserInformation? ReviewerUserInformation { get; set; } = null;

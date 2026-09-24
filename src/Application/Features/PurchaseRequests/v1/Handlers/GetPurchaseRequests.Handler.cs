@@ -29,6 +29,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             var purchaseRequestsQuery = _unitOfWork.PurchaseRequests.Entities
                 .Where(purs => purs.IsActive && purs.DeletedAt == null) 
                 .Include(purs => purs.Branch)
+                .Include(purs=> purs.AnnulledByUser)
                 .Where(purs => purs.Branch.CompanyId == request.CompanyId)
                 .AsNoTracking();
 
