@@ -42,6 +42,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.Reception
         public async Task<OkResult> GetReceptionEntrancesAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
             [FromQuery] string? plate_number = null,
             [FromQuery] string? document_number = null,
+            [FromQuery] string? contaniner_number = null,
             [FromQuery] DocumentType? document_type = null,
 
             [FromQuery] int page_number = 1,
@@ -57,6 +58,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.Reception
                 ModuleCode = module_code,
                 DocumentNumber = document_number,
                 PlateNumber = plate_number,
+                ContainerNumber = contaniner_number,
                 PageSize = page_size,
                 PageNumber = page_number,
                 DocumentType = document_type
