@@ -1,23 +1,24 @@
 using System;
+using System.Collections.Generic;
 using MediatR;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Commands
 {
-    public class CreateWarehouseAssignmentCommand : BaseRequest, IRequest<bool>
+    public abstract class BaseWarehouseReceptionCommand : BaseRequest, IRequest<bool>
     {
         public Guid ReceptionId { get; set; }
-        public Guid? EntranceDucatId { get; set; } 
+        public Guid? EntranceDucatId { get; set; }
+    }
+
+    public class CreateWarehouseAssignmentCommand : BaseWarehouseReceptionCommand
+    {
         public Guid WarehouseId { get; set; }
         public Guid WarehouseChiefUserId { get; set; }
     }
 
-
-
-    public class CreateUnloadingCrewCommand : BaseRequest, IRequest<bool>
+    public class CreateUnloadingCrewCommand : BaseWarehouseReceptionCommand
     {
-        public Guid ReceptionId { get; set; }
-        public Guid? EntranceDucatId { get; set; }
         public List<Guid>? CollaboratorIds { get; set; }
         public bool IsOutsourced { get; set; }
         public int? PersonCount { get; set; }
@@ -25,10 +26,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Co
         public string? InvoiceNumber { get; set; }
     }
 
-    public class CreateUnloadingMachineryCommand : BaseRequest, IRequest<bool>
+    public class CreateUnloadingMachineryCommand : BaseWarehouseReceptionCommand
     {
-        public Guid ReceptionId { get; set; }
-        public Guid? EntranceDucatId { get; set; }
         public Guid? MachineryId { get; set; }
         public Guid? OperatorCollaboratorId { get; set; }
         public bool IsOutsourced { get; set; }
@@ -38,9 +37,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Co
         public string MachineryDescription { get; set; } = string.Empty;
     }
 
-    public class CompleteWarehouseAssignmentCommand : BaseRequest, IRequest<bool>
+    public class CompleteWarehouseAssignmentCommand : BaseWarehouseReceptionCommand
     {
-        public Guid ReceptionId { get; set; }
-        public Guid? EntranceDucatId { get; set; }
     }
 }

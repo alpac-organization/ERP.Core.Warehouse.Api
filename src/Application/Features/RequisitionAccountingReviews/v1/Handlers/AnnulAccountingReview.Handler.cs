@@ -1,10 +1,13 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Domain.Enums;
+using ERP.Core.Warehouse.Api.Application.Commons.Helpers;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Handlers
@@ -53,7 +56,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 return _errorManager.ThrowNotFound<bool>("La solicitud de compra asociada no fue encontrada", "ERP:PURCHASE_REQUEST_NOT_FOUND");
             }
 
-            // Validación: ya fue aprobada por gerencia o cuenta con orden de compra emitida
             if (purchaseRequest.PurchaseOrder is not null || purchaseRequest.ManagementReview?.Status == ManagementReviewStatus.Approved)
             {
                 return _errorManager.ThrowBadRequest<bool>("La solicitud ya fue aprobada por gerencia o tiene una orden de compra emitida, no se puede anular ni retornar desde contabilidad", "ERP:PURCHASE_REQUEST_ALREADY_APPROVED");
@@ -71,38 +73,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
             accountingReview.Status = isQuotationOnly ? AccountingReviewStatus.Returned : AccountingReviewStatus.Rejected;
             accountingReview.DeletedAt = now;
 
-            purchaseRequest.RequestStatus = isQuotationOnly ? PurchaseRequestStatus.Approved : PurchaseRequestStatus.Rejected;
-            purchaseRequest.AnnulmentReason = request.Reason;
-            purchaseRequest.AnnulledByUserId = access.User.Id;
-            purchaseRequest.DeletedAt = isQuotationOnly ? null : now;
-
-            await AnnulItemsAndQuotationsAsync(purchaseRequest, now, cancellationToken);
+            RequisitionAnnulmentHelper.ApplyAnnulmentToPurchaseRequest(purchaseRequest, isQuotationOnly, request.Reason, access.User.Id, now);
+            await RequisitionAnnulmentHelper.AnnulItemsAndQuotationsAsync(_unitOfWork, purchaseRequest, now);
 
             await _unitOfWork.PurchaseRequestsReviewedAccounting.UpdateAsync(accountingReview);
             await _unitOfWork.PurchaseRequests.UpdateAsync(purchaseRequest);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return true;
-        }
-
-        private async Task AnnulItemsAndQuotationsAsync(
-            PurchaseRequest purchaseRequest,
-            DateTime now,
-            CancellationToken cancellationToken)
-        {
-            foreach (var item in purchaseRequest.PurchaseRequestItems)
-            {
-                item.HasQuotation = false;
-                await _unitOfWork.PurchaseRequestItems.UpdateAsync(item);
-
-                foreach (var quote in item.Quotations)
-                {
-                    quote.IsActive = false;
-                    quote.IsAcceptedForPurchase = false;
-                    quote.DeletedAt = now;
-                    await _unitOfWork.Quotations.UpdateAsync(quote);
-                }
-            }
         }
     }
 }

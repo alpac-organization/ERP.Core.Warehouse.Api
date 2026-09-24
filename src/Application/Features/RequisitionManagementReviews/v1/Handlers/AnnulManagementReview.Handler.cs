@@ -1,10 +1,13 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Domain.Enums;
+using ERP.Core.Warehouse.Api.Application.Commons.Helpers;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementReviews.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementReviews.v1.Handlers
@@ -53,7 +56,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                 return _errorManager.ThrowNotFound<bool>("La solicitud de compra asociada no fue encontrada", "ERP:PURCHASE_REQUEST_NOT_FOUND");
             }
 
-            // Validación: ya cuenta con orden de compra generada
             if (purchaseRequest.PurchaseOrder is not null)
             {
                 return _errorManager.ThrowBadRequest<bool>("La solicitud ya cuenta con una orden de compra generada, no se puede anular ni retornar", "ERP:PURCHASE_ORDER_ALREADY_EXISTS");
@@ -71,7 +73,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
             managementReview.Status = ManagementReviewStatus.Rejected;
             managementReview.DeletedAt = now;
 
-            // Cascada a Finanzas: si es QuotationOnly pasa a Returned, si es FullProcess pasa a Rejected
             if (purchaseRequest.AccountingReview is not null)
             {
                 purchaseRequest.AccountingReview.Status = isQuotationOnly ? AccountingReviewStatus.Returned : AccountingReviewStatus.Rejected;
@@ -79,38 +80,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                 await _unitOfWork.PurchaseRequestsReviewedAccounting.UpdateAsync(purchaseRequest.AccountingReview);
             }
 
-            purchaseRequest.RequestStatus = isQuotationOnly ? PurchaseRequestStatus.Approved : PurchaseRequestStatus.Rejected;
-            purchaseRequest.AnnulmentReason = request.Reason;
-            purchaseRequest.AnnulledByUserId = access.User.Id;
-            purchaseRequest.DeletedAt = isQuotationOnly ? null : now;
-
-            await AnnulItemsAndQuotationsAsync(purchaseRequest, now, cancellationToken);
+            RequisitionAnnulmentHelper.ApplyAnnulmentToPurchaseRequest(purchaseRequest, isQuotationOnly, request.Reason, access.User.Id, now);
+            await RequisitionAnnulmentHelper.AnnulItemsAndQuotationsAsync(_unitOfWork, purchaseRequest, now);
 
             await _unitOfWork.PurchaseRequestsReviewedManagement.UpdateAsync(managementReview);
             await _unitOfWork.PurchaseRequests.UpdateAsync(purchaseRequest);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return true;
-        }
-
-        private async Task AnnulItemsAndQuotationsAsync(
-            PurchaseRequest purchaseRequest,
-            DateTime now,
-            CancellationToken cancellationToken)
-        {
-            foreach (var item in purchaseRequest.PurchaseRequestItems)
-            {
-                item.HasQuotation = false;
-                await _unitOfWork.PurchaseRequestItems.UpdateAsync(item);
-
-                foreach (var quote in item.Quotations)
-                {
-                    quote.IsActive = false;
-                    quote.IsAcceptedForPurchase = false;
-                    quote.DeletedAt = now;
-                    await _unitOfWork.Quotations.UpdateAsync(quote);
-                }
-            }
         }
     }
 }

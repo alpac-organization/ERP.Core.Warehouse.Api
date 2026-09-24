@@ -26,39 +26,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 return access.ErrorResponse!;
             }
             
-            //Incluir información de mapeo
             var purchaseOrder = await _unitOfWork.PurchaseOrders.Entities
-                .Include(purs => purs.SentByUser)
-
-                .Include(purs => purs.ReviewedByUser)
-
-                .Include(purs => purs.PurchaseRequest)
-                    .ThenInclude(pr => pr.Branch)
-                        .ThenInclude(branch => branch.Company)
-
-                .Include(purs => purs.PurchaseRequest)
-                    .ThenInclude(pr => pr.WorkArea)
-                        .ThenInclude(area => area.CostCenters)
-
-                .Include(purs => purs.PurchaseRequest)
-                    .ThenInclude(pr => pr.RegistrationUser)
-
-                .Include(purs => purs.PurchaseRequest)
-                    .ThenInclude(pr => pr.UserRevision)
-
-                .Include(purs => purs.PurchaseRequest)
-                    .ThenInclude(pr => pr.PurchaseRequestItems)
-                        .ThenInclude(item => item.Product)
-
-                .Include(purs => purs.PurchaseRequest)
-                    .ThenInclude(pr => pr.PurchaseRequestItems)
-                        .ThenInclude(item => item.UnitMeasure)
-
+                .IncludePurchaseOrderHierarchy()
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.PurchaseRequestItems)
                         .ThenInclude(item => item.Quotations)
                             .ThenInclude(quotation => quotation.Supplier)
-
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Where(purs => purs.Id == request.PurchaseOrderId)
