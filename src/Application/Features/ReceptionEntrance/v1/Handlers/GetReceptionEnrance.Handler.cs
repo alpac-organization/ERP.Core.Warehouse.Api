@@ -8,7 +8,6 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queries;
-using System.Text.Json;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers
 {
@@ -46,16 +45,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                     .Where(reception => reception.ReceptionTransport.VehiclePlateNumber == request.PlateNumber);
             }
 
-            // if (!request.DocumentType.HasValue && !string.IsNullOrEmpty(request.DocumentNumber))
-            // {
-            //     var containsFilter = JsonSerializer.Serialize(new AdditionalReceptionEntranceData
-            //     {
-            //         DocumentNumbers = [request.DocumentNumber]
-            //     });
+            receptionEntrancesQuery = ApplyPeriodFilter(receptionEntrancesQuery, request);
 
-            //     receptionEntrancesQuery = receptionEntrancesQuery
-            //         .Where(reception => EF.Functions.JsonContains(reception.AdditionalData!, containsFilter));
-            // }
             
 
             var totalRecords = await receptionEntrancesQuery.CountAsync(cancellationToken);
@@ -74,6 +65,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                 request.PageSize,
                 totalRecords
             );
+        }
+
+        private static IQueryable<Database.Domain.Entities.Warehouse.ReceptionEntrance> ApplyPeriodFilter(IQueryable<Database.Domain.Entities.Warehouse.ReceptionEntrance> query, GetReceptionEntrancesQuery request)
+        {
+            var year  = request.Year   ?? DateTime.UtcNow.Year;
+            var month = request.Month ?? DateTime.UtcNow.Month;
+
+            var firstDayOfMonth = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var firstDayOfNextMonth = firstDayOfMonth.AddMonths(1);
+
+            return query
+                .Where(pr => pr.CreatedAt >= firstDayOfMonth && pr.CreatedAt < firstDayOfNextMonth);
         }
     }
 
