@@ -12,7 +12,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         public PurchaseRequestProfile()
         {
             CreateMap<PurchaseRequest, PurchaseRequestDto>()
-                .ForMember(dest => dest.PurchaseRequestId,     opt => opt.MapFrom(src => src.Id));
+                .ForMember(dest => dest.PurchaseRequestId,opt => opt.MapFrom(src => src.Id))
+                .ForPath(dest => dest.AnnulledByUserInformation, opt => opt.MapFrom(src => src.AnnulledByUser));
                 
             CreateMap<PurchaseRequest, PurchaseRequestDetailsDto>()
                 .ForMember(dest => dest.PurchaseRequestId, opt => opt.MapFrom(src => src.Id))
@@ -23,7 +24,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForPath(dest => dest.InformationFromRequestingArea, opt => opt.MapFrom(src => src.WorkArea))
 
                 .ForPath(dest => dest.ReviewerUserInformation, opt => opt.MapFrom(src => src.UserRevision))
-                .ForPath(dest => dest.CreatorUserInformation, opt => opt.MapFrom(src => src.RegistrationUser));
+                .ForPath(dest => dest.CreatorUserInformation, opt => opt.MapFrom(src => src.RegistrationUser))
+                .ForPath(dest => dest.AnnulledByUserInformation, opt=>opt.MapFrom(src=> src.AnnulledByUser));
         }
     }
 
