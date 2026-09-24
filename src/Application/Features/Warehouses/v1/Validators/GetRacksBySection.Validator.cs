@@ -8,35 +8,28 @@ public class GetRacksBySectionValidator : BasePagedQueryValidator<GetRacksBySect
 {
     public GetRacksBySectionValidator() : base(100)
     {
+        RuleFor(x => x.WarehouseId)
+            .NotEmpty().WithMessage("El id del almacén es requerido.")
+            .NotEqual(Guid.Empty).WithMessage("El id del almacén no es válido.");
+
         RuleFor(x => x.SectionId)
-            .NotEmpty()
-            .WithMessage("El id de la sección es requerido.")
-            .NotEqual(Guid.Empty)
-            .WithMessage("El id de la sección no es válido.");
+            .NotEmpty().WithMessage("El id de la sección es requerido.")
+            .NotEqual(Guid.Empty).WithMessage("El id de la sección no es válido.");
 
         RuleFor(x => x.Status)
-            .IsInEnum()
-            .When(x => x.Status.HasValue)
+            .IsInEnum().When(x => x.Status.HasValue)
             .WithMessage("El estado del rack no es válido.");
 
         RuleFor(x => x.UsageProfile)
-            .IsInEnum()
-            .When(x => x.UsageProfile.HasValue)
+            .IsInEnum().When(x => x.UsageProfile.HasValue)
             .WithMessage("El perfil de uso del rack no es válido.");
 
+        RuleFor(x => x.RowNumber)
+            .GreaterThan(0).When(x => x.RowNumber.HasValue)
+            .WithMessage("La hilera debe ser mayor a cero.");
+
         RuleFor(x => x.LevelNumber)
-            .GreaterThanOrEqualTo(0)
-            .When(x => x.LevelNumber.HasValue)
-            .WithMessage("El nivel del rack no es válido.");
-
-        RuleFor(x => x.WidthMetres)
-            .GreaterThan(0)
-            .When(x => x.WidthMetres.HasValue)
-            .WithMessage("El ancho del rack debe ser mayor a cero.");
-
-        RuleFor(x => x.LengthMetres)
-            .GreaterThan(0)
-            .When(x => x.LengthMetres.HasValue)
-            .WithMessage("El largo del rack debe ser mayor a cero.");
+            .GreaterThan(0).When(x => x.LevelNumber.HasValue)
+            .WithMessage("El nivel del rack debe ser mayor a cero.");
     }
 }

@@ -10,7 +10,9 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         public ReceptionEntranceProfile()
         {
             //Mapper Get entrance.
-            CreateMap<ReceptionEntrance, ReceptionEntranceDto>();
+            CreateMap<ReceptionEntrance, ReceptionEntranceDto>()
+                .ForMember(dest => dest.ReceptionEntranceId, opt => opt.MapFrom(src => src.Id));
+            
         }
     }
 
@@ -23,18 +25,47 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             return new()
             {
+                IsActive = true,
                 Id = Guid.NewGuid(),
                 SealNumber = command.GeneralInformation.SealNumber,
-                DocumentType = command.GeneralInformation.DocumentType,
                 CountryOfOrigin = command.GeneralInformation.CountryOrigin,
                 CustomBranchId = command.GeneralInformation.CustomBranchId,
-                ContainerNumber = command.GeneralInformation.ContainerNumber,                
+                ContainerNumber = command.GeneralInformation.ContainerNumber,
             };
         }
 
         #endregion
 
         #region Información de transporte
+
+        public static ReceptionTransportEntrance ToTransportEntranceEntity(this Commands.CreateReceptionEntranceCommand command, Guid receptionEntranceId)
+        {
+            
+            return new()
+            {
+                Id = Guid.NewGuid(),
+                ReceptionEntranceId = receptionEntranceId,
+                DriverName = command.TransportInformation.DriverName,
+                Transportista = command.TransportInformation.Transportista,
+                DriverLicense = command.TransportInformation.DriverLicense,
+                TransportUnit = command.TransportInformation.TransportUnit,
+                VehiclePlateNumber = command.TransportInformation.VehiclePlateNumber,
+                VehicleChassisNumber = command.TransportInformation.VehicleChassisNumber,
+            };
+        }
+        
+        #endregion
+
+        #region Mapear imagenes
+
+        public static ImagesInformation ToImagesInformation(string imageUrl)
+        {
+            return new()
+            {
+                ImageId = Guid.NewGuid(),
+                ImageUrl = imageUrl
+            };
+        }
 
         #endregion
     }

@@ -1,113 +1,53 @@
 using FluentValidation;
-using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
-using ERP.Core.Warehouse.Api.Application.Commons.Utils;
-using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
-using Microsoft.EntityFrameworkCore;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Validators;
 
 public class RegisterRacksBulkCommandValidator : AbstractValidator<RegisterRacksBulkCommand>
 {
-    public RegisterRacksBulkCommandValidator(IUnitOfWork unitOfWork)
+    public RegisterRacksBulkCommandValidator()
     {
+        RuleFor(x => x.WarehouseId)
+            .NotEmpty().WithMessage("El id del almacén es requerido.")
+            .NotEqual(Guid.Empty).WithMessage("El id del almacén no es válido.");
+
         RuleFor(x => x.SectionId)
-            .NotEmpty()
-            .WithMessage("La sección es obligatoria.");
+            .NotEmpty().WithMessage("El id de la sección es requerido.")
+            .NotEqual(Guid.Empty).WithMessage("El id de la sección no es válido.");
 
-        // RuleFor(x => x.PlacementsRacks)
-        //     .NotEmpty().WithMessage("Debe especificar al menos un rack.");
+        RuleFor(x => x.Quantity)
+            .GreaterThan(0).WithMessage("La cantidad de racks debe ser mayor a cero.")
+            .LessThanOrEqualTo(60).WithMessage("No se pueden registrar más de 60 racks en una sola operación.");
 
-        // RuleForEach(x => x.PlacementsRacks).ChildRules(placement =>
-        // {
-        //     placement.RuleFor(p => p.Code)
-        //         .NotEmpty().WithMessage("El código del estante es obligatorio.")
-        //         .MaximumLength(50);
+        RuleFor(x => x.RowNumber)
+            .GreaterThan(0).WithMessage("El número de hilera debe ser mayor a cero.");
 
-        //     placement.RuleFor(p => p.Levels)
-        //         .NotEmpty().WithMessage("Debe especificar al menos un nivel.")
-        //         .Must(levels => levels.Select(l => l.LevelNumber).Distinct().Count() == levels.Count)
-        //         .WithMessage("Los números de nivel no pueden repetirse.");
+        RuleFor(x => x.LevelNumber)
+            .InclusiveBetween(1, 10).WithMessage("El número de niveles debe estar entre 1 y 10.");
 
-        //     placement.RuleFor(p => p.Levels)
-        //         .Must(levels =>
-        //         {
-        //             if (levels.Count <= 1) return true;
-        //             var first = levels[0];
-        //             return levels.All(l => l.WidthMetres == first.WidthMetres && l.LengthMetres == first.LengthMetres);
-        //         })
-        //         .WithMessage("Todos los niveles deben tener el mismo ancho y largo.");
+        RuleFor(x => x.MaxPulleys)
+            .InclusiveBetween(1, 10).WithMessage("El máximo de polines por nivel debe estar entre 1 y 10.");
 
-        //     placement.RuleForEach(p => p.Levels).ChildRules(level =>
-        //     {
-        //         level.RuleFor(l => l.LevelNumber).GreaterThan(0).WithMessage("El nivel debe ser mayor a 0.");
-        //         level.RuleFor(l => l.WidthMetres).GreaterThan(0).WithMessage("El ancho debe ser mayor a 0.");
-        //         level.RuleFor(l => l.LengthMetres).GreaterThan(0).WithMessage("El largo debe ser mayor a 0.");
-        //         level.RuleFor(l => l.MaxPulleys).GreaterThan(0).WithMessage("Máximo de polines debe ser mayor a 0.");
-        //         level.RuleFor(l => l.UsageProfile).IsInEnum();
-        //         level.RuleFor(l => l.Status).IsInEnum();
+        RuleFor(x => x.Width)
+            .GreaterThan(0).WithMessage("El ancho del rack debe ser mayor a cero.");
 
-        //         level.RuleFor(l => l.UnavailableReason)
-        //             .NotEmpty()
-        //             .MaximumLength(250)
-        //             .When(l => l.Status is RackStatus.UnderMaintenance or RackStatus.Blocked);
+        RuleFor(x => x.Length)
+            .GreaterThan(0).WithMessage("El largo del rack debe ser mayor a cero.");
 
-        //         level.RuleFor(l => l.UnavailableReason)
-        //             .Empty()
-        //             .When(l => l.Status is RackStatus.Available or RackStatus.Occupied);
-        //     });
+        RuleFor(x => x.Height)
+            .GreaterThan(0).When(x => x.Height.HasValue)
+            .WithMessage("La altura del rack debe ser mayor a cero.");
 
-        //     placement.When(p => p.LayoutTransform3DDto != null, () =>
-        //     {
-        //         placement.RuleFor(p => p.LayoutTransform3DDto!)
-        //             .Must(WarehouseLayoutValidation.HasValidNonNegativeCoordinates)
-        //             .WithMessage("Las coordenadas X, Y y Z no pueden ser negativas.");
+        RuleFor(x => x.UsageProfile)
+            .IsInEnum().WithMessage("El perfil de uso no es válido.");
 
-        //         placement.RuleFor(p => p.LayoutTransform3DDto!.RotationY)
-        //             .Must(WarehouseLayoutValidation.IsRightAngleRotation)
-        //             .WithMessage("La rotación debe ser un ángulo recto (0, 90, 180, 270).");
-        //     });
-        // });
+        RuleFor(x => x.InitialPositionX)
+            .GreaterThanOrEqualTo(0).WithMessage("La coordenada inicial X debe ser mayor o igual a cero.");
 
-        // RuleFor(x => x.PlacementsRacks)
-        //     .CustomAsync(async (placements, context, cancellationToken) =>
-        //     {
-        //         var command = (RegisterRacksBulkCommand)context.InstanceToValidate;
+        RuleFor(x => x.InitialPositionY)
+            .GreaterThanOrEqualTo(0).WithMessage("La coordenada inicial Y debe ser mayor o igual a cero.");
 
-        //         var section = await unitOfWork.Sections.Entities
-        //             .AsNoTracking()
-        //             .FirstOrDefaultAsync(s => s.Id == command.SectionId && s.IsActive, cancellationToken);
-
-        //         if (section is null)
-        //         {
-        //             context.AddFailure("SectionId", "La sección asignada no existe o está inactiva.");
-        //             return;
-        //         }
-
-        //         for (int i = 0; i < placements.Count; i++)
-        //         {
-        //             var placement = placements[i];
-        //             if (placement.LayoutTransform3DDto is null || placement.Levels.Count == 0)
-        //                 continue;
-
-        //             var layout = placement.LayoutTransform3DDto;
-        //             var first = placement.Levels[0];
-        //             var bounds = new WarehouseLayoutValidation.LayoutBounds(
-        //                 layout.PositionX,
-        //                 layout.PositionY,
-        //                 layout.PositionZ,
-        //                 layout.RotationY,
-        //                 first.WidthMetres,
-        //                 first.LengthMetres);
-
-        //             if (!WarehouseLayoutValidation.FitsWithinContainer(
-        //                     bounds, section.WidthMetres, section.LengthMetres))
-        //             {
-        //                 context.AddFailure(
-        //                     $"PlacementsRacks[{i}].LayoutTransform3DDto",
-        //                     $"El rack '{placement.Code}' excede las dimensiones de la sección.");
-        //             }
-        //         }
-        //     });
+        RuleFor(x => x.SpacingX)
+            .GreaterThan(0).WithMessage("La separación horizontal (spacing_x) debe ser mayor a cero.");
     }
 }

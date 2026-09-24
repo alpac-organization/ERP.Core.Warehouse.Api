@@ -1,3 +1,4 @@
+using ERP.Core.Database.Domain.Entities.Bases;
 using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
@@ -13,5 +14,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public DestinationRequest Destination { get; set; }
         public PurchaseRequestType RequestType { get; set; }
         public PurchaseRequestStatus RequestStatus { get; set; }
+
+        public string? AnnulmentReason { get; set; }
+        public UserInformation? AnnulledByUserInformation { get; set; }
     }
 }

@@ -29,6 +29,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.Branch)
 
+                .Include(purs=> purs.PurchaseRequest)
+                    .ThenInclude(pr=> pr.CostCenter)
+
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.WorkArea)
                         .ThenInclude(area => area.CostCenters)
@@ -38,6 +41,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.UserRevision)
+
+                .Include(purs => purs.PurchaseRequest)
+                    .ThenInclude(pr => pr.AnnulledByUser)
 
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.PurchaseRequestItems)

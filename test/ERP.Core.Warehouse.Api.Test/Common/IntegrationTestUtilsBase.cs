@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Auth;
@@ -5,7 +6,6 @@ using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Entities.Accounting;
 using ERP.Core.Warehouse.Api.Test.Common.Utils;
-using System.Text.Json;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 
 namespace ERP.Core.Warehouse.Api.Test.Common
@@ -27,7 +27,7 @@ namespace ERP.Core.Warehouse.Api.Test.Common
             else
             {
                 var area = await _unitOfWork.WorkAreas.Entities
-                    .Where(w => w.IsActive && w.CompanyId == company.Id && w.WorkAreaCode == 10)
+                    .Where(w => w.IsActive && w.CompanyId == company.Id)
                     .FirstAsync();
                 workAreaId = area.Id;
             }

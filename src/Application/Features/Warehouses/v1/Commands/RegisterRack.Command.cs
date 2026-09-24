@@ -8,23 +8,23 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 public class RegisterRacksBulkCommand : BaseRequest, IRequest<bool>
 {
     [JsonIgnore]
+    public Guid WarehouseId { get; set; }
+
+    [JsonIgnore]
     public Guid SectionId { get; set; }
-}
 
-public class RackPlacementCommand
-{
-    public string Code { get; set; } = null!;
-
-    public List<RackLevelCommand> Levels { get; set; } = [];
-}
-
-public class RackLevelCommand
-{
+    public int Quantity { get; set; }
+    public int RowNumber { get; set; }
     public int LevelNumber { get; set; }
-    public decimal WidthMetres { get; set; }
-    public decimal LengthMetres { get; set; }
+    public int MaxPulleys { get; set; }
+
+    public decimal Width { get; set; }
+    public decimal Length { get; set; }
+    public decimal? Height { get; set; }
+
     public RackUsageProfile UsageProfile { get; set; }
-    public int MaxPulleys { get; set; } = 2;
-    public RackStatus Status { get; set; } = RackStatus.Available;
-    public string? UnavailableReason { get; set; }
+
+    public decimal InitialPositionX { get; set; }
+    public decimal InitialPositionY { get; set; }
+    public decimal SpacingX { get; set; }
 }
