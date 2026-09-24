@@ -86,36 +86,5 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public string? SuppliersLegalName { get; set; }
         public string? IdentificationNumber { get; set; }
         public IdentificationType? IdentificationType { get; set; }
-        public SupplierDetailsInformation SupplierDetailsInformation { get; set; } = new();
-        public List<SupplierBankAccounts> SupplierBankAccounts { get; set; } = [];
-    }
-
-    public class SupplierBankAccounts
-    {
-        public Currency Currency { get; set; }
-        public BankAccountType AccountType { get; set; }
-        public string BankName { get; set; } = string.Empty;
-        public string AccountNumber { get; set; } = string.Empty;
-        public string AccountHolderName { get; set; } = string.Empty;
-        public string? AccountHolderIdentification { get; set; }
-        public bool IsPrimary { get; set; } = false;
-    }
-
-    public class SupplierDetailsInformation
-    {
-        public bool IsExclusive { get; set; }
-        public string? ExclusiveBrandsOrParts { get; set; }
-
-        public int CreditDays { get; set; }
-        public bool HasCredit { get; set; }
-
-        public decimal? CreditLimit { get; set; }
-        public int AlertDaysBeforeDue { get; set; }
-        public Currency? CreditCurrency { get; set; }
-        public PaymentMethodType PreferredPaymentMethod { get; set; }
-
-        public bool ApplyIrRetention { get; set; }
-        public bool ApplyMunicipalRetention { get; set; }
-        public bool IsTaxExempt { get; set; }
     }
 }

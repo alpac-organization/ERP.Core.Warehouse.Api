@@ -9,10 +9,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         public SuppliersProfile()
         {
             CreateMap<Supplier, SupplierInformation>()
-                .ForMember(dest => dest.SupplierId,    opt => opt.MapFrom(src => src.Id))
-                .ForPath(dest => dest.SupplierDetailsInformation,    opt => opt.MapFrom(src => src.SupplierDetails));
-
-            CreateMap<SupplierDetails, SupplierDetailsInformation>();
+                .ForMember(dest => dest.SupplierId,    opt => opt.MapFrom(src => src.Id));
         }
     }
 }
