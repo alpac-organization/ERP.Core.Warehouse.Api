@@ -24,15 +24,19 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
 
             var receptionEntrancesQuery = _unitOfWork.ReceptionEntrance.Entities
                 .Include(reception => reception.ReceptionTransport)
+                .Include(reception => reception.OperationalOrders)
                 .AsNoTracking();
 
             //aplicar filtros de busqueda aqui..
             if (request.DocumentType.HasValue)
             {
                 receptionEntrancesQuery = receptionEntrancesQuery
-                    .Where(reception => reception.DocumentType == request.DocumentType);
+                    .Where(
+                        reception => reception.OperationalOrders
+                            .Any(po => po.DocumentType == request.DocumentType)  
+                    );
             }
-
+            
             if (!string.IsNullOrEmpty(request.ContainerNumber))
             {
                 receptionEntrancesQuery = receptionEntrancesQuery

@@ -28,7 +28,6 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 IsActive = true,
                 Id = Guid.NewGuid(),
                 SealNumber = command.GeneralInformation.SealNumber,
-                DocumentType = command.GeneralInformation.DocumentType,
                 CountryOfOrigin = command.GeneralInformation.CountryOrigin,
                 CustomBranchId = command.GeneralInformation.CustomBranchId,
                 ContainerNumber = command.GeneralInformation.ContainerNumber,

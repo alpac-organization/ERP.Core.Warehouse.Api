@@ -10,6 +10,16 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
     {
         public override async Task<bool> Handle(UpdateReceptionEntranceCommand request, CancellationToken cancellationToken)
         {
+            var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+            
+            if (!access.IsSuccess)
+            {
+                return access.ErrorResponse!;
+            }
+
+            
+
+
 
             return true;
         }
