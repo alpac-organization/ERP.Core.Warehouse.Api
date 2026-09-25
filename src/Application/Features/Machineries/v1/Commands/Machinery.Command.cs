@@ -1,10 +1,9 @@
 ﻿using MediatR;
-using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Machineries.v1.Commands;
 
-public class MachineryCommand : BaseRequest, IRequest<bool>
+public class MachineryCommand : BaseRequest, IRequest<Unit>
 {
     public Guid BranchId { get; set; }
 
