@@ -17,7 +17,9 @@ public class RegisterMachineryValidator : BaseRequestValidator<MachineryCommand>
             .MaximumLength(50).WithMessage("El código no puede exceder los 50 caracteres.");
 
         RuleFor(x => x.Year)
-            .NotEmpty().WithMessage("El año de la maquinaria es obligatorio");
+            .NotEmpty().WithMessage("El año de la maquinaria es obligatorio")
+            .MaximumLength(4).WithMessage("El año no puede exceder los 4 dígitos.")
+            .Matches("^\\d{4}$").WithMessage("El año debe ser un año válido de 4 dígitos.");
 
         RuleFor(x => x.Model)
             .NotEmpty().WithMessage("El modelo de la maquinaria es obligatorio.")
@@ -26,5 +28,8 @@ public class RegisterMachineryValidator : BaseRequestValidator<MachineryCommand>
         RuleFor(x => x.SerialNumber)
             .NotEmpty().WithMessage("El número de serie de la maquinaria es obligatorio.")
             .MaximumLength(100).WithMessage("El número de serie no puede exceder los 100 caracteres.");
+
+        RuleFor(x => x.Color)
+            .MaximumLength(100).WithMessage("El color no puede exceder los 100 caracteres.");
     }
 }

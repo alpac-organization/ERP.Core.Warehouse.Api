@@ -1,8 +1,8 @@
 using AutoMapper;
-using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Warehouse.Api.Application.Features.Machineries.v1.Commands;
+using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Warehouse.Api.Application.Features.Machineries.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Features.Machineries.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
@@ -24,6 +24,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 Model           = request.Model,
                 SerialNumber    = request.SerialNumber,
                 Status          = MachineryStatus.Available,
+                Color           = request.Color,
                 IsActive        = true
             };
         }

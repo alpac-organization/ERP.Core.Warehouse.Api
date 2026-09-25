@@ -43,9 +43,10 @@ El JSON usa **`SnakeCaseLower`** (`PropertyNamingPolicy = JsonNamingPolicy.Snake
 | `branch_id`     | `guid`   | No        | Ignorado; la sucursal se toma del perfil del token. |
 | `brand`         | `string` | Sí        | Marca de la maquinaria (máx. 100). |
 | `code`          | `string` | Sí        | Código de la maquinaria (máx. 50). |
-| `year`          | `int`    | Sí        | Año de la maquinaria (1900 – año vigente). |
+| `year`          | `string` | Sí        | Año de la maquinaria (4 dígitos, p. ej. `2023`). |
 | `model`         | `string` | Sí        | Modelo (máx. 100). |
 | `serial_number` | `string` | Sí        | Número de serie (máx. 100). |
+| `color`         | `string` | No        | Color (máx. 100). |
 
 ### Ejemplo
 
@@ -53,9 +54,10 @@ El JSON usa **`SnakeCaseLower`** (`PropertyNamingPolicy = JsonNamingPolicy.Snake
 {
   "brand": "Toyota",
   "code": "MAQ-0001",
-  "year": 2023,
+  "year": "2023",
   "model": "7FDU35",
-  "serial_number": "7FDU-2023-000123"
+  "serial_number": "7FDU-2023-000123",
+  "color": "Naranja/Negro"
 }
 ```
 
@@ -69,7 +71,7 @@ El JSON usa **`SnakeCaseLower`** (`PropertyNamingPolicy = JsonNamingPolicy.Snake
 4. Crea la entidad `Machinery` con `Status = Available` e `IsActive = true` (helper `MachineryProfile.ToMachineryEntity`).
 5. `RegisterMachinery` + `SaveChangesAsync` → devuelve `true`.
 
-> **Validación (FluentValidation):** el `RegisterMachineryValidator` (`BaseRequestValidator`) valida, además de `company_id`, `module_code` y `user_id`, las reglas de negocio del body (`brand`, `code`, `model`, `serial_number` requeridos/con límite y `year` en rango). Los mensajes de las reglas falladas se unen con ` | `.
+> **Validación (FluentValidation):** el `RegisterMachineryValidator` (`BaseRequestValidator`) valida, además de `company_id`, `module_code` y `user_id`, las reglas de negocio del body (`brand`, `code`, `model`, `serial_number` requeridos/con límite, `year` como año de 4 dígitos) y `color` opcional. Los mensajes de las reglas falladas se unen con ` | `.
 
 ---
 
