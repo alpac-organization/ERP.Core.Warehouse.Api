@@ -23,7 +23,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Machineries.v1.Handlers
                 .Where(m => m.BranchId == branch)
                 .Where(m => m.IsActive)
                 .AsNoTracking()
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             return _mapper.Map<List<MachineryListDto>>(machinery);
         }
