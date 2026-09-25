@@ -1,7 +1,7 @@
 using MediatR;
 using System.Text.Json.Serialization;
-using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Domain.Enums;
+using ERP.Core.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Commands
 {

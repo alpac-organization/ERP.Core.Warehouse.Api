@@ -1,7 +1,8 @@
 using MediatR;
-using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using System.Text.Json.Serialization;
+
+using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands
 {

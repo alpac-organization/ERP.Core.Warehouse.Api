@@ -1,6 +1,6 @@
 using MediatR;
 using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+using ERP.Core.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.Unloading.v1.Dtos;
 

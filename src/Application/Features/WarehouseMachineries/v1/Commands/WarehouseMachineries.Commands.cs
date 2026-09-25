@@ -1,7 +1,6 @@
-﻿using System;
-using MediatR;
-using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+﻿using MediatR;
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseMachineries.v1.Commands
 {

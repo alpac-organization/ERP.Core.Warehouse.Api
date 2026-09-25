@@ -1,6 +1,5 @@
-using ERP.Core.Database.Application.Commons.Interfaces.Repositories.Warehouse;
-using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using MediatR;
+using ERP.Core.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 

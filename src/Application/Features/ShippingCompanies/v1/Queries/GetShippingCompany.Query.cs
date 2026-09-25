@@ -1,5 +1,5 @@
-using ERP.Core.Warehouse.Api.Application.Features.ShippingCompanies.v1.Dtos;
 using MediatR;
+using ERP.Core.Warehouse.Api.Application.Features.ShippingCompanies.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ShippingCompanies.v1.Queries;
 

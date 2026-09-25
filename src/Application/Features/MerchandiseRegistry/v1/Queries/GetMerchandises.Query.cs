@@ -1,10 +1,11 @@
-using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Dtos;
-using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using MediatR;
+using ERP.Core.Domain.Entities.Bases;
+using ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Dtos;
 
-namespace ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Queries;
-
-public class GetMerchandisesQuery : BaseRequest, IRequest<List<MerchandiseDto>>
+namespace ERP.Core.Warehouse.Api.Application.Features.MerchandiseRegistry.v1.Queries
 {
-    public Guid? CategoryProductId { get; set; }
+    public class GetMerchandisesQuery : BaseRequest, IRequest<List<MerchandiseDto>>
+    {
+        public Guid? CategoryProductId { get; set; }
+    }
 }

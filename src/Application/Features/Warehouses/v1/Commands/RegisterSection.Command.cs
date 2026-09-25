@@ -1,7 +1,7 @@
+using MediatR;
 using System.Text.Json.Serialization;
 using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
-using MediatR;
+using ERP.Core.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
