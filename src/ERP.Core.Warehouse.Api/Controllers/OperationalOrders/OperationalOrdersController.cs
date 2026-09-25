@@ -46,5 +46,18 @@ namespace ERP.Core.Warehouse.Api.Controllers.OperationalOrders
                 UserId      = Guid.Parse(userIdStr ?? ""),
             });
         }
+
+        [Tags("Solicitudes de compras")] 
+        [HttpGet("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/details")]
+        [ProducesResponseType(typeof(PagedResponse<OperationalOrderDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<OkResult> GetOperationalOderDetailsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+            
+
+            return Ok();
+        }
     }
 }
