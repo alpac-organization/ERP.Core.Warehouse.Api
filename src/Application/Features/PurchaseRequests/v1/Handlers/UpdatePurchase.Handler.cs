@@ -87,16 +87,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 hasChanges = true;
             }
 
-            if (request.AdditionalData is not null)
-            {
-                var incoming = DeserializeHistory(request.AdditionalData);
-                foreach (var entry in incoming)
-                {
-                    historyList.Add(entry);
-                }
-                hasChanges = true;
-            }
-
             if (hasChanges)
             {
                 purchase.AdditionalData = JsonSerializer.Serialize(historyList, JsonOptions);
