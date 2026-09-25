@@ -8,9 +8,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Validators
     {
         public RegisterSectionCoordinateValidator()
         {
-            RuleFor(x => x.WarehouseId)
-               .NotEmpty().WithMessage("El almacén es requerido.")
-               .NotEqual(Guid.Empty).WithMessage("El almacén es requerido.");
+            RuleFor(x => x.WarehouseId).ValidateWarehouseId();
 
             RuleFor(x => x.PositionX)
                .PrecisionScale(18, 2, ignoreTrailingZeros: true).WithMessage("La coordenada X admite máximo 2 decimales");
@@ -26,4 +24,4 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Validators
                .PrecisionScale(18, 2, ignoreTrailingZeros: true).WithMessage("La rotación Y admite máximo 2 decimales");
         }
     }
-}
+}

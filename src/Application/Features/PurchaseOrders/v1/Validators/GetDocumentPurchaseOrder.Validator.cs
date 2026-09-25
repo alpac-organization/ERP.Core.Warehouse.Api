@@ -8,10 +8,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Validato
     {
         public GetDocumentPurchaseOrderValidator()
         {
-            RuleFor(x => x.PurchaseOrderId)
-                .NotEmpty().WithMessage("El identificador de la orden de compra no puede estar vacío.")
-                .NotEqual(Guid.Empty)
-                .WithMessage("El identificador de la orden de compra no es válido.");
+            RuleFor(x => x.PurchaseOrderId).ValidatePurchaseOrderId();
 
             RuleFor(x => x.PaymentMethod)
                 .IsInEnum()

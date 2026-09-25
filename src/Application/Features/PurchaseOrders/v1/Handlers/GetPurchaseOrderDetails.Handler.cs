@@ -22,37 +22,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             }
 
             var purchaseOrder = await _unitOfWork.PurchaseOrders.Entities
-                .Include(purs => purs.SentByUser)
-
-                .Include(purs => purs.ReviewedByUser)
-
-                .Include(purs => purs.PurchaseRequest)
-                    .ThenInclude(pr => pr.Branch)
-
-                .Include(purs=> purs.PurchaseRequest)
-                    .ThenInclude(pr=> pr.CostCenter)
-
-                .Include(purs => purs.PurchaseRequest)
-                    .ThenInclude(pr => pr.WorkArea)
-                        .ThenInclude(area => area.CostCenters)
-
-                .Include(purs => purs.PurchaseRequest)
-                    .ThenInclude(pr => pr.RegistrationUser)
-
-                .Include(purs => purs.PurchaseRequest)
-                    .ThenInclude(pr => pr.UserRevision)
-
-                .Include(purs => purs.PurchaseRequest)
-                    .ThenInclude(pr => pr.AnnulledByUser)
-
-                .Include(purs => purs.PurchaseRequest)
-                    .ThenInclude(pr => pr.PurchaseRequestItems)
-                        .ThenInclude(item => item.Product)
-
-                .Include(purs => purs.PurchaseRequest)
-                    .ThenInclude(pr => pr.PurchaseRequestItems)
-                        .ThenInclude(item => item.UnitMeasure)
-
+                .IncludePurchaseOrderHierarchy()
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Where(purs => purs.Id == request.PurchaseOrderId)
