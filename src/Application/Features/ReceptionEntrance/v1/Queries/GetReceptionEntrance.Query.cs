@@ -11,6 +11,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queri
         public string? DocumentNumber { get; set; }
         public string? ContainerNumber { get; set; }
         public DocumentType? DocumentType { get; set; }
+        public int? Month { get; set; }
+        public int? Year { get; set; }
+
 
         ///Adminstración.
         public int PageSize { get; set; } = 10;

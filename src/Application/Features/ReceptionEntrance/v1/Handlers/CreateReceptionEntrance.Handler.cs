@@ -17,12 +17,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
 {
     public class CreateReceptionEntranceHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IS3StorageService _s3Services, ICodeGenerator _codeGenerator) : BaseValidatorHandler<CreateReceptionEntranceCommand, Unit>(_unitOfWork, _errorManager)
     {
-        private static readonly (TimeSpan Start, TimeSpan End)[] AllowedCustomsWindows =
-        [
-            (new TimeSpan(5, 0, 0), new TimeSpan(8, 0, 0)),   // 5:00 pm - 8:00 am
-            (new TimeSpan(12, 0, 0), new TimeSpan(13, 0, 0))  // 12:00 pm - 1:00 pm
-        ];
-
         public override async Task<Unit> Handle(CreateReceptionEntranceCommand request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
@@ -62,19 +56,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
             await _unitOfWork.ReceptionTransportEntrance.RegisterTransport(receptionTransportInfoEntity);
 
             //Manejo de  información de (PO)
-            var operationOrderEntity = OperationalOrderMapper.ToOperationalOrderEntity(access.Profile.CostCenterId);
-
-            var (IsSucceded, PoCode) = await _codeGenerator.GenerateUniqueOperationalOrderCodeAsync(access.Profile.CostCenterId, cancellationToken);
-
-            if (!IsSucceded)
-            {
-                return _errorManager.ThrowInternalError<Unit>("Ocurrio un error al generar la generación de archivo", "ERP:INTERNAL_ERROR");
-            }
-            
-            operationOrderEntity.OpCode = PoCode;
-            operationOrderEntity.ReceptionId = receptionEntranceEntity.Id;
-            operationOrderEntity.DocumentType = request.GeneralInformation.DocumentType;
-
             switch (request.GeneralInformation.DocumentType)
             {
                 case DocumentType.DUCA:
@@ -82,7 +63,19 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                     // PO - Por cada número Duca o declaración aduanera.
                     foreach(var duca in request.GeneralInformation.DucatNumbers)
                     {
-                        operationOrderEntity.DocumentNumber = duca;                    
+                        var (isSucceded, poCode) = await _codeGenerator.GenerateUniqueOperationalOrderCodeAsync(access.Profile.CostCenterId, cancellationToken);
+
+                        if (!isSucceded)
+                        {
+                            return _errorManager.ThrowInternalError<Unit>("Ocurrió un error al generar el código de la PO", "ERP:INTERNAL_ERROR");
+                        }
+
+                        var operationOrderEntity = OperationalOrderMapper.ToOperationalOrderEntity(access.Profile.CostCenterId);
+                        operationOrderEntity.OpCode = poCode;
+                        operationOrderEntity.ReceptionId = receptionEntranceEntity.Id;
+                        operationOrderEntity.DocumentType = request.GeneralInformation.DocumentType;
+                        operationOrderEntity.DocumentNumber = duca;
+
                         await _unitOfWork.OperationalOrders.RegisterOperationalOrder(operationOrderEntity);
                     }
 
@@ -90,6 +83,17 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                 }
                 case DocumentType.CustomsDeclaration:
                 {
+                    var (isSucceded, poCode) = await _codeGenerator.GenerateUniqueOperationalOrderCodeAsync(access.Profile.CostCenterId, cancellationToken);
+
+                    if (!isSucceded)
+                    {
+                        return _errorManager.ThrowInternalError<Unit>("Ocurrió un error al generar el código de la PO", "ERP:INTERNAL_ERROR");
+                    }
+
+                    var operationOrderEntity = OperationalOrderMapper.ToOperationalOrderEntity(access.Profile.CostCenterId);
+                    operationOrderEntity.OpCode = poCode;
+                    operationOrderEntity.ReceptionId = receptionEntranceEntity.Id;
+                    operationOrderEntity.DocumentType = request.GeneralInformation.DocumentType;
                     operationOrderEntity.DocumentNumber = request.GeneralInformation.CustomsDeclarationNumber;
 
                     if (request.CustomsDeclarationInformation is not null)

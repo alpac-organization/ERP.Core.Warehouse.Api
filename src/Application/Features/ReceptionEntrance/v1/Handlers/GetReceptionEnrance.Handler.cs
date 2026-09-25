@@ -43,6 +43,16 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                     .Where(reception => reception.ContainerNumber == request.ContainerNumber);
             }
 
+            if(!string.IsNullOrEmpty(request.PlateNumber))
+            {
+                receptionEntrancesQuery = receptionEntrancesQuery
+                    .Where(reception => reception.ReceptionTransport.VehiclePlateNumber == request.PlateNumber);
+            }
+
+            receptionEntrancesQuery = ApplyPeriodFilter(receptionEntrancesQuery, request);
+
+            
+
             var totalRecords = await receptionEntrancesQuery.CountAsync(cancellationToken);
 
             var receptionEntrances = await receptionEntrancesQuery
@@ -59,6 +69,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                 request.PageSize,
                 totalRecords
             );
+        }
+
+        private static IQueryable<Database.Domain.Entities.Warehouse.ReceptionEntrance> ApplyPeriodFilter(IQueryable<Database.Domain.Entities.Warehouse.ReceptionEntrance> query, GetReceptionEntrancesQuery request)
+        {
+            var year  = request.Year   ?? DateTime.UtcNow.Year;
+            var month = request.Month ?? DateTime.UtcNow.Month;
+
+            var firstDayOfMonth = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var firstDayOfNextMonth = firstDayOfMonth.AddMonths(1);
+
+            return query
+                .Where(pr => pr.CreatedAt >= firstDayOfMonth && pr.CreatedAt < firstDayOfNextMonth);
         }
     }
 
