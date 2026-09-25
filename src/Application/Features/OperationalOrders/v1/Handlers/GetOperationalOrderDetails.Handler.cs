@@ -1,19 +1,18 @@
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
-using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handlers
 {
-    public class GetOperationalOrderDetailsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) :  BaseValidatorHandler<GetOperationalOrdersQuery, PagedResponse<OperationalOrderDto>>(_unitOfWork, _errorManager)
+    public class GetOperationalOrderDetailsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager) :  BaseValidatorHandler<GetOperationalOrderDetailsQuery, OperationalOrderDetailsDto>(_unitOfWork, _errorManager)
     {
-        public override async Task<PagedResponse<OperationalOrderDto>> Handle(GetOperationalOrdersQuery request, CancellationToken cancellationToken)
+        public override async Task<OperationalOrderDetailsDto> Handle(GetOperationalOrderDetailsQuery request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode!, cancellationToken);
 
@@ -22,48 +21,34 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
                 return access.ErrorResponse!;
             }
 
+            if (access.Role?.RoleType == RoleType.Supervisor)
+            {
+                return _errorManager.ThrowBadRequest<OperationalOrderDetailsDto>("No tienes acceso para verificar esta información", "ERP:INVALID_ACCESS");
+            }
+
             var operationalOrdersQuery = _unitOfWork.OperationalOrders.Entities
                 .Include(po => po.Customer)
                 .Include(po => po.CostCenter)
-                .AsSplitQuery()
-                .AsNoTracking();
+                .Where(po => po.Id == request.OperationalOrderId);
 
-            //Agregar el company id
-
-            if (request.Status.HasValue)
+            switch (access.Role?.RoleType)
             {
-                operationalOrdersQuery = operationalOrdersQuery
-                    .Where(po => po.Status == request.Status);
+                case RoleType.Administrator:
+                {
+                    operationalOrdersQuery = operationalOrdersQuery
+                        .Include(po => po.ServicesOrders)
+                        .Include(po => po.AssignmentsMachineries) 
+                        .Include(po => po.AssignmentCollaborators);
+
+                    break;   
+                }
+                default:
+                {
+                    break;   
+                }
             }
 
-            if (!string.IsNullOrEmpty(request.CustomerCif))
-            {
-                operationalOrdersQuery = operationalOrdersQuery
-                    .Where(po => po.Customer.Cif == request.CustomerCif);
-            }
-
-            if (!string.IsNullOrEmpty(request.PoCode))
-            {
-                operationalOrdersQuery = operationalOrdersQuery
-                    .Where(po => po.OpCode == request.PoCode);
-            }
-
-            var totalRecords = await operationalOrdersQuery.CountAsync(cancellationToken);
-
-            var operationalOrders = await operationalOrdersQuery
-                .OrderByDescending(purs => purs.CreatedAt)
-                .Skip((request.PageNumber - 1) * request.PageSize)
-                .Take(request.PageSize)
-                .ToListAsync(cancellationToken);
-
-            var operationalOrdersMapped = _mapper.Map<List<OperationalOrderDto>>(operationalOrders);
-
-            return new PagedResponse<OperationalOrderDto>(
-                operationalOrdersMapped,
-                request.PageNumber,
-                request.PageSize,
-                totalRecords
-            );     
+            return new();
         }
     }   
 }
