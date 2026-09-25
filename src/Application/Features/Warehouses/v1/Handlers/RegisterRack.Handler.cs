@@ -64,21 +64,18 @@ public class RegisterRacksBulkHandler(
 
             await _unitOfWork.Racks.RegisterRack(rack);
 
-            // 2. Entidades RackPositions (Niveles 1..LevelNumber x MaxPulleys)
-            for (int lvl = 1; lvl <= request.LevelNumber; lvl++)
+            // 2. Entidades RackPositions (Polines correspondientes al nivel del rack)
+            for (int col = 1; col <= request.MaxPulleys; col++)
             {
-                for (int col = 1; col <= request.MaxPulleys; col++)
-                {
-                    var posCode = $"{code}-N{lvl}P{col}";
-                    var position = RackProfile.ToRackPositionEntity(
-                        rack.Id,
-                        posCode,
-                        request.RowNumber,
-                        col,
-                        lvl);
+                var posCode = $"{code}-N{request.LevelNumber}P{col}";
+                var position = RackProfile.ToRackPositionEntity(
+                    rack.Id,
+                    posCode,
+                    request.RowNumber,
+                    col,
+                    request.LevelNumber);
 
-                    await _unitOfWork.RackPositions.RegisterRackPosition(position);
-                }
+                await _unitOfWork.RackPositions.RegisterRackPosition(position);
             }
 
             // 3. Entidad RacksCoordinates
