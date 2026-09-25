@@ -4,7 +4,7 @@ using ERP.Core.Warehouse.Api.Application.Features.Machineries.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Machineries.v1.Queries
 {
-    public class GetMachineriesQuery : BaseRequest, IRequest<IEnumerable<MachineryListDto>>
+    public class GetMachineriesQuery : BaseRequest, IRequest<IEnumerable<MachineryDto>>
     {
     }
 }

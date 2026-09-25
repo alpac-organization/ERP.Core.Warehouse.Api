@@ -10,7 +10,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
     {
         public MachineryProfile()
         {
-            CreateMap<Machinery, MachineryListDto>();
+            CreateMap<Machinery, MachineryDto>();
         }
         public static Machinery ToMachineryEntity(MachineryCommand request, Guid branch)
         {

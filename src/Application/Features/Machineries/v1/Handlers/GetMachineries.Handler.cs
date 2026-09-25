@@ -8,11 +8,11 @@ using ERP.Core.Warehouse.Api.Application.Features.Machineries.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Machineries.v1.Handlers
 {
-    public class GetMachineriesHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper) : BaseValidatorHandler<GetMachineriesQuery, IEnumerable<MachineryListDto>>(unitOfWork, errorManager)
+    public class GetMachineriesHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper) : BaseValidatorHandler<GetMachineriesQuery, IEnumerable<MachineryDto>>(unitOfWork, errorManager)
     {
         private readonly IMapper _mapper = mapper;
 
-        public override async Task<IEnumerable<MachineryListDto>> Handle(GetMachineriesQuery request, CancellationToken cancellationToken)
+        public override async Task<IEnumerable<MachineryDto>> Handle(GetMachineriesQuery request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode!, cancellationToken);
             if (!access.IsSuccess) return access.ErrorResponse!;
@@ -25,7 +25,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Machineries.v1.Handlers
                 .AsNoTracking()
                 .ToListAsync(cancellationToken);
 
-            return _mapper.Map<List<MachineryListDto>>(machinery);
+            return _mapper.Map<List<MachineryDto>>(machinery);
         }
     }
 }

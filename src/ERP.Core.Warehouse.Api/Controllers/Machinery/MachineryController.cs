@@ -16,10 +16,10 @@ namespace ERP.Core.Warehouse.Api.Controllers.Machinery
     {
         [Tags("Catálogo de Maquinarias")]
         [HttpGet("companies/{company_id}/modules/{module_code}/machinery")]
-        [ProducesResponseType(typeof(IEnumerable<MachineryListDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<MachineryDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<IEnumerable<MachineryListDto>> GetMachineriesAsync(
+        public async Task<IEnumerable<MachineryDto>> GetMachineriesAsync(
             [FromRoute] Guid company_id,
             [FromRoute] string module_code)
         {
