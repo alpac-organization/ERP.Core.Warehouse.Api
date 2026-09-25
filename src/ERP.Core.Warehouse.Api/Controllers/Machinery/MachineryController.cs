@@ -12,24 +12,22 @@ namespace ERP.Core.Warehouse.Api.Controllers.Machinery
     [HasToken]
     [ApiVersion("1.0")]
     [Route("api/v1/")]
-    public class WarehouseMachineriesController(IMediator mediator) : ApiControllerBase
+    public class MachineryController(IMediator mediator) : ApiControllerBase
     {
         [Tags("Catálogo de Maquinarias")]
         [HttpGet("companies/{company_id}/modules/{module_code}/machinery")]
         [ProducesResponseType(typeof(IEnumerable<MachineryListDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async IEnumerable<MachineryListDto> GetMachineriesAsync(
+        public async Task<IEnumerable<MachineryListDto>> GetMachineriesAsync(
             [FromRoute] Guid company_id,
             [FromRoute] string module_code)
         {
-            var userIdStr = HttpContext.Items["UserId"] as string;
-
             return await mediator.Send(new GetMachineriesQuery
             {
                 CompanyId = company_id,
                 ModuleCode = module_code,
-                UserId = Guid.Parse(userIdStr ?? "")
+                UserId = CurrentUserId
             });
         }
 
@@ -44,13 +42,12 @@ namespace ERP.Core.Warehouse.Api.Controllers.Machinery
             [FromRoute] string module_code,
             [FromBody] MachineryCommand command)
         {
-            var userIdStr = HttpContext.Items["UserId"] as string;
-
             command.CompanyId = company_id;
             command.ModuleCode = module_code;
-            command.UserId = Guid.Parse(userIdStr ?? "");
+            command.UserId = CurrentUserId;
 
-            return await mediator.Send(Action);
+            var result = await mediator.Send(command);
+            return Ok(result);
         }
     }
 }
