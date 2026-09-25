@@ -61,20 +61,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
             var receptionTransportInfoEntity = ReceptionEntranceMapper.ToTransportEntranceEntity(request, receptionEntranceEntity.Id);
             await _unitOfWork.ReceptionTransportEntrance.RegisterTransport(receptionTransportInfoEntity);
 
-            //Manejo de  información de (PO)
-            var operationOrderEntity = OperationalOrderMapper.ToOperationalOrderEntity(access.Profile.CostCenterId);
-
-            var (IsSucceded, PoCode) = await _codeGenerator.GenerateUniqueOperationalOrderCodeAsync(access.Profile.CostCenterId, cancellationToken);
-
-            if (!IsSucceded)
-            {
-                return _errorManager.ThrowInternalError<Unit>("Ocurrio un error al generar la generación de archivo", "ERP:INTERNAL_ERROR");
-            }
-            
-            operationOrderEntity.OpCode = PoCode;
-            operationOrderEntity.ReceptionId = receptionEntranceEntity.Id;
-            operationOrderEntity.DocumentType = request.GeneralInformation.DocumentType;
-
             switch (request.GeneralInformation.DocumentType)
             {
                 case DocumentType.DUCA:
@@ -82,15 +68,30 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                     // PO - Por cada número Duca o declaración aduanera.
                     foreach(var duca in request.GeneralInformation.DucatNumbers)
                     {
+                        //Manejo de  información de (PO)
+                        var operationOrderEntity = OperationalOrderMapper.ToOperationalOrderEntity(request, access.Profile.CostCenterId);
+
                         operationOrderEntity.DocumentNumber = duca;                    
+                        operationOrderEntity.ReceptionId = receptionEntranceEntity.Id;
+
+                        var (IsSucceded, PoCode) = await _codeGenerator.GenerateUniqueOperationalOrderCodeAsync(access.Profile.CostCenterId, cancellationToken);
+                        
+                        if (!IsSucceded)
+                        {
+                            return _errorManager.ThrowInternalError<Unit>("Ocurrio un error al generar la generación de archivo", "ERP:INTERNAL_ERROR");
+                        }
+
+                        operationOrderEntity.OpCode = PoCode;
                         await _unitOfWork.OperationalOrders.RegisterOperationalOrder(operationOrderEntity);
                     }
 
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
                     break;
                 }
                 case DocumentType.CustomsDeclaration:
                 {
-                    operationOrderEntity.DocumentNumber = request.GeneralInformation.CustomsDeclarationNumber;
+                    //Manejo de  información de (PO)
+                    var operationOrderEntity = OperationalOrderMapper.ToOperationalOrderEntity(request, access.Profile.CostCenterId);
 
                     if (request.CustomsDeclarationInformation is not null)
                     {
@@ -102,13 +103,26 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                                 "ERP:CUSTOMS_DECLARATION_OUT_OF_WINDOW"
                             );
                         }
-
+    
                         operationOrderEntity.Weight = request.CustomsDeclarationInformation.TotalWeight;
                         operationOrderEntity.PackagesCount = request.CustomsDeclarationInformation.PackageNumber;
                         operationOrderEntity.Description = request.CustomsDeclarationInformation.ProductDescription;
                     }
 
+                    operationOrderEntity.ReceptionId = receptionEntranceEntity.Id;
+                    operationOrderEntity.DocumentNumber = request.GeneralInformation.CustomsDeclarationNumber;
+
+                    var (IsSucceded, PoCode) = await _codeGenerator.GenerateUniqueOperationalOrderCodeAsync(access.Profile.CostCenterId, cancellationToken);
+                        
+                    if (!IsSucceded)
+                    {
+                        return _errorManager.ThrowInternalError<Unit>("Ocurrio un error al generar la generación de archivo", "ERP:INTERNAL_ERROR");
+                    }
+
+                    operationOrderEntity.OpCode = PoCode;
+                    
                     await _unitOfWork.OperationalOrders.RegisterOperationalOrder(operationOrderEntity);
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
                     break;   
                 }
                 default:
@@ -117,7 +131,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                 }
             }
 
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
             return Unit.Value;
         }
 

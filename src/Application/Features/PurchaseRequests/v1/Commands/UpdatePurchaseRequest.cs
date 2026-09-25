@@ -7,16 +7,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Comman
 {
 public class UpdatePurchaseCommand : BaseRequest, IRequest<bool>
 {
-   [JsonIgnore]
-   public Guid PurchaseRequestId {get; set;}
+    [JsonIgnore]
+    public Guid PurchaseRequestId {get; set;}
 
-   public string? Observations {get; set;}
+    public string? Observations {get; set;}
 
-   public PriorityLevel? PriorityLevel {get; set;}
+    public PriorityLevel? PriorityLevel {get; set;}
 
-   public DestinationRequest? DestinationRequest {get; set;}
+    public DestinationRequest? DestinationRequest {get; set;}
 
-   public List<UpdatePurchaseRequestItem>? PurchaseRequestItems {get; set;} = []; 
+    public string? AdditionalData { get; set; }
+
+    public List<UpdatePurchaseRequestItem>? PurchaseRequestItems {get; set;} = []; 
 }
     public class UpdatePurchaseRequestItem
     {
