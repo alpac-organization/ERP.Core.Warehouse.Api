@@ -28,7 +28,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands
 
         public string? BrandProduct { get; set; }
         public ProductQuality ProductQuality { get; set; }
-        public PaymentCondition PaymentCondition { get; set; }
+        public PaymentMethodType PaymentMethodType { get; set; }
         
         public decimal? AvailabilityTime { get; set; }
         public TimeType? AvailabilityTimeType { get; set; }

@@ -1,5 +1,6 @@
 using AutoMapper;
 using ERP.Core.Database.Domain.Entities.Shopping;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 
 using Commands = ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands;
@@ -39,6 +40,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 WarrantyPeriod = command.WarrantyPeriod,
                 Iva = command?.Iva ?? 0.0m,
                 PriceUnit = command?.PriceUnit ?? 0.0m,
+                ProductQuality = command?.ProductQuality ?? ProductQuality.Good,
+
             };
         }
     }
