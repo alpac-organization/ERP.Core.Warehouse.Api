@@ -28,6 +28,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
                 .AsSplitQuery()
                 .AsNoTracking();
 
+            //Agregar el company id
+
             if (request.Status.HasValue)
             {
                 operationalOrdersQuery = operationalOrdersQuery
@@ -38,6 +40,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
             {
                 operationalOrdersQuery = operationalOrdersQuery
                     .Where(po => po.Customer.Cif == request.CustomerCif);
+            }
+
+            if (!string.IsNullOrEmpty(request.PoCode))
+            {
+                operationalOrdersQuery = operationalOrdersQuery
+                    .Where(po => po.OpCode == request.PoCode);
             }
 
             var totalRecords = await operationalOrdersQuery.CountAsync(cancellationToken);

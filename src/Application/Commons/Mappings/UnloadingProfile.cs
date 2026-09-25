@@ -28,7 +28,10 @@ public class UnloadingProfile : Profile
             .ForMember(d => d.Crew, o => o.MapFrom((s, d, m, ctx) => BuildCrew(s.CrewAssignments, ctx.Items["CrewMemberNames"] as Dictionary<Guid, string> ?? new())));
 
         CreateMap<MachineryAssignments, MachineryAssignmentDto>()
-            .ForMember(d => d.Code, o => o.MapFrom(s => s.Machinery != null ? s.Machinery.Code : null));
+            .ForMember(d => d.Code, o => o.MapFrom((src, dest, destMember, ctx) =>
+                ctx.Items["MachineryCodes"] is Dictionary<Guid, string> codes
+                    ? src.MachineryId is Guid id ? codes.GetValueOrDefault(id) : null
+                    : null));
         #endregion
 
         #region Iniciar descarga

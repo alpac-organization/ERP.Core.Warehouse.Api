@@ -25,7 +25,6 @@ public class GetUnloadingAssignmentDetailHandler(IUnitOfWork unitOfWork, IErrorM
             .AsSplitQuery()
             .Include(a => a.Warehouse)
             .Include(a => a.MachineryAssignments)
-                .ThenInclude(m => m.Machinery)
             .Include(a => a.CrewAssignments)
             .FirstOrDefaultAsync(a => a.Id == request.AssignmentId && a.DeletedAt == null, cancellationToken);
 
@@ -74,10 +73,29 @@ public class GetUnloadingAssignmentDetailHandler(IUnitOfWork unitOfWork, IErrorM
                         .Where(x => !string.IsNullOrWhiteSpace(x))));
         }
 
+        Dictionary<Guid, string> machineryCodes = [];
+        var machineryIds = assignment.MachineryAssignments
+            .Where(m => m.MachineryId.HasValue)
+            .Select(m => m.MachineryId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (machineryIds.Count > 0)
+        {
+            var machineries = await _unitOfWork.Machineries.Entities
+                .AsNoTracking()
+                .Where(m => machineryIds.Contains(m.Id))
+                .Select(m => new { m.Id, m.Code })
+                .ToListAsync(cancellationToken);
+
+            machineryCodes = machineries.ToDictionary(m => m.Id, m => m.Code);
+        }
+
         return _mapper.Map<UnloadingAssignmentDetailDto>(assignment, opts =>
         {
             opts.Items["WarehouseKeeperUserName"] = keeperNameFinal;
             opts.Items["CrewMemberNames"] = crewNamesDict;
+            opts.Items["MachineryCodes"] = machineryCodes;
         });
     }
 }

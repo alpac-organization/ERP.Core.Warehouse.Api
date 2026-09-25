@@ -18,8 +18,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseMachineries.v1.Co
         public string Model { get; set; } = string.Empty;
         public int ManufactureYear { get; set; }
         
-        public MachineryType MachineryType { get; set; }
-        public FuelType FuelType { get; set; }
         public decimal LoadCapacityKg { get; set; }
         public decimal? MaxReachHeightMeters { get; set; }
         public decimal HourMeter { get; set; }
