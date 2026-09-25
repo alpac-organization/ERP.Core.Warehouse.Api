@@ -49,8 +49,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public bool IsActive { get; set; }
         public bool HasDelivery { get; set; }
         public bool HasGuarantee { get; set; }
+        public bool InventoryAvailable { get; set; }
         public bool IsAcceptedForPurchase { get; set; }
-
+        
         public decimal Iva { get; set; }
         public decimal Price { get; set; }
         public decimal PriceUnit { get; set; }
@@ -67,6 +68,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
 
         public string? SupplierSelectionJustification { get; set; }
         public string? SupplierRejectionJustification { get; set; }
+
+        public ProductQuality ProductQuality { get; set; }
+        public PaymentCondition PaymentCondition { get; set; }
+
+        public decimal? AvailabilityTime { get; set; }
+        public TimeType? AvailabilityTimeType { get; set; }
 
         public Guid SupplierId { get; set; }
         public SupplierInformation SupplierInformation { get; set; } = new();

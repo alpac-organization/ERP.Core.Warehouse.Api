@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 
 using ERP.Core.Database.Domain.Enums;
@@ -7,8 +8,6 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands;
-using Microsoft.EntityFrameworkCore;
-
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 {
