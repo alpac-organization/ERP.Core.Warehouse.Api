@@ -24,9 +24,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
             var review = await _unitOfWork.PurchaseRequestsReviewedAccounting.Entities
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(purs => purs.CostCenter)
-
+                    
                 //Usuario que envia la solicitud a revición
                 .Include(rev => rev.SentByUser)
+                    .ThenInclude(pur => pur.Profiles
+                        .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                        .Take(1)
+                    )
+                    .ThenInclude(profile => profile.WorkArea)
 
                 //Solicitud de compras
                 .Include(rev => rev.PurchaseRequest)
