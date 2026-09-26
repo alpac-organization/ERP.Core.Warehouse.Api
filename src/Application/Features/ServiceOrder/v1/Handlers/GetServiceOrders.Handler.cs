@@ -18,12 +18,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Handlers
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
 
-            if (!access.IsSuccess) return access.ErrorResponse!;
-
+            if (!access.IsSuccess)
+            {
+                return access.ErrorResponse!;
+            }
+            
             var serviceOrdersQuery = _unitOfWork.ServicesOrders.Entities
-                .Where(so => so.DeletedAt == null)
+                .Include(os => os.OperationalService)
+                .Where(os => os.OperationalOrderId == request.OperationalOrderId)
                 .AsNoTracking();
-
 
             var totalRecords = await serviceOrdersQuery.CountAsync(cancellationToken);
 

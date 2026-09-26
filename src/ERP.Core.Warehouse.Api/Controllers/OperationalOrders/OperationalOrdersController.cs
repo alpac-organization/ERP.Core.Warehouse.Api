@@ -25,25 +25,27 @@ namespace ERP.Core.Warehouse.Api.Controllers.OperationalOrders
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<PagedResponse<OperationalOrderDto>> GetOperationalOdersAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
-            [FromQuery] string? code                      = null,
-            [FromQuery] string? customer_cif              = null,
-            [FromQuery] OperationalOrderStatus? status    = null,
-            [FromQuery] int page_number                   = 1,
-            [FromQuery] int page_size                     = 10
+            [FromQuery] string? code                   = null,
+            [FromQuery] string? customer_cif           = null,
+            [FromQuery] DocumentType? document_type    = null,
+            [FromQuery] OperationalOrderStatus? status = null,
+            [FromQuery] int page_number                = 1,
+            [FromQuery] int page_size                  = 10
         )
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
             return await _mediator.Send(new GetOperationalOrdersQuery()
             {
-                CompanyId   = company_id,
-                Status      = status,
-                PoCode      = code,
-                CustomerCif = customer_cif,
-                ModuleCode  = module_code,
-                PageNumber  = page_number,
-                PageSize    = page_size,
-                UserId      = Guid.Parse(userIdStr ?? ""),
+                CompanyId    = company_id,
+                Status       = status,
+                DocumentType = document_type,
+                PoCode       = code,
+                CustomerCif  = customer_cif,
+                ModuleCode   = module_code,
+                PageNumber   = page_number,
+                PageSize     = page_size,
+                UserId       = Guid.Parse(userIdStr ?? ""),
             });
         }
 

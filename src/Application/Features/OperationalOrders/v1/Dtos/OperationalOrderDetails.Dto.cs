@@ -1,7 +1,7 @@
-using ERP.Core.Database.Domain.Entities.Bases;
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Database.Domain.Entities.Bases;
+using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
-
 namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Dtos
 {
     public class OperationalOrderDetailsDto : OperationalOrderDto
@@ -15,7 +15,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Dtos
         public BranchInformation BranchInformation { get; set; } = new();
 
         //Información de recepción de alpac.
+        public List<ServiceOrderDto> ServiceOrders { get; set; } = [];
         public ReceptionEntranceDto ReceptionEntranceInformation { get; set; } = new();
     }
-
 }

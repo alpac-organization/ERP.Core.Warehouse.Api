@@ -10,7 +10,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Queri
     public class GetOperationalOrdersQuery : BaseRequest, IRequest<PagedResponse<OperationalOrderDto>>
     {
         public string? PoCode { get; set; }
-        public string? CustomerCif { get; set; }        
+        public string? CustomerCif { get; set; }
+        
+        public DocumentType? DocumentType { get; set; }
         public OperationalOrderStatus? Status { get; set; }
         
         public int PageSize { get; set; }

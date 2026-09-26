@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 
@@ -10,7 +11,7 @@ using ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handlers
 {
-    public class GetOperationalOrderDetailsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager) :  BaseValidatorHandler<GetOperationalOrderDetailsQuery, OperationalOrderDetailsDto>(_unitOfWork, _errorManager)
+    public class GetOperationalOrderDetailsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) :  BaseValidatorHandler<GetOperationalOrderDetailsQuery, OperationalOrderDetailsDto>(_unitOfWork, _errorManager)
     {
         public override async Task<OperationalOrderDetailsDto> Handle(GetOperationalOrderDetailsQuery request, CancellationToken cancellationToken)
         {
@@ -39,6 +40,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
                         .Include(po => po.ServicesOrders)
                         .Include(po => po.AssignmentsMachineries) 
                         .Include(po => po.AssignmentCollaborators);
+                        
+                    break;
+                }
+                case RoleType.Operator:
+                {
 
                     break;   
                 }
@@ -48,7 +54,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
                 }
             }
 
-            return new();
+            var operationalOrder = await operationalOrdersQuery
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var operationalOrderMapped = _mapper.Map<OperationalOrderDetailsDto>(operationalOrder);
+
+            return operationalOrderMapped;
         }
     }   
 }
