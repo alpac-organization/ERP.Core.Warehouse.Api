@@ -26,8 +26,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
 
 
 
-
-
             return true;
         }
     }

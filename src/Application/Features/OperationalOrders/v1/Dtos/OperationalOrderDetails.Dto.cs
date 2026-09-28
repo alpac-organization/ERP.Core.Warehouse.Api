@@ -1,5 +1,4 @@
 using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Database.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Dtos
@@ -14,11 +13,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Dtos
         public decimal? Weight { get; set; }
         public decimal? PackagesCount { get; set; }
 
-        public BranchInformation BranchInformation { get; set; } = new();
-
         //Información de recepción de alpac.
-        public ReceptionEntranceDto ReceptionEntranceInformation { get; set; } = new();
+        public WarehouseInformation? WarehouseInformation { get; set; }
+        public ReceptionEntranceDetailsDto? ReceptionEntranceInformation { get; set; }
+    }
 
-        //TODO: Agregar información de colaboradores asignados, Maquinaria Asignada y bodega asignada.
+    public class WarehouseInformation
+    {
+        public Guid WarehouseId { get; set; }        
+        public string Code { get; set; } = string.Empty;
+        public WarehouseType WarehouseType { get; set; }        
     }
 }

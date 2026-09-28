@@ -17,7 +17,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(dest => dest.CostCenterInformation, opt => opt.MapFrom(src => src.CostCenter));
 
             CreateMap<OperationalOrder, OperationalOrderDetailsDto>()
-                .IncludeBase<OperationalOrder, OperationalOrderDto>();
+                .IncludeBase<OperationalOrder, OperationalOrderDto>()
+                .ForPath(dest => dest.ReceptionEntranceInformation, opt => opt.MapFrom(src => src.Reception));
         }
     }
 
