@@ -1,4 +1,3 @@
-
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,9 +11,9 @@ using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Handlers
 {
-    public class GetServiceOrdersHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper mapper) : BaseValidatorHandler<GetServiceOrdersQuery, PagedResponse<ServiceOrderDto>>(_unitOfWork, _errorManager)
+    public class GetServiceOrdersRequisitionsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper mapper) : BaseValidatorHandler<GetServiceOrderRequisitionsQuery, PagedResponse<ServiceOrderRequisitionDto>>(_unitOfWork, _errorManager)
     {
-        public override async Task<PagedResponse<ServiceOrderDto>> Handle(GetServiceOrdersQuery request, CancellationToken cancellationToken)
+        public override async Task<PagedResponse<ServiceOrderRequisitionDto>> Handle(GetServiceOrderRequisitionsQuery request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
 
@@ -22,24 +21,26 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Handlers
             {
                 return access.ErrorResponse!;
             }
-            
-            var serviceOrdersQuery = _unitOfWork.ServicesOrders.Entities
-                .Where(os => os.IsActive)
-                .Where(os => os.OperationalOrderId == request.OperationalOrderId)
-                .Include(os => os.User)
+
+            var serviceOrdersRequisitionsQuery = _unitOfWork.ServicesOrdersRequisitions.Entities
+                .Include(osr => osr.User)
+                .Include(osr => osr.ServicesOrder)
+                .Where(osr => osr.IsActive)
+                .Where(osr => osr.ServiceOrderId == request.ServiceOrderId)
+                .Where(osr => osr.ServicesOrder.OperationalOrderId == request.OperationalOrderId)
                 .AsNoTracking();
 
-            var totalRecords = await serviceOrdersQuery.CountAsync(cancellationToken);
+            var totalRecords = await serviceOrdersRequisitionsQuery.CountAsync(cancellationToken);
 
-            var serviceOrders = await serviceOrdersQuery
+            var serviceOrders = await serviceOrdersRequisitionsQuery
                 .OrderByDescending(so => so.CreatedAt)
                 .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .ToListAsync(cancellationToken);
 
-            var serviceOrdersMapped = mapper.Map<List<ServiceOrderDto>>(serviceOrders);
+            var serviceOrdersMapped = mapper.Map<List<ServiceOrderRequisitionDto>>(serviceOrders);
 
-            return new PagedResponse<ServiceOrderDto>(
+            return new PagedResponse<ServiceOrderRequisitionDto>(
                 serviceOrdersMapped,
                 request.PageNumber,
                 request.PageSize,

@@ -70,7 +70,6 @@ namespace ERP.Core.Warehouse.Api.Controllers.OperationalOrders
         public async Task<OkResult> Async([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
-            
 
             return Ok();
         }
@@ -83,7 +82,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.OperationalOrders
         public async Task<OkResult> RecordAssignmentInformationAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
-
+            
 
             return Ok();
         }        

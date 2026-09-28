@@ -74,7 +74,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                         operationOrderEntity.DocumentNumber = duca;                    
                         operationOrderEntity.ReceptionId = receptionEntranceEntity.Id;
 
-                        var (IsSucceded, PoCode) = await _codeGenerator.GenerateUniqueOperationalOrderCodeAsync(access.Profile.CostCenterId, cancellationToken);
+                        var (IsSucceded, PoCode) = await _codeGenerator.GenerateUniqueOperationalOrderCodeAsync();
                         
                         if (!IsSucceded)
                         {
@@ -112,7 +112,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                     operationOrderEntity.ReceptionId = receptionEntranceEntity.Id;
                     operationOrderEntity.DocumentNumber = request.GeneralInformation.CustomsDeclarationNumber;
 
-                    var (IsSucceded, PoCode) = await _codeGenerator.GenerateUniqueOperationalOrderCodeAsync(access.Profile.CostCenterId, cancellationToken);
+                    var (IsSucceded, PoCode) = await _codeGenerator.GenerateUniqueOperationalOrderCodeAsync();
                         
                     if (!IsSucceded)
                     {

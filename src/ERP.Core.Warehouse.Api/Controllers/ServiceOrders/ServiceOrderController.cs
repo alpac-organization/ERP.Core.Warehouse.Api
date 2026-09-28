@@ -21,7 +21,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.ServiceOrders
         [ProducesResponseType(typeof(CreatedResult), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<CreatedResult> CreateServiceOrderAsync([FromRoute] Guid company_id, [FromRoute] Guid branch_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id, [FromBody]  CreateServiceOrderCommand payload)
+        public async Task<CreatedResult> CreateServiceOrderAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id, [FromBody]  CreateServiceOrderCommand payload)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
@@ -40,7 +40,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.ServiceOrders
         [ProducesResponseType(typeof(PagedResponse<ServiceOrderDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<PagedResponse<ServiceOrderDto>> GetServiceOrdersAsync([FromRoute] Guid company_id, [FromRoute] Guid branch_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id,
+        public async Task<PagedResponse<ServiceOrderDto>> GetServiceOrdersAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id,
             [FromQuery] int page_size = 10,
             [FromQuery] int page_number = 1        
         )
@@ -59,29 +59,41 @@ namespace ERP.Core.Warehouse.Api.Controllers.ServiceOrders
         }
 
         [Tags("Ordenes de servicios")]
-        [HttpGet("companies/{company_id}/branches/{branch_id}/modules/{module_code}/operational-orders/{operational_order_id}/services-orders/{service_order_id}/details")]
+        [HttpGet("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/services-orders/{service_order_id}/details")]
         [ProducesResponseType(typeof(PagedResponse<ServiceOrderDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<OkResult> GetServiceOrderDetailsAsync([FromRoute] Guid company_id, [FromRoute] Guid branch_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id, [FromRoute] Guid service_order_id)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
-
+            
 
             return Ok();
         }
 
 
         [Tags("Ordenes de servicios")]
-        [HttpGet("companies/{company_id}/branches/{branch_id}/modules/{module_code}/operational-orders/{operational_order_id}/services-orders/{service_order_id}/requisitions")]
-        [ProducesResponseType(typeof(PagedResponse<ServiceOrderDto>), StatusCodes.Status200OK)]
+        [HttpGet("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/services-orders/{service_order_id}/requisitions")]
+        [ProducesResponseType(typeof(PagedResponse<ServiceOrderRequisitionDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<OkResult> GetServiceOrderRequisitionsAsync([FromRoute] Guid company_id, [FromRoute] Guid branch_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id, [FromRoute] Guid service_order_id)
+        public async Task<PagedResponse<ServiceOrderRequisitionDto>> GetServiceOrderRequisitionsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id, [FromRoute] Guid service_order_id,
+            [FromQuery] int page_size   = 10,
+            [FromQuery] int page_number = 1
+        )
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
-            return Ok();
+            return await _mediator.Send(new GetServiceOrderRequisitionsQuery()
+            {
+                CompanyId = company_id,
+                UserId = Guid.Parse(userIdStr ?? ""),
+                ModuleCode = module_code,
+                OperationalOrderId = operational_order_id,
+                ServiceOrderId = service_order_id,
+                PageSize = page_size,
+                PageNumber = page_number
+            });
         }         
     }
 }
