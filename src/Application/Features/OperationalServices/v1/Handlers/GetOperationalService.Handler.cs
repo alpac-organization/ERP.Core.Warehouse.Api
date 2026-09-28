@@ -23,14 +23,14 @@ public class GetOperationalServiceHandler(IUnitOfWork _unitOfWork, IErrorManager
 
         if (!string.IsNullOrEmpty(request.ServiceCode))
         {
-            var codeFilter = request.ServiceCode.Trim().ToLower();
-            servicesQuery = servicesQuery.Where(s => s.ServiceCode!.ToLower().Contains(codeFilter));
+            var pattern = $"%{request.ServiceCode.Trim()}%";
+            servicesQuery = servicesQuery.Where(s => EF.Functions.ILike(s.ServiceCode!, pattern));
         }
 
         if (!string.IsNullOrEmpty(request.ServiceName))
         {
-            var nameFilter = request.ServiceName.Trim().ToLower();
-            servicesQuery = servicesQuery.Where(s => s.ServiceName!.ToLower().Contains(nameFilter));
+            var pattern = $"%{request.ServiceName.Trim()}%";
+            servicesQuery = servicesQuery.Where(s => EF.Functions.ILike(s.ServiceName!, pattern));
         }
 
         var totalRecords = await servicesQuery.CountAsync(cancellationToken);
