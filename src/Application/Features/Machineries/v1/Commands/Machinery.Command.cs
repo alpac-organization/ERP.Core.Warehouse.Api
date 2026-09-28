@@ -1,0 +1,16 @@
+﻿using MediatR;
+using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+
+namespace ERP.Core.Warehouse.Api.Application.Features.Machineries.v1.Commands;
+
+public class MachineryCommand : BaseRequest, IRequest<Unit>
+{
+    public Guid BranchId { get; set; }
+
+    public string Brand { get; set; } = null!;
+    public string Code { get; set; } = null!;
+    public string Year { get; set; } = null!;
+    public string Model { get; set; } = null!;
+    public string SerialNumber { get; set; } = null!;
+    public string? Color { get; set; }
+}

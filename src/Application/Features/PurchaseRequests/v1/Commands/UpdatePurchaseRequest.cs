@@ -16,8 +16,6 @@ public class UpdatePurchaseCommand : BaseRequest, IRequest<bool>
 
     public DestinationRequest? DestinationRequest {get; set;}
 
-    public string? AdditionalData { get; set; }
-
     public List<UpdatePurchaseRequestItem>? PurchaseRequestItems {get; set;} = []; 
 }
     public class UpdatePurchaseRequestItem
