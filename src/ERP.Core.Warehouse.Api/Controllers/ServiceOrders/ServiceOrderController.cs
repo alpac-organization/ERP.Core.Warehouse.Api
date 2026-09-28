@@ -1,5 +1,4 @@
 using MediatR;
-using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 
 using ERP.Core.Domain.Entities.Errors;
@@ -10,63 +9,91 @@ using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Commands;
 
-namespace ERP.Core.Warehouse.Api.Controllers.ServiceOrders;
-
-[HasToken]
-[ApiVersion("1.0")]
-[Route("api/v1/")]
-public class ServiceOrderController(IMediator _mediator, IMapper _mapper) : ApiControllerBase
+namespace ERP.Core.Warehouse.Api.Controllers.ServiceOrders
 {
-    [Tags("Ordenes de servicios")]
-    [HttpPost("companies/{company_id}/branches/{branch_id}/modules/{module_code}/service-orders")]
-    [ProducesResponseType(typeof(CreateServiceOrderResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<CreateServiceOrderResponse>> CreateServiceOrderAsync(
-        [FromRoute] Guid company_id, 
-        [FromRoute] String module_code, 
-        [FromRoute] Guid branch_id, 
-        [FromBody] CreateServiceOrderDto dto,
-        CancellationToken cancellationToken)
+    [HasToken]
+    [ApiVersion("1.0")]
+    [Route("api/v1/")]
+    public class ServiceOrderController(IMediator _mediator) : ApiControllerBase
     {
-        var userIdStr = HttpContext.Items["UserId"] as string;
-        Guid.TryParse(userIdStr, out var userId);
-
-        var command = _mapper.Map<CreateServiceOrderCommand>(dto);
-        command.UserId = userId;
-        command.CompanyId = company_id;
-        command.ModuleCode = module_code;
-        command.BranchId = branch_id;
-
-        var result = await _mediator.Send(command, cancellationToken);
-
-        return Ok(result);
-    }
-
-    [Tags("Ordenes de servicios")]
-    [HttpGet("companies/{company_id}/modules/{module_code}/service-orders")]
-    [ProducesResponseType(typeof(PagedResponse<ServiceOrderDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<PagedResponse<ServiceOrderDto>> GetServiceOrdersAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
-        [FromQuery] string? code = null,
-        [FromQuery] string? cif  = null,
-        [FromQuery] int page_number = 1,
-        [FromQuery] int page_size = 10
-    )
-    {
-        var userIdStr = HttpContext.Items["UserId"] as string;
-
-        return await _mediator.Send(new GetServiceOrdersQuery()
+        [Tags("Ordenes de servicios")]
+        [HttpPost("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/services-orders")]
+        [ProducesResponseType(typeof(CreatedResult), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<CreatedResult> CreateServiceOrderAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id, [FromBody]  CreateServiceOrderCommand payload)
         {
-            Code        = code,
-            CustomerCif = cif,
-            CompanyId   = company_id,
-            ModuleCode  = module_code,
-            UserId      = Guid.Parse(userIdStr ?? ""),
-            PageNumber  = page_number,
-            PageSize    = page_size,
-        });
-    }
+            var userIdStr = HttpContext.Items["UserId"] as string;
 
+            payload.CompanyId = company_id;
+            payload.ModuleCode = module_code;
+            payload.UserId = Guid.Parse(userIdStr ?? "");
+            payload.OperationalOrderId = operational_order_id;
+
+            await _mediator.Send(payload);
+
+            return Created();
+        }
+
+        [Tags("Ordenes de servicios")]
+        [HttpGet("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/services-orders")]
+        [ProducesResponseType(typeof(PagedResponse<ServiceOrderDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<PagedResponse<ServiceOrderDto>> GetServiceOrdersAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id,
+            [FromQuery] int page_size = 10,
+            [FromQuery] int page_number = 1        
+        )
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            return await _mediator.Send(new GetServiceOrdersQuery()
+            {
+                CompanyId   = company_id,
+                ModuleCode  = module_code,
+                PageNumber  = page_number,
+                PageSize    = page_size,
+                UserId      = Guid.Parse(userIdStr ?? ""),
+                OperationalOrderId = operational_order_id,
+            });
+        }
+
+        [Tags("Ordenes de servicios")]
+        [HttpGet("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/services-orders/{service_order_id}/details")]
+        [ProducesResponseType(typeof(PagedResponse<ServiceOrderDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<OkResult> GetServiceOrderDetailsAsync([FromRoute] Guid company_id, [FromRoute] Guid branch_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id, [FromRoute] Guid service_order_id)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+            
+
+            return Ok();
+        }
+
+
+        [Tags("Ordenes de servicios")]
+        [HttpGet("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/services-orders/{service_order_id}/requisitions")]
+        [ProducesResponseType(typeof(PagedResponse<ServiceOrderRequisitionDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<PagedResponse<ServiceOrderRequisitionDto>> GetServiceOrderRequisitionsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id, [FromRoute] Guid service_order_id,
+            [FromQuery] int page_size   = 10,
+            [FromQuery] int page_number = 1
+        )
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            return await _mediator.Send(new GetServiceOrderRequisitionsQuery()
+            {
+                CompanyId = company_id,
+                UserId = Guid.Parse(userIdStr ?? ""),
+                ModuleCode = module_code,
+                OperationalOrderId = operational_order_id,
+                ServiceOrderId = service_order_id,
+                PageSize = page_size,
+                PageNumber = page_number
+            });
+        }         
+    }
 }

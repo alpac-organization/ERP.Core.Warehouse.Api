@@ -1,4 +1,5 @@
 using AutoMapper;
+using ERP.Core.Database.Domain.Entities.Bases;
 using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Warehouse.Api.Application.Features.CustomBranches.v1.Dtos;
 
@@ -10,6 +11,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             CreateMap<CustomsBranches, CustomsBranchDto>()
                 .ForMember(dest => dest.CustomBranchId,   opt => opt.MapFrom(src => src.Id));
+
+            CreateMap<CustomsBranches, CustomBranchesInformation>();
         }
     }
 }
