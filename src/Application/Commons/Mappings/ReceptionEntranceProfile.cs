@@ -12,7 +12,14 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             //Mapper Get entrance.
             CreateMap<ReceptionEntrance, ReceptionEntranceDto>()
                 .ForMember(dest => dest.ReceptionEntranceId, opt => opt.MapFrom(src => src.Id));
-            
+
+            CreateMap<ReceptionEntrance, ReceptionEntranceDetailsDto>()
+                .ForPath(dest => dest.CustomBranchesInformation, opt => opt.MapFrom(src => src.CustomsBranches))
+                .ForPath(dest => dest.ReceptionTransportEntranceInformation, opt => opt.MapFrom(src => src.ReceptionTransport))
+                .IncludeBase<ReceptionEntrance, ReceptionEntranceDto>();
+
+            CreateMap<ReceptionTransportEntrance, ReceptionTransportEntranceDto>();
+
         }
     }
 

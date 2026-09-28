@@ -8,6 +8,7 @@ using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
+using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Controllers.ReceptionEntrances
 {
@@ -36,10 +37,10 @@ namespace ERP.Core.Warehouse.Api.Controllers.ReceptionEntrances
 
         [Tags("Control de Acceso")]
         [HttpGet("companies/{company_id}/modules/{module_code}/reception-entrances")]
-        [ProducesResponseType(typeof(GetReceptionEntrancesDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PagedResponse<ReceptionEntranceDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<OkResult> GetReceptionEntrancesAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
+        public async Task<PagedResponse<ReceptionEntranceDto>> GetReceptionEntrancesAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
             [FromQuery] string? plate_number = null,
             [FromQuery] string? document_number = null,
             [FromQuery] string? contaniner_number = null,
@@ -51,7 +52,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.ReceptionEntrances
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
-            await _mediator.Send(new GetReceptionEntrancesQuery()
+            return await _mediator.Send(new GetReceptionEntrancesQuery()
             {
                 UserId = Guid.Parse(userIdStr ?? ""),
                 CompanyId = company_id, 
@@ -63,20 +64,24 @@ namespace ERP.Core.Warehouse.Api.Controllers.ReceptionEntrances
                 PageNumber = page_number,
                 DocumentType = document_type
             });
-
-            return Ok();
         }
 
         [Tags("Control de Acceso")]
         [HttpGet("companies/{company_id}/modules/{module_code}/reception-entrances/{reception_entrance_id}/details")]
-        [ProducesResponseType(typeof(ReceptionEntranceDetailDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ReceptionEntranceDetailsDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<ReceptionEntranceDetailDto> GetReceptionEntranceDetailAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid reception_id, [FromRoute] Guid reception_entrance_id)
+        public async Task<ReceptionEntranceDetailsDto> GetReceptionEntranceDetailAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid reception_id, [FromRoute] Guid reception_entrance_id)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
-            return new();
+            return await _mediator.Send(new GetReceptionEntranceDetailsQuery()
+            {
+                ModuleCode = module_code,
+                CompanyId = company_id,
+                UserId = Guid.Parse(userIdStr ?? ""),
+                ReceptionEntranceId = reception_entrance_id,
+            });
         }
 
         //Endpoint para darle continuidad al registro vehicular y salid de reception.
