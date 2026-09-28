@@ -56,6 +56,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Handlers
             }
 
             var serviceOrderEntity = ServicesOrderMapper.ToServiceOrderEntity(request, Code);
+            serviceOrderEntity.CreatedByUserId = access.User.Id;
 
             await _unitOfWork.ServicesOrders.RegisterServicesOrder(serviceOrderEntity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
