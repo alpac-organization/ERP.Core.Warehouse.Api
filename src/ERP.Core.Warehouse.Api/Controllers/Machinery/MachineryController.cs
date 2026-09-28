@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using ERP.Core.Domain.Entities.Errors;
 using ERP.Core.Infrastructure.Attributes;
+using ERP.Core.Database.Domain.Enums;
 
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
@@ -21,7 +22,10 @@ namespace ERP.Core.Warehouse.Api.Controllers.Machinery
         [ProducesResponseType(typeof(PagedResponse<MachineryDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<PagedResponse<MachineryDto>> GetMachineriesAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
+        public async Task<PagedResponse<MachineryDto>> GetMachineriesAsync(
+            [FromRoute] Guid company_id,
+            [FromRoute] string module_code,
+            [FromQuery] MachineryType? type,
             [FromQuery] int page_number = 1,
             [FromQuery] int page_size = 10
         )
@@ -30,11 +34,12 @@ namespace ERP.Core.Warehouse.Api.Controllers.Machinery
 
             return await mediator.Send(new GetMachineriesQuery
             {
-                CompanyId = company_id,
-                ModuleCode = module_code,
-                UserId = Guid.Parse(userIdStr ?? ""),
-                PageNumber = page_number,
-                PageSize = page_size
+                CompanyId   = company_id,
+                ModuleCode  = module_code,
+                UserId      = Guid.Parse(userIdStr ?? ""),
+                Type        = type,
+                PageNumber  = page_number,
+                PageSize    = page_size
             });
         }
 

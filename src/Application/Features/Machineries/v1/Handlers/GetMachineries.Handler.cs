@@ -22,14 +22,17 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Machineries.v1.Handlers
 
             var machineryQuery = _unitOfWork.Machineries.Entities
                 .Where(m => m.BranchId == branch)
-                .Where(m => m.IsActive)
+                .Where(m => m.IsActive && m.DeletedAt == null)
                 .AsNoTracking();
+
+            if (request.Type.HasValue)
+                machineryQuery = machineryQuery.Where(m => m.Type == request.Type.Value);
 
             var totalRecords = await machineryQuery.CountAsync(cancellationToken);
 
             var machinery = await machineryQuery
                 .OrderBy(m => m.CreatedAt)
-                .Skip((request.PageNumber -1 ) * request.PageSize)
+                .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .ToListAsync(cancellationToken);
 

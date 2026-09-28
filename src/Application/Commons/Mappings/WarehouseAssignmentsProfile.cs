@@ -20,6 +20,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(d => d.AssignedAt, o => o.MapFrom(_ => NicaraguaClock.Now))
                 .ForMember(d => d.UnloadingStartTime, o => o.MapFrom(_ => NicaraguaClock.Now));
 
+
             CreateMap<CreateUnloadingCrewCommand, CrewAssignments>()
                 .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
                 .ForMember(d => d.AssignedAt, o => o.MapFrom(_ => NicaraguaClock.Now));
