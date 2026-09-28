@@ -81,7 +81,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                             return _errorManager.ThrowInternalError<Unit>("Ocurrio un error al generar la generación de archivo", "ERP:INTERNAL_ERROR");
                         }
 
-                        operationOrderEntity.OpCode = PoCode;
+                        operationOrderEntity.PoCode = PoCode;
                         await _unitOfWork.OperationalOrders.RegisterOperationalOrder(operationOrderEntity);
                     }
 
@@ -119,7 +119,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                         return _errorManager.ThrowInternalError<Unit>("Ocurrio un error al generar la generación de archivo", "ERP:INTERNAL_ERROR");
                     }
 
-                    operationOrderEntity.OpCode = PoCode;
+                    operationOrderEntity.PoCode = PoCode;
                     
                     await _unitOfWork.OperationalOrders.RegisterOperationalOrder(operationOrderEntity);
                     await _unitOfWork.SaveChangesAsync(cancellationToken);

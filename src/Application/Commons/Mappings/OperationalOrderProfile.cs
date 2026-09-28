@@ -1,9 +1,9 @@
 using AutoMapper;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Operations;
+using ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Dtos;
 
 using Command = ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands.CreateReceptionEntranceCommand;
-using ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
@@ -17,8 +17,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(dest => dest.CostCenterInformation, opt => opt.MapFrom(src => src.CostCenter));
 
             CreateMap<OperationalOrder, OperationalOrderDetailsDto>()
-                .IncludeBase<OperationalOrder, OperationalOrderDto>()
-                .ForPath(dest => dest.ServiceOrders, opt => opt.MapFrom(src => src.ServicesOrders));
+                .IncludeBase<OperationalOrder, OperationalOrderDto>();
         }
     }
 
@@ -31,7 +30,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 Id = Guid.NewGuid(),
                 CostCenterId = costCenterId,
                 Status = OperationalOrderStatus.PendingDocument,
-                DocumentType = command.GeneralInformation.DocumentType
+                CompanyId = command.CompanyId,
+                DocumentType = command.GeneralInformation.DocumentType,
             };
         }
     }

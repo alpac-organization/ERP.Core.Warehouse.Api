@@ -61,5 +61,31 @@ namespace ERP.Core.Warehouse.Api.Controllers.OperationalOrders
 
             return Ok();
         }
+
+        [Tags("Solicitudes de compras")] 
+        [HttpPut("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}")]
+        [ProducesResponseType(typeof(PagedResponse<OperationalOrderDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<OkResult> Async([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+            
+
+            return Ok();
+        }
+
+        [Tags("Solicitudes de compras")] 
+        [HttpPut("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/assignment")]
+        [ProducesResponseType(typeof(PagedResponse<OperationalOrderDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<OkResult> RecordAssignmentInformationAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+
+            return Ok();
+        }        
     }
 }

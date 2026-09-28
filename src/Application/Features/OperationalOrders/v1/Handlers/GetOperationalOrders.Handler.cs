@@ -45,7 +45,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
             if (!string.IsNullOrEmpty(request.PoCode))
             {
                 operationalOrdersQuery = operationalOrdersQuery
-                    .Where(po => po.OpCode == request.PoCode);
+                    .Where(po => po.PoCode == request.PoCode);
             }
 
             var totalRecords = await operationalOrdersQuery.CountAsync(cancellationToken);

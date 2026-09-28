@@ -22,10 +22,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Handlers
             {
                 return access.ErrorResponse!;
             }
-            
+
             var serviceOrdersQuery = _unitOfWork.ServicesOrders.Entities
-                .Include(os => os.OperationalService)
                 .Where(os => os.OperationalOrderId == request.OperationalOrderId)
+                .Include(os => os.User)
                 .AsNoTracking();
 
             var totalRecords = await serviceOrdersQuery.CountAsync(cancellationToken);

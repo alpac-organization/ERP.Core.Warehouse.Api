@@ -16,7 +16,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.ServiceOrders
     public class ServiceOrderController(IMediator _mediator) : ApiControllerBase
     {
         [Tags("Ordenes de servicios")]
-        [HttpPost("companies/{company_id}/branches/{branch_id}/modules/{module_code}/operational-orders/{operational_order_id}/services-orders")]
+        [HttpPost("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/services-orders")]
         [ProducesResponseType(typeof(CreateServiceOrderResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
@@ -26,11 +26,13 @@ namespace ERP.Core.Warehouse.Api.Controllers.ServiceOrders
 
             //Your Code here, esto asignara un servicio aderido a un (PO)
 
+            
+
             return Created();
         }
 
         [Tags("Ordenes de servicios")]
-        [HttpGet("companies/{company_id}/branches/{branch_id}/modules/{module_code}/operational-orders/{operational_order_id}/services-orders")]
+        [HttpGet("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/services-orders")]
         [ProducesResponseType(typeof(PagedResponse<ServiceOrderDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
@@ -52,5 +54,31 @@ namespace ERP.Core.Warehouse.Api.Controllers.ServiceOrders
             });
         }
 
+        [Tags("Ordenes de servicios")]
+        [HttpGet("companies/{company_id}/branches/{branch_id}/modules/{module_code}/operational-orders/{operational_order_id}/services-orders/{service_order_id}/details")]
+        [ProducesResponseType(typeof(PagedResponse<ServiceOrderDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<OkResult> GetServiceOrderDetailsAsync([FromRoute] Guid company_id, [FromRoute] Guid branch_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id, [FromRoute] Guid service_order_id)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+
+            return Ok();
+        }
+
+
+        [Tags("Ordenes de servicios")]
+        [HttpGet("companies/{company_id}/branches/{branch_id}/modules/{module_code}/operational-orders/{operational_order_id}/services-orders/{service_order_id}/requisitions")]
+        [ProducesResponseType(typeof(PagedResponse<ServiceOrderDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<OkResult> GetServiceOrderRequisitionsAsync([FromRoute] Guid company_id, [FromRoute] Guid branch_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id, [FromRoute] Guid service_order_id)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+
+            return Ok();
+        }         
     }
 }
