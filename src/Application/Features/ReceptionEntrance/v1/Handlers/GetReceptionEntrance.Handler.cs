@@ -26,7 +26,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                 .Include(reception => reception.ReceptionTransport)
                 .Include(reception => reception.OperationalOrders)
                 .AsNoTracking();
-
+                
             //aplicar filtros de busqueda aqui..
             if (request.DocumentType.HasValue)
             {

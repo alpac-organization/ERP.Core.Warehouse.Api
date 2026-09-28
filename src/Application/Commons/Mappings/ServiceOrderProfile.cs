@@ -1,14 +1,39 @@
 using AutoMapper;
-using ERP.Core.Database.Domain.Entities.Warehouse;
+using ERP.Core.Database.Domain.Entities.Operations;
+using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Dtos;
-using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Commands;
 
-namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using Commands = ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Commands.CreateServiceOrderCommand;
 
-public class ServiceOrderProfile : Profile
+namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
-    public ServiceOrderProfile()
+    public class ServiceOrderProfile : Profile
     {
-        CreateMap<CreateServiceOrderDto, CreateServiceOrderCommand>();
+        public ServiceOrderProfile()
+        {            
+            CreateMap<ServicesOrder, ServiceOrderDto>()
+                .ForMember(d => d.ServiceOrderId, o => o.MapFrom(s => s.Id));
+                
+            CreateMap<ServiceOrderRequistions, ServiceOrderRequisitionDto>()
+                .ForMember(d => d.ServiceOrderRequisitionId, o => o.MapFrom(s => s.Id))
+                .ForMember(d => d.ServiceOrderCode, o => o.MapFrom(s => s.ServicesOrder.ServiceOrderCode));
+            
+        }
+    }
+    
+    public static class ServicesOrderMapper
+    {
+        public static ServicesOrder ToServiceOrderEntity(this Commands commands, string soCode)
+        {
+            return new()
+            {
+                IsActive = true,
+                Id = Guid.NewGuid(),
+                ServiceOrderCode = soCode,
+                Concept = commands.Concept,
+                OperationalOrderId = commands.OperationalOrderId,
+                OperationalServiceId = commands.OperationalServiceId,
+            };
+        }
     }
 }

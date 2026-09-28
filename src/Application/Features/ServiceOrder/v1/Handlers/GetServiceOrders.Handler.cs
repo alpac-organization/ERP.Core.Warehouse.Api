@@ -12,18 +12,22 @@ using ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Handlers
 {
-    public class GetServiceOrdersHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper) : BaseValidatorHandler<GetServiceOrdersQuery, PagedResponse<ServiceOrderDto>>(unitOfWork, errorManager)
+    public class GetServiceOrdersHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper mapper) : BaseValidatorHandler<GetServiceOrdersQuery, PagedResponse<ServiceOrderDto>>(_unitOfWork, _errorManager)
     {
         public override async Task<PagedResponse<ServiceOrderDto>> Handle(GetServiceOrdersQuery request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
 
-            if (!access.IsSuccess) return access.ErrorResponse!;
-
+            if (!access.IsSuccess)
+            {
+                return access.ErrorResponse!;
+            }
+            
             var serviceOrdersQuery = _unitOfWork.ServicesOrders.Entities
-                .Where(so => so.DeletedAt == null)
+                .Where(os => os.IsActive)
+                .Where(os => os.OperationalOrderId == request.OperationalOrderId)
+                .Include(os => os.User)
                 .AsNoTracking();
-
 
             var totalRecords = await serviceOrdersQuery.CountAsync(cancellationToken);
 
