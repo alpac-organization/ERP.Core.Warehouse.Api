@@ -22,8 +22,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Handlers
             {
                 return access.ErrorResponse!;
             }
-
+            
             var serviceOrdersQuery = _unitOfWork.ServicesOrders.Entities
+                .Where(os => os.IsActive)
                 .Where(os => os.OperationalOrderId == request.OperationalOrderId)
                 .Include(os => os.User)
                 .AsNoTracking();
