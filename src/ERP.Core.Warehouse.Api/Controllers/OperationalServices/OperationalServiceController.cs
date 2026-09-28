@@ -23,8 +23,8 @@ public class OperationalServicesController(IMediator mediator) : ApiControllerBa
     public async Task<PagedResponse<GetOperationalServiceDto>> GetOperationalServiceAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
-        [FromQuery] string? service_code,
-        [FromQuery] string? service_name,
+        [FromQuery] string? code,
+        [FromQuery] string? name,
         [FromQuery] int page_number = 1,
         [FromQuery] int page_size = 10)
     {
@@ -35,8 +35,8 @@ public class OperationalServicesController(IMediator mediator) : ApiControllerBa
             CompanyId       = company_id,
             ModuleCode      = module_code,
             UserId          = Guid.Parse(userIdStr ?? ""),
-            ServiceCode     = service_code,
-            ServiceName     = service_name,
+            ServiceCode     = code,
+            ServiceName     = name,
             PageNumber      = page_number,
             PageSize        = page_size
         });

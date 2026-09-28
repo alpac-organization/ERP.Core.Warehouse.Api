@@ -22,10 +22,16 @@ public class GetOperationalServiceHandler(IUnitOfWork _unitOfWork, IErrorManager
             .Where(s => s.DeletedAt == null && s.IsActive == true);
 
         if (!string.IsNullOrEmpty(request.ServiceCode))
-            servicesQuery = servicesQuery.Where(s => s.ServiceCode == request.ServiceCode);
+        {
+            var codeFilter = request.ServiceCode.Trim().ToLower();
+            servicesQuery = servicesQuery.Where(s => s.ServiceCode!.ToLower().Contains(codeFilter));
+        }
 
         if (!string.IsNullOrEmpty(request.ServiceName))
-            servicesQuery = servicesQuery.Where(s => s.ServiceName == request.ServiceName);
+        {
+            var nameFilter = request.ServiceName.Trim().ToLower();
+            servicesQuery = servicesQuery.Where(s => s.ServiceName!.ToLower().Contains(nameFilter));
+        }
 
         var totalRecords = await servicesQuery.CountAsync(cancellationToken);
 
