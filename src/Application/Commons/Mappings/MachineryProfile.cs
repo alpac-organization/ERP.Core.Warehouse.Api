@@ -27,6 +27,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 SerialNumber    = request.SerialNumber,
                 Status          = MachineryStatus.Available,
                 Color           = request.Color,
+                Type            = request.Type,
                 IsActive        = true
             };
         }

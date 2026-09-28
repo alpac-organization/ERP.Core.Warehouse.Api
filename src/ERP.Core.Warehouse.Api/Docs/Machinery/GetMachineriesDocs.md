@@ -36,9 +36,18 @@ Endpoint para consultar la lista de maquinarias activas de la sucursal del perfi
 
 1. `ValidateAccessAsync(user_id, company_id, module_code)`: valida que el usuario exista y esté activo, y que tenga acceso a la compañía/módulo. Si falla, responde `400`.
 2. `branch = access.Profile.BranchId`.
-3. Consulta las maquinarias con `BranchId == branch` y `IsActive == true` (`AsNoTracking`) y las mapea a `MachineryListDto` (`Id`, `Brand`, `Code`, `Status`).
+3. Consulta las maquinarias con `BranchId == branch` y `IsActive == true` (`AsNoTracking`), ordenadas por `CreatedAt`, y las mapea a `MachineryDto` (`MachineryId`, `Brand`, `Code`, `Status`, `Type`).
 
 > **Validación (FluentValidation):** el `GetMachineriesValidator` (`BaseRequestValidator`) valida `company_id`, `module_code` y `user_id`.
+
+---
+
+## Parámetros de Query
+
+| Parámetro     | Tipo   | Requerido | Default | Descripción |
+|---------------|--------|-----------|---------|-------------|
+| `page_number` | `int`  | No        | `1`     | Número de página. |
+| `page_size`   | `int`  | No        | `10`    | Cantidad de registros por página. |
 
 ---
 
@@ -46,31 +55,34 @@ Endpoint para consultar la lista de maquinarias activas de la sucursal del perfi
 
 ### ✅ 200 OK
 
-Devuelve un arreglo de maquinarias. El JSON se serializa con `SnakeCaseLower`; los enums viajan como **string** (`JsonStringEnumConverter`).
+Devuelve un `PagedResponse<MachineryDto>`. El JSON se serializa con `SnakeCaseLower`; los enums viajan como **string** (`JsonStringEnumConverter`).
 
 ```json
 [
   {
-    "id": "3f2a1b4c-0000-0000-0000-000000000001",
+    "machinery_id": "3f2a1b4c-0000-0000-0000-000000000001",
     "brand": "Toyota",
     "code": "MAQ-0001",
-    "status": "Available"
+    "status": "Available",
+    "type": "Forklift"
   },
   {
-    "id": "3f2a1b4c-0000-0000-0000-000000000002",
+    "machinery_id": "3f2a1b4c-0000-0000-0000-000000000002",
     "brand": "Cat",
     "code": "MAQ-0002",
-    "status": "InUse"
+    "status": "InUse",
+    "type": "Forklift"
   }
 ]
 ```
 
-| Campo    | Tipo                        | Descripción |
-|----------|-----------------------------|-------------|
-| `id`     | `guid`                      | Identificador de la maquinaria. |
-| `brand`  | `string`                    | Marca de la maquinaria. |
-| `code`   | `string`                    | Código de la maquinaria. |
-| `status` | `enum (MachineryStatus)`    | `Available`, `InUse`, `InMaintenance`, `OutOfService`. |
+| Campo         | Tipo                     | Descripción |
+|---------------|--------------------------|-------------|
+| `machinery_id`| `guid`                   | Identificador de la maquinaria. |
+| `brand`       | `string`                 | Marca de la maquinaria. |
+| `code`        | `string`                 | Código de la maquinaria. |
+| `status`      | `enum (MachineryStatus)` | `Available`, `InUse`, `InMaintenance`, `OutOfService`. |
+| `type`        | `enum (MachineryType)`   | `Forklift`. |
 
 ### ❌ 400 Bad Request
 
