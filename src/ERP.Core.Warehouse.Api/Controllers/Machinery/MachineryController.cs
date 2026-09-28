@@ -7,6 +7,7 @@ using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.Machineries.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Machineries.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.Machineries.v1.Commands;
+using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Controllers.Machinery
 {
@@ -23,6 +24,8 @@ namespace ERP.Core.Warehouse.Api.Controllers.Machinery
         public async Task<PagedResponse<MachineryDto>> GetMachineriesAsync(
             [FromRoute] Guid company_id,
             [FromRoute] string module_code,
+            [FromQuery] string? brand,
+            [FromQuery] MachineryType? type,
             [FromQuery] int page_number = 1,
             [FromQuery] int page_size = 10)
         {
@@ -30,11 +33,12 @@ namespace ERP.Core.Warehouse.Api.Controllers.Machinery
 
             return await mediator.Send(new GetMachineriesQuery
             {
-                CompanyId = company_id,
-                ModuleCode = module_code,
-                UserId = Guid.Parse(userIdStr ?? ""),
-                PageNumber = page_number,
-                PageSize = page_size
+                CompanyId   = company_id,
+                ModuleCode  = module_code,
+                UserId      = Guid.Parse(userIdStr ?? ""),
+                Type        = type,
+                PageNumber  = page_number,
+                PageSize    = page_size
             });
         }
 

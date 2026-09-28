@@ -31,5 +31,8 @@ public class RegisterMachineryValidator : BaseRequestValidator<MachineryCommand>
 
         RuleFor(x => x.Color)
             .MaximumLength(100).WithMessage("El color no puede exceder los 100 caracteres.");
+        
+        RuleFor(x => x.Type)
+            .IsInEnum().WithMessage("El tipo de maquinaria no es válido.");
     }
 }
