@@ -42,8 +42,8 @@ namespace ERP.Core.Warehouse.Api.Test.Common
         [TearDown]
         public void TearDown()
         {
-            _scope.Dispose();
-            _client.Dispose();
+            _scope?.Dispose();
+            _client?.Dispose();
         }
 
         protected async Task<HttpResponseMessage> SendRequestAsync(HttpMethod method, string pathUrl, string BearerToken, object? body = null)

@@ -53,6 +53,20 @@ namespace ERP.Core.Warehouse.Api.Test.Common
 
             var profileId = Guid.NewGuid();
 
+            Guid finalCostCenterId;
+            if (costCenterId.HasValue)
+            {
+                finalCostCenterId = costCenterId.Value;
+            }
+            else
+            {
+                var existingCostCenter = await _unitOfWork.CostCenters.Entities
+                    .Where(cc => cc.IsActive && cc.WorkArea.CompanyId == company.Id)
+                    .FirstOrDefaultAsync();
+                
+                finalCostCenterId = existingCostCenter?.Id ?? Guid.Parse("ffffffff-0000-0000-0000-000000000001");
+            }
+
             await _unitOfWork.Profiles.CreateNewUserProfile(new()
             {
                 Id = profileId,
@@ -60,7 +74,7 @@ namespace ERP.Core.Warehouse.Api.Test.Common
                 BranchId = branch.Id,
                 IsActive = true,
                 CompanyId = company.Id,
-                CostCenterId = costCenterId ?? Guid.Parse("ffffffff-0000-0000-0000-000000000001")
+                CostCenterId = finalCostCenterId
             });
 
             await _unitOfWork.SaveChangesAsync(default);
