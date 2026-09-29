@@ -83,11 +83,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                         return (Unit)validationResult.ErrorResponse!;
                     }
 
-                    UpdateDocumentNumbersInAdditionalData(additionalData, currentDocumentType, newDocumentType, request.GeneralInformation);
+                    UpdateDocumentNumbersInAdditionalData(additionalData, newDocumentType, request.GeneralInformation);
                 }
                 else
                 {
-                    UpdateDocumentNumbersInAdditionalData(additionalData, currentDocumentType, newDocumentType, request.GeneralInformation);
+                    UpdateDocumentNumbersInAdditionalData(additionalData, newDocumentType, request.GeneralInformation);
                 }
             }
             
