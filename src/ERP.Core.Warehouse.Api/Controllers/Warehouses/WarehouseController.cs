@@ -120,27 +120,26 @@ public class WarehouseController(IMediator _mediator) : ApiControllerBase
         }, cancellationToken);
     }
 
-    [Tags ("Almacenes")]
+    [Tags("Almacenes")]
     [HttpPatch("companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}")]
-    [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)] 
+    [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-
     public async Task<OkResult> UpdateWarehouseDetails(
-       Guid company_id,
-       string module_code,
-       Guid warehouse_id,
-       [FromBody] UpdateWarehouseCommand payload
-    )
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid warehouse_id,
+        [FromBody] UpdateWarehouseCommand payload,
+        CancellationToken cancellationToken)
     {
-        var userIdStr       = HttpContext.Items["UserId"] as string;
-        payload.CompanyId   = company_id;
-        payload.ModuleCode  = module_code;
-        payload.WarehouseId = warehouse_id; 
-        payload.UserId      = Guid.Parse(userIdStr ?? ""); 
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        payload.CompanyId = company_id;
+        payload.ModuleCode = module_code;
+        payload.WarehouseId = warehouse_id;
+        payload.UserId = Guid.Parse(userIdStr ?? "");
 
-        await _mediator.Send(payload);
-        return Ok(); 
+        await _mediator.Send(payload, cancellationToken);
+        return Ok();
     }
 }
