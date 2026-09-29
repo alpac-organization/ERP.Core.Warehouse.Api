@@ -80,7 +80,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
          };
       }
 
-      public static SectionCoordinates ToSectionCoordinateEntity(this Commands.RegisterSectionCoordinateCommand command, Guid SectionId)
+      public static SectionCoordinates ToSectionCoordinateEntity(this Commands.RegisterSectionCommand command, Guid SectionId)
       {
          return new()
          {
