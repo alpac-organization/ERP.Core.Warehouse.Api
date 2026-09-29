@@ -11,7 +11,7 @@ using WarehouseEntity = ERP.Core.Database.Domain.Entities.Warehouse.Warehouses;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers;
 
-public class GetWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager errorManager) : BaseValidatorHandler<GetWarehousesQuery, PagedResponse<WarehouseDto>>(unitOfWork, errorManager)
+public class GetWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper) : BaseValidatorHandler<GetWarehousesQuery, PagedResponse<WarehouseDto>>(unitOfWork, errorManager)
 {
     public override async Task<PagedResponse<WarehouseDto>> Handle(
         GetWarehousesQuery request,
@@ -23,19 +23,26 @@ public class GetWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager errorMan
         if (!access.IsSuccess)
             return access.ErrorResponse!;
 
-        var warehousesQuery = _unitOfWork.Warehouses.Entities
-            .AsNoTracking();
+        var query = _unitOfWork.Warehouses.Entities
+            .AsNoTracking()
+            .Where(w=>w.DeletedAt == null);
 
-        var filteredQuery = ApplyFilters(warehousesQuery, request);
+        query = ApplyFilters(query,request);
 
-        // your mapper here.
+        var total = await query.CountAsync(cancellationToken);
 
-        //Modificar mapeo en WarehouseProfie
+        var items = await query
+                    .OrderByDescending(w=> w.CreatedAt)
+                    .Skip((request.PageNumber - 1) * request.PageSize)
+                    .Take(request.PageSize)
+                    .ToListAsync(cancellationToken);
+        var mapped = mapper.Map<List<WarehouseDto>>(items);
+
         return new PagedResponse<WarehouseDto>(
-            [],
-            0,
-            0,
-            0
+            mapped,
+            request.PageNumber,
+            request.PageSize,
+            total
         );
     }
 
@@ -44,8 +51,6 @@ public class GetWarehousesHandler(IUnitOfWork unitOfWork, IErrorManager errorMan
         if (request.IsActive.HasValue)
             query = query.Where(ware => ware.IsActive == request.IsActive.Value);
 
-        // if (!string.IsNullOrWhiteSpace(request.BranchCode))
-        //     query = query.Where(ware => ware.Branch.BranchCode == request.BranchCode);
 
         if (!string.IsNullOrWhiteSpace(request.WarehouseCode))
             query = query.Where(ware => ware.Code == request.WarehouseCode);
