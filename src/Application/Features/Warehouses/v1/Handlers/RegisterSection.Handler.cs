@@ -118,8 +118,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 
             _mapper.Map(capacityCalculation.Warehouse, warehouseCapacity);
 
+            var sectionCoordinates = request.ToSectionCoordinateEntity(section.Id);
+
             await _unitOfWork.Sections.RegisterSection(section);
             await _unitOfWork.SectionCapacities.RegisterSectionCapacity(sectionCapacity);
+            await _unitOfWork.SectionCoordinates.RegisterSectionCoordinates(sectionCoordinates);
             await _unitOfWork.WarehouseCapacities.UpdateAsync(warehouseCapacity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
