@@ -2,7 +2,7 @@
 
 ## Obtener Detalle de Almacén
 
-Endpoint para obtener el detalle de un almacén por id, incluyendo ubicación, capacidad y resumen de secciones.
+Endpoint para obtener el detalle de un almacén por id, incluyendo ubicación y capacidad.
 
 ## Información General
 
@@ -10,7 +10,7 @@ Endpoint para obtener el detalle de un almacén por id, incluyendo ubicación, c
 |-------|-------|
 | **Método** | `GET` |
 | **Endpoint** | `/api/v1/companies/{company_id}/modules/{module_code}/warehouse/{warehouse_id}` |
-| **Descripción** | Retorna datos del almacén, su ubicación, capacidad completa y secciones activas/no eliminadas (sin racks/lots/positions). |
+| **Descripción** | Retorna datos del almacén, su ubicación y capacidad completa. Las secciones se consultan por sus endpoints dedicados. |
 
 ---
 
@@ -42,17 +42,6 @@ Endpoint para obtener el detalle de un almacén por id, incluyendo ubicación, c
 | `warehouse_type` | `enum` | Tipo. |
 | `location` | `object \| null` | Ubicación (`location_name`). |
 | `capacity` | `object \| null` | Capacidad (mismo contrato que el GET capacities). |
-| `sections` | `array` | Resumen de secciones. |
-
-### Section summary
-
-| Campo | Tipo |
-|-------|------|
-| `section_id` | `guid` |
-| `code` | `string` |
-| `is_active` | `bool` |
-| `section_type` | `enum` |
-| `section_storage_type` | `enum` |
 
 ```json
 {
@@ -85,8 +74,7 @@ Endpoint para obtener el detalle de un almacén por id, incluyendo ubicación, c
     "occupied_chargeable_volumen_m3": 0.00,
     "unoccupied_chargeable_volumen_m3": 0.00,
     "percentage_available_volumen_with_margin_m3": 100.00
-  },
-  "sections": []
+  }
 }
 ```
 
@@ -104,4 +92,4 @@ Almacén no encontrado (`ERP:WAREHOUSE_NOT_FOUND`) u otros errores de negocio.
 
 ### 500 Internal Server Error
 
-Error no controlado (incluye desalineación de esquema BD vs modelo si aplica).
+Error no controlado del servidor.
