@@ -17,14 +17,10 @@ public class WarehouseProfile : Profile
 
       CreateMap<WarehouseLocation, WarehouseLocationDto>();
 
-      CreateMap<Sections, SectionSummaryDto>()
-         .ForMember(dest => dest.SectionId, opt => opt.MapFrom(src => src.Id));
-
       CreateMap<Warehouses, WarehouseDetailDto>()
          .ForMember(dest => dest.WarehouseId, opt => opt.MapFrom(src => src.Id))
          .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.WarehouseLocation))
-         .ForMember(dest => dest.Capacity, opt => opt.MapFrom(src => src.WarehouseCapacity))
-         .ForMember(dest => dest.Sections, opt => opt.MapFrom(src => src.Sections));
+         .ForMember(dest => dest.Capacity, opt => opt.MapFrom(src => src.WarehouseCapacity));
 
       // Actualizacion desde Lots
       CreateMap<WarehouseCapacity, WarehouseCapacity>()

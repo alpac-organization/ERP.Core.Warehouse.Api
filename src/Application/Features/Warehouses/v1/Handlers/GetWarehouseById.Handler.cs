@@ -31,7 +31,6 @@ public class GetWarehouseByIdHandler(
             .AsNoTracking()
             .Include(w => w.WarehouseCapacity)
             .Include(w => w.WarehouseLocation)
-            .Include(w => w.Sections.Where(s => s.DeletedAt == null))
             .FirstOrDefaultAsync(w => w.Id == request.WarehouseId && w.DeletedAt == null,cancellationToken);
 
         if (warehouse is null)
