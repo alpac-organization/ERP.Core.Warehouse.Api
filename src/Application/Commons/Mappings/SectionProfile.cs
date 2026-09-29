@@ -13,7 +13,15 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
          CreateMap<Sections, SectionDto>()
             .ForMember(dest => dest.SectionId, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.SectionCode, opt => opt.MapFrom(src => src.Code))
-            .ForMember(dest => dest.PercentageAvailableArea, opt => opt.MapFrom(src => src.SectionCapacity.PercentageAvailableAreaWithMarginM2));
+            .ForMember(dest => dest.Width, opt => opt.MapFrom(src => src.SectionCapacity != null ? src.SectionCapacity.Width : 0))
+            .ForMember(dest => dest.Length, opt => opt.MapFrom(src => src.SectionCapacity != null ? src.SectionCapacity.Length : 0))
+            .ForMember(dest => dest.TotalArea, opt => opt.MapFrom(src => src.SectionCapacity != null ? src.SectionCapacity.TotalAreaM2 : 0))
+            .ForMember(dest => dest.AvailableArea, opt => opt.MapFrom(src => src.SectionCapacity != null ? src.SectionCapacity.AvailableAreaWithMarginM2 : 0))
+            .ForMember(dest => dest.PercentageAvailableArea, opt => opt.MapFrom(src => src.SectionCapacity != null ? src.SectionCapacity.PercentageAvailableAreaWithMarginM2 : 0))
+            .ForMember(dest => dest.PositionX, opt => opt.MapFrom(src => src.SectionCoordinates != null ? (decimal?)src.SectionCoordinates.PositionX : null))
+            .ForMember(dest => dest.PositionY, opt => opt.MapFrom(src => src.SectionCoordinates != null ? (decimal?)src.SectionCoordinates.PositionY : null))
+            .ForMember(dest => dest.PositionZ, opt => opt.MapFrom(src => src.SectionCoordinates != null ? (decimal?)src.SectionCoordinates.PositionZ : null))
+            .ForMember(dest => dest.RotationY, opt => opt.MapFrom(src => src.SectionCoordinates != null ? (decimal?)src.SectionCoordinates.RotationY : null));
 
          CreateMap<SectionCapacity, SectionCapacityDto>()
             .ForMember(dest => dest.SectionCapacityId, opt => opt.MapFrom(src => src.Id));
