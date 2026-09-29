@@ -54,7 +54,6 @@ namespace ERP.Core.Warehouse.Api.Controllers.ServiceOrders
                 PageNumber  = page_number,
                 PageSize    = page_size,
                 UserId      = Guid.Parse(userIdStr ?? ""),
-                OperationalOrderId = operational_order_id,
             });
         }
 
@@ -89,7 +88,6 @@ namespace ERP.Core.Warehouse.Api.Controllers.ServiceOrders
                 CompanyId = company_id,
                 UserId = Guid.Parse(userIdStr ?? ""),
                 ModuleCode = module_code,
-                OperationalOrderId = operational_order_id,
                 ServiceOrderId = service_order_id,
                 PageSize = page_size,
                 PageNumber = page_number

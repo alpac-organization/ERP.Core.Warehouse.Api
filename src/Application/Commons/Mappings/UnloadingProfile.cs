@@ -40,11 +40,6 @@ public class UnloadingProfile : Profile
             .ForMember(d => d.LengthMetres, o => o.MapFrom((s, d, m, ctx) => s.Type == PalletType.Oversized ? s.LengthMetres : null))
             .ForMember(d => d.WidthMetres, o => o.MapFrom((s, d, m, ctx) => s.Type == PalletType.Oversized ? s.WidthMetres : null));
 
-        CreateMap<StartUnloadingSupplyItem, UnloadingSupplies>()
-            .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
-            .ForMember(d => d.UnloadingDetailsId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["UnloadingDetailsId"]))
-            .ForMember(d => d.SuppliesId, o => o.MapFrom(s => s.SuppliesId));
-
         CreateMap<StartUnloadingCommand, StepExecutionLogs>()
             .ForMember(d => d.Id, o => o.MapFrom(_ => Guid.NewGuid()))
             .ForMember(d => d.RecordEntranceId, o => o.MapFrom((src, dest, destMember, ctx) => (Guid)ctx.Items["RecordEntranceId"]))
@@ -88,7 +83,6 @@ public class UnloadingProfile : Profile
             .ForMember(d => d.StartDate, o => o.MapFrom((src, dest, member, ctx) => ctx.Items["StartLog"] is StepExecutionLogs log ? log.StartDate : (DateOnly?)null))
             .ForMember(d => d.StartTime, o => o.MapFrom((src, dest, member, ctx) => ctx.Items["StartLog"] is StepExecutionLogs log ? log.StartTime : (TimeOnly?)null))
             .ForMember(d => d.Pallets, o => o.MapFrom(s => s.UnloadingPallets.Where(p => p.DeletedAt == null)))
-            .ForMember(d => d.Supplies, o => o.MapFrom(s => s.UnloadingSupplies.Where(s => s.DeletedAt == null)))
             .ForMember(d => d.ReservedPositions, o => o.MapFrom((src, dest, member, ctx) =>
                 ctx.Items["Reservations"] is IEnumerable<UnloadingPositionReservations> reservations
                     ? reservations
@@ -96,9 +90,6 @@ public class UnloadingProfile : Profile
 
         CreateMap<UnloadingPallets, UnloadingPalletDetailDto>()
             .ForMember(d => d.Type, o => o.MapFrom(s => s.PalletType));
-
-        CreateMap<UnloadingSupplies, UnloadingSupplyDetailDto>()
-            .ForMember(d => d.SupplyName, o => o.MapFrom(s => s.Supplies.Name));
 
         CreateMap<UnloadingPositionReservations, UnloadingPositionReservationDetailDto>()
             .ForMember(d => d.PositionCode, o => o.MapFrom((src, dest, member, ctx) =>

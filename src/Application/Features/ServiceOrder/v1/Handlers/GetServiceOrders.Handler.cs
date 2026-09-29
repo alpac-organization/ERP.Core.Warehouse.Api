@@ -25,7 +25,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Handlers
             
             var serviceOrdersQuery = _unitOfWork.ServicesOrders.Entities
                 .Where(os => os.IsActive)
-                .Where(os => os.OperationalOrderId == request.OperationalOrderId)
+                .Where(os => os.OperationalServiceId == request.OperationalServiceId)
                 .Include(os => os.User)
                 .AsNoTracking();
 

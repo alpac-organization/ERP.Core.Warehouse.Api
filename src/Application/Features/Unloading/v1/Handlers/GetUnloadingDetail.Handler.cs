@@ -30,8 +30,6 @@ public class GetUnloadingDetailHandler(IUnitOfWork unitOfWork, IErrorManager err
             .Where(d => d.Id == request.UnloadingId && d.DeletedAt == null)
             .Include(d => d.WarehouseAssignment)
             .Include(d => d.UnloadingPallets.Where(p => p.DeletedAt == null))
-            .Include(d => d.UnloadingSupplies.Where(s => s.DeletedAt == null))
-                .ThenInclude(s => s.Supplies)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (detail is null)

@@ -10,7 +10,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Queries
     public class GetServiceOrdersQuery : BaseRequest, IRequest<PagedResponse<ServiceOrderDto>>
     {   
         [JsonIgnore]
-        public Guid OperationalOrderId { get; set; }
+        public Guid OperationalServiceId { get; set; }
 
         public int PageSize { get; set; }
         public int PageNumber { get; set; }

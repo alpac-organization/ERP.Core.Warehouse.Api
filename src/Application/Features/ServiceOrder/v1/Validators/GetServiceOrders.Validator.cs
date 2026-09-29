@@ -8,9 +8,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Validators
     {
         public GetServicesOrdersValidator()
         {
-            RuleFor(x => x.OperationalOrderId)
-                .NotEmpty()
-                .WithMessage("La po padre debe ser designada");
         }
     }
 }

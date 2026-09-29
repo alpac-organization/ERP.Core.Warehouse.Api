@@ -11,7 +11,6 @@ public class AssignmentMachineryProfile : Profile
         return new AssignmentsMachinery
         {
             Id = Guid.NewGuid(),
-            OperationalOrderId = request.OperationalOrderId,
             MachineryId = request.MachineryId,
             IsActive = true
         };

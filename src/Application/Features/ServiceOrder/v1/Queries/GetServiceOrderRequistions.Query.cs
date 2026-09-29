@@ -12,9 +12,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Queries
         [JsonIgnore]
         public Guid ServiceOrderId { get; set; }
 
-        [JsonIgnore]
-        public Guid OperationalOrderId { get; set; }
-
         public int PageSize { get; set; }
         public int PageNumber { get; set; }
     }

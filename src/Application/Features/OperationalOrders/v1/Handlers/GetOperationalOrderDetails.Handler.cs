@@ -37,8 +37,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
                 case RoleType.Administrator:
                 {
                     operationalOrdersQuery = operationalOrdersQuery
-                        .Include(po => po.ServicesOrders)
-                        .Include(po => po.AssignmentsMachineries) 
+                        .Include(po => po.AssignmentOperationals) 
                         .Include(po => po.AssignmentCollaborators);
                         
                     break;
