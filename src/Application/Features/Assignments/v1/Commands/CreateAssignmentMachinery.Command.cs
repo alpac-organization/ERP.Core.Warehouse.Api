@@ -1,10 +1,11 @@
 using MediatR;
 using ERP.Core.Domain.Entities.Bases;
 
-namespace ERP.Core.Warehouse.Api.Application.Features.AssignmentMachineries.v1.Commands;
+namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Commands;
 
 public class CreateAssignmentMachineryCommand : BaseRequest, IRequest<Unit>
 {
-    public Guid OperationalOrderId { get; set; }
     public Guid MachineryId { get; set; }
+    public Guid AssignmentOperationalId { get; set; }
+    public string? Concept { get; set; }
 }
