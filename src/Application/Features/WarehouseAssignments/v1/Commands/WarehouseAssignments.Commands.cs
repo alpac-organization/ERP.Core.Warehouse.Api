@@ -1,6 +1,5 @@
-using System;
 using MediatR;
-using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+using ERP.Core.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseAssignments.v1.Commands
 {

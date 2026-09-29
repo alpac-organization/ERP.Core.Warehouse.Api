@@ -36,17 +36,19 @@ Endpoint para registrar una nueva maquinaria en el catálogo, en la sucursal del
 
 El JSON usa **`SnakeCaseLower`** (`PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower`) y es **case-insensitive** (body deserializado por `AddJsonOptions`).
 
-> **Nota:** `branch_id` **no se utiliza**: la sucursal se toma del perfil del usuario autenticado (`access.Profile.BranchId`), y el handler ignora el valor enviado.
-
 | Parámetro       | Tipo     | Requerido | Descripción |
 |-----------------|----------|-----------|-------------|
-| `branch_id`     | `guid`   | No        | Ignorado; la sucursal se toma del perfil del token. |
 | `brand`         | `string` | Sí        | Marca de la maquinaria (máx. 100). |
 | `code`          | `string` | Sí        | Código de la maquinaria (máx. 50). |
 | `year`          | `string` | Sí        | Año de la maquinaria (4 dígitos, p. ej. `2023`). |
 | `model`         | `string` | Sí        | Modelo (máx. 100). |
 | `serial_number` | `string` | Sí        | Número de serie (máx. 100). |
 | `color`         | `string` | No        | Color (máx. 100). |
+| `type`          | `enum (MachineryType)` | Sí | Tipo de maquinaria. Único valor: `Forklift`. Viaja como **string**. |
+
+> **La sucursal no se recibe en el body.** `MachineryCommand` no expone `branch_id`: se toma del perfil del usuario autenticado (`access.Profile.BranchId`).
+
+> **Nota sobre `type`:** los enums se deserializan con `JsonStringEnumConverter`, así que el valor es el **nombre exacto del miembro C#**: `"Forklift"`. Un `"forklift"` en minúscula (que es como aparece el label en el tipo de Postgres `machinery_type_enum`) **no** bindea y la petición falla con `400` por `JsonException` antes de llegar al validator. Un valor desconocido igual. Si se omite el campo, el model binding deja el valor `0`, que no es un miembro definido, y el validator lo rechaza con `"El tipo de maquinaria no es válido."`.
 
 ### Ejemplo
 
@@ -57,7 +59,8 @@ El JSON usa **`SnakeCaseLower`** (`PropertyNamingPolicy = JsonNamingPolicy.Snake
   "year": "2023",
   "model": "7FDU35",
   "serial_number": "7FDU-2023-000123",
-  "color": "Naranja/Negro"
+  "color": "Naranja/Negro",
+  "type": "Forklift"
 }
 ```
 
@@ -68,10 +71,10 @@ El JSON usa **`SnakeCaseLower`** (`PropertyNamingPolicy = JsonNamingPolicy.Snake
 1. `ValidateAccessAsync(user_id, company_id, module_code)`: valida que el usuario exista y esté activo, y que tenga acceso a la compañía/módulo. Si falla, responde `400`.
 2. Si el rol es **`Administrator`** → `400` con `typeError = "ERP:INVALID_ACCESS"`: `"No tienes acceso para realizar esta acción"`.
 3. `branch = access.Profile.BranchId`.
-4. Crea la entidad `Machinery` con `Status = Available` e `IsActive = true` (helper `MachineryProfile.ToMachineryEntity`).
+4. Crea la entidad `Machinery` con `Status = Available`, `Type = request.Type` e `IsActive = true` (helper `MachineryProfile.ToMachineryEntity`).
 5. `RegisterMachinery` + `SaveChangesAsync` → devuelve `true`.
 
-> **Validación (FluentValidation):** el `RegisterMachineryValidator` (`BaseRequestValidator`) valida, además de `company_id`, `module_code` y `user_id`, las reglas de negocio del body (`brand`, `code`, `model`, `serial_number` requeridos/con límite, `year` como año de 4 dígitos) y `color` opcional. Los mensajes de las reglas falladas se unen con ` | `.
+> **Validación (FluentValidation):** el `RegisterMachineryValidator` (`BaseRequestValidator`) valida, además de `company_id`, `module_code` y `user_id`, las reglas de negocio del body: `brand`, `code`, `model` y `serial_number` requeridos/con límite, `year` como año de 4 dígitos, `color` opcional, y `type` con `IsInEnum()`. Los mensajes de las reglas falladas se unen con ` | `.
 
 ---
 

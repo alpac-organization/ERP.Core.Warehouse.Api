@@ -1,7 +1,7 @@
-using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Warehouse.Api.Application.Features.WarehouseTasks.v1.Dtos;
-using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using MediatR;
+using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Domain.Entities.Bases;
+using ERP.Core.Warehouse.Api.Application.Features.WarehouseTasks.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.WarehouseTasks.v1.Queries;
 

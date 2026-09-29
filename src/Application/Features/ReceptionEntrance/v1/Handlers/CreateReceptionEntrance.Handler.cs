@@ -17,11 +17,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
 {
     public class CreateReceptionEntranceHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IS3StorageService _s3Services, ICodeGenerator _codeGenerator) : BaseValidatorHandler<CreateReceptionEntranceCommand, Unit>(_unitOfWork, _errorManager)
     {
-        private static readonly (TimeSpan Start, TimeSpan End)[] AllowedCustomsWindows =
-        [
-            (new TimeSpan(5, 0, 0), new TimeSpan(8, 0, 0)),   // 5:00 pm - 8:00 am
-            (new TimeSpan(12, 0, 0), new TimeSpan(13, 0, 0))  // 12:00 pm - 1:00 pm
-        ];
+        private static readonly JsonSerializerOptions SnakeCaseOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+        };
 
         public override async Task<Unit> Handle(CreateReceptionEntranceCommand request, CancellationToken cancellationToken)
         {
@@ -39,6 +38,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
 
             //Designar centro de costo de (PO)
             var receptionEntranceEntity = ReceptionEntranceMapper.ToReceptionEntranceEntity(request);
+            receptionEntranceEntity.CreatedByUserId = access.User.Id;
 
             //Manejar  el control de  pruebas de imagenes.
             AdditionalReceptionEntranceData additionalData = new();
@@ -52,7 +52,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                 additionalData.EvidenceUrls.Add(imageEntity);
             }
 
-            receptionEntranceEntity.AdditionalData = JsonSerializer.Serialize(additionalData);
+            RegisterDocumentsReception(request, additionalData);
+
+            receptionEntranceEntity.AdditionalData = JsonSerializer.Serialize(additionalData, SnakeCaseOptions);
 
             //Registro de información de recepción.
             await _unitOfWork.ReceptionEntrance.InsertReceptionEntrance(receptionEntranceEntity);
@@ -73,25 +75,27 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
 
                         operationOrderEntity.DocumentNumber = duca;                    
                         operationOrderEntity.ReceptionId = receptionEntranceEntity.Id;
-
-                        var (IsSucceded, PoCode) = await _codeGenerator.GenerateUniqueOperationalOrderCodeAsync(access.Profile.CostCenterId, cancellationToken);
+                        
+                        var (IsSucceded, PoCode) = await _codeGenerator.GenerateUniqueOperationalOrderCodeAsync();
                         
                         if (!IsSucceded)
                         {
                             return _errorManager.ThrowInternalError<Unit>("Ocurrio un error al generar la generación de archivo", "ERP:INTERNAL_ERROR");
                         }
 
-                        operationOrderEntity.OpCode = PoCode;
+                        operationOrderEntity.PoCode = PoCode;
+
                         await _unitOfWork.OperationalOrders.RegisterOperationalOrder(operationOrderEntity);
+                        await _unitOfWork.SaveChangesAsync(cancellationToken);
                     }
 
-                    await _unitOfWork.SaveChangesAsync(cancellationToken);
                     break;
                 }
                 case DocumentType.CustomsDeclaration:
                 {
                     //Manejo de  información de (PO)
                     var operationOrderEntity = OperationalOrderMapper.ToOperationalOrderEntity(request, access.Profile.CostCenterId);
+                    operationOrderEntity.ReceptionId = receptionEntranceEntity.Id;
 
                     if (request.CustomsDeclarationInformation is not null)
                     {
@@ -109,17 +113,16 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                         operationOrderEntity.Description = request.CustomsDeclarationInformation.ProductDescription;
                     }
 
-                    operationOrderEntity.ReceptionId = receptionEntranceEntity.Id;
                     operationOrderEntity.DocumentNumber = request.GeneralInformation.CustomsDeclarationNumber;
 
-                    var (IsSucceded, PoCode) = await _codeGenerator.GenerateUniqueOperationalOrderCodeAsync(access.Profile.CostCenterId, cancellationToken);
+                    var (IsSucceded, PoCode) = await _codeGenerator.GenerateUniqueOperationalOrderCodeAsync();
                         
                     if (!IsSucceded)
                     {
                         return _errorManager.ThrowInternalError<Unit>("Ocurrio un error al generar la generación de archivo", "ERP:INTERNAL_ERROR");
                     }
 
-                    operationOrderEntity.OpCode = PoCode;
+                    operationOrderEntity.PoCode = PoCode;
                     
                     await _unitOfWork.OperationalOrders.RegisterOperationalOrder(operationOrderEntity);
                     await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -132,6 +135,47 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
             }
 
             return Unit.Value;
+        }
+
+        private static void RegisterDocumentsReception(CreateReceptionEntranceCommand request, AdditionalReceptionEntranceData additionalData)
+        {
+            switch (request.GeneralInformation.DocumentType)
+            {
+                case DocumentType.DUCA:
+                {
+                    foreach (var document in request.GeneralInformation.DucatNumbers)
+                    {
+                        var documentInformation = new DocumentInformation()
+                        {
+                            DocumentId = Guid.NewGuid(),     
+                            DocumentNumbers = document,
+                            DocumentType = DocumentType.DUCA        
+                        };
+
+                        additionalData.DocumentNumbers.Add(documentInformation);
+                    }
+
+                    break;   
+                }
+                case DocumentType.CustomsDeclaration:
+                {
+                    var documentInformation = new DocumentInformation()
+                    {
+                        DocumentId = Guid.NewGuid(),     
+                        DocumentType = DocumentType.CustomsDeclaration,
+                        DocumentNumbers = request.GeneralInformation.CustomsDeclarationNumber
+                    };
+
+                    additionalData.DocumentNumbers.Add(documentInformation);
+
+                    break;   
+                }
+
+                default:
+                {
+                    break;   
+                }
+            }
         }
 
         private static bool IsWithinAllowedCustomsWindow(TimeSpan currentTime)
