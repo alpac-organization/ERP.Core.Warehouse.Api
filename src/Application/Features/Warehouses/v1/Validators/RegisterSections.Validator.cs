@@ -12,10 +12,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Validators
                 .NotEmpty().WithMessage("El almacén es requerido.")
                 .NotEqual(Guid.Empty).WithMessage("El almacén es requerido.");
 
-            RuleFor(x => x.Code)
-                .NotEmpty().WithMessage("El código de la sección es obligatorio.")
-                .MaximumLength(50).WithMessage("El código de la sección no puede superar los 50 caracteres.");
-
             RuleFor(x => x.SectionType)
                 .IsInEnum().WithMessage("El tipo de sección no es válido.");
 

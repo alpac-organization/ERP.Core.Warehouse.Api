@@ -5,6 +5,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using Microsoft.EntityFrameworkCore;
+using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 {
@@ -16,11 +17,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 
          if (!access.IsSuccess) return access.ErrorResponse;
 
+         if (access.Role?.RoleType != RoleType.Administrator)
+         {
+            return _errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:01");
+         }
+
          _logger.LogInformation("🚀Iniciando proceso de registro de coordenadas de sección.");
 
          var section = await _unitOfWork.Sections.Entities
+            .AsNoTracking()
+            .Include(s => s.SectionCoordinates)
             .FirstOrDefaultAsync(s => s.Id == request.SectionId && s.DeletedAt == null && s.IsActive, cancellationToken);
-
+            
          if (section is null)
          {
             return _errorManager.ThrowBadRequest<bool>("La sección indicada no existe o no está activa.", "ERP:01");
@@ -29,6 +37,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
          if (section.WarehouseId != request.WarehouseId)
          {
             return _errorManager.ThrowBadRequest<bool>("La sección no pertenece al almacén indicado.", "ERP:01");
+         }
+
+         if (section.SectionCoordinates is not null)
+         {
+            return _errorManager.ThrowBadRequest<bool>("La sección indicada ya tiene coordenadas.", "ERP:01");
          }
 
          var sectionCoordinates = request.ToSectionCoordinateEntity(request.SectionId);
