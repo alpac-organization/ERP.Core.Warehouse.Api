@@ -59,13 +59,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
                 "ERP:SECTION_COORDINATES_NOT_FOUND");
          }
 
-         var shouldUpdateCoordinates = request.PositionX.HasValue || request.PositionY.HasValue;
+         var shouldUpdateCoordinates = request.PositionX.HasValue || request.PositionY.HasValue ||
+                                       request.PositionZ.HasValue || request.RotationY.HasValue;
 
          if (shouldUpdateCoordinates)
          {
             if (request.PositionX.HasValue) section.SectionCoordinates.PositionX = request.PositionX.Value;
 
             if (request.PositionY.HasValue) section.SectionCoordinates.PositionY = request.PositionY.Value;
+
+            if (request.PositionZ.HasValue) section.SectionCoordinates.PositionZ = request.PositionZ.Value;
+
+            if (request.RotationY.HasValue) section.SectionCoordinates.RotationY = request.RotationY.Value;
 
             await _unitOfWork.SectionCoordinates.UpdateAsync(section.SectionCoordinates);
          }

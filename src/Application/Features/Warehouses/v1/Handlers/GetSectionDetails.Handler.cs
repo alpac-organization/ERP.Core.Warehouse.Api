@@ -24,14 +24,14 @@ public class GetSectionDetailsHandler(IUnitOfWork _unitOfWork, IErrorManager _er
             .Include(sec => sec.SectionCoordinates)
             .FirstOrDefaultAsync(sec =>
                 sec.Id == request.SectionId &&
-                sec.WarehouseId == request.WarehouseId && 
-                sec.DeletedAt == null && 
+                sec.WarehouseId == request.WarehouseId &&
+                sec.DeletedAt == null &&
                 sec.IsActive,
                 cancellationToken);
 
         if (section is null)
         {
-            return _errorManager.ThrowBadRequest<SectionDetailsDto>("No se encontro el detalle de esta solicitud", "ERP:NOT_FOUND");
+            return _errorManager.ThrowBadRequest<SectionDetailsDto>("No se encontro el detalle de esta sección", "ERP:NOT_FOUND");
         }
 
         return _mapper.Map<SectionDetailsDto>(section);

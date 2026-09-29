@@ -17,8 +17,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Validators
                 .NotEqual(Guid.Empty).WithMessage("La sección es requerida.");
 
             RuleFor(x => x)
-                .Must(x => x.PositionX.HasValue || x.PositionY.HasValue || x.Width.HasValue || x.Length.HasValue)
-                .WithMessage("Debe enviar al menos un campo para actualizar (position_x, position_y, width o length).");
+                .Must(x =>
+                    x.PositionX.HasValue ||
+                    x.PositionY.HasValue ||
+                    x.PositionZ.HasValue ||
+                    x.RotationY.HasValue ||
+                    x.Width.HasValue ||
+                    x.Length.HasValue)
+                .WithMessage("Debe enviar al menos un campo para actualizar (position_x, position_y, position_z, rotation_y, width o length).");
 
             RuleFor(x => x.PositionX)
                 .PrecisionScale(18, 2, ignoreTrailingZeros: true).WithMessage("La coordenada X admite máximo 2 decimales")
@@ -27,6 +33,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Validators
             RuleFor(x => x.PositionY)
                 .PrecisionScale(18, 2, ignoreTrailingZeros: true).WithMessage("La coordenada Y admite máximo 2 decimales")
                 .When(x => x.PositionY.HasValue);
+
+            RuleFor(x => x.PositionZ)
+                .PrecisionScale(18, 2, ignoreTrailingZeros: true).WithMessage("La coordenada Z admite máximo 2 decimales")
+                .When(x => x.PositionZ.HasValue);
+
+            RuleFor(x => x.RotationY)
+                .InclusiveBetween(0, 360).WithMessage("La rotación Y debe estar entre 0 y 360")
+                .PrecisionScale(18, 2, ignoreTrailingZeros: true).WithMessage("La rotación Y admite máximo 2 decimales")
+                .When(x => x.RotationY.HasValue);
 
             RuleFor(x => x.Width)
                 .GreaterThan(0).WithMessage("El ancho debe ser mayor a cero")
