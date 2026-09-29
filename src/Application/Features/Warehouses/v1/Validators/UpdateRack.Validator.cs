@@ -1,4 +1,5 @@
 using FluentValidation;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Commons.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
@@ -41,6 +42,11 @@ public class UpdateRackValidator : BaseRequestValidator<UpdateRackCommand>
             .IsInEnum()
             .When(x => x.Status.HasValue)
             .WithMessage("El estado del rack no es válido.");
+
+        RuleFor(x => x.UnavailableReason)
+            .NotEmpty()
+            .When(x => x.Status == RackStatus.Blocked || x.Status == RackStatus.UnderMaintenance)
+            .WithMessage("Debe indicar el motivo de indisponibilidad cuando el estado es Bloqueado o En Mantenimiento.");
 
         RuleFor(x => x.UsageProfile)
             .IsInEnum()
