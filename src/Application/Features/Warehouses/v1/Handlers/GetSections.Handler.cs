@@ -31,6 +31,7 @@ public class GetSectionsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorMan
 
         var sectionsQuery = _unitOfWork.Sections.Entities
             .AsNoTracking()
+            .Include(s => s.SectionCapacity)
             .Where(s => s.WarehouseId == request.WarehouseId && s.DeletedAt == null);
 
         sectionsQuery = ApplyFilters(sectionsQuery, request);

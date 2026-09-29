@@ -20,12 +20,13 @@ public class GetSectionDetailsHandler(IUnitOfWork _unitOfWork, IErrorManager _er
         if (!access.IsSuccess) return access.ErrorResponse!;
 
         var section = await _unitOfWork.Sections.Entities
-            .Include(sec => sec.Warehouse)
             .Include(sec => sec.SectionCapacity)
             .Include(sec => sec.SectionCoordinates)
-            .FirstOrDefaultAsync(sec => 
-                sec.Id == request.SectionId && 
-                sec.WarehouseId == request.WarehouseId, 
+            .FirstOrDefaultAsync(sec =>
+                sec.Id == request.SectionId &&
+                sec.WarehouseId == request.WarehouseId && 
+                sec.DeletedAt == null && 
+                sec.IsActive,
                 cancellationToken);
 
         if (section is null)

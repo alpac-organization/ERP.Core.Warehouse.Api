@@ -10,8 +10,7 @@ public class UpdateSectionCommand : BaseRequest, IRequest<bool>
     [JsonIgnore]
     public Guid WarehouseId { get; set; }
     [JsonIgnore]
-    public Guid SectionId { get; set; }
-    public string? Code { get; set; }
+    public Guid SectionId { get; set; }    
     public decimal? Width { get; set; }
     public decimal? Length { get; set; }
 }

@@ -8,10 +8,15 @@ using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Database.Application.Commons.Interfaces.Services.WarehouseCapacities;
 using Microsoft.EntityFrameworkCore;
 using AutoMapper;
+using ERP.Core.Database.Application.Commons.Interfaces.Services;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 {
-    public class RegisterSectionHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper, ISectionCapacityCalculator _sectionCapacityCalculator, ILogger<RegisterSectionHandler> _logger) : BaseValidatorHandler<RegisterSectionCommand, bool>(_unitOfWork, _errorManager)
+    public class RegisterSectionHandler(
+        IUnitOfWork _unitOfWork,
+        IErrorManager _errorManager, IMapper _mapper,
+        ICodeGenerator _codeGenerator, ISectionCapacityCalculator _sectionCapacityCalculator,
+        ILogger<RegisterSectionHandler> _logger) : BaseValidatorHandler<RegisterSectionCommand, bool>(_unitOfWork, _errorManager)
     {
         public override async Task<bool> Handle(RegisterSectionCommand request, CancellationToken cancellationToken)
         {
@@ -32,51 +37,63 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
                 return _errorManager.ThrowBadRequest<bool>("El almacén indicado no existe o no está activo.", "ERP:01");
             }
 
-            if (request.SectionType == SectionType.Aisle && request.SectionStorageType == SectionStorageType.Racks)
+            if (request.SectionType == SectionType.Storage &&
+                request.SectionStorageType is not (SectionStorageType.Racks or SectionStorageType.Lots))
             {
-                return _errorManager.ThrowBadRequest<bool>("Una sección de tipo pasillo no admite almacenamiento en racks.", "ERP:SECTION_STORAGE_MISMATCH");
+                return _errorManager.ThrowBadRequest<bool>(
+                    "Una sección de almacenamiento solo admite Racks o Lots.",
+                    "ERP:SECTION_STORAGE_MISMATCH");
             }
 
-            if (request.SectionType != SectionType.Aisle && request.AllowsStorageAisle.HasValue && request.AllowsStorageAisle.Value)
+            if (request.SectionType == SectionType.Aisle &&
+                request.SectionStorageType is not (SectionStorageType.Pallets or SectionStorageType.None))
             {
-                return _errorManager.ThrowBadRequest<bool>("No se puede habilitar el almacenamiento en pasillo en una sección que no es de tipo pasillo (Aisle).", "ERP:SECTION_STORAGE_MISMATCH");
+                return _errorManager.ThrowBadRequest<bool>(
+                    "Una sección de tipo pasillo solo admite almacenamiento en polines o sin almacenamiento.",
+                    "ERP:SECTION_STORAGE_MISMATCH");
             }
 
             if (request.SectionType != SectionType.Aisle && request.MaximumNumberOfPalletsPerLevel.HasValue)
             {
-                return _errorManager.ThrowBadRequest<bool>("El número máximo de polines por nivel solo es para tipo pasillo (Aisle).", "ERP:SECTION_STORAGE_MISMATCH");
+                return _errorManager.ThrowBadRequest<bool>(
+                    "El número máximo de polines por nivel solo es para tipo pasillo (Aisle).",
+                    "ERP:SECTION_STORAGE_MISMATCH");
             }
 
-            if (request.SectionType == SectionType.Aisle && request.AllowsStorageAisle == true &&
+            if (request.SectionType == SectionType.Aisle &&
+                request.SectionStorageType == SectionStorageType.Pallets &&
                 (!request.MaximumNumberOfPalletsPerLevel.HasValue || request.MaximumNumberOfPalletsPerLevel <= 0))
             {
                 return _errorManager.ThrowBadRequest<bool>(
-                    "Si el pasillo permite almacenamiento, el número máximo de polines por nivel debe ser mayor a cero.",
+                    "Si el pasillo permite almacenamiento (Polines), el número máximo de polines por nivel debe ser mayor a cero.",
                     "ERP:SECTION_STORAGE_MISMATCH");
             }
 
-            if (request.AllowsStorageAisle != true && request.MaximumNumberOfPalletsPerLevel.HasValue)
+            if (request.SectionType == SectionType.Aisle &&
+                request.SectionStorageType == SectionStorageType.None &&
+                request.MaximumNumberOfPalletsPerLevel.HasValue)
             {
                 return _errorManager.ThrowBadRequest<bool>(
-                    "El número máximo de polines por nivel solo aplica cuando el pasillo permite almacenamiento.",
+                    "El número máximo de polines por nivel solo aplica cuando el pasillo permite almacenamiento (Pallets).",
                     "ERP:SECTION_STORAGE_MISMATCH");
             }
 
-            var codeExists = await _unitOfWork.Sections.Entities
-                .AnyAsync(s =>
-                    s.WarehouseId == request.WarehouseId &&
-                    s.Code == request.Code &&
-                    s.DeletedAt == null &&
-                    s.IsActive, cancellationToken);
+            var (isCodeGenerated, sectionCode) = await _codeGenerator.GenerateUniqueSectionCodeAsync(
+                request.WarehouseId,
+                request.SectionType,
+                request.SectionStorageType,
+                cancellationToken);
 
-            if (codeExists)
+            if (!isCodeGenerated)
             {
-                return _errorManager.ThrowBadRequest<bool>("Ya existe una sección con ese código en el almacén.", "ERP:01");
+                return _errorManager.ThrowBadRequest<bool>(
+                    "No se pudo generar el código de la sección. Verifica el tipo de sección y el tipo de almacenamiento.",
+                    "ERP:SECTION_CODE_GENERATION_FAILED");
             }
 
             _logger.LogInformation("🚀Iniciando proceso de registro de sección.");
 
-            var section = SectionMapper.ToSectionEntity(request);
+            var section = SectionMapper.ToSectionEntity(request, sectionCode);
 
             var capacityCalculation = await _sectionCapacityCalculator.CalculateSectionAsync(
                 request.WarehouseId,

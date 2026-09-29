@@ -18,7 +18,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 
             if (!access.IsSuccess) return access.ErrorResponse;
 
-            if (access.Role?.RoleType == RoleType.Supervisor)
+            if (access.Role?.RoleType != RoleType.Administrator)
             {
                 return _errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:01");
             }
@@ -30,12 +30,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
                 .FirstOrDefaultAsync(s =>
                     s.Id == request.SectionId &&
                     s.WarehouseId == request.WarehouseId &&
-                    s.DeletedAt == null,
+                    s.DeletedAt == null && 
+                    s.IsActive,
                     cancellationToken);
 
             if (section is null)
             {
-                return _errorManager.ThrowBadRequest<bool>("La sección indicada no existe o no pertenece al almacén.", "ERP:01");
+                return _errorManager.ThrowBadRequest<bool>("La sección indicada no existe, está inactiva o no pertenece al almacén.", "ERP:01");
             }
 
             var warehouseExists = await _unitOfWork.Warehouses.Entities
@@ -44,26 +45,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
             if (!warehouseExists)
             {
                 return _errorManager.ThrowBadRequest<bool>("El almacén indicado no existe o no está activo.", "ERP:01");
-            }
-
-            if (request.Code != null)
-            {
-                request.Code = request.Code.Trim();
-
-                var codeExists = await _unitOfWork.Sections.Entities
-                    .AnyAsync(s =>
-                        s.WarehouseId == request.WarehouseId &&
-                        s.Code == request.Code &&
-                        s.DeletedAt == null &&
-                        s.Id != request.SectionId, cancellationToken);
-
-                if (codeExists)
-                {
-                    return _errorManager.ThrowBadRequest<bool>("Ya existe una sección con ese código en el almacén.", "ERP:01");
-                }
-
-                section.Code = request.Code;
-            }
+            }            
 
             var shouldRecalculateCapacity = request.Width.HasValue || request.Length.HasValue;
 
@@ -71,7 +53,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
             {
                 var sectionCapacity = section.SectionCapacity;
                 var warehouseCapacity = await _unitOfWork.WarehouseCapacities.Entities
-                                    .FirstOrDefaultAsync(c => c.WarehouseId == request.WarehouseId, cancellationToken);
+                    .FirstOrDefaultAsync(c => c.WarehouseId == request.WarehouseId, cancellationToken);
 
                 if (warehouseCapacity is null)
                 {

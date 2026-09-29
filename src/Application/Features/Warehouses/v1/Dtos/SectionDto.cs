@@ -9,5 +9,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos
         public SectionType? SectionType { get; set; }
         public SectionStorageType? SectionStorageType { get; set; }
         public bool IsActive { get; set; }
+        public decimal PercentageAvailableArea { get; set; }
     }
 }
