@@ -170,8 +170,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
             return Result.Success();
         }
 
-        private static void UpdateDocumentNumbersInAdditionalData(AdditionalReceptionEntranceData additionalData, DocumentType? currentType, DocumentType newType, GeneralInformationUpdated generalInfo)
+        private static void UpdateDocumentNumbersInAdditionalData(AdditionalReceptionEntranceData additionalData, DocumentType newType, GeneralInformationUpdated generalInfo)
         {
+            var currentType = GetCurrentDocumentType(additionalData);
+            
             if (currentType == DocumentType.DUCA && newType == DocumentType.CustomsDeclaration)
             {
                 additionalData.DocumentNumbers.RemoveAll(d => d.DocumentType == DocumentType.DUCA);

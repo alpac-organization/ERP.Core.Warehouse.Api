@@ -1,7 +1,6 @@
-using System.Net;
 using AutoMapper;
 using ERP.Core.Database.Domain.Entities.Catalogs;
-using ERP.Core.Database.Domain.Entities.Warehouse;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using Commands = ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
@@ -13,7 +12,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
       {
          CreateMap<Sections, SectionDto>()
             .ForMember(dest => dest.SectionId, opt => opt.MapFrom(src => src.Id))
-            .ForMember(dest => dest.SectionCode, opt => opt.MapFrom(src => src.Code));
+            .ForMember(dest => dest.SectionCode, opt => opt.MapFrom(src => src.Code))
+            .ForMember(dest => dest.PercentageAvailableArea, opt => opt.MapFrom(src => src.SectionCapacity.PercentageAvailableAreaWithMarginM2));
 
          CreateMap<SectionCapacity, SectionCapacityDto>()
             .ForMember(dest => dest.SectionCapacityId, opt => opt.MapFrom(src => src.Id));
@@ -21,16 +21,12 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
          CreateMap<SectionCoordinates, SectionCoordinatesDto>()
             .ForMember(dest => dest.SectionCoordinateId, opt => opt.MapFrom(src => src.Id));
 
-         CreateMap<Warehouses, WarehouseSummaryDto>()
-            .ForMember(dest => dest.WarehouseId, opt => opt.MapFrom(src => src.Id));
-
          CreateMap<Sections, SectionDetailsDto>()
             .ForMember(dest => dest.SectionId, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.SectionCode, opt => opt.MapFrom(src => src.Code))
             .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive))
             .ForMember(dest => dest.Capacity, opt => opt.MapFrom(src => src.SectionCapacity))
-            .ForMember(dest => dest.Coordinates, opt => opt.MapFrom(src => src.SectionCoordinates))
-            .ForMember(dest => dest.Warehouse, opt => opt.MapFrom(src => src.Warehouse));
+            .ForMember(dest => dest.Coordinates, opt => opt.MapFrom(src => src.SectionCoordinates));
 
          CreateMap<SectionCapacity, SectionCapacity>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -42,15 +38,20 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 
    public static class SectionMapper
    {
-      public static Sections ToSectionEntity(this Commands.RegisterSectionCommand command)
+      public static Sections ToSectionEntity(this Commands.RegisterSectionCommand command, string code)
       {
          return new()
          {
             Id = Guid.NewGuid(),
-            Code = command.Code,
+            Code = code,
             WarehouseId = command.WarehouseId,
             SectionType = command.SectionType,
             SectionStorageType = command.SectionStorageType,
+            MaxPalletsPerLevelAisle =
+               command.SectionType == SectionType.Aisle
+               && command.SectionStorageType == SectionStorageType.Pallets
+                  ? command.MaximumNumberOfPalletsPerLevel
+                  : null
          };
       }
 

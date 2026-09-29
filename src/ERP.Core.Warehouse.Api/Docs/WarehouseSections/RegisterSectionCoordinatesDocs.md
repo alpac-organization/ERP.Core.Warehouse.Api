@@ -10,7 +10,7 @@ Endpoint para registrar las coordenadas 3D de una sección dentro de un almacén
 |-------|-------|
 | **Método**      | `POST` |
 | **Endpoint**    | `/api/v1/companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{section_id}/coordinates` |
-| **Descripción** | Persiste las coordenadas de la sección (`position_x`, `position_y`, `position_z`, `rotation_y`) en `section_coordinates`. |
+| **Descripción** | Persiste las coordenadas de la sección (`position_x`, `position_y`, `position_z`, `rotation_y`) en `section_coordinates`. Solo permite el alta inicial; si ya existen coordenadas, responde error. |
 
 ---
 
@@ -39,17 +39,17 @@ Endpoint para registrar las coordenadas 3D de una sección dentro de un almacén
 
 | Parámetro    | Tipo      | Requerido | Descripción |
 |--------------|-----------|-----------|-------------|
-| `position_x` | `decimal` | Sí        | Coordenada X. Admite máximo 2 decimales. |
-| `position_y` | `decimal` | Sí        | Coordenada Y. Admite máximo 2 decimales. |
-| `position_z` | `decimal` | Sí        | Coordenada Z. Admite máximo 2 decimales. |
-| `rotation_y` | `decimal` | Sí        | Rotación en Y. Debe estar entre `0` y `360`. |
+| `position_x` | `decimal` | Sí        | Coordenada X. Máximo 2 decimales. |
+| `position_y` | `decimal` | Sí        | Coordenada Y. Máximo 2 decimales. |
+| `position_z` | `decimal` | Sí        | Coordenada Z. Máximo 2 decimales. |
+| `rotation_y` | `decimal` | Sí        | Rotación en Y. Debe estar entre `0` y `360`. Máximo 2 decimales. |
 
 ```json
 {
   "position_x": 1.00,
   "position_y": 2.00,
-  "position_z": 3.00,
-  "rotation_y": 4.00
+  "position_z": 0.00,
+  "rotation_y": 90.00
 }
 ```
 
@@ -66,22 +66,23 @@ Las coordenadas se registraron correctamente. El cuerpo de la respuesta puede ir
 | Campo / regla | Descripción |
 |---|---|
 | Persistencia | Se crea un registro en `section_coordinates` ligado a `section_id`. |
+| Relación 1:1 | Una sección solo puede tener un registro de coordenadas. |
+| Ya existen | Recibe 400: `La sección indicada ya tiene coordenadas.` |
 | Sección inválida | Recibe 400: `La sección indicada no existe o no está activa.` |
 | Almacén distinto | Recibe 400: `La sección no pertenece al almacén indicado.` |
-| Validación | `0` es válido en coordenadas y en `rotation_y`. FluentValidation: precisión de 2 decimales; `rotation_y` entre `0` y `360`. |
+| Rol | Solo `Administrator`. |
+| Actualización posterior | Para mover o rotar, usar `PATCH .../layout`. |
 
 ### ❌ 400 Bad Request
-
-Usa la entidad `ErrorResponse` (`ERP.Core.Domain.Entities.Errors`):
 
 ```json
 {
   "status": 400,
   "error": {
     "type_error": "ValidationError",
-    "description": "El usuario no tiene acceso a esta compañía o módulo"
+    "description": "La sección indicada ya tiene coordenadas."
   },
-  "created_at": "2026-09-11 12:00:00"
+  "created_at": "2026-09-28 12:00:00"
 }
 ```
 
@@ -94,7 +95,7 @@ Usa la entidad `ErrorResponse` (`ERP.Core.Domain.Entities.Errors`):
     "type_error": "InternalServerError",
     "description": "Ocurrió un error inesperado al procesar la solicitud"
   },
-  "created_at": "2026-09-11 12:00:00"
+  "created_at": "2026-09-28 12:00:00"
 }
 ```
 
@@ -105,5 +106,5 @@ Usa la entidad `ErrorResponse` (`ERP.Core.Domain.Entities.Errors`):
 | Código | Descripción |
 |---|---|
 | `201` | Coordenadas de sección registradas exitosamente. |
-| `400` | Error de validación, acceso o la sección no existe / no pertenece al almacén (`ErrorResponse`). |
+| `400` | Error de validación, acceso o la sección no existe / ya tiene coordenadas (`ErrorResponse`). |
 | `500` | Error interno del servidor (`ErrorResponse`). |

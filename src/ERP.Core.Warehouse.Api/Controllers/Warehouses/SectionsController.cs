@@ -66,6 +66,32 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
         return Created();
     }
 
+    [Tags("Coordenadas de Secciones")]
+    [HttpPatch("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{section_id}/layout")]
+    [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<NoContentResult> UpdateSectionLayoutAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid warehouse_id,
+        [FromRoute] Guid section_id,
+        [FromBody] UpdateSectionLayoutCommand payload,
+        CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        payload.CompanyId = company_id;
+        payload.ModuleCode = module_code;
+        payload.UserId = Guid.Parse(userIdStr ?? "");
+        payload.WarehouseId = warehouse_id;
+        payload.SectionId = section_id;
+
+        await _mediator.Send(payload, cancellationToken);
+
+        return NoContent();
+    }
+
     [Tags("Secciones")]
     [HttpGet("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections")]
     [ProducesResponseType(typeof(PagedResponse<SectionDto>), StatusCodes.Status200OK)]
@@ -126,10 +152,10 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
 
     [Tags("Actualizacion de Seccion")]
     [HttpPatch("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{section_id}")]
-    [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<OkResult> UpdateSectionAsync(
+    public async Task<NoContentResult> UpdateSectionAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
         [FromRoute] Guid warehouse_id,
@@ -147,12 +173,12 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
 
         await _mediator.Send(payload, cancellationToken);
 
-        return Ok();
+        return NoContent();
     }
 
     [Tags("Actualizacion de Seccion")]
     [HttpDelete("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{section_id}")]
-    [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<NoContentResult> DeleteSectionAsync(
