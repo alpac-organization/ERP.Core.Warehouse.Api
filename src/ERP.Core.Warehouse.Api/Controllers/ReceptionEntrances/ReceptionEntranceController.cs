@@ -8,6 +8,7 @@ using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
+
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Controllers.ReceptionEntrances
@@ -29,7 +30,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.ReceptionEntrances
             payload.CompanyId = company_id;
             payload.ModuleCode = module_code;
             payload.UserId = Guid.Parse(userIdStr ?? "");
-
+            
             await _mediator.Send(payload);
 
             return Created();

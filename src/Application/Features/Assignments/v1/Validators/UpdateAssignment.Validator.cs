@@ -17,14 +17,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Validators
 
             When(x => x.Enclosure != null, () =>
             {
-                RuleFor(x => x.Enclosure!.Merchandise)
-                    .NotEmpty().WithMessage("La mercancía es requerida en el recinto");
-
                 RuleFor(x => x.Enclosure!.MerchandiseDescription)
-                    .NotEmpty().WithMessage("La descripción de la mercancía es requerida en el recinto");
-
-                RuleFor(x => x.Enclosure!.DestinationType)
-                    .IsInEnum().WithMessage("El tipo de destino debe ser un valor de enum válido");
+                    .NotEmpty().WithMessage("La descripción del producto es requerida en el recinto");
             });
 
             When(x => x.Machineries.Count > 0, () =>

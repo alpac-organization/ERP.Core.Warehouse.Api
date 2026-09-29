@@ -36,7 +36,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
 
             if (request.Status.HasValue)
             {
-                assignmentsQuery = assignmentsQuery.Where(ao => ao.Status == request.Status.Value);
+                assignmentsQuery = assignmentsQuery.Where(ao => ao.Status == request.Status);
             }
 
             var totalRecords = await assignmentsQuery.CountAsync(cancellationToken);

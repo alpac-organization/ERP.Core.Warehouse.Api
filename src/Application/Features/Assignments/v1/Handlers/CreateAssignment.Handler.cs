@@ -1,23 +1,18 @@
+using MediatR;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using ERP.Core.Application.Commons.Interfaces;
-using ERP.Core.Application.Commons.Interfaces.AWS;
+
 using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Database.Domain.Entities.Operations;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
-using ERP.Core.Database.Application.Commons.Interfaces.Services;
+
+using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Commands;
-using MediatR;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
 {
-    public class CreateAssignmentHandler(
-        IUnitOfWork _unitOfWork, 
-        IErrorManager _errorManager, 
-        ICodeGenerator _codeGenerator,
-        IMapper _mapper) : BaseValidatorHandler<CreateAssignmentCommand, Unit>(_unitOfWork, _errorManager)
+    public class CreateAssignmentHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager) : BaseValidatorHandler<CreateAssignmentCommand, Unit>(_unitOfWork, _errorManager)
     {
         public override async Task<Unit> Handle(CreateAssignmentCommand request, CancellationToken cancellationToken)
         {
@@ -34,76 +29,48 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
             }
 
             var operationalOrder = await _unitOfWork.OperationalOrders.Entities
-                .FirstOrDefaultAsync(oo => oo.Id == request.OperationalOrderId, cancellationToken);
+                .Where(operation => operation.CompanyId == request.CompanyId)
+                .Where(operation => operation.Status == OperationalOrderStatus.Assignment)
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (operationalOrder == null)
             {
-                return _errorManager.ThrowNotFound<Unit>("La orden operativa no existe", "ERP:NOT_FOUND_OPERATIONAL_ORDER");
+                return _errorManager.ThrowNotFound<Unit>("La orden operativa no existe, o no esta en proceso de asignamiento", "ERP:NOT_FOUND_OPERATIONAL_ORDER");
             }
 
-            var assignment = new AssignmentOperational
-            {
-                Id = Guid.NewGuid(),
-                OperationalOrderId = request.OperationalOrderId,
-                Status = request.Status,
-                HasMachineryAssigned = request.Machineries.Count > 0,
-                HasEnclosureAssigned = request.Enclosure != null,
-                HasCollaboratorsAssigned = request.Collaborators.Count > 0,
-                AdditionalData = "{}"
-            };
+            var assignmentOperationalEntity = AssignmentMapper.ToAssignmentOperationalEntity(request);
 
-            await _unitOfWork.AssignmentOperationals.AddAsync(assignment);
 
-            if (request.Enclosure != null)
+            await _unitOfWork.AssignmentOperationals.RegisterAssignmentOperational(assignmentOperationalEntity);
+
+            if (request.HasAssignedCollaborators)
             {
-                var enclosure = new AssignmentEnclosure
+                assignmentOperationalEntity.HasCollaboratorsAssigned = true;
+
+                //Insert de colaboradores y destipulaciones de roles
+
+                foreach (var collaborator in request.AssignedCollaborators)
                 {
-                    Id = Guid.NewGuid(),
-                    AssignmentOperationalId = assignment.Id,
-                    Observations = request.Enclosure.Observations,
-                    Merchandise = request.Enclosure.Merchandise,
-                    MerchandiseDescription = request.Enclosure.MerchandiseDescription,
-                    DestinationType = request.Enclosure.DestinationType,
-                    WarehouseId = request.Enclosure.WarehouseId
-                };
-                await _unitOfWork.AssignmentEnclosures.AddAsync(enclosure);
+                    var assignmentCollaborator = AssignmentMapper.ToAssignmentCollaboratorsEntity(collaborator, assignmentOperationalEntity.Id);
+                    assignmentCollaborator.CreatedByUserId = access.User.Id;
+
+                    await _unitOfWork.AssignmentCollaborators.AssignCollaborator(assignmentCollaborator);
+                }
             }
 
-            foreach (var machinery in request.Machineries)
+            if (request.HasAssignedMachinery)
             {
-                var machineryAssignment = new AssignmentsMachinery
+                assignmentOperationalEntity.HasMachineryAssigned = true;
+
+                foreach (var machinery in request.AssignedMachineries)
                 {
-                    Id = Guid.NewGuid(),
-                    AssignmentOperationalId = assignment.Id,
-                    MachineryId = machinery.MachineryId,
-                    Concept = machinery.Concept,
-                    IsActive = true,
-                    CreatedByUserId = access.User.Id
-                };
-                await _unitOfWork.AssignmentsMachineries.AddAsync(machineryAssignment);
+                    var assignmentMachinery = AssignmentMapper.ToAssignmentsMachineryEntity(machinery, assignmentOperationalEntity.Id);
+                    assignmentMachinery.CreatedByUserId = access.User.Id;
+
+                    await _unitOfWork.AssignmentsMachineries.AssignMachinery(assignmentMachinery);
+                }
             }
 
-            foreach (var collaborator in request.Collaborators)
-            {
-                var collaboratorAssignment = new AssignmentCollaborators
-                {
-                    Id = Guid.NewGuid(),
-                    AssignmentOperationalId = assignment.Id,
-                    CollaboratorId = collaborator.CollaboratorId,
-                    Role = collaborator.Role,
-                    IsActive = true,
-                    CreatedByUserId = access.User.Id,
-                    OperationalOrderId = request.OperationalOrderId
-                };
-                await _unitOfWork.AssignmentCollaborators.AddAsync(collaboratorAssignment);
-            }
-
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            operationalOrder.HasMachineryAssigned = request.Machineries.Count > 0;
-            operationalOrder.HasEnclosureAssigned = request.Enclosure != null;
-            operationalOrder.HasCollaboratorsAssigned = request.Collaborators.Count > 0;
-            await _unitOfWork.OperationalOrders.UpdateAsync(operationalOrder);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return Unit.Value;
