@@ -48,6 +48,7 @@ public class RegisterRacksBulkCommandValidator : AbstractValidator<RegisterRacks
             .GreaterThanOrEqualTo(0).WithMessage("La coordenada inicial Y debe ser mayor o igual a cero.");
 
         RuleFor(x => x.SpacingX)
-            .GreaterThan(0).WithMessage("La separación horizontal (spacing_x) debe ser mayor a cero.");
+            .GreaterThan(0).WithMessage("La separación horizontal (spacing_x) debe ser mayor a cero.")
+            .GreaterThanOrEqualTo(x => x.Length).WithMessage("La separación entre racks (spacing_x) debe ser mayor o igual a la longitud del rack.");
     }
 }

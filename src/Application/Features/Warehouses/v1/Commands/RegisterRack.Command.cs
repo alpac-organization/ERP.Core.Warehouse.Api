@@ -27,4 +27,5 @@ public class RegisterRacksBulkCommand : BaseRequest, IRequest<bool>
     public decimal InitialPositionX { get; set; }
     public decimal InitialPositionY { get; set; }
     public decimal SpacingX { get; set; }
+    public decimal? RotationY { get; set; }
 }
