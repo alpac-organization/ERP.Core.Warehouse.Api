@@ -1,58 +1,38 @@
 using AutoMapper;
 using ERP.Core.Application.Commons.Interfaces;
-using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Database.Application.Commons.Interfaces.Services.WarehouseCapacities;
-using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Warehouse.Api.Application.Commons.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 {
-   public class UpdateSectionLayoutHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper, ISectionCapacityCalculator _sectionCapacityCalculator, ILogger<UpdateSectionLayoutHandler> _logger) : BaseValidatorHandler<UpdateSectionLayoutCommand, bool>(_unitOfWork, _errorManager)
+   public class UpdateSectionLayoutHandler(
+      IUnitOfWork unitOfWork,
+      IErrorManager errorManager,
+      IMapper mapper,
+      ISectionCapacityCalculator sectionCapacityCalculator,
+      ILogger<UpdateSectionLayoutHandler> logger)
+      : BaseSectionCapacityHandler<UpdateSectionLayoutCommand>(unitOfWork, errorManager, mapper)
    {
       public override async Task<bool> Handle(UpdateSectionLayoutCommand request, CancellationToken cancellationToken)
       {
-         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+         var (isValid, section, errorResponse) = await ValidateAccessAndGetSectionAsync(
+            request.UserId,
+            request.CompanyId,
+            request.ModuleCode,
+            request.SectionId,
+            request.WarehouseId,
+            cancellationToken,
+            includeCoordinates: true);
 
-         if (!access.IsSuccess) return access.ErrorResponse;
+         if (!isValid) return errorResponse;
 
-         if (access.Role?.RoleType != RoleType.Administrator)
-         {
-            return _errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:01");
-         }
+         logger.LogInformation("🚩Iniciando proceso de actualización de layout de sección.");
 
-         _logger.LogInformation("🚩Iniciando proceso de actualización de layout de sección.");
-
-         var section = await _unitOfWork.Sections.Entities
-            .Include(s => s.SectionCoordinates)
-            .Include(s => s.SectionCapacity)
-            .FirstOrDefaultAsync(s =>
-               s.Id == request.SectionId &&
-               s.WarehouseId == request.WarehouseId &&
-               s.DeletedAt == null &&
-               s.IsActive,
-               cancellationToken);
-
-         if (section is null)
-         {
-            return _errorManager.ThrowBadRequest<bool>("La sección indicada no existe, está inactiva o no pertenece al almacén.", "ERP:01");
-         }
-
-         var warehouseExists = await _unitOfWork.Warehouses.Entities
-            .AnyAsync(w =>
-               w.Id == request.WarehouseId &&
-               w.IsActive &&
-               w.DeletedAt == null,
-               cancellationToken);
-
-         if (!warehouseExists)
-         {
-            return _errorManager.ThrowBadRequest<bool>("El almacén indicado no existe o no está activo.", "ERP:01");
-         }
-
-         if (section.SectionCoordinates is null)
+         if (section!.SectionCoordinates is null)
          {
             return _errorManager.ThrowBadRequest<bool>(
                 "La sección no tiene coordenadas registradas. Regístralas antes de actualizar el layout.",
@@ -96,7 +76,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
             var width = request.Width ?? sectionCapacity.Width;
             var length = request.Length ?? sectionCapacity.Length;
 
-            var sectionCapacityCalculation = await _sectionCapacityCalculator.UpdateSectionAsync(
+            var sectionCapacityCalculation = await sectionCapacityCalculator.UpdateSectionAsync(
                request.SectionId, width, length, cancellationToken
             );
 
@@ -114,7 +94,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 
          await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-         _logger.LogInformation("Layout de sección de almacén actualizada con éxito✅");
+         logger.LogInformation("Layout de sección de almacén actualizada con éxito✅");
 
          return true;
       }
