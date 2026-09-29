@@ -11,12 +11,12 @@ using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers;
 
-public class CreateAssignmentMachineryHandler(IUnitOfWork unitOfWork, IErrorManager errorManager,
-    ILogger<CreateAssignmentMachineryHandler> logger) : BaseValidatorHandler<CreateAssignmentMachineryCommand, Unit>(unitOfWork, errorManager)
+public class CreateAssignmentCollaboratorsHandler(IUnitOfWork unitOfWork, IErrorManager errorManager,
+    ILogger<CreateAssignmentCollaboratorsHandler> logger) : BaseValidatorHandler<CreateAssignmentCollaboratorsCommand, Unit>(unitOfWork, errorManager)
 {
-    public override async Task<Unit> Handle(CreateAssignmentMachineryCommand request, CancellationToken cancellationToken)
+    public override async Task<Unit> Handle(CreateAssignmentCollaboratorsCommand request, CancellationToken cancellationToken)
     {
-        logger.LogInformation("🛫 Iniciando asignamiento de Maquinaria.");
+        logger.LogInformation("🛫 Iniciando asignamiento de Colaboradores.");
 
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
 
@@ -35,19 +35,19 @@ public class CreateAssignmentMachineryHandler(IUnitOfWork unitOfWork, IErrorMana
         if (assignmentOperational.OperationalOrder.CompanyId != request.CompanyId)
             return _errorManager.ThrowForbidden<Unit>("No tienes acceso a la asignacion operativa seleccionada", "ERP:ASSIGNMENT_OPERATIONAL_COMPANY_MISMATCH");
 
-        var entities = request.ToAssignmentsMachineryEntities();
+        var entities = request.ToAssignmentCollaboratorsEntities(assignmentOperational.OperationalOrderId);
 
         foreach (var entity in entities)
         {
-            await _unitOfWork.AssignmentsMachineries.AssignMachinery(entity);
+            await _unitOfWork.AssignmentCollaborators.AssignCollaborator(entity);
         }
 
-        assignmentOperational.HasMachineryAssigned = true;
+        assignmentOperational.HasCollaboratorsAssigned = true;
 
         await _unitOfWork.AssignmentOperationals.UpdateAsync(assignmentOperational);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation("🛬 Se asignaron {Count} maquinaria(s)", entities.Count);
+        logger.LogInformation("Se asignaron {Count} colaborador(es) a la asignacion operativa {AssignmentOperationalId}", entities.Count, request.AssignmentOperationalId);
 
         return Unit.Value;
     }
