@@ -84,6 +84,26 @@ namespace ERP.Core.Warehouse.Api.Controllers.ReceptionEntrances
             });
         }
 
+
+        [Tags("Control de Acceso")]
+        [HttpPatch("companies/{company_id}/modules/{module_code}/reception-entrances/{reception_entrance_id}")]
+        [ProducesResponseType(typeof(ReceptionEntranceDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<OkResult> UpdateReceptionEntranceAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid reception_id, [FromRoute] Guid reception_entrance_id, [FromBody] UpdateReceptionEntranceCommand payload)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            payload.CompanyId = company_id;
+            payload.ModuleCode = module_code;
+            payload.UserId = Guid.Parse(userIdStr ?? "");
+            payload.ReceptionEntranceId = reception_entrance_id;
+            
+            await _mediator.Send(payload);
+
+            return Ok();
+        }
+
         //Endpoint para darle continuidad al registro vehicular y salid de reception.
     }
 }

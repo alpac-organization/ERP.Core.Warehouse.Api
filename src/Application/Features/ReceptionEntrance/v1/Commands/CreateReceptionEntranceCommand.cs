@@ -26,7 +26,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Comma
     public class GeneralInformation
     {
         public Guid CustomBranchId { get; set; }
-        
         public string SealNumber { get; set; } = default!;
         public string CountryOrigin { get; set; } = default!;
         public string ContainerNumber { get; set; } = default!;
