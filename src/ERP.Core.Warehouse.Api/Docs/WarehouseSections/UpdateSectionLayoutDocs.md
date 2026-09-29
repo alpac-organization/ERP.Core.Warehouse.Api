@@ -80,7 +80,7 @@ El layout se actualizó correctamente. El cuerpo de la respuesta va vacío.
 
 | Campo / regla | Descripción |
 |---|---|
-| Coordenadas previas | La sección **debe** tener coordenadas (registradas con `POST .../coordinates`). Si no: `La sección no tiene coordenadas registradas. Regístralas antes de actualizar el layout.` (`ERP:SECTION_COORDINATES_NOT_FOUND`) |
+| Coordenadas previas | La sección **debe** tener coordenadas (registradas en el `POST .../sections`). Si no: `La sección no tiene coordenadas registradas. Regístralas antes de actualizar el layout.` (`ERP:SECTION_COORDINATES_NOT_FOUND`) |
 | Solo actualización | No crea coordenadas; solo actualiza las existentes. |
 | Recálculo | Solo si viene `width` o `length`. |
 | Body vacío | Recibe 400: `Debe enviar al menos un campo para actualizar (position_x, position_y, position_z, rotation_y, width o length).` |
