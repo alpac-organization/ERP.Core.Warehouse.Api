@@ -17,7 +17,7 @@ namespace ERP.Core.Warehouse.Api.Test.Common
         protected static readonly string[] AllCompanies = ["ALPAC", "AMINSA", "AVASA", "VIGEMSA", "TMN"];
 
         // crear usuario Dinámico por compañía
-        public async Task<Guid> CreateUser(string fullname, Guid? areaId = null, string companyAlias = "ALPAC")
+        public async Task<Guid> CreateUser(string fullname, Guid? areaId = null, string companyAlias = "ALPAC", Guid? costCenterId = null)
         {
             var company = await _unitOfWork.Companies.Entities
                 .FirstAsync(c => c.Alias == companyAlias);
@@ -59,7 +59,8 @@ namespace ERP.Core.Warehouse.Api.Test.Common
                 UserId = newUserId,
                 BranchId = branch.Id,
                 IsActive = true,
-                CompanyId = company.Id
+                CompanyId = company.Id,
+                CostCenterId = costCenterId ?? Guid.Parse("ffffffff-0000-0000-0000-000000000001")
             });
 
             await _unitOfWork.SaveChangesAsync(default);

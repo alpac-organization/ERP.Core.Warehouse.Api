@@ -1,14 +1,16 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using ERP.Core.Domain.Entities.Errors;
-using ERP.Core.Infrastructure.Attributes;
+
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Domain.Entities.Errors;
 
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.Machineries.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Machineries.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.Machineries.v1.Commands;
+
+using ERP.Core.Infrastructure.Attributes;
 
 namespace ERP.Core.Warehouse.Api.Controllers.Machinery
 {
@@ -22,9 +24,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.Machinery
         [ProducesResponseType(typeof(PagedResponse<MachineryDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<PagedResponse<MachineryDto>> GetMachineriesAsync(
-            [FromRoute] Guid company_id,
-            [FromRoute] string module_code,
+        public async Task<PagedResponse<MachineryDto>> GetMachineriesAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
             [FromQuery] MachineryType? type,
             [FromQuery] int page_number = 1,
             [FromQuery] int page_size = 10
@@ -42,7 +42,6 @@ namespace ERP.Core.Warehouse.Api.Controllers.Machinery
                 PageSize    = page_size
             });
         }
-
 
         [Tags("Catálogo de Maquinarias")]
         [HttpPost("companies/{company_id}/modules/{module_code}/machinery")]

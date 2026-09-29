@@ -88,8 +88,8 @@ namespace ERP.Core.Warehouse.Api.Controllers.OperationalOrders
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
             
-
+        
             return Ok();
-        }        
+        }       
     }
 }
