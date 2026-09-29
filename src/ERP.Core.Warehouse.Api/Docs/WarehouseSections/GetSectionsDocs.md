@@ -10,7 +10,7 @@ Endpoint para listar (con paginación y filtros) las secciones de un almacén.
 |-------|-------|
 | **Método**      | `GET` |
 | **Endpoint**    | `/api/v1/companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections` |
-| **Descripción** | Retorna un listado paginado de secciones del almacén indicado, con filtros opcionales por código, tipo, tipo de almacenaje y estado. |
+| **Descripción** | Retorna un listado paginado de secciones del almacén indicado, con filtros opcionales por código, tipo, tipo de almacenaje y estado. Incluye capacidad (área total/disponible/%), dimensiones y coordenadas de layout. |
 
 ---
 
@@ -37,8 +37,8 @@ Endpoint para listar (con paginación y filtros) las secciones de un almacén.
 | Parámetro              | Tipo                        | Requerido | Default | Descripción |
 |------------------------|-----------------------------|-----------|---------|-------------|
 | `section_code`         | `string`                    | No        | `null`  | Filtra por código de sección exacto. |
-| `section_type`         | `enum (SectionType)`        | No        | `null`  | Filtra por tipo de sección. Debe ser un valor válido del enum. |
-| `section_storage_type` | `enum (SectionStorageType)` | No        | `null`  | Filtra por tipo de almacenaje. Debe ser un valor válido del enum. |
+| `section_type`         | `enum (SectionType)`        | No        | `null`  | Filtra por tipo de sección (`Storage`, `Aisle`). |
+| `section_storage_type` | `enum (SectionStorageType)` | No        | `null`  | Filtra por tipo de almacenaje (`Racks`, `Lots`, `Pallets`, `None`). |
 | `is_active`            | `boolean`                   | No        | `null`  | Filtra por estado. Si no se envía, solo se listan secciones activas. |
 | `page_number`          | `integer`                   | No        | `1`     | Número de página. Debe ser mayor a cero. |
 | `page_size`            | `integer`                   | No        | `10`    | Cantidad de registros por página. Debe ser mayor a cero y no puede exceder `10`. |
@@ -56,10 +56,19 @@ Retorna un `PagedResponse<SectionDto>`.
   "data": [
     {
       "section_id": "5f8d0d55-6c8a-4a2b-9d3f-000000000001",
-      "section_code": "SEC-A2",
+      "section_code": "ST-01",
       "section_type": "Storage",
       "section_storage_type": "Lots",
-      "is_active": true
+      "is_active": true,
+      "width": 20.00,
+      "length": 10.00,
+      "total_area": 200.00,
+      "available_area": 50.00,
+      "percentage_available_area": 25.00,
+      "position_x": 12.50,
+      "position_y": 0.00,
+      "position_z": 8.00,
+      "rotation_y": 90.00
     }
   ],
   "page_number": 1,
@@ -72,18 +81,18 @@ Retorna un `PagedResponse<SectionDto>`.
 
 | Campo / regla | Descripción |
 |---|---|
-| Orden | Los registros se ordenan por `created_at` descendente. |
-| `total` | Total de registros que cumplen los filtros, antes de paginar. |
-| Eliminadas | El listado excluye secciones con `deleted_at` informado. |
-| `is_active` omitido | El handler filtra `is_active = true`. |
-| Enums | En query se puede enviar número o nombre. En la respuesta se serializan como **string** (converter global). FluentValidation: `El tipo de seccion no es válido.` / `El tipo de almacenaje no es válido.` |
-| Valores conocidos en este repo | `SectionType.Storage`, `SectionType.Aisle`. `SectionStorageType.Lots` y `SectionStorageType.Racks`. El catálogo puede incluir más valores. |
-| Almacén inválido | Recibe 400: `El almacén indicado no existe o no está activo.` |
-| Paginación | Recibe 400 si `page_number` o `page_size` no son mayores a cero, o si `page_size` excede 10. |
+| Orden | Por `created_at` descendente. |
+| `total_area` | Mapeado desde `section_capacity.total_area_m2` (Capacidad del progress). |
+| `available_area` | Mapeado desde `section_capacity.available_area_with_margin_m2` (Disponible del progress). |
+| `percentage_available_area` | Mapeado desde `section_capacity.percentage_available_area_with_margin_m2`. El % usado en UI es `100 - percentage_available_area`. |
+| `width` / `length` | Dimensiones desde `section_capacity`. |
+| `position_x` / `position_y` / `position_z` / `rotation_y` | Desde `section_coordinates`. Son `null` si la sección no tiene coordenadas registradas. |
+| Eliminadas | Excluye secciones con `deleted_at` informado. |
+| `is_active` omitido | Filtra `is_active = true`. |
+| Almacén inválido | `El almacén indicado no existe o no está activo.` |
+| Paginación | 400 si `page_number` o `page_size` no son válidos, o si `page_size` excede 10. |
 
 ### ❌ 400 Bad Request
-
-Usa la entidad `ErrorResponse` (`ERP.Core.Domain.Entities.Errors`):
 
 ```json
 {
@@ -92,7 +101,7 @@ Usa la entidad `ErrorResponse` (`ERP.Core.Domain.Entities.Errors`):
     "type_error": "ValidationError",
     "description": "El usuario no tiene acceso a esta compañía o módulo"
   },
-  "created_at": "2026-09-11 12:00:00"
+  "created_at": "2026-09-28 12:00:00"
 }
 ```
 
@@ -105,7 +114,7 @@ Usa la entidad `ErrorResponse` (`ERP.Core.Domain.Entities.Errors`):
     "type_error": "InternalServerError",
     "description": "Ocurrió un error inesperado al procesar la solicitud"
   },
-  "created_at": "2026-09-11 12:00:00"
+  "created_at": "2026-09-28 12:00:00"
 }
 ```
 
@@ -116,5 +125,5 @@ Usa la entidad `ErrorResponse` (`ERP.Core.Domain.Entities.Errors`):
 | Código | Descripción |
 |---|---|
 | `200` | Listado paginado de secciones obtenido exitosamente. |
-| `400` | Error de validación o de acceso del usuario a la compañía/módulo (`ErrorResponse`). |
+| `400` | Error de validación o de acceso (`ErrorResponse`). |
 | `500` | Error interno del servidor (`ErrorResponse`). |

@@ -73,8 +73,7 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
 
          // 3. Body de la petición
          var payload = new Dictionary<string, object>
-         {
-            ["code"] = "SECTION_001",
+         {            
             ["section_type"] = 1,
             ["section_storage_type"] = 1,
             ["width"] = 25,

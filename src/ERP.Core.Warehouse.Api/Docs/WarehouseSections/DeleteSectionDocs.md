@@ -10,7 +10,7 @@ Endpoint para eliminar (soft delete) una sección dentro de un almacén.
 |-------|-------|
 | **Método**      | `DELETE` |
 | **Endpoint**    | `/api/v1/companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{section_id}` |
-| **Descripción** | Marca la sección como inactiva (`is_active = false`) y asigna `deleted_at`. No borra la fila ni sus relaciones (capacidad y coordenadas). |
+| **Descripción** | Soft-delete de la sección y de su capacidad. Recalcula la capacidad del almacén excluyendo la sección eliminada. No permite eliminar si tiene tramos o racks activos. |
 
 ---
 
@@ -43,24 +43,25 @@ La sección se eliminó correctamente. El cuerpo de la respuesta va vacío.
 
 | Campo / regla | Descripción |
 |---|---|
-| Soft delete | No se elimina el registro. Se persiste `is_active = false` y `deleted_at` con la fecha UTC actual. |
-| Relaciones | No se marcan `section_capacity` ni `section_coordinates`. Siguen asociadas a la sección. |
-| Búsqueda | El handler busca por `section_id` y `warehouse_id`. |
-| No encontrada | Recibe 400: `No se encontró la sección a eliminar`. |
-| Almacén distinto | Recibe 400: `La sección no pertenece al almacén indicado.` |
+| Soft delete | `is_active = false` y `deleted_at` con hora de Nicaragua (`NicaraguaClock.Now`). |
+| Capacidad de sección | También se marca `section_capacity.deleted_at`. |
+| Recálculo de almacén | `DeleteSectionAsync` excluye la sección del total y actualiza `warehouse_capacity`. |
+| Hijos activos | Si tiene lots o racks no eliminados: `No se puede eliminar la sección porque aún tiene tramos o racks activos...` (`ERP:SECTION_HAS_CHILDREN`) |
+| Rol | Solo `Administrator`. |
+| No encontrada | `No se encontró la sección a eliminar` (`ERP:NOT_FOUND`) |
+| Fallo de recálculo | `No se pudo recalcular la capacidad del almacén al eliminar la sección.` |
+| Sin capacidad de almacén | `El almacén no tiene capacidad registrada` |
 
 ### ❌ 400 Bad Request
-
-Usa la entidad `ErrorResponse` (`ERP.Core.Domain.Entities.Errors`):
 
 ```json
 {
   "status": 400,
   "error": {
     "type_error": "ValidationError",
-    "description": "El usuario no tiene acceso a esta compañía o módulo"
+    "description": "No se puede eliminar la sección porque aún tiene tramos o racks activos. Muévelos a otra sección o elimínalos antes de continuar."
   },
-  "created_at": "2026-09-11 12:00:00"
+  "created_at": "2026-09-28 12:00:00"
 }
 ```
 
@@ -73,7 +74,7 @@ Usa la entidad `ErrorResponse` (`ERP.Core.Domain.Entities.Errors`):
     "type_error": "InternalServerError",
     "description": "Ocurrió un error inesperado al procesar la solicitud"
   },
-  "created_at": "2026-09-11 12:00:00"
+  "created_at": "2026-09-28 12:00:00"
 }
 ```
 
@@ -84,5 +85,5 @@ Usa la entidad `ErrorResponse` (`ERP.Core.Domain.Entities.Errors`):
 | Código | Descripción |
 |---|---|
 | `204` | Sección eliminada (soft delete) exitosamente. |
-| `400` | Error de acceso o la sección no existe / no pertenece al almacén (`ErrorResponse`). |
+| `400` | Error de acceso, permisos, hijos activos o recálculo (`ErrorResponse`). |
 | `500` | Error interno del servidor (`ErrorResponse`). |
