@@ -22,14 +22,23 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             {
                 return access.ErrorResponse!;
             }
-
+            
             var purchaseRequestItems = await _unitOfWork.PurchaseRequestItems.Entities
                 .Where(item => item.PurchaseRequestId == request.PurchaseRequestId)
+
                 .Include(item => item.Product)
                     .ThenInclude(product => product.Category)
+                
                 .Include(item => item.UnitMeasure)
+
                 .Include(item => item.Quotations.Where(quo => quo.IsActive && quo.DeletedAt == null))
                     .ThenInclude(quote => quote.Supplier)
+                        .ThenInclude(quote => quote.SupplierDetails)
+
+                .Include(item => item.Quotations.Where(quo => quo.IsActive && quo.DeletedAt == null))
+                    .ThenInclude(quote => quote.Supplier)
+                        .ThenInclude(quote => quote.SupplierBankAccounts)
+
                 .ToListAsync(cancellationToken);
 
             var purchaseRequestItemsMapped = _mapper.Map<List<PurchaseRequestItemDto>>(purchaseRequestItems);

@@ -24,8 +24,6 @@ public class GetUnloadingAssignmentDetailHandler(IUnitOfWork unitOfWork, IErrorM
             .AsNoTracking()
             .AsSplitQuery()
             .Include(a => a.Warehouse)
-            .Include(a => a.MachineryAssignments)
-                .ThenInclude(m => m.Machinery)
             .Include(a => a.CrewAssignments)
             .FirstOrDefaultAsync(a => a.Id == request.AssignmentId && a.DeletedAt == null, cancellationToken);
 

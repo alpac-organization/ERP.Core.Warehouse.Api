@@ -39,6 +39,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Validators
                 .NotEqual(Guid.Empty)
                 .WithMessage("El id del proveedor no es válido.");
 
+            RuleFor(x => x.PaymentMethodType)
+                .NotNull()
+                .WithMessage("El método de pago es requerido!")
+                .IsInEnum()
+                .WithMessage("El método de pago no es válido.");
+
             RuleFor(x => x.PurchaseRequestItemId)
                 .NotEmpty().WithMessage("El id de la solicitud de compra no puede estar vacío.")
                 .NotEqual(Guid.Empty)

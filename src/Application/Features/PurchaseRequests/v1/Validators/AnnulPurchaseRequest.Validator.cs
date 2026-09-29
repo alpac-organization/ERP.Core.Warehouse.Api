@@ -4,7 +4,7 @@ using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Validators
 {
-    public class AnnulPurchaseRequestValidator : BaseRequestValidator<AnnulPurchaseRequestCommand>
+    public  class AnnulPurchaseRequestValidator : BaseRequestValidator<AnnulPurchaseRequestCommand>
     {
         public AnnulPurchaseRequestValidator()
         {

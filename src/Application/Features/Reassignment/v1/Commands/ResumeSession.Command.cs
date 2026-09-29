@@ -1,11 +1,13 @@
 using MediatR;
 using System.Text.Json.Serialization;
-using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 
-namespace ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Commands;
+using ERP.Core.Domain.Entities.Bases;
 
-public class ResumeSessionCommand : BaseRequest, IRequest<bool>
+namespace ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Commands
 {
-    [JsonIgnore]
-    public Guid SessionId { get; set; }
+    public class ResumeSessionCommand : BaseRequest, IRequest<bool>
+    {
+        [JsonIgnore]
+        public Guid SessionId { get; set; }
+    }
 }
