@@ -12,6 +12,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Comma
 
         public GeneralInformationUpdated? GeneralInformation { get; set; }
         public ReceptionTransportInformation? ReceptionTransportInformation { get; set; }
+        
+        public List<string> EvidenceBase64 { get; set; } = [];
+        public List<Guid> EvidenceIdsToDelete { get; set; } = [];
     }
 
     public class GeneralInformationUpdated
