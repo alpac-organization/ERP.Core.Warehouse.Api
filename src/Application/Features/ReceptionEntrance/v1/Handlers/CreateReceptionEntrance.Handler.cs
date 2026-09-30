@@ -40,6 +40,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
             var receptionEntranceEntity = ReceptionEntranceMapper.ToReceptionEntranceEntity(request);
             receptionEntranceEntity.CreatedByUserId = access.User.Id;
 
+            var (IsSuccess, Code) = await _codeGenerator.GenerateUniqueReceptionEntranceCodeAsync(cancellationToken);
+
+            if (!IsSuccess)
+            {
+                return _errorManager.ThrowInternalError<Unit>("Ocurrio un error al generar codigo de recepción", "ERP:CODE_GENERATOR_ERROR");
+            }
+
+            receptionEntranceEntity.ReceptionCode = Code;
+
             //Manejar  el control de  pruebas de imagenes.
             AdditionalReceptionEntranceData additionalData = new();
 
@@ -68,6 +77,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                 case DocumentType.DUCA:
                 {
                     // PO - Por cada número Duca o declaración aduanera.
+
                     foreach(var duca in request.GeneralInformation.DucatNumbers)
                     {
                         //Manejo de  información de (PO)

@@ -30,7 +30,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.ReceptionEntrances
             payload.CompanyId = company_id;
             payload.ModuleCode = module_code;
             payload.UserId = Guid.Parse(userIdStr ?? "");
-            
+
             await _mediator.Send(payload);
 
             return Created();
@@ -42,11 +42,12 @@ namespace ERP.Core.Warehouse.Api.Controllers.ReceptionEntrances
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<PagedResponse<ReceptionEntranceDto>> GetReceptionEntrancesAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
-            [FromQuery] string? plate_number = null,
-            [FromQuery] string? document_number = null,
-            [FromQuery] string? contaniner_number = null,
+            [FromQuery] bool only_day               = true,
+            [FromQuery] string? plate_number        = null,
+            [FromQuery] string? document_number     = null,
+            [FromQuery] string? contaniner_number   = null,
             [FromQuery] DocumentType? document_type = null,
-
+            
             [FromQuery] int page_number = 1,
             [FromQuery] int page_size = 10
         )
@@ -57,6 +58,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.ReceptionEntrances
             {
                 UserId = Guid.Parse(userIdStr ?? ""),
                 CompanyId = company_id, 
+                OnlyDay = only_day,
                 ModuleCode = module_code,
                 DocumentNumber = document_number,
                 PlateNumber = plate_number,

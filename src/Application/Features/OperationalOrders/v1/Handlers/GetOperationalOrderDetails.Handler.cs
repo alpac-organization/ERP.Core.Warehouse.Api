@@ -26,10 +26,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
             {
                 return _errorManager.ThrowBadRequest<OperationalOrderDetailsDto>("No tienes acceso para verificar esta información", "ERP:INVALID_ACCESS");
             }
-
+            
             var operationalOrdersQuery = _unitOfWork.OperationalOrders.Entities
                 .Include(po => po.Customer)
-                .Include(po => po.Warehouse)
                 .Include(po => po.Reception)
                     .ThenInclude(reception => reception.ReceptionTransport)
                 .Include(po => po.CostCenter)

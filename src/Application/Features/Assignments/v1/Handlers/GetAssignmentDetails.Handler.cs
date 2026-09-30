@@ -29,8 +29,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
             }
 
             var assignment = await _unitOfWork.AssignmentOperationals.Entities
-                .Include(ao => ao.AssignmentEnclosure)
-                    .ThenInclude(e => e.Warehouse)
                 .Include(ao => ao.AssignmentsMachineries)
                     .ThenInclude(m => m.Machinery)
                 .Include(ao => ao.AssignmentCollaborators)

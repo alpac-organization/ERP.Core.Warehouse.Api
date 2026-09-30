@@ -39,6 +39,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
             }
 
             var assignmentOperationalEntity = AssignmentMapper.ToAssignmentOperationalEntity(request);
+            
 
 
             await _unitOfWork.AssignmentOperationals.RegisterAssignmentOperational(assignmentOperationalEntity);

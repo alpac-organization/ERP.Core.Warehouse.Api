@@ -29,7 +29,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Comma
         public string? CustomsDeclarationNumber { get; set; }
     }
 
-
     public class ReceptionTransportInformation
     {
         public string? DriverName { get; set; }

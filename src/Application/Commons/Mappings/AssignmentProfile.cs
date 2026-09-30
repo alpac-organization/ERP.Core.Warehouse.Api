@@ -16,9 +16,9 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 Status = AssignmentOperationalStatus.Pending,
                 Observations = command.Observations,
                 Merchandise = command.Merchandise,
-                MerchandiseDescription = command.MerchandiseDescription,
-                DestinationType = command.DestinationType ?? DestinationType.Warehouse,
                 WarehouseId = command.WarehouseId,
+                DestinationType = command.DestinationType ?? DestinationType.Warehouse,
+                MerchandiseDescription = command.MerchandiseDescription,
                 OperationalOrderId = command.OperationalOrderId,
             };
         }

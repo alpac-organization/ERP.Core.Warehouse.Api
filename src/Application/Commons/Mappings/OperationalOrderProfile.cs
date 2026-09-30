@@ -26,9 +26,12 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
     {
         public static OperationalOrder ToOperationalOrderEntity(this Command command, Guid costCenterId)
         {
+            bool IsConsolidated = command.GeneralInformation.DucatNumbers.Count > 1;
+            
             return new()
             {
                 Id = Guid.NewGuid(),
+                IsConsolidated = IsConsolidated,
                 CostCenterId = costCenterId,
                 Status = OperationalOrderStatus.PendingDocument,
                 CompanyId = command.CompanyId,

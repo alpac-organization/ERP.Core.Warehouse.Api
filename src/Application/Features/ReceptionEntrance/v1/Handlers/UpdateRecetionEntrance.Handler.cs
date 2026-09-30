@@ -30,7 +30,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
             
             if (!access.IsSuccess)
             {
-                return (Unit)access.ErrorResponse!;
+                return access.ErrorResponse!;
             }
 
             if (access.Role?.RoleType == RoleType.Supervisor)
@@ -46,6 +46,17 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
             if (receptionEntrance is null)
             {
                 return _errorManager.ThrowNotFound<Unit>("La reception a actualizar no existe registrada", "ERP:NOT_FOUND_RECEPTION");
+            }
+
+            var minutosTranscurridos = (DateTime.UtcNow - receptionEntrance.CreatedAt)
+                .TotalMinutes;
+
+            if (minutosTranscurridos >= 10)
+            {
+                return _errorManager.ThrowBadRequest<Unit>(
+                    "Ya no se puede modificar la información vehicular de la recepción",
+                    "ERP:RECEPTION_UPDATE_TIME_EXPIRED"
+                );
             }
 
             var additionalData = DeserializeAdditionalData(receptionEntrance.AdditionalData);

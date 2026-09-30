@@ -14,7 +14,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Dtos
         public decimal? PackagesCount { get; set; }
 
         //Información de recepción de alpac.
-        public WarehouseInformation? WarehouseInformation { get; set; }
         public ReceptionEntranceDetailsDto? ReceptionEntranceInformation { get; set; }
     }
 

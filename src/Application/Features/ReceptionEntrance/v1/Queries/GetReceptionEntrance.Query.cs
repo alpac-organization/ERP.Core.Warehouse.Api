@@ -8,6 +8,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queri
 {
     public class GetReceptionEntrancesQuery : BaseRequest, IRequest<PagedResponse<ReceptionEntranceDto>>
     {
+        public bool OnlyDay { get; set; } = true;
         public string? PlateNumber { get; set; }
         public string? DocumentNumber { get; set; }
         public string? ContainerNumber { get; set; }

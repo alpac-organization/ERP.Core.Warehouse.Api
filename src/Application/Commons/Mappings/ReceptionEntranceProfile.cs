@@ -33,7 +33,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             return new()
             {
                 IsActive = true,
-                Id = Guid.NewGuid(),
+                Id = Guid.NewGuid(),                
                 SealNumber = command.GeneralInformation.SealNumber,
                 CountryOfOrigin = command.GeneralInformation.CountryOrigin,
                 CustomBranchId = command.GeneralInformation.CustomBranchId,
