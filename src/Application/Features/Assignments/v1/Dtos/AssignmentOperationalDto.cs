@@ -1,16 +1,26 @@
 using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Database.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Dtos
 {
-    public class AssignmentDto
+    public class AssignmentOperationalDto
     {
         public Guid AssignmentId { get; set; }
         public Guid OperationalOrderId { get; set; }
+        public bool IsAlerted { get; set; }
+        public DestinationType DestinationType { get; set; }
         public AssignmentOperationalStatus Status { get; set; }
+
+        public string? Merchandise { get; set; } = null!;
+        public string? MerchandiseDescription { get; set; } = null!;
+
         public bool HasMachineryAssigned { get; set; }
-        public bool HasEnclosureAssigned { get; set; }
         public bool HasCollaboratorsAssigned { get; set; }
         public DateTime CreatedAt { get; set; }
+    }
+
+    public class OperationalOrderInformation
+    {
+        public bool IsAlerted { get; set; }
+        public Guid OperationalOrderId { get; set; }
     }
 }

@@ -17,10 +17,4 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Dtos
         public ReceptionEntranceDetailsDto? ReceptionEntranceInformation { get; set; }
     }
 
-    public class WarehouseInformation
-    {
-        public Guid WarehouseId { get; set; }        
-        public string Code { get; set; } = string.Empty;
-        public WarehouseType WarehouseType { get; set; }        
-    }
 }

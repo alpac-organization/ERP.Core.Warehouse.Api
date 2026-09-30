@@ -136,27 +136,6 @@ public static class GetAvailablePositionsMapper
 #region Issue 4 - Confirmar polin en aire
 public static class ResolveMemoryItemMapper
 {
-    public static StockPlacements ToDestinationPlacementEntity(
-        this ReassignmentMemoryItems memoryItem,
-        Guid? rackPositionId,
-        Guid? lotPositionId,
-        string userId,
-        DateOnly nowDate,
-        TimeOnly nowTime)
-    {
-        return new StockPlacements
-        {
-            Id = Guid.NewGuid(),
-            StockId = memoryItem.StockId,
-            RackPositionId = rackPositionId,
-            LotPositionId = lotPositionId,
-            PlacedAtDate = nowDate,
-            PlacedAtTime = nowTime,
-            PlacedByUserId = userId,
-            PlacedByMemoryItemId = memoryItem.Id
-        };
-    }
-
     public static StockMovementEvents ToStockMovementEventEntity(
         this ReassignmentMemoryItems memoryItem,
         Guid sessionId,
