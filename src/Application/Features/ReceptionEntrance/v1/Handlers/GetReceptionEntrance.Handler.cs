@@ -23,6 +23,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
             }
 
             var receptionEntrancesQuery = _unitOfWork.ReceptionEntrance.Entities
+                .Where(reception => reception.IsActive)
                 .Include(reception => reception.ReceptionTransport)
                 .Include(reception => reception.OperationalOrders)
                 .AsNoTracking();

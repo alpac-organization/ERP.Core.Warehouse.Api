@@ -31,7 +31,6 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 Id = Guid.NewGuid(),
                 ServiceOrderCode = soCode,
                 Concept = commands.Concept,
-                OperationalOrderId = commands.OperationalOrderId,
                 OperationalServiceId = commands.OperationalServiceId,
             };
         }

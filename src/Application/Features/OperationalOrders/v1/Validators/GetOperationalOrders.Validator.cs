@@ -13,15 +13,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Valid
                 .WithMessage("El estado debe ser un valor de enum valido")
                 .When(x => x.Status.HasValue);
 
-            // RuleFor(x => x.CustomerCif)
-            //     .NotEmpty()
-            //     .WithMessage("El codigo de cliente debe ser vacio")
-            //     .When(x => x.CustomerCif != "" || x.CustomerCif != null);
+            RuleFor(x => x.CustomerCif)
+                .NotEmpty()
+                .WithMessage("El código de cliente no debe ser vacío.")
+                .When(x => x.CustomerCif is not null);
 
-            // RuleFor(x => x.PoCode)
-            //     .NotEmpty()
-            //     .WithMessage("El codigo de la PO de cliente no debe ser vacio.")
-            //     .When(x => x.PoCode != "" || x.PoCode != null);
+            RuleFor(x => x.PoCode)
+                .NotEmpty()
+                .WithMessage("El código de la PO de cliente no debe ser vacío.")
+                .When(x => x.PoCode is not null);
         }
     }
 }

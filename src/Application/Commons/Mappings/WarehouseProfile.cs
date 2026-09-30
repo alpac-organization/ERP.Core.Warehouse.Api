@@ -1,6 +1,7 @@
 using AutoMapper;
 using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Entities.Warehouse;
+using ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using Commands = ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
@@ -28,6 +29,9 @@ public class WarehouseProfile : Profile
             .ForMember(dest => dest.DeletedAt, opt => opt.Ignore())
             .ForMember(dest => dest.WarehouseId, opt => opt.Ignore())
             .ForMember(dest => dest.Warehouse, opt => opt.Ignore());
+            
+      CreateMap<Warehouses, WarehouseInformation>()
+         .ForMember(dest => dest.WarehouseId, opt => opt.MapFrom(src => src.Id));
    }
 }
 

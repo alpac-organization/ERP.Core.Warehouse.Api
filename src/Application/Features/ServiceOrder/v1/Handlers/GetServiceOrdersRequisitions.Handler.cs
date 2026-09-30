@@ -27,7 +27,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ServiceOrder.v1.Handlers
                 .Include(osr => osr.ServicesOrder)
                 .Where(osr => osr.IsActive)
                 .Where(osr => osr.ServiceOrderId == request.ServiceOrderId)
-                .Where(osr => osr.ServicesOrder.OperationalOrderId == request.OperationalOrderId)
                 .AsNoTracking();
 
             var totalRecords = await serviceOrdersRequisitionsQuery.CountAsync(cancellationToken);

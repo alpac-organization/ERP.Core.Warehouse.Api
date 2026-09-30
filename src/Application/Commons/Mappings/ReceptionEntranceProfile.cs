@@ -1,5 +1,7 @@
 using AutoMapper;
+using ERP.Core.Database.Domain.Entities.Operations;
 using ERP.Core.Database.Domain.Entities.Warehouse;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 using Commands = ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 
@@ -33,7 +35,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             return new()
             {
                 IsActive = true,
-                Id = Guid.NewGuid(),
+                Id = Guid.NewGuid(),                
                 SealNumber = command.GeneralInformation.SealNumber,
                 CountryOfOrigin = command.GeneralInformation.CountryOrigin,
                 CustomBranchId = command.GeneralInformation.CustomBranchId,
@@ -73,8 +75,23 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 ImageUrl = imageUrl
             };
         }
-
+        
         #endregion
+
+        public static AssignmentOperational FromReceptionToAssignmentOperationalEntity(this Commands.CustomsDeclarationInformation command)
+        {
+            return new()
+            {
+                Id = Guid.NewGuid(),
+                IsActive = true,
+                Status = AssignmentOperationalStatus.Pending,
+                Observations = command.Observations,
+                WarehouseId = null,
+                Category = MerchandiseCategory.None,
+                DestinationType = DestinationType.None,
+                MerchandiseDescription = command.ProductDescription,
+            };
+        }
     }
 }
 

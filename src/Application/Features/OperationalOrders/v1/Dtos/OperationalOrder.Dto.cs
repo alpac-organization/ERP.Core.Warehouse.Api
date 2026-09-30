@@ -10,7 +10,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Dtos
         public string? DocumentNumber { get; set; }
         public OperationalOrderStatus Status { get; set; }
         
-        public CustomerInformation CustomerInformation { get; set; } = new();
-        public CostCenterInformation CostCenterInformation { get; set; } = new();
+        public CustomerInformation? CustomerInformation { get; set; }
+        public CostCenterInformation? CostCenterInformation { get; set; }
     }
 }

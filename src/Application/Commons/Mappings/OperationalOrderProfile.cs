@@ -17,7 +17,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(dest => dest.CostCenterInformation, opt => opt.MapFrom(src => src.CostCenter));
 
             CreateMap<OperationalOrder, OperationalOrderDetailsDto>()
-                .IncludeBase<OperationalOrder, OperationalOrderDto>();
+                .IncludeBase<OperationalOrder, OperationalOrderDto>()
+                .ForPath(dest => dest.ReceptionEntranceInformation, opt => opt.MapFrom(src => src.Reception));
         }
     }
 
@@ -25,9 +26,12 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
     {
         public static OperationalOrder ToOperationalOrderEntity(this Command command, Guid costCenterId)
         {
+            bool IsConsolidated = command.GeneralInformation.DucatNumbers.Count > 1;
+            
             return new()
             {
                 Id = Guid.NewGuid(),
+                IsConsolidated = IsConsolidated,
                 CostCenterId = costCenterId,
                 Status = OperationalOrderStatus.PendingDocument,
                 CompanyId = command.CompanyId,
