@@ -3,11 +3,11 @@ using ERP.Core.Application.Commons.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Queries;
 using FluentValidation;
 
-namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Validators;    
+namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Validators;
 
-public class GetAssignmentMachineryValidator : BaseRequestValidator<GetAssignmentMachineryQuery>
+public class GetAssignmentCollaboratorsValidator : BaseRequestValidator<GetAssignmentCollaboratorsQuery>
 {
-    public GetAssignmentMachineryValidator()
+    public GetAssignmentCollaboratorsValidator()
     {
         RuleFor(x => x.OperationalOrderId)
                 .NotEmpty()

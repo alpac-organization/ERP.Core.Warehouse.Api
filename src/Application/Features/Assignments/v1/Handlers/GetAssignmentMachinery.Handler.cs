@@ -17,6 +17,23 @@ public class GetAssignmentMachineryHandler(IUnitOfWork _unitOfWork, IErrorManage
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode!, ct);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
+        var assignmentOperational = await _unitOfWork.AssignmentOperationals.Entities
+            .Include(ao => ao.OperationalOrder)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(ao => ao.Id == request.AssignmentId, ct);
+
+        if (assignmentOperational is null)
+            return _errorManager.ThrowBadRequest<PagedResponse<GetAssignmentMachineryDto>>(
+                "La asignacion operativa seleccionada no existe", "ERP:ASSIGNMENT_OPERATIONAL_NOT_FOUND");
+
+        if (assignmentOperational.OperationalOrderId != request.OperationalOrderId)
+            return _errorManager.ThrowBadRequest<PagedResponse<GetAssignmentMachineryDto>>(
+                "La asignacion operativa no pertenece a la orden operativa indicada", "ERP:ASSIGNMENT_OPERATIONAL_ORDER_MISMATCH");
+
+        if (assignmentOperational.OperationalOrder.CompanyId != request.CompanyId)
+            return _errorManager.ThrowForbidden<PagedResponse<GetAssignmentMachineryDto>>(
+                "No tienes acceso a la asignacion operativa seleccionada", "ERP:ASSIGNMENT_OPERATIONAL_COMPANY_MISMATCH");
+
         var assignQuery = _unitOfWork.AssignmentsMachineries.Entities
             .Where(am => am.AssignmentOperationalId == request.AssignmentId)
             .Where(am => am.IsActive && am.DeletedAt == null)

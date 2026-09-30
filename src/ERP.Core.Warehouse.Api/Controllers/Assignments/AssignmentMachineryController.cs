@@ -25,6 +25,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
         public async Task<PagedResponse<GetAssignmentMachineryDto>> GetAssignmentMachineryAsync(
             [FromRoute] Guid company_id,
             [FromRoute] string module_code,
+            [FromRoute] Guid operational_order_id,
             [FromRoute] Guid assignment_id,
             [FromQuery] int page_number = 1,
             [FromQuery] int page_size = 10)
@@ -36,11 +37,11 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
                 CompanyId = company_id,
                 ModuleCode = module_code,
                 UserId = Guid.Parse(userIdStr ?? ""),
+                OperationalOrderId = operational_order_id,
                 AssignmentId = assignment_id,
                 PageNumber = page_number,
-                PageSize = page_size                
+                PageSize = page_size
             });
-            
         }
 
         [Tags("Asignaciones operacionales")]
@@ -49,20 +50,21 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> AssignMachinery(
-            [FromRoute(Name = "company_id")] Guid companyId,
-            [FromRoute(Name = "module_code")] string moduleCode,
-            [FromRoute(Name = "operational_order_id")] Guid operationalOrderId,
-            [FromRoute(Name = "assignment_id")] Guid assignmentId,
-            [FromBody] CreateAssignmentMachineryCommand command,
-            CancellationToken cancellationToken = default)
+            [FromRoute] Guid company_id,
+            [FromRoute] string module_code,
+            [FromRoute] Guid operational_order_id,
+            [FromRoute] Guid assignment_id,
+            [FromBody] CreateAssignmentMachineryCommand command)
         {
-            command.CompanyId = companyId;
-            command.ModuleCode = moduleCode;
-            command.OperationalOrderId = operationalOrderId;
-            command.AssignmentOperationalId = assignmentId;
-            command.UserId = CurrentUserId;
+            var userIdStr = HttpContext.Items["UserId"] as string;
 
-            var result = await mediator.Send(command, cancellationToken);
+            command.CompanyId = company_id;
+            command.ModuleCode = module_code;
+            command.OperationalOrderId = operational_order_id;
+            command.AssignmentOperationalId = assignment_id;
+            command.UserId = Guid.Parse(userIdStr ?? "");
+
+            var result = await mediator.Send(command);
 
             return Ok(result);
         }
