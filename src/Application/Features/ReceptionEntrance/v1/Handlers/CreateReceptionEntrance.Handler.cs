@@ -12,6 +12,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
+using ERP.Core.Database.Domain.Entities.Operations;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers
 {
@@ -107,8 +108,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                     var operationOrderEntity = OperationalOrderMapper.ToOperationalOrderEntity(request, access.Profile.CostCenterId);
                     operationOrderEntity.ReceptionId = receptionEntranceEntity.Id;
 
+                    AssignmentOperational? assignmentOperational = null; 
+
                     if (request.CustomsDeclarationInformation is not null)
                     {
+                        assignmentOperational = ReceptionEntranceMapper.FromReceptionToAssignmentOperationalEntity(request.CustomsDeclarationInformation);
+   
                         //Verifiquemos si esta fuera de horario de ventanilla para poder dejarlo insertar esta información.     
                         if (!IsWithinAllowedCustomsWindow(DateTime.Now.TimeOfDay))
                         {
@@ -119,8 +124,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                         }
     
                         operationOrderEntity.Weight = request.CustomsDeclarationInformation.TotalWeight;
-                        operationOrderEntity.PackagesCount = request.CustomsDeclarationInformation.PackageNumber;
-                        operationOrderEntity.Description = request.CustomsDeclarationInformation.ProductDescription;
+                        operationOrderEntity.PackagesCount = request.CustomsDeclarationInformation.PackageNumber;                        
                     }
 
                     operationOrderEntity.DocumentNumber = request.GeneralInformation.CustomsDeclarationNumber;
@@ -135,6 +139,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                     operationOrderEntity.PoCode = PoCode;
                     
                     await _unitOfWork.OperationalOrders.RegisterOperationalOrder(operationOrderEntity);
+
+                    if (assignmentOperational is not null)
+                    {
+                        operationOrderEntity.HasAssignmentOperationalActive = true;
+                        assignmentOperational.OperationalOrderId = operationOrderEntity.Id;
+                        await _unitOfWork.AssignmentOperationals.RegisterAssignmentOperational(assignmentOperational);   
+                    }
+
                     await _unitOfWork.SaveChangesAsync(cancellationToken);
                     break;   
                 }

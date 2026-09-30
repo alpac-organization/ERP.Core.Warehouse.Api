@@ -40,5 +40,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Comma
         public decimal TotalWeight { get; set; }
         public decimal PackageNumber { get; set; }
         public string? ProductDescription { get; set; }
+        public string? Observations { get; set; }
     }
 }
