@@ -27,7 +27,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             // get de asignamiento de colaboradores
             CreateMap<AssignmentCollaborators, GetAssignmentCollaboratorsDto>()
                 .ForMember(dest => dest.AssignmentCollaboratorId, opt => opt.MapFrom(src => src.Id))
-                .ForMember(dest => dest.CollaboratorName, opt => opt.MapFrom(src => string.Join(" ",
+                .ForPath(dest => dest.CollaboratorInformation.CollaboratorName, opt => opt.MapFrom(src => string.Join(" ",
                     new[]
                     {
                         src.Collaborator.FirstName,
@@ -35,7 +35,9 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                         src.Collaborator.FirstLastname,
                         src.Collaborator.SecondLastname
                     }.Where(part => !string.IsNullOrWhiteSpace(part)))))
-                .ForMember(dest => dest.CreatedByUserName, opt => opt.MapFrom(src => src.User.UserName));
+                .ForMember(dest => dest.CreatedByUserName, opt => opt.MapFrom(src => src.User.UserName))
+                .ForPath(dest => dest.CollaboratorInformation.WorkAreaName, opt => opt.MapFrom(src => src.Collaborator.WorkingInformation.Area.WorkAreaName))
+                .ForPath(dest => dest.CollaboratorInformation.JobPositionName, opt => opt.MapFrom(src => src.Collaborator.WorkingInformation.JobPosition.JobPositionName));
             #endregion
         }
     }

@@ -37,7 +37,8 @@ public class GetAssignmentCollaboratorsHandler(IUnitOfWork _unitOfWork, IErrorMa
                 "No tienes acceso a la asignacion operativa seleccionada", "ERP:ASSIGNMENT_OPERATIONAL_COMPANY_MISMATCH");
 
         var assignQuery = _unitOfWork.AssignmentCollaborators.Entities
-            .Include(ac => ac.Collaborator)
+            .Include(ac => ac.Collaborator).ThenInclude(c => c.WorkingInformation).ThenInclude(w => w.Area)
+            .Include(ac => ac.Collaborator).ThenInclude(c => c.WorkingInformation).ThenInclude(w => w.JobPosition)
             .Include(ac => ac.User)
             .Where(ac => ac.AssignmentOperationalId == request.AssignmentId)
             .Where(ac => ac.IsActive && ac.DeletedAt == null)

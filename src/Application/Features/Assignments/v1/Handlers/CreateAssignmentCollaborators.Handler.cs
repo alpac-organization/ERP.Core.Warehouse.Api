@@ -16,7 +16,7 @@ public class CreateAssignmentCollaboratorsHandler(IUnitOfWork unitOfWork, IError
 {
     public override async Task<Unit> Handle(CreateAssignmentCollaboratorsCommand request, CancellationToken cancellationToken)
     {
-        logger.LogInformation("🛫 Iniciando asignamiento de Colaboradores.");
+        logger.LogInformation("👷‍♂️​ Iniciando asignamiento de Colaboradores.");
 
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
 
@@ -35,6 +35,37 @@ public class CreateAssignmentCollaboratorsHandler(IUnitOfWork unitOfWork, IError
         if (assignmentOperational.OperationalOrder.CompanyId != request.CompanyId)
             return _errorManager.ThrowForbidden<Unit>("No tienes acceso a la asignacion operativa seleccionada", "ERP:ASSIGNMENT_OPERATIONAL_COMPANY_MISMATCH");
 
+        var collaboratorIds = request.Collaborators.Distinct().ToList();
+
+        var existingIds = await _unitOfWork.Collaborators.Entities
+            .AsNoTracking()
+            .Where(c => collaboratorIds.Contains(c.Id)
+                && c.WorkingInformation != null
+                && c.WorkingInformation.BranchId == access.Profile.BranchId)
+            .Select(c => c.Id)
+            .ToListAsync(cancellationToken);
+
+        var missing = collaboratorIds.Except(existingIds).ToList();
+
+        if (missing.Count > 0)
+            return _errorManager.ThrowBadRequest<Unit>(
+                $"El colaborador indicado no existe o no pertenece a la sucursal: {string.Join(", ", missing)}",
+                "ERP:COLLABORATOR_NOT_FOUND");
+
+        var alreadyAssignedIds = await _unitOfWork.AssignmentCollaborators.Entities
+            .AsNoTracking()
+            .Where(ac => ac.AssignmentOperationalId == request.AssignmentOperationalId
+                && collaboratorIds.Contains(ac.CollaboratorId))
+            .Select(ac => ac.CollaboratorId)
+            .ToListAsync(cancellationToken);
+
+        var duplicates = collaboratorIds.Intersect(alreadyAssignedIds).ToList();
+
+        if (duplicates.Count > 0)
+            return _errorManager.ThrowBadRequest<Unit>(
+                $"Uno o más colaboradores ya fueron asignados a esta asignacion operativa",
+                "ERP:COLLABORATOR_ALREADY_ASSIGNED");
+
         var entities = request.ToAssignmentCollaboratorsEntities(assignmentOperational.OperationalOrderId);
 
         foreach (var entity in entities)
@@ -47,7 +78,7 @@ public class CreateAssignmentCollaboratorsHandler(IUnitOfWork unitOfWork, IError
         await _unitOfWork.AssignmentOperationals.UpdateAsync(assignmentOperational);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation("Se asignaron {Count} colaborador(es) a la asignacion operativa {AssignmentOperationalId}", entities.Count, request.AssignmentOperationalId);
+        logger.LogInformation("👷‍♂️​ Se asignaron {Count} colaborador(es) a la asignacion operativa {AssignmentOperationalId}", entities.Count, request.AssignmentOperationalId);
 
         return Unit.Value;
     }
