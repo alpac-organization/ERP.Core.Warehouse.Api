@@ -33,6 +33,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
                     .ThenInclude(m => m.Machinery)
                 .Include(ao => ao.AssignmentCollaborators)
                     .ThenInclude(c => c.Collaborator)
+                .Include(ao => ao.Warehouse)
+                .Include(ao => ao.OperationalOrder)
                 .AsSplitQuery()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(ao => ao.Id == request.AssignmentId, cancellationToken);

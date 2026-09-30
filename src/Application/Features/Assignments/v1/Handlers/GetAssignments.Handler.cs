@@ -30,6 +30,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
 
             var assignmentsQuery = _unitOfWork.AssignmentOperationals.Entities
                 .Include(ao => ao.OperationalOrder)
+                .Include(ao => ao.Warehouse)
                 .AsSplitQuery()
                 .AsNoTracking()
                 .Where(ao => ao.OperationalOrderId == request.OperationalOrderId);
