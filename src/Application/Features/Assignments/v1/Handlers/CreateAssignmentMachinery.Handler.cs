@@ -35,6 +35,21 @@ public class CreateAssignmentMachineryHandler(IUnitOfWork unitOfWork, IErrorMana
         if (assignmentOperational.OperationalOrder.CompanyId != request.CompanyId)
             return _errorManager.ThrowForbidden<Unit>("No tienes acceso a la asignacion operativa seleccionada", "ERP:ASSIGNMENT_OPERATIONAL_COMPANY_MISMATCH");
 
+        var machineryIds = request.Machinery.Distinct().ToList();
+
+        var existingIds = await _unitOfWork.Machineries.Entities
+            .AsNoTracking()
+            .Where(m => machineryIds.Contains(m.Id) && m.IsActive && m.DeletedAt == null)
+            .Select(m => m.Id)
+            .ToListAsync(cancellationToken);
+
+        var missing = machineryIds.Except(existingIds).ToList();
+
+        if (missing.Count > 0)
+            return _errorManager.ThrowBadRequest<Unit>(
+                $"La maquinaria indicada no existe o no está activa: {string.Join(", ", missing)}",
+                "ERP:MACHINERY_NOT_FOUND");
+
         var entities = request.ToAssignmentsMachineryEntities();
 
         foreach (var entity in entities)

@@ -16,6 +16,7 @@ public class RackProfile : Profile
             .ForMember(dest => dest.Height, opt => opt.MapFrom(src => src.RackCapacity != null ? src.RackCapacity.Height : null))
             .ForMember(dest => dest.PositionX, opt => opt.MapFrom(src => src.RacksCoordinates != null ? src.RacksCoordinates.PositionX : 0m))
             .ForMember(dest => dest.PositionY, opt => opt.MapFrom(src => src.RacksCoordinates != null ? src.RacksCoordinates.PositionY : 0m))
+            .ForMember(dest => dest.PositionZ, opt => opt.MapFrom(src => src.RacksCoordinates != null ? src.RacksCoordinates.PositionZ : 0m))
             .ForMember(dest => dest.RotationY, opt => opt.MapFrom(src => src.RacksCoordinates != null ? src.RacksCoordinates.RotationY : 0m))
             .ForMember(dest => dest.TotalPositions, opt => opt.MapFrom(src => src.Positions.Count))
             .ForMember(dest => dest.OccupiedPositions, opt => opt.MapFrom(src => src.Positions.Count(p => p.Status == RackStatus.Occupied)))
