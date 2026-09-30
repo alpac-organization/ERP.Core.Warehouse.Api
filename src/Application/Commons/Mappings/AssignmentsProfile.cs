@@ -1,14 +1,28 @@
+using AutoMapper;
 using ERP.Core.Database.Domain.Entities.Operations;
-
+using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Dtos;
 using Commands = ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
-    public static class AssignmentsMapper
+    public class AssignmentsProfile : Profile
     {
-        #region Maquinaria
+        public AssignmentsProfile()
+        {
+            // Get de asignamientos de maquinaria
+            CreateMap<AssignmentsMachinery, GetAssignmentMachineryDto>();
 
-        public static List<AssignmentsMachinery> ToAssignmentsMachineryEntities(this Commands.CreateAssignmentMachineryCommand command)
+            // get de asignamiento de colaboradores
+            CreateMap<AssignmentCollaborators, GetAssignmentCollaboratorsDto>()
+                .ForMember(dest => dest.CollaboratorName)
+        }
+    }
+
+    public static class AssignmentsMappingExtensions
+    {
+        #region Post Maquinaria
+        public static List<AssignmentsMachinery> ToAssignmentsMachineryEntities(
+            this Commands.CreateAssignmentMachineryCommand command)
         {
             return [.. command.Machinery
                 .Distinct()
@@ -22,12 +36,12 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                     AssignmentOperationalId = command.AssignmentOperationalId
                 })];
         }
-
         #endregion
 
-        #region Colaboradores
-
-        public static List<AssignmentCollaborators> ToAssignmentCollaboratorsEntities(this Commands.CreateAssignmentCollaboratorsCommand command, Guid operationalOrderId)
+        #region Post Colaboradores
+        public static List<AssignmentCollaborators> ToAssignmentCollaboratorsEntities(
+            this Commands.CreateAssignmentCollaboratorsCommand command,
+            Guid operationalOrderId)
         {
             return [.. command.Collaborators
                 .Distinct()
@@ -42,7 +56,6 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                     AssignmentOperationalId = command.AssignmentOperationalId
                 })];
         }
-
         #endregion
     }
 }

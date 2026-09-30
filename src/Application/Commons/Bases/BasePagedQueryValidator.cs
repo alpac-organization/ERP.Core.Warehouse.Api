@@ -1,6 +1,7 @@
 using FluentValidation;
 using ERP.Core.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
+using ERP.Core.Application.Commons.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Bases;
 
