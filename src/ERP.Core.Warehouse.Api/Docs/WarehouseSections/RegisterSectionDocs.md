@@ -10,7 +10,7 @@ Endpoint para registrar una sección dentro de un almacén de una compañía/mó
 |-------|-------|
 | **Método**      | `POST` |
 | **Endpoint**    | `/api/v1/companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections` |
-| **Descripción** | Registra una sección en el almacén, genera su código (`GenerateUniqueSectionCodeAsync`), calcula y persiste su capacidad (`section_capacity`) y actualiza la capacidad del almacén (`warehouse_capacity`). |
+| **Descripción** | Registra una sección en el almacén, genera su código (`GenerateUniqueSectionCodeAsync`), persiste sus coordenadas (`section_coordinates`), calcula y persiste su capacidad (`section_capacity`) y actualiza la capacidad del almacén (`warehouse_capacity`). |
 
 ---
 
@@ -43,6 +43,10 @@ Endpoint para registrar una sección dentro de un almacén de una compañía/mó
 | `width`                               | `decimal`                   | Sí          | Ancho (metros). Debe ser mayor a cero. Máximo 2 decimales. |
 | `length`                              | `decimal`                   | Sí          | Largo (metros). Debe ser mayor a cero. Máximo 2 decimales. |
 | `maximum_number_of_pallets_per_level` | `integer`                   | Condicional | Solo aplica con `Aisle` + `Pallets`: obligatorio y mayor a cero. No debe enviarse con `None` ni en secciones `Storage`. |
+| `position_x`                          | `decimal`                   | Sí          | Coordenada X. Máximo 6 decimales. |
+| `position_y`                          | `decimal`                   | Sí          | Coordenada Y. Máximo 6 decimales. |
+| `position_z`                          | `decimal`                   | Sí          | Coordenada Z. Máximo 6 decimales. |
+| `rotation_y`                          | `decimal`                   | Sí          | Rotación en Y. Entre `0` y `360`. Máximo 6 decimales. |
 
 ### Combinaciones válidas
 
@@ -60,7 +64,11 @@ Ejemplo sección de almacenamiento (racks):
   "section_type": "Storage",
   "section_storage_type": "Racks",
   "width": 20.00,
-  "length": 25.00
+  "length": 25.00,
+  "position_x": 1.00,
+  "position_y": 2.00,
+  "position_z": 0.00,
+  "rotation_y": 90.00
 }
 ```
 
@@ -71,7 +79,11 @@ Ejemplo sección de tramos:
   "section_type": "Storage",
   "section_storage_type": "Lots",
   "width": 20.00,
-  "length": 25.00
+  "length": 25.00,
+  "position_x": 1.00,
+  "position_y": 2.00,
+  "position_z": 0.00,
+  "rotation_y": 0.00
 }
 ```
 
@@ -83,7 +95,11 @@ Ejemplo pasillo con polines:
   "section_storage_type": "Pallets",
   "width": 3.50,
   "length": 40.00,
-  "maximum_number_of_pallets_per_level": 2
+  "maximum_number_of_pallets_per_level": 2,
+  "position_x": 1.00,
+  "position_y": 2.00,
+  "position_z": 0.00,
+  "rotation_y": 90.00
 }
 ```
 
@@ -94,7 +110,11 @@ Ejemplo pasillo sin almacenamiento:
   "section_type": "Aisle",
   "section_storage_type": "None",
   "width": 3.50,
-  "length": 40.00
+  "length": 40.00,
+  "position_x": 1.00,
+  "position_y": 2.00,
+  "position_z": 0.00,
+  "rotation_y": 0.00
 }
 ```
 
@@ -111,6 +131,7 @@ El recurso se creó correctamente. El cuerpo de la respuesta puede ir vacío.
 | Campo / regla | Descripción |
 |---|---|
 | Código automático | Generado con `ICodeGenerator.GenerateUniqueSectionCodeAsync`. Prefijos: `SR` (racks), `ST` (tramos), `SP` (pasillos). Secuencia por almacén con 2 dígitos. |
+| Coordenadas | `position_x`, `position_y`, `position_z` y `rotation_y` son obligatorios. Se persisten en `section_coordinates` en el mismo guardado. Máximo 6 decimales. `rotation_y` entre `0` y `360`. |
 | Capacidad de sección | Se calcula con `width`, `length` y `section_type` y se persiste en `section_capacity`. |
 | Capacidad de almacén | El almacén **debe** tener `warehouse_capacity`. Se actualiza tras el cálculo. |
 | Rol | Solo `Administrator`. Otros roles: `No tienes permiso para realizar esta acción`. |

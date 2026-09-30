@@ -10,7 +10,7 @@ Endpoint para listar (con paginación y filtros) las secciones de un almacén.
 |-------|-------|
 | **Método**      | `GET` |
 | **Endpoint**    | `/api/v1/companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections` |
-| **Descripción** | Retorna un listado paginado de secciones del almacén indicado, con filtros opcionales por código, tipo, tipo de almacenaje y estado. Incluye el porcentaje de área disponible. |
+| **Descripción** | Retorna un listado paginado de secciones del almacén indicado, con filtros opcionales por código, tipo, tipo de almacenaje y estado. Incluye capacidad (área total/disponible/%), dimensiones y coordenadas de layout. |
 
 ---
 
@@ -60,7 +60,15 @@ Retorna un `PagedResponse<SectionDto>`.
       "section_type": "Storage",
       "section_storage_type": "Lots",
       "is_active": true,
-      "percentage_available_area": 84.00
+      "width": 20.00,
+      "length": 10.00,
+      "total_area": 200.00,
+      "available_area": 50.00,
+      "percentage_available_area": 25.00,
+      "position_x": 12.50,
+      "position_y": 0.00,
+      "position_z": 8.00,
+      "rotation_y": 90.00
     }
   ],
   "page_number": 1,
@@ -74,7 +82,11 @@ Retorna un `PagedResponse<SectionDto>`.
 | Campo / regla | Descripción |
 |---|---|
 | Orden | Por `created_at` descendente. |
-| `percentage_available_area` | Mapeado desde `section_capacity.percentage_available_area_with_margin_m2`. |
+| `total_area` | Mapeado desde `section_capacity.total_area_m2` (Capacidad del progress). |
+| `available_area` | Mapeado desde `section_capacity.available_area_with_margin_m2` (Disponible del progress). |
+| `percentage_available_area` | Mapeado desde `section_capacity.percentage_available_area_with_margin_m2`. El % usado en UI es `100 - percentage_available_area`. |
+| `width` / `length` | Dimensiones desde `section_capacity`. |
+| `position_x` / `position_y` / `position_z` / `rotation_y` | Desde `section_coordinates`. Son `null` si la sección no tiene coordenadas registradas. |
 | Eliminadas | Excluye secciones con `deleted_at` informado. |
 | `is_active` omitido | Filtra `is_active = true`. |
 | Almacén inválido | `El almacén indicado no existe o no está activo.` |

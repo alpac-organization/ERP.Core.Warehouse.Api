@@ -28,8 +28,8 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
       /*
          POST: registra una sección en un almacén que ya tiene capacidad.
       */
-      [TestCase("ALPAC", "ALM-MAN-2KE4")]
-      public async Task RegisterSectionWhenIsSucess(string companyAlias, string moduleCode)
+      [TestCaseSource(nameof(SectionCoordinateCases))]
+      public async Task RegisterSectionWhenIsSucess(string companyAlias, string moduleCode, decimal positionX, decimal positionY, decimal positionZ, decimal rotationY)
       {
          // 1. Usuario con acceso de administrador al módulo         
          var (companyId, userId, token) = await ArrangeUserWithRole(RoleType.Administrator, companyAlias, moduleCode);
@@ -73,63 +73,20 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
 
          // 3. Body de la petición
          var payload = new Dictionary<string, object>
-         {            
+         {
             ["section_type"] = 1,
             ["section_storage_type"] = 1,
             ["width"] = 25,
-            ["length"] = 25
-         };
-
-         var url = SectionBaseUrl(companyId, moduleCode, warehouseId);
-         var response = await SendRequestAsync(HttpMethod.Post, url, token, payload);
-
-         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
-      }
-
-      /*
-         POST: registra coordenadas de una sección existente.
-      */
-      [TestCaseSource(nameof(SectionCoordinateCases))]
-      public async Task RegisterSectionCoordinatesWhenIsSuccess(string companyAlias, string moduleCode, decimal positionX, decimal positionY, decimal positionZ, decimal rotationY)
-      {
-         // 1. Usuario con acceso de administrador al módulo         
-         var (companyId, userId, token) = await ArrangeUserWithRole(RoleType.Administrator, companyAlias, moduleCode);
-
-         // 2. Almacén y sección sobre la que se van a guardar coordenadas
-         var warehouse = new Warehouses
-         {
-            Code = "WH-TEST-01",
-            WarehouseType = WarehouseType.Fiscal,
-            IsActive = true,
-         };
-
-         var warehouseId = await CreateWarehouse(warehouse);
-
-         var section = new Sections()
-         {
-            Id = Guid.NewGuid(),
-            WarehouseId = warehouseId,
-            Code = "SECTION_002",
-            IsActive = true,
-            SectionType = SectionType.Storage,
-            SectionStorageType = SectionStorageType.Lots
-         };
-
-         var sectionId = await CreateSection(section);
-
-         var baseUrl = SectionBaseUrl(companyId, moduleCode, warehouseId);
-         var url = $"{baseUrl}/{sectionId}/coordinates";
-
-         // 3. Body de la petición
-         var payload = new Dictionary<string, object>
-         {
+            ["length"] = 25,
             ["position_x"] = positionX,
             ["position_y"] = positionY,
             ["position_z"] = positionZ,
             ["rotation_y"] = rotationY
          };
 
+         var url = SectionBaseUrl(companyId, moduleCode, warehouseId);
          var response = await SendRequestAsync(HttpMethod.Post, url, token, payload);
+
          Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
       }
 
@@ -303,7 +260,7 @@ namespace ERP.Core.Warehouse.Api.Test.Controllers
             sectionCodeAfter = "UPDATED_SECTION_002",
             widthAfter = 100,
             lengthAfter = 100
-         };         
+         };
 
          // 2. Almacén, capacidad de almacén y sección con su capacidad (el handler las exige)
          var warehouse = new Warehouses
