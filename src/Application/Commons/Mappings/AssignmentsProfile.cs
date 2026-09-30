@@ -15,6 +15,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 
             // get de asignamiento de colaboradores
             CreateMap<AssignmentCollaborators, GetAssignmentCollaboratorsDto>()
+                .ForMember(dest => dest.AssignmentCollaboratorId, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.CollaboratorName, opt => opt.MapFrom(src => string.Join(" ",
                     new[]
                     {

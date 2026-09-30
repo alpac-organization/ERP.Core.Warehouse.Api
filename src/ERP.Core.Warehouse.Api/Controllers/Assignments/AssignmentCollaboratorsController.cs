@@ -68,5 +68,34 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
 
             return Ok(result);
         }
+
+        [Tags("Asignaciones operacionales")]
+        [HttpDelete("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/assignments/{assignment_id}/collaborators/{assignment_collaborator_id}")]
+        [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<NoContentResult> DeleteAssignmentCollaboratorsAsync(
+            [FromRoute] Guid company_id,
+            [FromRoute] string module_code,
+            [FromRoute] Guid operational_order_id,
+            [FromRoute] Guid assignment_id,
+            [FromRoute] Guid assignment_collaborator_id)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            var payload = new DeleteAssignmentCollaboratorsCommand
+            {
+                CompanyId = company_id,
+                ModuleCode = module_code,
+                UserId = Guid.Parse(userIdStr ?? ""),
+                OperationalOrderId = operational_order_id,
+                AssignmentId = assignment_id,
+                AssignmentCollaboratorId = assignment_collaborator_id
+            };
+
+            await mediator.Send(payload);
+
+            return NoContent();
+        }
     }
 }
