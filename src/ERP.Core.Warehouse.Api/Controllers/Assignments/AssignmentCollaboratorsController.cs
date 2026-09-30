@@ -15,7 +15,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
     [HasToken]
     [ApiVersion("1.0")]
     [Route("api/v1/")]
-    public class AssignmentCollaboratorsController(IMediator mediator) : ApiControllerBase
+    public class AssignmentCollaboratorsController(IMediator _mediator) : BaseAssignmentResourceController(_mediator)
     {
         [Tags("Asignaciones operacionales")]
         [HttpGet("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/assignments/{assignment_id}/collaborators")]
@@ -32,16 +32,15 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
-            return await mediator.Send(new GetAssignmentCollaboratorsQuery
+            var query = new GetAssignmentCollaboratorsQuery
             {
-                CompanyId = company_id,
-                ModuleCode = module_code,
-                UserId = Guid.Parse(userIdStr ?? ""),
-                OperationalOrderId = operational_order_id,
                 AssignmentId = assignment_id,
                 PageNumber = page_number,
                 PageSize = page_size
-            });
+            };
+
+            return await QueryAsync<PagedResponse<GetAssignmentCollaboratorsDto>, GetAssignmentCollaboratorsQuery>(
+                query, Guid.Parse(userIdStr ?? ""), company_id, module_code, operational_order_id);
         }
 
         [Tags("Asignaciones operacionales")]
@@ -58,15 +57,9 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
-            command.CompanyId = company_id;
-            command.ModuleCode = module_code;
-            command.OperationalOrderId = operational_order_id;
             command.AssignmentOperationalId = assignment_id;
-            command.UserId = Guid.Parse(userIdStr ?? "");
 
-            await mediator.Send(command);
-
-            return Ok();
+            return await AssignAsync(command, Guid.Parse(userIdStr ?? ""), company_id, module_code, operational_order_id);
         }
 
         [Tags("Asignaciones operacionales")]
@@ -85,17 +78,11 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
 
             var payload = new DeleteAssignmentCollaboratorsCommand
             {
-                CompanyId = company_id,
-                ModuleCode = module_code,
-                UserId = Guid.Parse(userIdStr ?? ""),
-                OperationalOrderId = operational_order_id,
                 AssignmentId = assignment_id,
                 AssignmentCollaboratorId = assignment_collaborator_id
             };
 
-            await mediator.Send(payload);
-
-            return NoContent();
+            return await RemoveAsync(payload, Guid.Parse(userIdStr ?? ""), company_id, module_code, operational_order_id);
         }
     }
 }

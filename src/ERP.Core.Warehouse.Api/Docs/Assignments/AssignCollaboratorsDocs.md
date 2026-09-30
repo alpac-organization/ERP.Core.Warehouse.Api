@@ -68,18 +68,19 @@ Valores de `role`:
 
 ## Flujo del Handler (`CreateAssignmentCollaboratorsHandler`)
 
-1. `ValidateAccessAsync(user_id, company_id, module_code)`: valida que el usuario exista, esté activo, tenga perfil en la compañía y acceso al módulo. Si falla, responde `400`.
-2. Busca la asignación operativa con `Include(OperationalOrder)`. Si no existe: `ERP:ASSIGNMENT_OPERATIONAL_NOT_FOUND`.
-3. Verifica que `OperationalOrderId` coincida con el de la ruta: `ERP:ASSIGNMENT_OPERATIONAL_ORDER_MISMATCH`.
-4. Verifica que la orden operativa pertenezca a la compañía: `ERP:ASSIGNMENT_OPERATIONAL_COMPANY_MISMATCH` (`403`).
-5. **Valida sucursal:** consulta `collaborators` con `Include(WorkingInformation)` y filtra `WorkingInformation.BranchId == access.Profile.BranchId`. Los que no coinciden se reportan en `ERP:COLLABORATOR_NOT_FOUND`.
-6. **Valida duplicados:** busca filas en `assignment_collaborators` con el mismo `AssignmentOperationalId` y cualquiera de los `CollaboratorId` recibidos. Los que ya existen se reportan en `ERP:COLLABORATOR_ALREADY_ASSIGNED`.
-7. Mapea a entidades `AssignmentCollaborators` e inserta cada una con `created_by_user_id` tomado del token.
-8. Activa `has_collaborators_assigned` en la asignación operativa y guarda los cambios.
+1. `ValidateAssignmentAccessAsync(request, request.AssignmentOperationalId, ct, trackChanges: true)`, método heredado de `BaseAssignmentOperationalHandler<TRequest, TResponse>`: valida que el usuario exista, esté activo, tenga perfil en la compañía y acceso al módulo (`400` si falla), carga la asignación operativa con `Include(OperationalOrder)` y valida que exista (`ERP:ASSIGNMENT_OPERATIONAL_NOT_FOUND`), que pertenezca a la orden operativa de la ruta (`ERP:ASSIGNMENT_OPERATIONAL_ORDER_MISMATCH`) y que la orden sea de la compañía (`ERP:ASSIGNMENT_OPERATIONAL_COMPANY_MISMATCH`, `403`). Devuelve también `branchId` (`access.Profile.BranchId`), que es el valor que usa el paso 2.
+2. **Valida sucursal:** consulta `collaborators` con `Include(WorkingInformation)` y filtra `WorkingInformation.BranchId == branchId`. Los que no coinciden se reportan en `ERP:COLLABORATOR_NOT_FOUND`.
+3. **Valida duplicados:** busca filas en `assignment_collaborators` con el mismo `AssignmentOperationalId` y cualquiera de los `CollaboratorId` recibidos. Los que ya existen se reportan en `ERP:COLLABORATOR_ALREADY_ASSIGNED`.
+4. Mapea a entidades `AssignmentCollaborators` e inserta cada una con `created_by_user_id` tomado del token.
+5. Activa `has_collaborators_assigned` en la asignación operativa y guarda los cambios.
+
+> **`trackChanges: true`:** es obligatorio en los POST y DELETE porque la asignación operativa se modifica y se persiste con `UpdateAsync`. Los GET usan `trackChanges: false` (`AsNoTracking`) porque solo leen.
+
+> **Contexto de la request:** `company_id`, `module_code` y `operational_order_id` los inyecta `BaseAssignmentResourceController.AssignAsync` desde la ruta, y `user_id` lo lee el action de `HttpContext.Items["UserId"]` con `Guid.Parse` antes de delegar. `assignment_id` es el único que asigna el action, porque la command lo llama `AssignmentOperationalId`.
 
 > **Validación (FluentValidation):** el `CreateAssignmentCollaboratorsValidator` (`BaseRequestValidator`) valida `operational_order_id`, `assignment_id`, que `collaborators` no esté vacío, que ningún id sea `Guid.Empty` y que `role` sea un valor del enum.
 
-> **Alcance de la validación de sucursal:** la referencia es la **sucursal del perfil del usuario autenticado** (`access.Profile.BranchId`), no la de la bodega de la asignación. No se valida cargo (`JobPositionId`), área (`AreaId`), ni estado (`IsActive`, `HasBeenFired`, `Status`) del colaborador. La validación es solo de sucursal.
+> **Alcance de la validación de sucursal:** la referencia es la **sucursal del perfil del usuario autenticado** (`branchId`), no la de la bodega de la asignación. No se valida cargo (`JobPositionId`), área (`AreaId`), ni estado (`IsActive`, `HasBeenFired`, `Status`) del colaborador. La validación es solo de sucursal.
 
 ---
 

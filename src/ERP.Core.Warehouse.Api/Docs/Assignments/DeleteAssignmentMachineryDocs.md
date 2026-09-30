@@ -40,14 +40,15 @@ Endpoint para quitar (soft delete) una maquinaria de una asignación operativa.
 
 ## Flujo del Handler (`DeleteAssignmentMachineryHandler`)
 
-1. `ValidateAccessAsync(user_id, company_id, module_code)`: valida usuario, perfil de compañía y acceso al módulo. Si falla, responde `400`.
-2. Busca la asignación operativa con `Include(OperationalOrder)`. Si no existe: `ERP:ASSIGNMENT_OPERATIONAL_NOT_FOUND`.
-3. Verifica que `OperationalOrderId` coincida con el de la ruta: `ERP:ASSIGNMENT_OPERATIONAL_ORDER_MISMATCH`.
-4. Verifica que la orden operativa pertenezca a la compañía: `ERP:ASSIGNMENT_OPERATIONAL_COMPANY_MISMATCH` (`403`).
-5. Busca la asignación de maquinaria filtrando por `Id`, `AssignmentOperationalId`, `IsActive = true` y `DeletedAt IS NULL`. Si no existe: `ERP:ASSIGNMENT_MACHINERY_NOT_FOUND`.
-6. Consulta `hasRemainingMachinery`: si queda alguna otra maquinaria activa en la misma asignación operativa.
-7. Marca `is_active = false` y `deleted_at = now` en la fila.
-8. Actualiza `has_machinery_assigned` con el resultado del paso 6 y guarda los cambios.
+1. `ValidateAssignmentAccessAsync(request, request.AssignmentId, ct, trackChanges: true)`, método heredado de `BaseAssignmentOperationalHandler<TRequest, TResponse>`: valida que el usuario exista, esté activo, tenga perfil en la compañía y acceso al módulo (`400` si falla), carga la asignación operativa con `Include(OperationalOrder)` y valida que exista (`ERP:ASSIGNMENT_OPERATIONAL_NOT_FOUND`), que pertenezca a la orden operativa de la ruta (`ERP:ASSIGNMENT_OPERATIONAL_ORDER_MISMATCH`) y que la orden sea de la compañía (`ERP:ASSIGNMENT_OPERATIONAL_COMPANY_MISMATCH`, `403`).
+2. Busca la asignación de maquinaria filtrando por `Id`, `AssignmentOperationalId`, `IsActive = true` y `DeletedAt IS NULL`. Si no existe: `ERP:ASSIGNMENT_MACHINERY_NOT_FOUND`.
+3. Consulta `hasRemainingMachinery`: si queda alguna otra maquinaria activa en la misma asignación operativa.
+4. Marca `is_active = false` y `deleted_at = now` en la fila.
+5. Actualiza `has_machinery_assigned` con el resultado del paso 3 y guarda los cambios.
+
+> **`trackChanges: true`:** es obligatorio en los POST y DELETE porque la asignación operativa se modifica y se persiste con `UpdateAsync`. Los GET usan `trackChanges: false` (`AsNoTracking`) porque solo leen.
+
+> **Contexto de la request:** `company_id`, `module_code` y `operational_order_id` los inyecta `BaseAssignmentResourceController.RemoveAsync` desde la ruta, y `user_id` lo lee el action de `HttpContext.Items["UserId"]` con `Guid.Parse` antes de delegar. `assignment_id` y `assignment_machinery_id` se asignan en el action.
 
 > **Validación (FluentValidation):** el `DeleteAssignmentMachineryValidator` (`BaseRequestValidator`) valida `operational_order_id`, `assignment_id` y `assignment_machinery_id` no vacíos ni `Guid.Empty`.
 

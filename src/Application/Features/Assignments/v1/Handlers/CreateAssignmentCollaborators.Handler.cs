@@ -3,37 +3,26 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 using ERP.Core.Application.Commons.Interfaces;
-using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using ERP.Core.Warehouse.Api.Application.Commons.Bases;
+using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers;
 
 public class CreateAssignmentCollaboratorsHandler(IUnitOfWork unitOfWork, IErrorManager errorManager,
-    ILogger<CreateAssignmentCollaboratorsHandler> logger) : BaseValidatorHandler<CreateAssignmentCollaboratorsCommand, Unit>(unitOfWork, errorManager)
+    ILogger<CreateAssignmentCollaboratorsHandler> logger) : BaseAssignmentOperationalHandler<CreateAssignmentCollaboratorsCommand, Unit>(unitOfWork, errorManager)
 {
     public override async Task<Unit> Handle(CreateAssignmentCollaboratorsCommand request, CancellationToken cancellationToken)
     {
         logger.LogInformation("👷‍♂️​ Iniciando asignamiento de Colaboradores.");
 
-        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
+        var (isValid, assignmentOperational, branchId, error) = await ValidateAssignmentAccessAsync(
+            request, request.AssignmentOperationalId, cancellationToken, trackChanges: true);
 
-        if (!access.IsSuccess) return access.ErrorResponse!;
-
-        var assignmentOperational = await _unitOfWork.AssignmentOperationals.Entities
-            .Include(ao => ao.OperationalOrder)
-            .FirstOrDefaultAsync(ao => ao.Id == request.AssignmentOperationalId, cancellationToken);
-
-        if (assignmentOperational is null)
-            return _errorManager.ThrowBadRequest<Unit>("La asignacion operativa seleccionada no existe", "ERP:ASSIGNMENT_OPERATIONAL_NOT_FOUND");
-
-        if (assignmentOperational.OperationalOrderId != request.OperationalOrderId)
-            return _errorManager.ThrowBadRequest<Unit>("La asignacion operativa no pertenece a la orden operativa indicada", "ERP:ASSIGNMENT_OPERATIONAL_ORDER_MISMATCH");
-
-        if (assignmentOperational.OperationalOrder.CompanyId != request.CompanyId)
-            return _errorManager.ThrowForbidden<Unit>("No tienes acceso a la asignacion operativa seleccionada", "ERP:ASSIGNMENT_OPERATIONAL_COMPANY_MISMATCH");
+        if (!isValid) return error;
 
         var collaboratorIds = request.Collaborators.Distinct().ToList();
 
@@ -41,7 +30,7 @@ public class CreateAssignmentCollaboratorsHandler(IUnitOfWork unitOfWork, IError
             .AsNoTracking()
             .Where(c => collaboratorIds.Contains(c.Id)
                 && c.WorkingInformation != null
-                && c.WorkingInformation.BranchId == access.Profile.BranchId)
+                && c.WorkingInformation.BranchId == branchId)
             .Select(c => c.Id)
             .ToListAsync(cancellationToken);
 
@@ -66,7 +55,7 @@ public class CreateAssignmentCollaboratorsHandler(IUnitOfWork unitOfWork, IError
                 $"Uno o más colaboradores ya fueron asignados a esta asignacion operativa",
                 "ERP:COLLABORATOR_ALREADY_ASSIGNED");
 
-        var entities = request.ToAssignmentCollaboratorsEntities(assignmentOperational.OperationalOrderId);
+        var entities = request.ToAssignmentCollaboratorsEntities(assignmentOperational!.OperationalOrderId);
 
         foreach (var entity in entities)
         {

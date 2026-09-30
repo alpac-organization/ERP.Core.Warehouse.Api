@@ -56,6 +56,10 @@ Endpoint para consultar la maquinaria asignada a una asignación operativa.
 
 > **Validación (FluentValidation):** el `GetAssignmentMachineryValidator` (`BaseRequestValidator`) valida `operational_order_id`, `assignment_id`, `page_size > 0` y `page_number > 0`.
 
+> **Contexto de la request:** `company_id`, `module_code` y `operational_order_id` los inyecta `BaseAssignmentResourceController.QueryAsync` desde la ruta, y `user_id` lo lee el action de `HttpContext.Items["UserId"]` con `Guid.Parse` antes de delegar. `assignment_id`, `page_number` y `page_size` se asignan en el action.
+
+> Este handler **no** usa `BaseAssignmentOperationalHandler`: hace las validaciones del punto 1 al 4 inline porque solo lee y no necesita entidad tracked.
+
 > Los `Include` de `Machinery` y `User` son obligatorios: el mapeo ocurre en memoria después de materializar la entidad, así que sin ellos las rutas navegadas llegan `null` y el perfil de AutoMapper falla al construirse.
 
 ---

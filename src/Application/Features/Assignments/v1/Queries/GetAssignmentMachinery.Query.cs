@@ -3,9 +3,11 @@ using ERP.Core.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Dtos;
 
+using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
+
 namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Queries;
 
-public class GetAssignmentMachineryQuery : BaseRequest, IRequest<PagedResponse<GetAssignmentMachineryDto>>
+public class GetAssignmentMachineryQuery : BaseRequest, IRequest<PagedResponse<GetAssignmentMachineryDto>>, IAssignmentOperationalRequest
 {
     public Guid OperationalOrderId { get; set; }
     public Guid AssignmentId { get; set; }

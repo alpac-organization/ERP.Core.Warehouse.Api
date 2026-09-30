@@ -56,6 +56,10 @@ Endpoint para consultar los colaboradores asignados a una asignación operativa.
 
 > **Validación (FluentValidation):** el `GetAssignmentCollaboratorsValidator` (`BaseRequestValidator`) valida `operational_order_id`, `assignment_id`, `page_size > 0` y `page_number > 0`.
 
+> **Contexto de la request:** `company_id`, `module_code` y `operational_order_id` los inyecta `BaseAssignmentResourceController.QueryAsync` desde la ruta, y `user_id` lo lee el action de `HttpContext.Items["UserId"]` con `Guid.Parse` antes de delegar. `assignment_id`, `page_number` y `page_size` se asignan en el action.
+
+> Este handler **no** usa `BaseAssignmentOperationalHandler`: hace las validaciones del punto 1 al 4 inline porque solo lee y no necesita entidad tracked.
+
 > Los `Include` de la cadena son obligatorios: el mapeo ocurre en memoria después de materializar la entidad. `WorkingInformation` es una relación 1:1 y `Area` / `JobPosition` cuelgan de ella, así que sin los `ThenInclude` esas rutas llegan `null`.
 
 > Se usan dos `Include` separados sobre `Collaborator` porque EF Core no fusiona dos ramificaciones que arrancan en la misma navegación dentro de una sola cadena.
