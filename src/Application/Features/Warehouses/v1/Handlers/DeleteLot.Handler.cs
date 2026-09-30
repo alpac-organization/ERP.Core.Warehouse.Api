@@ -61,11 +61,10 @@ public class DeleteLotHandler(IUnitOfWork unitOfWork, IErrorManager errorManager
 
         var positionIds = positions.Select(p => p.Id).ToList();
 
-        var hasActiveStock = await _unitOfWork.StockPlacements.Entities
+        var hasActiveStock = await _unitOfWork.AssignmentStockPlacements.Entities
             .AnyAsync(
                 s => s.LotPositionId != null
                     && positionIds.Contains(s.LotPositionId.Value)
-                    && s.VacatedAtDate == null
                     && s.DeletedAt == null,
                 cancellationToken);
 

@@ -64,6 +64,5 @@ public class StockPlacementSummaryDto
     public string? CategoryName { get; set; }
     public decimal CurrentWeightKg { get; set; }
     public int CurrentBultos { get; set; }
-    public DateOnly PlacedAtDate { get; set; }
-    public TimeOnly PlacedAtTime { get; set; }
+    public DateTime PlacedAt { get; set; }
 }

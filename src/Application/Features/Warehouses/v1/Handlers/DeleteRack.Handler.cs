@@ -68,11 +68,10 @@ public class DeleteRackHandler(
 
         var positionIds = positions.Select(p => p.Id).ToList();
 
-        var hasActiveStock = await _unitOfWork.StockPlacements.Entities
+        var hasActiveStock = await _unitOfWork.AssignmentStockPlacements.Entities
             .AnyAsync(
                 s => s.RackPositionId != null
                     && positionIds.Contains(s.RackPositionId.Value)
-                    && s.VacatedAtDate == null
                     && s.DeletedAt == null,
                 cancellationToken);
 

@@ -73,11 +73,10 @@ public class UpdateRackHandler(
 
             if (positionIds.Count > 0)
             {
-                var hasActiveStock = await _unitOfWork.StockPlacements.Entities
+                var hasActiveStock = await _unitOfWork.AssignmentStockPlacements.Entities
                     .AnyAsync(
                         s => s.RackPositionId != null
                             && positionIds.Contains(s.RackPositionId.Value)
-                            && s.VacatedAtDate == null
                             && s.DeletedAt == null,
                         cancellationToken);
 

@@ -36,7 +36,7 @@ public class GetRackDetailsHandler(
             .Include(r => r.RackCapacity)
             .Include(r => r.RacksCoordinates)
             .Include(r => r.Positions.Where(p => p.DeletedAt == null))
-                .ThenInclude(p => p.StockPlacements.Where(sp => sp.VacatedAtDate == null && sp.DeletedAt == null))
+                .ThenInclude(p => p.AssignmentStockPlacements.Where(sp => sp.DeletedAt == null))
                     .ThenInclude(sp => sp.Stock)
                         .ThenInclude(st => st.Product)
             .FirstOrDefaultAsync(r => r.Id == request.RackId && r.SectionId == request.SectionId && r.DeletedAt == null, cancellationToken);
@@ -56,7 +56,7 @@ public class GetRackDetailsHandler(
                 var targetPosDto = dto.Positions.FirstOrDefault(p => p.PositionId == pos.Id);
                 if (targetPosDto == null) continue;
 
-                var activePlacement = pos.StockPlacements.FirstOrDefault(sp => sp.VacatedAtDate == null);
+                var activePlacement = pos.AssignmentStockPlacements.FirstOrDefault(sp => sp.DeletedAt == null);
                 if (activePlacement?.Stock != null)
                 {
                     targetPosDto.CurrentStock = new StockPlacementSummaryDto
@@ -66,8 +66,7 @@ public class GetRackDetailsHandler(
                         CategoryName = activePlacement.Stock.Product?.Code,
                         CurrentWeightKg = activePlacement.Stock.CurrentWeightKg,
                         CurrentBultos = activePlacement.Stock.CurrentBultos,
-                        PlacedAtDate = activePlacement.PlacedAtDate,
-                        PlacedAtTime = activePlacement.PlacedAtTime
+                        PlacedAt = activePlacement.PlacedAt
                     };
                 }
             }
