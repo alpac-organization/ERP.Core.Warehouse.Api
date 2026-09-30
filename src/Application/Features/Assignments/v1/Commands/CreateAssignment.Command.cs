@@ -12,7 +12,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Commands
         public string? Merchandise { get; set; }
         public string? MerchandiseDescription { get; set; }
         public DestinationType? DestinationType { get; set; }
-    
 
         public bool HasAssignedMachinery { get; set; } = false;
         public bool HasAssignedCollaborators { get; set; } = false;

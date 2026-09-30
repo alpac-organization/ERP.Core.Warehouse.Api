@@ -10,39 +10,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Validators
         {
             RuleFor(x => x.AssignmentId)
                 .NotEmpty().WithMessage("El ID de la asignación es requerido");
-
-            RuleFor(x => x.Status)
-                .IsInEnum().WithMessage("El estado debe ser un valor de enum válido")
-                .When(x => x.Status.HasValue);
-
-            When(x => x.Enclosure != null, () =>
-            {
-                RuleFor(x => x.Enclosure!.MerchandiseDescription)
-                    .NotEmpty().WithMessage("La descripción del producto es requerida en el recinto");
-            });
-
-            When(x => x.Machineries.Count > 0, () =>
-            {
-                RuleForEach(x => x.Machineries)
-                    .ChildRules(m => 
-                    {
-                        m.RuleFor(m => m.MachineryId)
-                            .NotEmpty().WithMessage("El ID de la maquinaria es requerido");
-                    });
-            });
-
-            When(x => x.Collaborators.Count > 0, () =>
-            {
-                RuleForEach(x => x.Collaborators)
-                    .ChildRules(c => 
-                    {
-                        c.RuleFor(c => c.CollaboratorId)
-                            .NotEmpty().WithMessage("El ID del colaborador es requerido");
-                        
-                        c.RuleFor(c => c.Role)
-                            .IsInEnum().WithMessage("El rol debe ser un valor de enum válido");
-                    });
-            });
         }
     }
 }
