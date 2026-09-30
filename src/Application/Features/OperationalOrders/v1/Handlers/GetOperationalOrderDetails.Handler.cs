@@ -26,31 +26,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
             {
                 return _errorManager.ThrowBadRequest<OperationalOrderDetailsDto>("No tienes acceso para verificar esta información", "ERP:INVALID_ACCESS");
             }
-
+            
             var operationalOrdersQuery = _unitOfWork.OperationalOrders.Entities
                 .Include(po => po.Customer)
+                .Include(po => po.Reception)
+                    .ThenInclude(reception => reception.ReceptionTransport)
                 .Include(po => po.CostCenter)
                 .Where(po => po.Id == request.OperationalOrderId);
-
-            switch (access.Role?.RoleType)
-            {
-                case RoleType.Administrator:
-                {
-                    operationalOrdersQuery = operationalOrdersQuery
-                        .Include(po => po.AssignmentOperationals);
-                        
-                    break;
-                }
-                case RoleType.Operator:
-                {
-
-                    break;   
-                }
-                default:
-                {
-                    break;   
-                }
-            }
 
             var operationalOrder = await operationalOrdersQuery
                 .FirstOrDefaultAsync(cancellationToken);

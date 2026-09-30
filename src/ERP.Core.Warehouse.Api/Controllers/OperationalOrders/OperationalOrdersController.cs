@@ -51,40 +51,48 @@ namespace ERP.Core.Warehouse.Api.Controllers.OperationalOrders
 
         [Tags("Solicitudes de compras")] 
         [HttpGet("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/details")]
-        [ProducesResponseType(typeof(PagedResponse<OperationalOrderDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(OperationalOrderDetailsDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<OkResult> GetOperationalOderDetailsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id)
+        public async Task<OperationalOrderDetailsDto> GetOperationalOderDetailsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
             
-
-            return Ok();
+            return await _mediator.Send(new GetOperationalOrderDetailsQuery()
+            {
+                CompanyId = company_id,
+                ModuleCode = module_code,
+                UserId = Guid.Parse(userIdStr ?? ""),
+                OperationalOrderId = operational_order_id
+            });
         }
 
         [Tags("Solicitudes de compras")] 
-        [HttpPut("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}")]
-        [ProducesResponseType(typeof(PagedResponse<OperationalOrderDto>), StatusCodes.Status200OK)]
+        [HttpPost("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/information")]
+        [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<OkResult> Async([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
+
             return Ok();
         }
 
+
         [Tags("Solicitudes de compras")] 
-        [HttpPut("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/assignment")]
+        [HttpPost("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}")]
         [ProducesResponseType(typeof(PagedResponse<OperationalOrderDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<OkResult> RecordAssignmentInformationAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id)
+        public async Task<OkResult> ReceptionInformationAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
-            
+
 
             return Ok();
-        }        
+        }
+
     }
 }

@@ -61,9 +61,14 @@ namespace ERP.Core.Warehouse.Api.Test
                     services.Remove(dbContextTesting);
                 }
 
-                //Agregar el contexto
+                //Agregar el contexto - use connection string with increased pool size
+                var connectionString = _container!.GetConnectionString();
+                if (!connectionString.Contains("Max Pool Size"))
+                {
+                    connectionString += ";Max Pool Size=200";
+                }
                 services.AddDbContext<ErpDbContext>(options =>
-                    options.UseNpgsql(_container!.GetConnectionString())
+                    options.UseNpgsql(connectionString)
                 );
             }); 
         }
@@ -121,6 +126,11 @@ namespace ERP.Core.Warehouse.Api.Test
 
                 //Establecemos la cadena de conexión de la base de datos del contenedor
                 string? connectionString = _container.GetConnectionString();
+                // Increase connection pool size to avoid exhaustion during tests
+                if (!connectionString.Contains("Max Pool Size"))
+                {
+                    connectionString += ";Max Pool Size=200";
+                }
                 Environment.SetEnvironmentVariable("ConnectionStrings__ErpConnectionDatabase", connectionString);
 
             }
@@ -146,12 +156,77 @@ namespace ERP.Core.Warehouse.Api.Test
         //Metodo para sembrar los datos base (compañías, áreas, sucursales, usuarios, perfiles).
         public async Task SeedDatabase()
         {
-            var scope = Services.CreateScope();
+            using var scope = Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ErpDbContext>();
+
+            // Ensure default cost center exists before seeding
+            var defaultCostCenterId = Guid.Parse("ffffffff-0000-0000-0000-000000000001");
+            var existingCostCenter = await dbContext.CostCenters.FindAsync(defaultCostCenterId);
+            
+            if (existingCostCenter == null)
+            {
+                // Get or create a work area to associate with the cost center
+                var workArea = await dbContext.WorkAreas.FirstOrDefaultAsync(w => w.IsActive);
+                if (workArea == null)
+                {
+                    // Get an existing company to associate with the work area
+                    var company = await dbContext.Companies.FirstOrDefaultAsync(c => c.IsActive);
+                    if (company != null)
+                    {
+                        workArea = new ERP.Core.Database.Domain.Entities.Catalogs.WorkArea
+                        {
+                            Id = Guid.NewGuid(),
+                            IsActive = true,
+                            WorkAreaName = "Default Work Area",
+                            WorkAreaCode = "WA-DEFAULT",
+                            CompanyId = company.Id
+                        };
+                        dbContext.WorkAreas.Add(workArea);
+                        await dbContext.SaveChangesAsync();
+                    }
+                }
+
+                if (workArea != null)
+                {
+                    var costCenter = new ERP.Core.Database.Domain.Entities.Catalogs.CostCenter
+                    {
+                        Id = defaultCostCenterId,
+                        IsActive = true,
+                        CostCenterName = "Default Cost Center",
+                        CostCenterCode = "CC-DEFAULT",
+                        CoilCode = 1,
+                        WorkAreaId = workArea.Id
+                    };
+                    dbContext.CostCenters.Add(costCenter);
+                    await dbContext.SaveChangesAsync();
+                }
+            }
 
             var data = ErpSeedDataFactory.CreateScenario();
             
-            await ErpDatabaseSeeder.SeedAsync(dbContext,data);
+            await ErpDatabaseSeeder.SeedAsync(dbContext, data);
+
+            // Re-ensure cost center exists after seeding (in case seeder truncated tables)
+            var costCenterAfterSeed = await dbContext.CostCenters.FindAsync(defaultCostCenterId);
+            if (costCenterAfterSeed == null)
+            {
+                var company = await dbContext.Companies.FirstOrDefaultAsync(c => c.IsActive);
+                var workArea = await dbContext.WorkAreas.FirstOrDefaultAsync(w => w.IsActive);
+                if (company != null && workArea != null)
+                {
+                    var costCenter = new ERP.Core.Database.Domain.Entities.Catalogs.CostCenter
+                    {
+                        Id = defaultCostCenterId,
+                        IsActive = true,
+                        CostCenterName = "Default Cost Center",
+                        CostCenterCode = "CC-DEFAULT",
+                        CoilCode = 1,
+                        WorkAreaId = workArea.Id
+                    };
+                    dbContext.CostCenters.Add(costCenter);
+                    await dbContext.SaveChangesAsync();
+                }
+            }
         }
     }
 }

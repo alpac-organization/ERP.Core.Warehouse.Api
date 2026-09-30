@@ -58,7 +58,8 @@ public class OperationalServicesController(IMediator mediator) : ApiControllerBa
         command.ModuleCode = module_code;
         command.UserId = Guid.Parse(userIdStr ?? "");
 
-        var result = await mediator.Send(command);
-        return Ok(Unit.Value);
+        await mediator.Send(command);
+        
+        return Ok();
     }
 }
