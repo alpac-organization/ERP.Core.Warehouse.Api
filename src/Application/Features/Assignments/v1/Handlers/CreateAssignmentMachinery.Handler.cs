@@ -16,7 +16,7 @@ public class CreateAssignmentMachineryHandler(IUnitOfWork unitOfWork, IErrorMana
 {
     public override async Task<Unit> Handle(CreateAssignmentMachineryCommand request, CancellationToken cancellationToken)
     {
-        logger.LogInformation("🛫 Iniciando asignamiento de Maquinaria.");
+        logger.LogInformation("🚜​ Iniciando asignamiento de Maquinaria.");
 
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
 
@@ -62,7 +62,7 @@ public class CreateAssignmentMachineryHandler(IUnitOfWork unitOfWork, IErrorMana
         await _unitOfWork.AssignmentOperationals.UpdateAsync(assignmentOperational);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation("🛬 Se asignaron {Count} maquinaria(s)", entities.Count);
+        logger.LogInformation("🚜​ Se asignaron {Count} maquinaria(s)", entities.Count);
 
         return Unit.Value;
     }

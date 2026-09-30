@@ -64,9 +64,9 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
             command.AssignmentOperationalId = assignment_id;
             command.UserId = Guid.Parse(userIdStr ?? "");
 
-            var result = await mediator.Send(command);
+            await mediator.Send(command);
 
-            return Ok(result);
+            return Ok();
         }
 
         [Tags("Asignaciones operacionales")]

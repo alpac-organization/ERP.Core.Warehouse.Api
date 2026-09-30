@@ -35,6 +35,8 @@ public class GetAssignmentMachineryHandler(IUnitOfWork _unitOfWork, IErrorManage
                 "No tienes acceso a la asignacion operativa seleccionada", "ERP:ASSIGNMENT_OPERATIONAL_COMPANY_MISMATCH");
 
         var assignQuery = _unitOfWork.AssignmentsMachineries.Entities
+            .Include(am => am.Machinery)
+            .Include(am => am.User)
             .Where(am => am.AssignmentOperationalId == request.AssignmentId)
             .Where(am => am.IsActive && am.DeletedAt == null)
             .AsNoTracking();

@@ -16,7 +16,11 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             #region GET Maquinaria
             // Get de asignamientos de maquinaria
             CreateMap<AssignmentsMachinery, GetAssignmentMachineryDto>()
-                .ForMember(dest => dest.AssignmentMachineryId, opt => opt.MapFrom(src => src.Id));
+                .ForMember(dest => dest.AssignmentMachineryId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.CreatedByUserName, opt => opt.MapFrom(src => src.User.UserName))
+                .ForPath(dest => dest.MachineryInformation.MachineryType, opt => opt.MapFrom(src => src.Machinery.Type))
+                .ForPath(dest => dest.MachineryInformation.MachineryCode, opt => opt.MapFrom(src => src.Machinery.Code))
+                .ForPath(dest => dest.MachineryInformation.MachineryBrand, opt => opt.MapFrom(src => src.Machinery.Brand));
             #endregion
 
             #region GET Colaboradores
