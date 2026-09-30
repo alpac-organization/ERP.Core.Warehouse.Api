@@ -1,10 +1,26 @@
+using AutoMapper;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Operations;
 
 using Commands = ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
+
+    public class AssignmentProfile: Profile
+    {
+        public AssignmentProfile()
+        {
+            CreateMap<AssignmentOperational, AssignmentOperationalDto>()
+                .ForMember(dest => dest.AssignmentId, opt => opt.MapFrom(src => src.Id));
+
+            CreateMap<AssignmentOperational, AssignmentOperationalDetailsDto>()
+                .IncludeBase<AssignmentOperational, AssignmentOperationalDto>();
+
+        }
+    }
+
     public static class AssignmentMapper
     {
         public static AssignmentOperational ToAssignmentOperationalEntity(this Commands.CreateAssignmentCommand command)

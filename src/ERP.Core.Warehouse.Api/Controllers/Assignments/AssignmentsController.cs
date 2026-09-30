@@ -20,10 +20,10 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
     public class AssignmentsController(IMediator _mediator) : ApiControllerBase
     {
         [HttpGet("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/assignments")]
-        [ProducesResponseType(typeof(PagedResponse<AssignmentDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PagedResponse<AssignmentOperationalDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<PagedResponse<AssignmentDto>> GetAssignmentsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id, 
+        public async Task<PagedResponse<AssignmentOperationalDto>> GetAssignmentsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id, 
             [FromQuery] int page_number = 1,
             [FromQuery] int page_size   = 10,
             [FromQuery] AssignmentOperationalStatus? status = null
@@ -62,10 +62,10 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
         }
 
         [HttpGet("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/assignments/{assignment_id}/details")]
-        [ProducesResponseType(typeof(AssignmentDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(AssignmentOperationalDetailsDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<AssignmentDetailsDto> GetAssignmentDetailsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id, [FromRoute] Guid assignment_id)
+        public async Task<AssignmentOperationalDetailsDto> GetAssignmentDetailsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id, [FromRoute] Guid assignment_id)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
