@@ -23,7 +23,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             };
         }
 
-        public static AssignmentsMachinery ToAssignmentsMachineryEntity(this Commands.AssignedMachinery command, Guid assignmentOperationalId)
+        public static AssignmentsMachinery ToAssignmentsMachineryEntity(this Commands.AssignedMachinery command, Guid assignmentOperationalId, Guid createByUserId)
         {
             return new()
             {
@@ -31,17 +31,19 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 IsActive = true,  
                 Concept = command.Concept,
                 MachineryId = command.MachineryId,
+                CreatedByUserId = createByUserId,
                 AssignmentOperationalId = assignmentOperationalId
             };
         }
 
-        public static AssignmentCollaborators ToAssignmentCollaboratorsEntity(this Commands.AssignedCollaborator command, Guid assignmentOperationalId)
+        public static AssignmentCollaborators ToAssignmentCollaboratorsEntity(this Commands.AssignedCollaborator command, Guid assignmentOperationalId, Guid createdByUserId)
         {   
             return new()
             {
                 IsActive = true,
                 Id = Guid.NewGuid(),
                 Role = command.Role,
+                CreatedByUserId = createdByUserId,
                 CollaboratorId = command.CollaboratorId,
                 AssignmentOperationalId = assignmentOperationalId,
             };

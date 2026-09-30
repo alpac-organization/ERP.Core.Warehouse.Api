@@ -53,17 +53,8 @@ public class RackPositionDetailDto
     public RackStatus Status { get; set; }
     public bool AllowsStocking { get; set; }
     public string? Observations { get; set; }
+    
 
-    public StockPlacementSummaryDto? CurrentStock { get; set; }
-}
-
-public class StockPlacementSummaryDto
-{
-    public Guid StockId { get; set; }
-    public string? ProductName { get; set; }
-    public string? CategoryName { get; set; }
-    public decimal CurrentWeightKg { get; set; }
-    public int CurrentBultos { get; set; }
-    public DateOnly PlacedAtDate { get; set; }
-    public TimeOnly PlacedAtTime { get; set; }
+    //Eliminar información de stoks summary
+    // public StockPlacementSummaryDto? CurrentStock { get; set; }
 }

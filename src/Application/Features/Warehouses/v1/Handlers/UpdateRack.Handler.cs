@@ -61,34 +61,36 @@ public class UpdateRackHandler(
         var currentWidth = rack.RackCapacity?.Width ?? 0m;
         var currentLength = rack.RackCapacity?.Length ?? 0m;
 
-        bool isShrinking = (request.Width.HasValue && request.Width.Value < currentWidth) ||
-                           (request.Length.HasValue && request.Length.Value < currentLength);
+        /// Agregar validación de que si contiene mercaderia dentro.
 
-        if (isShrinking)
-        {
-            var positionIds = rack.Positions?
-                .Where(p => p.DeletedAt == null)
-                .Select(p => p.Id)
-                .ToList() ?? [];
+        // bool isShrinking = (request.Width.HasValue && request.Width.Value < currentWidth) ||
+        //                    (request.Length.HasValue && request.Length.Value < currentLength);
 
-            if (positionIds.Count > 0)
-            {
-                var hasActiveStock = await _unitOfWork.StockPlacements.Entities
-                    .AnyAsync(
-                        s => s.RackPositionId != null
-                            && positionIds.Contains(s.RackPositionId.Value)
-                            && s.VacatedAtDate == null
-                            && s.DeletedAt == null,
-                        cancellationToken);
+        // if (isShrinking)
+        // {
+        //     var positionIds = rack.Positions?
+        //         .Where(p => p.DeletedAt == null)
+        //         .Select(p => p.Id)
+        //         .ToList() ?? [];
 
-                if (hasActiveStock)
-                {
-                    return _errorManager.ThrowBadRequest<bool>(
-                        "No se pueden reducir las dimensiones del rack porque tiene stock activo asignado en sus posiciones.",
-                        "ERP:RACK_CANNOT_SHRINK_WITH_STOCK");
-                }
-            }
-        }
+        //     if (positionIds.Count > 0)
+        //     {
+        //         var hasActiveStock = await _unitOfWork.StockPlacements.Entities
+        //             .AnyAsync(
+        //                 s => s.RackPositionId != null
+        //                     && positionIds.Contains(s.RackPositionId.Value)
+        //                     && s.VacatedAtDate == null
+        //                     && s.DeletedAt == null,
+        //                 cancellationToken);
+
+        //         if (hasActiveStock)
+        //         {
+        //             return _errorManager.ThrowBadRequest<bool>(
+        //                 "No se pueden reducir las dimensiones del rack porque tiene stock activo asignado en sus posiciones.",
+        //                 "ERP:RACK_CANNOT_SHRINK_WITH_STOCK");
+        //         }
+        //     }
+        // }
 
         // 4. Validación de límites y coordenadas en la sección
         var secWidth = section.SectionCapacity.Width;
