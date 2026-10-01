@@ -86,10 +86,10 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
          {
             Id = Guid.NewGuid(),
             SectionId = SectionId,
-            PositionX = command.PositionX,
-            PositionY = command.PositionY,
-            PositionZ = command.PositionZ,
-            RotationY = command.RotationY
+            PositionX = command.PositionX!.Value,
+            PositionY = command.PositionY!.Value,
+            PositionZ = command.PositionZ!.Value,
+            RotationY = command.RotationY!.Value
          };
       }
    }

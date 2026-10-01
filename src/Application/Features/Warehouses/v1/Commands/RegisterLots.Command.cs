@@ -1,6 +1,7 @@
 using MediatR;
 using System.Text.Json.Serialization;
 using ERP.Core.Domain.Entities.Bases;
+using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
@@ -15,7 +16,7 @@ public class RegisterLotsCommand : BaseRequest, IRequest<bool>
     public List<RegisterLotItem> Lots { get; set; } = [];
 }
 
-public class RegisterLotItem
+public class RegisterLotItem: IHasCoordinates
 {
     public int? NominalRows { get; set; }
 
