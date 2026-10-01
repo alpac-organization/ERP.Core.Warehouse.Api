@@ -48,7 +48,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
             var minutesElapsed = (DateTime.UtcNow - receptionEntrance.CreatedAt)
                 .TotalMinutes;
 
-            if (minutesElapsed >= 10)
+            if (minutesElapsed >= 10 && (access.Role?.RoleType != RoleType.Administrator || access.Role?.RoleType != RoleType.Manager))
             {
                 return _errorManager.ThrowBadRequest<Unit>(
                     "Ya no se puede modificar la información vehicular de la recepción",
