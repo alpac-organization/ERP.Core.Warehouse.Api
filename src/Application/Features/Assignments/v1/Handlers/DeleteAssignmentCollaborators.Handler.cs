@@ -8,8 +8,7 @@ using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers;
 
-public class DeleteAssignmentCollaboratorsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager)
-    : BaseAssignmentOperationalHandler<DeleteAssignmentCollaboratorsCommand, bool>(_unitOfWork, _errorManager)
+public class DeleteAssignmentCollaboratorsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager) : BaseAssignmentOperationalHandler<DeleteAssignmentCollaboratorsCommand, bool>(_unitOfWork, _errorManager)
 {
     public override async Task<bool> Handle(DeleteAssignmentCollaboratorsCommand request, CancellationToken ct)
     {

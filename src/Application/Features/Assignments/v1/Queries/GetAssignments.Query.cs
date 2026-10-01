@@ -1,14 +1,15 @@
 using MediatR;
+using System.Text.Json.Serialization;
+
 using ERP.Core.Domain.Entities.Bases;
 using ERP.Core.Database.Domain.Enums;
 
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Dtos;
-using System.Text.Json.Serialization;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Queries
 {
-    public class GetAssignmentsQuery : BaseRequest, IRequest<PagedResponse<AssignmentDto>>
+    public class GetAssignmentsQuery : BaseRequest, IRequest<PagedResponse<AssignmentOperationalDto>>
     {
         [JsonIgnore]
         public Guid OperationalOrderId { get; set; }

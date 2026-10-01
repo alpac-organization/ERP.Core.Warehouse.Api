@@ -1,5 +1,4 @@
 using AutoMapper;
-
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Operations;
 
@@ -13,6 +12,16 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
     {
         public AssignmentProfile()
         {
+
+            CreateMap<AssignmentOperational, AssignmentOperationalDto>()
+                .ForMember(dest => dest.AssignmentId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.IsAlerted, opt => opt.MapFrom(src => src.OperationalOrder.IsAlerted))
+                ;
+
+            CreateMap<AssignmentOperational, AssignmentOperationalDetailsDto>()
+                .ForPath(dest => dest.WarehouseInformation, opt => opt.MapFrom(src => src.Warehouse))
+                .IncludeBase<AssignmentOperational, AssignmentOperationalDto>();
+
             // Get de asignamientos de maquinaria
             CreateMap<AssignmentsMachinery, GetAssignmentMachineryDto>()
                 .ForMember(dest => dest.AssignmentMachineryId, opt => opt.MapFrom(src => src.Id))
@@ -58,8 +67,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         }
         #endregion
 
-        #region POST Maquinaria
-        public static AssignmentsMachinery ToAssignmentsMachineryEntity(this Commands.AssignedMachinery command, Guid assignmentOperationalId)
+        public static AssignmentsMachinery ToAssignmentsMachineryEntity(this Commands.AssignedMachinery command, Guid assignmentOperationalId, Guid createByUserId)
         {
             return new()
             {
@@ -67,24 +75,23 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 IsActive = true,
                 Concept = command.Concept,
                 MachineryId = command.MachineryId,
+                CreatedByUserId = createByUserId,
                 AssignmentOperationalId = assignmentOperationalId
             };
         }
-        #endregion
 
-        #region POST Colaboradores
-        public static AssignmentCollaborators ToAssignmentCollaboratorsEntity(this Commands.AssignedCollaborator command, Guid assignmentOperationalId)
-        {
+        public static AssignmentCollaborators ToAssignmentCollaboratorsEntity(this Commands.AssignedCollaborator command, Guid assignmentOperationalId, Guid createdByUserId)
+        {   
             return new()
             {
                 Id = Guid.NewGuid(),
                 IsActive = true,
                 Role = command.Role,
+                CreatedByUserId = createdByUserId,
                 CollaboratorId = command.CollaboratorId,
                 AssignmentOperationalId = assignmentOperationalId,
             };
         }
-        #endregion
 
         #region Assign Maquinaria
         public static List<AssignmentsMachinery> ToAssignmentsMachineryEntities(
