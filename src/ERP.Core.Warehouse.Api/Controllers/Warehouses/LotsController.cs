@@ -50,6 +50,32 @@ public class LotsController(IMediator _mediator) : ApiControllerBase
     }
     #endregion
 
+    #region Get Lot Layout
+    [Tags("Tramos")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{sections_id}/lots-layout")]
+    [ProducesResponseType(typeof(LotLayoutDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<LotLayoutDto> GetLotLayoutAsync(
+    [FromRoute] Guid company_id,
+    [FromRoute] string module_code,
+    [FromRoute] Guid warehouse_id,
+    [FromRoute] Guid sections_id,
+    CancellationToken cancellationToken = default)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        return await _mediator.Send(new GetLotLayoutQuery
+        {
+            WarehouseId = warehouse_id,
+            SectionId = sections_id,
+            UserId = Guid.Parse(userIdStr ?? ""),
+            CompanyId = company_id,
+            ModuleCode = module_code
+        }, cancellationToken);
+    }
+    #endregion
+
     #region Register Lots
     [Tags("Tramos")]
     [HttpPost("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{sections_id}/lots")]
