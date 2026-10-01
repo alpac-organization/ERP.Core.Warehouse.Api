@@ -30,6 +30,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
             var assignment = await _unitOfWork.AssignmentOperationals.Entities
                 .Where(assignment => assignment.Id == request.AssignmentId)
                 .Where(assignment => assignment.OperationalOrderId == request.OperationalOrderId)
+                .Include(assignment => assignment.OperationalOrder)
                 .FirstOrDefaultAsync(cancellationToken);
 
 
@@ -42,7 +43,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
             {
                 assignment.WarehouseId = request.WarehouseId.Value;
             }
-            
+
             assignment.DestinationType = request?.DestinationType ?? assignment.DestinationType;
 
             assignment.Merchandise = request?.Merchandise ?? assignment.Merchandise;
@@ -56,7 +57,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
             {
                 assignment.HasMerchandiseDescription = true;
             }
-            
+
+            if (assignment.OperationalOrder.Status == OperationalOrderStatus.PendingDocument)
+            {
+                assignment.OperationalOrder.Status = OperationalOrderStatus.Assignment;
+                await _unitOfWork.OperationalOrders.UpdateAsync(assignment.OperationalOrder);
+            }
+
             await _unitOfWork.AssignmentOperationals.UpdateAsync(assignment);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
