@@ -16,6 +16,28 @@ public class LotsProfile : Profile
 
         CreateMap<LotsCoordinates, LotCoordinatesDto>();
 
+        // Layout de tramos por seccion
+        CreateMap<Lots, LotLayoutItemDto>()
+            .ForMember(dest => dest.LotId, opt => opt.MapFrom(src => src.Id))
+            .ForMember(dest => dest.Code, opt => opt.MapFrom(src => src.Code))
+            .ForMember(dest => dest.Width, opt => opt.MapFrom(src => src.LotsCapacity != null ? src.LotsCapacity.Width : 0m))
+            .ForMember(dest => dest.Length, opt => opt.MapFrom(src => src.LotsCapacity != null ? src.LotsCapacity.Length : 0m))
+            .ForMember(dest => dest.HasCoordinates, opt => opt.MapFrom(src => src.LotsCoordinates != null))
+            .ForMember(dest => dest.PositionX, opt => opt.MapFrom(src => src.LotsCoordinates != null ? src.LotsCoordinates.PositionX : 0m))
+            .ForMember(dest => dest.PositionY, opt => opt.MapFrom(src => src.LotsCoordinates != null ? src.LotsCoordinates.PositionY : 0m))
+            .ForMember(dest => dest.PositionZ, opt => opt.MapFrom(src => src.LotsCoordinates != null ? src.LotsCoordinates.PositionZ : 0m))
+            .ForMember(dest => dest.RotationY, opt => opt.MapFrom(src => src.LotsCoordinates != null ? src.LotsCoordinates.RotationY : 0m));
+
+        CreateMap<Sections, LotLayoutDto>()
+            .ForMember(dest => dest.SectionId, opt => opt.MapFrom(src => src.Id))
+            .ForMember(dest => dest.SectionCode, opt => opt.MapFrom(src => src.Code))
+            .ForMember(dest => dest.SectionIsActive, opt => opt.MapFrom(src => src.IsActive))
+            .ForMember(dest => dest.SectionWidth, opt => opt.MapFrom(src => src.SectionCapacity != null ? src.SectionCapacity.Width : 0m))
+            .ForMember(dest => dest.SectionLength, opt => opt.MapFrom(src => src.SectionCapacity != null ? src.SectionCapacity.Length : 0m))
+            .ForMember(dest => dest.SectionPositionX, opt => opt.MapFrom(src => src.SectionCoordinates != null ? src.SectionCoordinates.PositionX : 0m))
+            .ForMember(dest => dest.SectionPositionY, opt => opt.MapFrom(src => src.SectionCoordinates != null ? src.SectionCoordinates.PositionY : 0m))
+            .ForMember(dest => dest.Lots, opt => opt.Ignore());
+
         // Actualizacion desde Lots (Patch)
         CreateMap<LotsCapacity, LotsCapacity>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
