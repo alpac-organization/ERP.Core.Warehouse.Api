@@ -33,7 +33,7 @@ public class CreateLotCoordinatesHandler(IUnitOfWork unitOfWork, IErrorManager e
         if (!ValidateLotPlacement(lot, section!, positionX, positionY))
             return false;
 
-        var entity = LotsProfile.ToLotCoordinatesEntity(request, lot.Id);
+        var entity = request.ToLotCoordinatesEntity(lot.Id);
 
         await _unitOfWork.LotCoordinates.RegisterLotCoordinate(entity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
