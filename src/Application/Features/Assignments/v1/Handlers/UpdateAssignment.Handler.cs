@@ -38,7 +38,25 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
                 return _errorManager.ThrowNotFound<Unit>("La asignación no existe", "ERP:NOT_FOUND_ASSIGNMENT");
             }
 
+            if (request.WarehouseId.HasValue)
+            {
+                assignment.WarehouseId = request.WarehouseId.Value;
+            }
+            
+            assignment.DestinationType = request?.DestinationType ?? assignment.DestinationType;
 
+            assignment.Merchandise = request?.Merchandise ?? assignment.Merchandise;
+            assignment.Observations = request?.Observations ?? assignment.Observations;
+            assignment.MerchandiseDescription = request?.MerchandiseDescription ?? assignment.MerchandiseDescription;
+
+            if (
+                string.IsNullOrEmpty(assignment.Merchandise) && 
+                string.IsNullOrEmpty(assignment.MerchandiseDescription)
+            )
+            {
+                assignment.HasMerchandiseDescription = true;
+            }
+            
             await _unitOfWork.AssignmentOperationals.UpdateAsync(assignment);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 

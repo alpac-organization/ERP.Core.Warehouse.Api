@@ -10,6 +10,7 @@ using ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Queries;
 
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
+using ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Controllers.OperationalOrders
 {
@@ -18,7 +19,6 @@ namespace ERP.Core.Warehouse.Api.Controllers.OperationalOrders
     [Route("api/v1/")]
     public class OperationalOrdersController(IMediator _mediator) : ApiControllerBase
     {
-
         [Tags("Solicitudes de compras")] 
         [HttpGet("companies/{company_id}/modules/{module_code}/operational-orders")]
         [ProducesResponseType(typeof(PagedResponse<OperationalOrderDto>), StatusCodes.Status200OK)]
@@ -68,31 +68,22 @@ namespace ERP.Core.Warehouse.Api.Controllers.OperationalOrders
         }
 
         [Tags("Solicitudes de compras")] 
-        [HttpPost("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/information")]
+        [HttpPatch("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/information")]
         [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<OkResult> Async([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id)
+        public async Task<OkResult> ReceptionInformationAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id, [FromBody] ReceptionInformationOperationalCommand payload)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
+            payload.CompanyId = company_id;
+            payload.ModuleCode = module_code;
+            payload.UserId = Guid.Parse(userIdStr ?? "");
+            payload.OperationalOrderId = operational_order_id;
+
+            await _mediator.Send(payload);
 
             return Ok();
         }
-
-
-        [Tags("Solicitudes de compras")] 
-        [HttpPost("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}")]
-        [ProducesResponseType(typeof(PagedResponse<OperationalOrderDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<OkResult> ReceptionInformationAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id)
-        {
-            var userIdStr = HttpContext.Items["UserId"] as string;
-
-
-            return Ok();
-        }
-
     }
 }
