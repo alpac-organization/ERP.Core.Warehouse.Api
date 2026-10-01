@@ -14,6 +14,8 @@ public class LotsProfile : Profile
 
         CreateMap<LotsCapacity, LotCapacitiesDto>();
 
+        CreateMap<LotsCoordinates, LotCoordinatesDto>();
+
         // Actualizacion desde Lots (Patch)
         CreateMap<LotsCapacity, LotsCapacity>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -44,6 +46,19 @@ public class LotsProfile : Profile
             Row          = row,
             Column       = column,
             Level        = 1
+        };
+    }
+
+    public static LotsCoordinates ToLotCoordinatesEntity(CreateLotCoordinatesCommand request, Guid lotId)
+    {
+        return new LotsCoordinates
+        {
+            Id         = Guid.NewGuid(),
+            LotId      = lotId,
+            PositionX  = request.PositionX ?? 0,
+            PositionY  = request.PositionY ?? 0,
+            PositionZ  = request.PositionZ ?? 0,
+            RotationY  = request.RotationY ?? 0
         };
     }
 }
