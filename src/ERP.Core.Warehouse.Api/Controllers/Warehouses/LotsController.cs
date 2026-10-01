@@ -164,4 +164,92 @@ public class LotsController(IMediator _mediator) : ApiControllerBase
         return NoContent();
     }
     #endregion
+
+    #region Get Coordinates
+    [Tags("Coordenadas de Tramos")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{sections_id}/lots/{lot_id}/coordinates")]
+    [ProducesResponseType(typeof(LotCoordinatesDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<LotCoordinatesDto> GetLotCoordinatesAsync(
+    [FromRoute] Guid company_id,
+    [FromRoute] string module_code,
+    [FromRoute] Guid warehouse_id,
+    [FromRoute] Guid sections_id,
+    [FromRoute] Guid lot_id,
+    CancellationToken cancellationToken = default)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        return await _mediator.Send(new GetLotCoordinatesQuery
+        {
+            WarehouseId = warehouse_id,
+            SectionId = sections_id,
+            LotId = lot_id,
+            UserId = Guid.Parse(userIdStr ?? ""),
+            CompanyId = company_id,
+            ModuleCode = module_code
+        }, cancellationToken);
+    }
+    #endregion
+
+    #region Post Coordinates
+    [Tags("Coordenadas de Tramos")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{sections_id}/lots/{lot_id}/coordinates")]
+    [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<OkResult> CreateLotCoordinatesAsync(
+    [FromRoute] Guid company_id,
+    [FromRoute] string module_code,
+    [FromRoute] Guid warehouse_id,
+    [FromRoute] Guid sections_id,
+    [FromRoute] Guid lot_id,
+    [FromBody] CreateLotCoordinatesCommand commandCoordinates,
+    CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        commandCoordinates.CompanyId = company_id;
+        commandCoordinates.ModuleCode = module_code;
+        commandCoordinates.UserId = Guid.Parse(userIdStr ?? "");
+        commandCoordinates.WarehouseId = warehouse_id;
+        commandCoordinates.SectionId = sections_id;
+        commandCoordinates.LotId = lot_id;
+
+        await _mediator.Send(commandCoordinates, cancellationToken);
+
+        return Ok();
+    }
+    #endregion
+
+    #region Patch Coordinates
+    [Tags("Coordenadas de Tramos")]
+    [HttpPatch("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{sections_id}/lots/{lot_id}/coordinates")]
+    [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<OkResult> PatchLotCoordinatesAsync(
+    [FromRoute] Guid company_id,
+    [FromRoute] string module_code,
+    [FromRoute] Guid warehouse_id,
+    [FromRoute] Guid sections_id,
+    [FromRoute] Guid lot_id,
+    [FromBody] PatchLotCoordinatesCommand commandCoordinates,
+    CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        commandCoordinates.CompanyId = company_id;
+        commandCoordinates.ModuleCode = module_code;
+        commandCoordinates.UserId = Guid.Parse(userIdStr ?? "");
+        commandCoordinates.WarehouseId = warehouse_id;
+        commandCoordinates.SectionId = sections_id;
+        commandCoordinates.LotId = lot_id;
+
+        await _mediator.Send(commandCoordinates, cancellationToken);
+
+        return Ok();
+    }
+    #endregion
 }

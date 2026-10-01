@@ -55,6 +55,7 @@ public abstract class BaseLotsCapacityHandler<TRequest>(
         var lot = await _unitOfWork.Lots.Entities
             .Include(l => l.LotsCapacity)
             .Include(l => l.Positions)
+            .Include(l => l.LotsCoordinates)
             .FirstOrDefaultAsync(
                 l => l.Id == lotId
                     && l.SectionId == sectionId
@@ -91,6 +92,32 @@ public abstract class BaseLotsCapacityHandler<TRequest>(
     protected bool SectionCapacityNotFoundError() => _errorManager.ThrowBadRequest<bool>(
         "La sección no tiene capacidad registrada para recalcular.",
         "ERP:SECTION_CAPACITY_NOT_FOUND");
+
+    /// <summary>
+    /// Valida que el tramo, posicionado en (positionX, positionY) desde el origen de la
+    /// seccion, quede contenido dentro de las dimensiones fisicas de la seccion.
+    /// Lanza <see cref="CoreException"/> y devuelve false en caso de violation.
+    /// </summary>
+    protected bool ValidateLotPlacement(Lots lot, Sections section, decimal positionX, decimal positionY)
+    {
+        if (section.SectionCapacity is null)
+            return SectionCapacityNotFoundError();
+
+        if (lot.LotsCapacity is null)
+            return _errorManager.ThrowBadRequest<bool>(
+                "No se encontró la capacidad del tramo para validar su ubicación.",
+                "ERP:LOT_CAPACITY_NOT_FOUND");
+
+        var exceedsWidth = positionX + lot.LotsCapacity.Width > section.SectionCapacity.Width;
+        var exceedsLength = positionY + lot.LotsCapacity.Length > section.SectionCapacity.Length;
+
+        if (exceedsWidth || exceedsLength)
+            return _errorManager.ThrowBadRequest<bool>(
+                "La posición del tramo excede las dimensiones de la sección.",
+                "ERP:LOT_OUTSIDE_SECTION_BOUNDS");
+
+        return true;
+    }
 
     protected async Task ApplySectionCapacityAsync(
         Sections section,
