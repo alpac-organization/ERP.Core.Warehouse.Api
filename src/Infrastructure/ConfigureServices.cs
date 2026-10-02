@@ -41,12 +41,8 @@ namespace ERP.Core.Warehouse.Api.Infrastructure
 
             services.AddScoped<IErrorManager, ErrorManager>();
             services.AddHttpClient<IScaleServices, ScaleServices>();
-            services.AddHttpClient<IWarehouseClockServices, WarehouseClockServices>((sp, client) =>
-            {
-                var options = sp.GetRequiredService<IOptions<WarehouseClockOptions>>().Value;
-                client.BaseAddress = new Uri(options.BaseUrl);
-                client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
-            });
+            services.AddScoped<IWarehouseClockServices, WarehouseClockServices>();
+            services.AddHttpClient();
 
             services.AddScheduledServices();
 
