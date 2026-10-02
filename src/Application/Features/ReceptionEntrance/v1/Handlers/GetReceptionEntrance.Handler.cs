@@ -27,7 +27,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                 .Include(reception => reception.ReceptionTransport)
                 .Include(reception => reception.OperationalOrders)
                 .AsNoTracking();
-                
+
             //aplicar filtros de busqueda aqui..
             if (request.DocumentType.HasValue)
             {
@@ -36,6 +36,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                         reception => reception.OperationalOrders
                             .Any(po => po.DocumentType == request.DocumentType)  
                     );
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.PlateNumber))
+            {
+                receptionEntrancesQuery = receptionEntrancesQuery
+                    .Where(reception => reception.ReceptionTransport.VehiclePlateNumber.Contains(request.PlateNumber));
             }
 
             if (!string.IsNullOrEmpty(request.ContainerNumber))
