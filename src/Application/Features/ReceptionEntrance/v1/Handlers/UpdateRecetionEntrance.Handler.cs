@@ -67,7 +67,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
 
                 if (request.GeneralInformation.CustomBranchId != Guid.Empty)
                 {
-                    var customBranch = await _unitOfWork.CustomerBranches.Entities
+                    var customBranch = await _unitOfWork.CustomsBranches.Entities
                         .Where(cb => cb.IsActive)
                         .Where(cb => cb.Id == request.GeneralInformation.CustomBranchId)
                         .FirstOrDefaultAsync(cancellationToken);

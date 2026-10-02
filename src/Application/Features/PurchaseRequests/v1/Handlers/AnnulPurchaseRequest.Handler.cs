@@ -68,10 +68,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             }
             else if (access.Role?.RoleType == RoleType.Manager)
             {
-                // if (purchaseRequest.AreaId != access.User.AreaId)
-                // {
-                //     return _errorManager.ThrowForbidden<bool>("Solo puedes anular solicitudes pertenecientes a tu área", "ERP:FORBIDDEN");
-                // }
+                if (purchaseRequest.AreaId != access.Profile.AreaId)
+                {
+                    return _errorManager.ThrowForbidden<bool>("Solo puedes anular solicitudes pertenecientes a tu área", "ERP:FORBIDDEN");
+                }
+
+                if (purchaseRequest.RequestStatus == PurchaseRequestStatus.Revision ||
+                    (purchaseRequest.AccountingReview is not null && purchaseRequest.AccountingReview.DeletedAt == null) ||
+                    (purchaseRequest.ManagementReview is not null && purchaseRequest.ManagementReview.DeletedAt == null))
+                {
+                    return _errorManager.ThrowBadRequest<bool>("No puedes anular la solicitud mientras se encuentra en proceso de revisión por finanzas o gerencia", "ERP:PURCHASE_REQUEST_IN_REVIEW");
+                }
+
             }
 
             var now = DateTime.UtcNow;

@@ -23,5 +23,7 @@ public class CreateLotCoordinatesValidator : BaseRequestValidator<CreateLotCoord
             .WithMessage("El id del tramo es requerido.")
             .NotEqual(Guid.Empty)
             .WithMessage("El id del tramo no es válido.");
+
+        Include(new BaseCoordinatesValidator<CreateLotCoordinatesCommand>());
     }
 }

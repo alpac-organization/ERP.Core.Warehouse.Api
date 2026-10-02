@@ -10,7 +10,14 @@ public class LotsProfile : Profile
 {
     public LotsProfile()
     {
-        CreateMap<Lots, LotListItemDto>();
+        CreateMap<Lots, LotListItemDto>()
+            .ForMember(dest => dest.Width, opt => opt.MapFrom(src => src.LotsCapacity != null ? src.LotsCapacity.Width : 0m))
+            .ForMember(dest => dest.Length, opt => opt.MapFrom(src => src.LotsCapacity != null ? src.LotsCapacity.Length : 0m))
+            .ForMember(dest => dest.Area, opt => opt.MapFrom(src => src.LotsCapacity != null ? src.LotsCapacity.TotalAreaM2 : 0m))
+            .ForMember(dest => dest.PositionX, opt => opt.MapFrom(src => src.LotsCoordinates != null ? (decimal?)src.LotsCoordinates.PositionX : null))
+            .ForMember(dest => dest.PositionY, opt => opt.MapFrom(src => src.LotsCoordinates != null ? (decimal?)src.LotsCoordinates.PositionY : null))
+            .ForMember(dest => dest.PositionZ, opt => opt.MapFrom(src => src.LotsCoordinates != null ? (decimal?)src.LotsCoordinates.PositionZ : null))
+            .ForMember(dest => dest.RotationY, opt => opt.MapFrom(src => src.LotsCoordinates != null ? (decimal?)src.LotsCoordinates.RotationY : null));
 
         CreateMap<LotsCapacity, LotCapacitiesDto>();
 
@@ -45,17 +52,20 @@ public class LotsProfile : Profile
             .ForMember(dest => dest.LotsId, opt => opt.Ignore())
             .ForMember(dest => dest.Lot, opt => opt.Ignore());
     }
+}
 
-    public static Lots ToLotsEntity(RegisterLotsCommand request, string code)
+public static class LotMapper
+{
+    public static Lots ToLotsEntity(this RegisterLotItem item, Guid sectionId, string code)
     {
         return new Lots
         {
-            Id             = Guid.NewGuid(),
-            Code           = code,
-            SectionId      = request.SectionId,
-            NominalRows    = request.NominalRows,
-            NominalColumns = request.NominalColumns,
-            Status         = RackStatus.Available
+            Id = Guid.NewGuid(),
+            Code = code,
+            SectionId = sectionId,
+            NominalRows = item.NominalRows,
+            NominalColumns = item.NominalColumns,
+            Status = RackStatus.Available
         };
     }
 
@@ -63,24 +73,37 @@ public class LotsProfile : Profile
     {
         return new LotsPositions
         {
-            LotId        = lotId,
+            LotId = lotId,
             PositionCode = positionCode,
-            Row          = row,
-            Column       = column,
-            Level        = 1
+            Row = row,
+            Column = column,
+            Level = 1
         };
     }
 
-    public static LotsCoordinates ToLotCoordinatesEntity(CreateLotCoordinatesCommand request, Guid lotId)
+    public static LotsCoordinates ToLotCoordinatesEntity(this CreateLotCoordinatesCommand request, Guid lotId)
     {
         return new LotsCoordinates
         {
-            Id         = Guid.NewGuid(),
-            LotId      = lotId,
-            PositionX  = request.PositionX ?? 0,
-            PositionY  = request.PositionY ?? 0,
-            PositionZ  = request.PositionZ ?? 0,
-            RotationY  = request.RotationY ?? 0
+            Id = Guid.NewGuid(),
+            LotId = lotId,
+            PositionX = request.PositionX,
+            PositionY = request.PositionY,
+            PositionZ = request.PositionZ,
+            RotationY = request.RotationY
+        };
+    }
+
+    public static LotsCoordinates ToLotCoordinateEntity(this RegisterLotItem item, Guid lotId)
+    {
+        return new LotsCoordinates
+        {
+            Id = Guid.NewGuid(),
+            LotId = lotId,
+            PositionX = item.PositionX,
+            PositionY = item.PositionY,
+            PositionZ = item.PositionZ,
+            RotationY = item.RotationY
         };
     }
 }

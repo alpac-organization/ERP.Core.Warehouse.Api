@@ -2,13 +2,13 @@
 
 ## Actualizar Solicitud de Compra
 
-Endpoint para actualizar de forma parcial una solicitud de compra y/o sus ítems existentes dentro de el módulo de purchase.
+Endpoint para actualizar de forma parcial una solicitud de compra y/o sus ítems dentro del módulo de purchase.
 
 | Campo | Valor |
 |-------|-------|
 | **Método**      | `PATCH` |
 | **Endpoint**    | `/api/v1/companies/{company_id}/modules/{module_code}/purchase-requests/{purchase_request_id}` |
-| **Descripción** | Actualiza parcialmente la cabecera de una solicitud de compra (`observations`, `priority_level`, `destination_request`) y/o propiedades de ítems ya existentes. **No crea ni elimina ítems.** Solo aplica si la solicitud está activa y en estado `Pending`. |
+| **Descripción** | Actualiza parcialmente la cabecera de una solicitud de compra (`observations`, `priority_level`, `destination_request`) y/o sus ítems: con `id` actualiza un ítem existente; sin `id` crea un ítem nuevo (con subida de imágenes a S3 si aplica). Solo aplica si la solicitud está activa y en estado `Pending`. |
 
 ---
 
@@ -41,20 +41,22 @@ Todas las propiedades del body son **opcionales** (PATCH parcial). Solo se actua
 | `observations`           | `string`                                  | No        | Observaciones / concepto de la solicitud. Máximo 1000 caracteres. Se mapea a `Concept`. |
 | `priority_level`         | `integer (enum PriorityLevel)`            | No        | Nivel de prioridad. Se envía como **número**. Si el tipo de solicitud es Requisición, no puede ser `None`. En otros tipos solo puede ser `None`. |
 | `destination_request`    | `integer (enum DestinationRequest)`       | No        | Destino de la solicitud. Se envía como **número**. |
-| `purchase_request_items` | `array`                                   | No        | Lista de ítems a actualizar. Si se omite o viene vacía, solo se actualiza la cabecera. |
+| `purchase_request_items` | `array`                                   | No        | Lista de ítems a actualizar y/o crear. Si se omite o viene vacía, solo se actualiza la cabecera. |
 
 ### Ítems (`purchase_request_items[]`)
 
-| Parámetro         | Tipo      | Requerido | Descripción |
-|-------------------|-----------|-----------|-------------|
-| `id`              | `guid`    | Sí*       | Identificador del ítem existente. *Sin `id`, el ítem se ignora (este endpoint no crea ítems). |
-| `quantity`        | `integer` | No        | Cantidad. Si se envía, debe ser mayor a cero. |
-| `quantity_unit`   | `integer` | No        | Cantidad por unidad. Si se envía, debe ser mayor a cero. |
-| `product_id`      | `guid`    | No        | Producto asociado. No puede ser `Guid.Empty`. |
-| `unit_measure_id` | `guid`    | No        | Unidad de medida. No puede ser `Guid.Empty`. |
-| `description`     | `string`  | No        | Descripción del ítem. |
-| `justification`   | `string`  | No        | Justificación del ítem. |
-| `additional_data` | `string`  | No        | Datos adicionales en JSON. Se guarda tal cual; no se procesan imágenes. |
+| Parámetro                   | Tipo            | Requerido | Descripción |
+|-----------------------------|-----------------|-----------|-------------|
+| `id`                        | `guid`          | Condicional | Con `id`: actualiza el ítem existente. Sin `id` / `null`: **crea** un ítem nuevo. |
+| `quantity`                  | `integer`       | Condicional | En alta (sin `id`) es **obligatorio** y debe ser mayor a cero. En update es opcional; si se envía, debe ser mayor a cero. |
+| `quantity_unit`             | `integer`       | No        | Cantidad por unidad. Si se envía, debe ser mayor a cero. |
+| `product_id`                | `guid`          | Condicional | En alta es **obligatorio**. En update es opcional. No puede ser `Guid.Empty`. |
+| `unit_measure_id`           | `guid`          | Condicional | En alta es **obligatorio**. En update es opcional. No puede ser `Guid.Empty`. |
+| `description`               | `string`        | No        | Descripción del ítem. |
+| `justification`             | `string`        | No        | Justificación del ítem. |
+| `images_product_to_changed` | `array<string>` | No        | En **alta**: imágenes en Base64; se suben a S3 (`Compras` / `SolicitudesCompras`) y las URLs se guardan en `AdditionalData`. En **update** de ítem existente: se guardan tal cual en `AdditionalData` (sin subir a S3). |
+
+#### Ejemplo: actualizar ítem existente
 
 ```json
 {
@@ -69,8 +71,27 @@ Todas las propiedades del body son **opcionales** (PATCH parcial). Solo se actua
       "product_id": "11111111-1111-1111-1111-111111111111",
       "unit_measure_id": "22222222-2222-2222-2222-222222222222",
       "description": "Producto editado",
-      "justification": "Justificación actualizada",
-      "additional_data": null
+      "justification": "Justificación actualizada"
+    }
+  ]
+}
+```
+
+#### Ejemplo: crear ítem nuevo
+
+```json
+{
+  "purchase_request_items": [
+    {
+      "quantity": 5,
+      "quantity_unit": 1,
+      "product_id": "11111111-1111-1111-1111-111111111111",
+      "unit_measure_id": "22222222-2222-2222-2222-222222222222",
+      "description": "Producto nuevo",
+      "justification": "Se requiere adicional",
+      "images_product_to_changed": [
+        "data:image/png;base64,iVBORw0KGgo..."
+      ]
     }
   ]
 }
@@ -91,7 +112,9 @@ La solicitud se actualizó correctamente. El cuerpo de la respuesta puede ir vac
 | PATCH parcial | Solo se sobrescriben propiedades enviadas con valor (`HasValue` / `!= null`). |
 | Estado | Solo se actualizan solicitudes con `RequestStatus = Pending`. |
 | Activa | La solicitud debe existir y tener `IsActive = true`. |
-| Ítems | Solo se actualizan ítems existentes por `id`. No hay insert ni delete. |
+| Ítems | Con `id` se actualiza; sin `id` se crea. No hay delete. |
+| Alta de ítem | Requiere `product_id`, `unit_measure_id` y `quantity`. |
+| Imágenes en alta | Base64 → S3 → URLs en `AdditionalData`. |
 | `purchase_request_items` vacío / ausente | Solo se actualiza la cabecera (si vino algún campo). |
 | Rol `Supervisor` | Recibe 400: `No tienes permiso para realizar esta acción`. |
 | Prioridad inválida | Recibe 400: reglas de prioridad según el tipo de solicitud (`ERP:INVALID_PRIORITY`). |

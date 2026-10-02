@@ -56,20 +56,40 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
                 .When(x => x.Id.HasValue)
                 .WithMessage("El id del ítem no es válido.");
 
-            RuleFor(x => x.ProductId)
-                .NotEqual(Guid.Empty)
-                .When(x => x.ProductId.HasValue)
-                .WithMessage("El id del producto no es válido.");
+            When(x => !x.Id.HasValue, () =>
+            {
+                RuleFor(x => x.ProductId)
+                    .NotEmpty()
+                    .WithMessage("El id del producto es obligatorio para ítems nuevos.");
 
-            RuleFor(x => x.UnitMeasureId)
-                .NotEqual(Guid.Empty)
-                .When(x => x.UnitMeasureId.HasValue)
-                .WithMessage("La unidad de medida no es válida.");
+                RuleFor(x => x.UnitMeasureId)
+                    .NotEmpty()
+                    .WithMessage("La unidad de medida es obligatoria para ítems nuevos.");
 
-            RuleFor(x => x.Quantity)
-                .GreaterThan(0)
-                .When(x => x.Quantity.HasValue)
-                .WithMessage("La cantidad debe ser mayor a cero.");
+                RuleFor(x => x.Quantity)
+                    .NotNull()
+                    .WithMessage("La cantidad es obligatoria para ítems nuevos.")
+                    .GreaterThan(0)
+                    .WithMessage("La cantidad debe ser mayor a cero.");
+            });
+
+            When(x => x.Id.HasValue, () =>
+            {
+                RuleFor(x => x.ProductId)
+                    .NotEqual(Guid.Empty)
+                    .When(x => x.ProductId.HasValue)
+                    .WithMessage("El id del producto no es válido.");
+
+                RuleFor(x => x.UnitMeasureId)
+                    .NotEqual(Guid.Empty)
+                    .When(x => x.UnitMeasureId.HasValue)
+                    .WithMessage("La unidad de medida no es válida.");
+
+                RuleFor(x => x.Quantity)
+                    .GreaterThan(0)
+                    .When(x => x.Quantity.HasValue)
+                    .WithMessage("La cantidad debe ser mayor a cero.");
+            });
 
             RuleFor(x => x.QuantityUnit)
                 .GreaterThan(0)

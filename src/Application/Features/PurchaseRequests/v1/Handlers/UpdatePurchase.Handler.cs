@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Application.Commons.Interfaces.AWS;
 
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
@@ -9,12 +10,19 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Database.Domain.Entities.Auth;
+using ERP.Core.Database.Domain.Entities.Bases;
+using ERP.Core.Database.Domain.Entities.Catalogs;
 
+using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
-    public class UpdatePurchaseHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, ILogger<UpdatePurchaseHandler> _logger) : BaseValidatorHandler<UpdatePurchaseCommand, bool>(_unitOfWork, _errorManager)
+    public class UpdatePurchaseHandler(
+        IUnitOfWork _unitOfWork,
+        IErrorManager _errorManager,
+        ILogger<UpdatePurchaseHandler> _logger,
+        IS3StorageService _s3StorageService) : BaseValidatorHandler<UpdatePurchaseCommand, bool>(_unitOfWork, _errorManager)
     {
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
@@ -57,6 +65,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             var historyList = DeserializeHistory(purchase.AdditionalData);
             var hasChanges = false;
 
+            var workArea = access.Profile.WorkArea
+                ?? await _unitOfWork.WorkAreas.Entities
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(wa => wa.Id == access.Profile.AreaId, cancellationToken);
+
             if (request.PriorityLevel.HasValue)
             {
                 if (purchase.RequestType == PurchaseRequestType.Requisition && (request.PriorityLevel.Value == PriorityLevel.None || !Enum.IsDefined(request.PriorityLevel.Value)))
@@ -68,21 +81,21 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     return _errorManager.ThrowBadRequest<bool>("El nivel de prioridad solo puede especificarse cuando el tipo de solicitud es Requisición.", "ERP:INVALID_PRIORITY");
                 }
 
-                historyList.Add(CreateEntry(GetPriorityLabel(purchase.PriorityLevel), GetPriorityLabel(request.PriorityLevel.Value), "Cambio de nivel de prioridad", access.User));
+                historyList.Add(CreateEntry(GetPriorityLabel(purchase.PriorityLevel), GetPriorityLabel(request.PriorityLevel.Value), "Cambio de nivel de prioridad", access.User, workArea));
                 purchase.PriorityLevel = request.PriorityLevel.Value;
                 hasChanges = true;
             }
 
             if (request.Observations is not null)
             {
-                historyList.Add(CreateEntry(purchase.Concept ?? "", request.Observations, "Actualización de observaciones", access.User));
+                historyList.Add(CreateEntry(purchase.Concept ?? "", request.Observations, "Actualización de observaciones", access.User, workArea));
                 purchase.Concept = request.Observations;
                 hasChanges = true;
             }
 
             if (request.DestinationRequest.HasValue)
             {
-                historyList.Add(CreateEntry(purchase.Destination.ToString(), request.DestinationRequest.Value.ToString(), "Cambio de destino de la solicitud", access.User));
+                historyList.Add(CreateEntry(purchase.Destination.ToString(), request.DestinationRequest.Value.ToString(), "Cambio de destino de la solicitud", access.User, workArea));
                 purchase.Destination = request.DestinationRequest.Value;
                 hasChanges = true;
             }
@@ -94,7 +107,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
             if (request.PurchaseRequestItems != null && request.PurchaseRequestItems.Count > 0)
             {
-                var updateResult = UpdateItems(purchase, request.PurchaseRequestItems);
+                var updateResult = await UpdateItemsAsync(purchase, request.PurchaseRequestItems, cancellationToken);
                 if (!updateResult)
                 {
                     return false;
@@ -119,7 +132,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             return JsonSerializer.Deserialize<List<PurchaseRequestAdditionalData>>(json, JsonOptions) ?? [];
         }
 
-        private static PurchaseRequestAdditionalData CreateEntry(string oldValue, string newValue, string description, User? user)
+        private static PurchaseRequestAdditionalData CreateEntry(string oldValue, string newValue, string description, User? user, WorkArea? workArea)
         {
             var entry = new PurchaseRequestAdditionalData
             {
@@ -138,16 +151,31 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 entry.UserInformation.UserStatus = user.UserStatus;
             }
 
+            if (workArea != null)
+            {
+                entry.UserInformation.WorkAreaInformation = new WorkAreaInformation
+                {
+                    WorkAreaId = workArea.Id,
+                    WorkAreaName = workArea.WorkAreaName,
+                    Description = workArea.Description,
+                    WorkAreaCode = int.TryParse(workArea.WorkAreaCode, out var code) ? code : default
+                };
+            }
+
             return entry;
         }
 
-        private bool UpdateItems(PurchaseRequest purchase, List<UpdatePurchaseRequestItem> payloadItems)
+        private async Task<bool> UpdateItemsAsync(PurchaseRequest purchase, List<UpdatePurchaseRequestItem> payloadItems, CancellationToken cancellationToken)
         {
             var existingItems = purchase.PurchaseRequestItems.ToList();
 
             foreach (var itemPayload in payloadItems)
             {
-                if (!itemPayload.Id.HasValue) continue;
+                if (!itemPayload.Id.HasValue)
+                {
+                    await CreateItemAsync(purchase.Id, itemPayload, cancellationToken);
+                    continue;
+                }
 
                 var existing = existingItems.FirstOrDefault(item => item.Id == itemPayload.Id.Value);
 
@@ -173,6 +201,36 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             }
 
             return true;
+        }
+
+        private async Task CreateItemAsync(Guid purchaseRequestId, UpdatePurchaseRequestItem itemPayload, CancellationToken cancellationToken)
+        {
+            var newItem = itemPayload.ToPurchaseRequestItemEntity(purchaseRequestId);
+            newItem.AdditionalData = await BuildItemAdditionalDataAsync(itemPayload.ImagesProductToChanged, cancellationToken);
+            await _unitOfWork.PurchaseRequestItems.RegisterPurchaseRequestItem(newItem);
+        }
+
+        private async Task<string?> BuildItemAdditionalDataAsync(List<string>? images, CancellationToken cancellationToken)
+        {
+            if (images is not { Count: > 0 })
+            {
+                return null;
+            }
+
+            var uploadedUrls = new List<string>(images.Count);
+
+            foreach (var base64Image in images)
+            {
+                var imageUrl = await _s3StorageService.UploadImageAsync("Compras", "SolicitudesCompras", base64Image, cancellationToken);
+                uploadedUrls.Add(imageUrl);
+            }
+
+            var additionalData = new PurchaseRequestItemAdditionalData
+            {
+                ImagesProductToChanged = uploadedUrls
+            };
+
+            return JsonSerializer.Serialize(additionalData, JsonOptions);
         }
 
         private static PurchaseRequestItemAdditionalData DeserializeItemAdditionalData(string? json)
