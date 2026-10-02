@@ -18,7 +18,7 @@ namespace ERP.Core.Warehouse.Api.Infrastructure.Schedules
                 quartz.AddTrigger(opts => opts
                     .ForJob(setKey)
                     .WithIdentity("WarehouseClockSetEvents-trigger")
-                    .WithCronSchedule("0 45 3 * * ?", x => x.InTimeZone(managuaTimeZone)));
+                    .WithCronSchedule("0 0 4 * * ?", x => x.InTimeZone(managuaTimeZone)));
 
                 var clearKey = new JobKey("WarehouseClockClearEvents");
                 quartz.AddJob<WarehouseStartProcessToStopClockJob>(opts => opts.WithIdentity(clearKey));
