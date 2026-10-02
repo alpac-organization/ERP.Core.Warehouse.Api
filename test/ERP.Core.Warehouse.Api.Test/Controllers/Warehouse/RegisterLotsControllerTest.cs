@@ -41,31 +41,32 @@ public class RegisterLotsControllerTest : IntegrationTestUtilsBase
             .Select(lot => lot.Id)
             .ToListAsync();
 
-        var payload = new
+        var lotItems = Enumerable.Range(0, 8).Select(i => new
         {
-            quantity = 8,
             nominal_rows = 4,
             nominal_columns = 5,
             width = 10.00,
-            length = 15.00
-        };
+            length = 15.00,
+            position_x = i * 10.0,
+            position_y = 0.0,
+            position_z = 0.0,
+            rotation_y = 0.0
+        }).ToArray();
 
-        //capturar respuesta de la peticion
+        var payload = new { lots = lotItems };
+
         var response = await SendRequestAsync(HttpMethod.Post, RegisterLotsBaseUrl
             (company.Id, moduleCode, warehouseId, section.Id), bearerToken, payload);
 
-        //confirmar que el resultado sea el correcto
         Assert.That(response.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.Created));
 
-        //verificar que las cantidades de lotes creadas sean correctas
         var registeredLots = await _unitOfWork.Lots.Entities
             .Where(lot => lot.SectionId == section.Id)
             .Where(lot => !existingLotIds.Contains(lot.Id))
             .OrderBy(lot => lot.Code)
             .ToListAsync();
 
-
-        Assert.That(registeredLots.Count, Is.EqualTo(payload.quantity));
+        Assert.That(registeredLots.Count, Is.EqualTo(lotItems.Length));
 
         var lotIds = registeredLots.Select(l => l.Id).ToList();
 
@@ -73,10 +74,16 @@ public class RegisterLotsControllerTest : IntegrationTestUtilsBase
             .Where(cap => lotIds.Contains(cap.LotsId))
             .ToListAsync();
 
-        Assert.That(capacities.Count, Is.EqualTo(payload.quantity));
+        Assert.That(capacities.Count, Is.EqualTo(lotItems.Length));
 
-        var positionPerLot = payload.nominal_columns * payload.nominal_rows;
-        var expectedTotalPositions = payload.quantity * positionPerLot;
+        var coordinates = await _unitOfWork.LotCoordinates.Entities
+            .Where(c => lotIds.Contains(c.LotId))
+            .ToListAsync();
+
+        Assert.That(coordinates.Count, Is.EqualTo(lotItems.Length));
+
+        var positionPerLot = lotItems[0].nominal_columns * lotItems[0].nominal_rows;
+        var expectedTotalPositions = lotItems.Length * positionPerLot;
 
         var positions = await _unitOfWork.LotsPositions.Entities
             .Where(pos => lotIds.Contains(pos.LotId))
@@ -88,11 +95,10 @@ public class RegisterLotsControllerTest : IntegrationTestUtilsBase
             .GroupBy(p => p.LotId)
             .ToDictionary(g => g.Key, g => g.Count());
 
-        //validar que los campos en cada lot sean correctos
         foreach (var lot in registeredLots)
         {
-            Assert.That(lot.NominalColumns, Is.EqualTo(payload.nominal_columns));
-            Assert.That(lot.NominalRows, Is.EqualTo(payload.nominal_rows));
+            Assert.That(lot.NominalColumns, Is.EqualTo(lotItems[0].nominal_columns));
+            Assert.That(lot.NominalRows, Is.EqualTo(lotItems[0].nominal_rows));
             Assert.That(lot.Status, Is.EqualTo(RackStatus.Available));
 
             Assert.That(positionsByLot.ContainsKey(lot.Id), Is.True,
@@ -104,9 +110,9 @@ public class RegisterLotsControllerTest : IntegrationTestUtilsBase
 
         foreach (var capacity in capacities)
         {
-            Assert.That(capacity.Width, Is.EqualTo(payload.width));
-            Assert.That(capacity.Length, Is.EqualTo(payload.length));
-            Assert.That(capacity.TotalAreaM2, Is.EqualTo(payload.length * payload.width));
+            Assert.That(capacity.Width, Is.EqualTo(lotItems[0].width));
+            Assert.That(capacity.Length, Is.EqualTo(lotItems[0].length));
+            Assert.That(capacity.TotalAreaM2, Is.EqualTo(lotItems[0].length * lotItems[0].width));
         }
     }
 }

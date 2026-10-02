@@ -72,5 +72,22 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 AdditionalData    = command.AdditionalData
             };
         }
+
+        public static PurchaseRequestItem ToPurchaseRequestItemEntity(this Commands.UpdatePurchaseRequestItem command, Guid purchaseRequestId)
+        {
+            return new()
+            {
+                HasQuotation      = false,
+                Id                = Guid.NewGuid(),
+                PurchaseRequestId = purchaseRequestId,
+                Quantity          = command.Quantity!.Value,
+                QuantityUnit      = command.QuantityUnit,
+                ProductId         = command.ProductId!.Value,
+                UnitMeasureId     = command.UnitMeasureId!.Value,
+                Justification     = command.Justification,
+                Description       = command.Description,
+                AdditionalData    = null
+            };
+        }
     }
 }

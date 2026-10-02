@@ -41,6 +41,8 @@ public class GetLotsBySectionHandler(IUnitOfWork unitOfWork, IErrorManager error
 
         var queryLots = _unitOfWork.Lots.Entities
             .AsNoTracking()
+            .Include(l => l.LotsCapacity)
+            .Include(l => l.LotsCoordinates)
             .Where(lot => lot.SectionId == request.SectionId && lot.DeletedAt == null);
 
         if (!string.IsNullOrWhiteSpace(request.Code))
