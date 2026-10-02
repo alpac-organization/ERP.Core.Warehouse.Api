@@ -35,35 +35,40 @@ public class RegisterLotsHandler(IUnitOfWork unitOfWork, IErrorManager errorMana
                 "Esta sección no admite tramos.",
                 "ERP:SECTION_STORAGE_MISMATCH");
 
+        var quantity = request.Lots.Count;
+
         var existingLotsCount = await _unitOfWork.Lots.Entities
             .CountAsync(l => l.SectionId == section.Id && l.DeletedAt == null, cancellationToken);
 
-        if (existingLotsCount + request.Quantity > 10)
+        if (existingLotsCount + quantity > 10)
             return _errorManager.ThrowBadRequest<bool>(
-                $"La sección solo permite un máximo de 10 tramos ({existingLotsCount} existentes + {request.Quantity} solicitados).",
+                $"La sección solo permite un máximo de 10 tramos ({existingLotsCount} existentes + {quantity} solicitados).",
                 "ERP:SECTION_LOT_LIMIT_EXCEEDED");
 
         var (codesAreValid, codes) = await codeGenerator.GenerateUniqueStorageCodesAsync(
-            StorageEntityType.Lot, section.Id, request.Quantity, cancellationToken);
-        if (!codesAreValid)
-            return _errorManager.ThrowBadRequest<bool>(
+            StorageEntityType.Lot, section.Id, quantity, cancellationToken);
+            
+        if (!codesAreValid) return _errorManager.ThrowBadRequest<bool>(
                 "La sección no tiene un código registrado para generar el código de los tramos.",
                 "ERP:SECTION_CODE_NOT_FOUND");
 
-        var lots = new List<Lots>(request.Quantity);
-        var batchCapacities = new List<(decimal Width, decimal Length)>(request.Quantity);
+        var lots = new List<Lots>(quantity);
+        var batchCapacities = new List<(decimal Width, decimal Length)>(quantity);
 
-        for (int i = 0; i < request.Quantity; i++)
+        for (int i = 0; i < quantity; i++)
         {
-            var lot = LotsProfile.ToLotsEntity(request, codes[i]);
+            var item = request.Lots[i];
+            var lot = item.ToLotsEntity(request.SectionId, codes[i]);
+            var lotCoordinates = item.ToLotCoordinateEntity(lot.Id);
 
             await _unitOfWork.Lots.RegisterLot(lot);
+            await _unitOfWork.LotCoordinates.RegisterLotCoordinate(lotCoordinates);
 
             for (int row = 1; row <= lot.NominalRows!.Value; row++)
             {
                 for (int column = 1; column <= lot.NominalColumns!.Value; column++)
                 {
-                    var position = LotsProfile.ToLotsPositionEntity(
+                    var position = LotMapper.ToLotsPositionEntity(
                         lot.Id,
                         codeGenerator.GeneratePositionCode(lot.Code, row, column),
                         row,
@@ -73,7 +78,7 @@ public class RegisterLotsHandler(IUnitOfWork unitOfWork, IErrorManager errorMana
             }
 
             lots.Add(lot);
-            batchCapacities.Add((request.Width, request.Length));
+            batchCapacities.Add((item.Width ?? 0m, item.Length ?? 0m));
         }
 
         var calc = await capacityCalculator.CalculateLotsAsync(

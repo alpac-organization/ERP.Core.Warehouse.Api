@@ -27,13 +27,13 @@ public class CreateLotCoordinatesHandler(IUnitOfWork unitOfWork, IErrorManager e
                 "El tramo ya tiene coordenadas registradas. Utilice el endpoint de actualización.",
                 "ERP:LOT_COORDINATES_ALREADY_EXIST");
 
-        var positionX = request.PositionX ?? 0;
-        var positionY = request.PositionY ?? 0;
+        var positionX = request.PositionX;
+        var positionY = request.PositionY;
 
         if (!ValidateLotPlacement(lot, section!, positionX, positionY))
             return false;
 
-        var entity = LotsProfile.ToLotCoordinatesEntity(request, lot.Id);
+        var entity = request.ToLotCoordinatesEntity(lot.Id);
 
         await _unitOfWork.LotCoordinates.RegisterLotCoordinate(entity);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
