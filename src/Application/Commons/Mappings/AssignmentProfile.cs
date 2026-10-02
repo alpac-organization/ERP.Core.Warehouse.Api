@@ -12,11 +12,9 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
     {
         public AssignmentProfile()
         {
-
             CreateMap<AssignmentOperational, AssignmentOperationalDto>()
                 .ForMember(dest => dest.AssignmentId, opt => opt.MapFrom(src => src.Id))
-                .ForMember(dest => dest.IsAlerted, opt => opt.MapFrom(src => src.OperationalOrder.IsAlerted))
-                ;
+                .ForMember(dest => dest.IsAlerted, opt => opt.MapFrom(src => src.OperationalOrder.IsAlerted));
 
             CreateMap<AssignmentOperational, AssignmentOperationalDetailsDto>()
                 .ForPath(dest => dest.WarehouseInformation, opt => opt.MapFrom(src => src.Warehouse))
@@ -29,7 +27,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForPath(dest => dest.MachineryInformation.MachineryType, opt => opt.MapFrom(src => src.Machinery.Type))
                 .ForPath(dest => dest.MachineryInformation.MachineryCode, opt => opt.MapFrom(src => src.Machinery.Code))
                 .ForPath(dest => dest.MachineryInformation.MachineryBrand, opt => opt.MapFrom(src => src.Machinery.Brand));
-
+                
             // get de asignamiento de colaboradores
             CreateMap<AssignmentCollaborators, GetAssignmentCollaboratorsDto>()
                 .ForMember(dest => dest.AssignmentCollaboratorId, opt => opt.MapFrom(src => src.Id))

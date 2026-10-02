@@ -30,7 +30,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
 
             var operationalOrder = await _unitOfWork.OperationalOrders.Entities
                 .Where(operation => operation.CompanyId == request.CompanyId)
-                // .Where(operation => operation.Status == OperationalOrderStatus.Assignment)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (operationalOrder == null)

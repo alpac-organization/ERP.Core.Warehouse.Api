@@ -30,6 +30,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
             var assignment = await _unitOfWork.AssignmentOperationals.Entities
                 .Where(assignment => assignment.Id == request.AssignmentId)
                 .Where(assignment => assignment.OperationalOrderId == request.OperationalOrderId)
+                .Include(assignment => assignment.OperationalOrder)
                 .FirstOrDefaultAsync(cancellationToken);
 
 
@@ -38,6 +39,30 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
                 return _errorManager.ThrowNotFound<Unit>("La asignación no existe", "ERP:NOT_FOUND_ASSIGNMENT");
             }
 
+            if (request.WarehouseId.HasValue)
+            {
+                assignment.WarehouseId = request.WarehouseId.Value;
+            }
+
+            assignment.DestinationType = request?.DestinationType ?? assignment.DestinationType;
+
+            assignment.Merchandise = request?.Merchandise ?? assignment.Merchandise;
+            assignment.Observations = request?.Observations ?? assignment.Observations;
+            assignment.MerchandiseDescription = request?.MerchandiseDescription ?? assignment.MerchandiseDescription;
+
+            if (
+                string.IsNullOrEmpty(assignment.Merchandise) && 
+                string.IsNullOrEmpty(assignment.MerchandiseDescription)
+            )
+            {
+                assignment.HasMerchandiseDescription = true;
+            }
+
+            if (assignment.OperationalOrder.Status == OperationalOrderStatus.PendingDocument)
+            {
+                assignment.OperationalOrder.Status = OperationalOrderStatus.Assignment;
+                await _unitOfWork.OperationalOrders.UpdateAsync(assignment.OperationalOrder);
+            }
 
             await _unitOfWork.AssignmentOperationals.UpdateAsync(assignment);
             await _unitOfWork.SaveChangesAsync(cancellationToken);

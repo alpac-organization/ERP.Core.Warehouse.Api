@@ -8,11 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 {
-   public class UpdateSectionLayoutHandler(
-      IUnitOfWork unitOfWork,
-      IErrorManager errorManager,
-      IMapper mapper,
-      ISectionCapacityCalculator sectionCapacityCalculator,
+   public class UpdateSectionLayoutHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper mapper, ISectionCapacityCalculator sectionCapacityCalculator,
       ILogger<UpdateSectionLayoutHandler> logger)
       : BaseSectionCapacityHandler<UpdateSectionLayoutCommand>(unitOfWork, errorManager, mapper, sectionCapacityCalculator)
    {
