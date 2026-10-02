@@ -39,9 +39,6 @@ namespace ERP.Core.Warehouse.Api.Infrastructure
             services.AddErpCoreServices(configuration);
             services.AddErpDatabaseServices(configuration);
 
-            services.AddScoped<IServicesOrdersRequisitionsRepository, ServicesOrdersRequisitionsRepository>();
-
-
             services.AddScoped<IErrorManager, ErrorManager>();
             services.AddHttpClient<IScaleServices, ScaleServices>();
             services.AddHttpClient<IWarehouseClockServices, WarehouseClockServices>((sp, client) =>
@@ -50,7 +47,9 @@ namespace ERP.Core.Warehouse.Api.Infrastructure
                 client.BaseAddress = new Uri(options.BaseUrl);
                 client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
             });
-            services.AddHostedService<WarehouseClockScheduleService>();
+
+            services.AddScheduledServices();
+
             return services;
         }
     }
