@@ -87,10 +87,10 @@ public static class LotMapper
         {
             Id = Guid.NewGuid(),
             LotId = lotId,
-            PositionX = request.PositionX ?? 0,
-            PositionY = request.PositionY ?? 0,
-            PositionZ = request.PositionZ ?? 0,
-            RotationY = request.RotationY ?? 0
+            PositionX = request.PositionX,
+            PositionY = request.PositionY,
+            PositionZ = request.PositionZ,
+            RotationY = request.RotationY
         };
     }
 
@@ -100,10 +100,10 @@ public static class LotMapper
         {
             Id = Guid.NewGuid(),
             LotId = lotId,
-            PositionX = item.PositionX ?? 0,
-            PositionY = item.PositionY ?? 0,
-            PositionZ = item.PositionZ ?? 0,
-            RotationY = item.RotationY ?? 0
+            PositionX = item.PositionX,
+            PositionY = item.PositionY,
+            PositionZ = item.PositionZ,
+            RotationY = item.RotationY
         };
     }
 }
