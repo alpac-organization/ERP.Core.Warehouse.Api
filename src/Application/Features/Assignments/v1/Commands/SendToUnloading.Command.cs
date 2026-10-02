@@ -1,0 +1,15 @@
+
+using System.Text.Json.Serialization;
+using ERP.Core.Domain.Entities.Bases;
+using MediatR;
+
+namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Commands;
+
+public class SendToUnloadingCommand : BaseRequest, IRequest<Unit>
+{
+    [JsonIgnore]
+    public Guid OperationalOrderId { get; set; }
+
+    [JsonIgnore]
+    public Guid AssignmentId { get; set; }
+}
