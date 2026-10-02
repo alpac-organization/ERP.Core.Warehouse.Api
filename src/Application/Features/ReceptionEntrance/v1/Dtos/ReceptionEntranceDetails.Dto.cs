@@ -5,11 +5,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos
 {
     public class ReceptionEntranceDetailsDto : ReceptionEntranceDto
     {
-        public DateTime CreatedAt { get; set; }
+        public ReceptionTransportEntranceDto ReceptionTransportEntranceInformation { get; set; } = new();
         public string? AdditionalData { get; set; }
 
         public CustomBranchesInformation CustomBranchesInformation { get; set; } = new();
-        public ReceptionTransportEntranceDto ReceptionTransportEntranceInformation { get; set; } = new();
+        public DateTime CreatedAt { get; set; }
     }
 
     public class ReceptionTransportEntranceDto

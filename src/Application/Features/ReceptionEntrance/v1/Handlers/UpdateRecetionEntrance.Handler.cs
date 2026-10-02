@@ -30,7 +30,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                 return access.ErrorResponse!;
             }
 
-            if (access.Role?.RoleType == RoleType.Supervisor)
+            if (access.Role?.RoleType == RoleType.Operator)
             {
                 return _errorManager.ThrowUnauthorized<Unit>("No tienes acceso a realizar esta acción","ERP:INVALID_ACCESS");
             }
@@ -48,7 +48,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
             var minutesElapsed = (DateTime.UtcNow - receptionEntrance.CreatedAt)
                 .TotalMinutes;
 
-            if (minutesElapsed >= 10 && (access.Role?.RoleType != RoleType.Administrator || access.Role?.RoleType != RoleType.Manager))
+            if (minutesElapsed >= 10 && access.Role?.RoleType is not (RoleType.Administrator or RoleType.Manager))
             {
                 return _errorManager.ThrowBadRequest<Unit>(
                     "Ya no se puede modificar la información vehicular de la recepción",
