@@ -12,9 +12,9 @@ using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
 {
-    public class GetAssignmentsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) : BaseValidatorHandler<GetAssignmentsQuery, PagedResponse<AssignmentDto>>(_unitOfWork, _errorManager)
+    public class GetAssignmentsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) : BaseValidatorHandler<GetAssignmentsQuery, PagedResponse<AssignmentOperationalDto>>(_unitOfWork, _errorManager)
     {
-        public override async Task<PagedResponse<AssignmentDto>> Handle(GetAssignmentsQuery request, CancellationToken cancellationToken)
+        public override async Task<PagedResponse<AssignmentOperationalDto>> Handle(GetAssignmentsQuery request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode!, cancellationToken);
 
@@ -25,11 +25,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
 
             if (access.Role?.RoleType == RoleType.Supervisor)
             {
-                return _errorManager.ThrowUnauthorized<PagedResponse<AssignmentDto>>("No tienes acceso a realizar esta acción", "ERP:INVALID_ACCESS");
+                return _errorManager.ThrowUnauthorized<PagedResponse<AssignmentOperationalDto>>("No tienes acceso a realizar esta acción", "ERP:INVALID_ACCESS");
             }
 
             var assignmentsQuery = _unitOfWork.AssignmentOperationals.Entities
                 .Include(ao => ao.OperationalOrder)
+                .Include(ao => ao.Warehouse)
                 .AsSplitQuery()
                 .AsNoTracking()
                 .Where(ao => ao.OperationalOrderId == request.OperationalOrderId);
@@ -47,9 +48,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
                 .Take(request.PageSize)
                 .ToListAsync(cancellationToken);
 
-            var assignmentsMapped = _mapper.Map<List<AssignmentDto>>(assignments);
+            var assignmentsMapped = _mapper.Map<List<AssignmentOperationalDto>>(assignments);
 
-            return new PagedResponse<AssignmentDto>(
+            return new PagedResponse<AssignmentOperationalDto>(
                 assignmentsMapped,
                 request.PageNumber,
                 request.PageSize,

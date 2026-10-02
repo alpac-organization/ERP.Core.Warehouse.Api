@@ -14,10 +14,7 @@ using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers
 {
-    public class UpdateReceptionEntranceHandler(
-        IUnitOfWork _unitOfWork, 
-        IErrorManager _errorManager, 
-        IS3StorageService _s3StorageService) : BaseValidatorHandler<UpdateReceptionEntranceCommand, Unit>(_unitOfWork, _errorManager)
+    public class UpdateReceptionEntranceHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IS3StorageService _s3StorageService) : BaseValidatorHandler<UpdateReceptionEntranceCommand, Unit>(_unitOfWork, _errorManager)
     {
         private static readonly JsonSerializerOptions SnakeCaseOptions = new()
         {
@@ -47,11 +44,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
             {
                 return _errorManager.ThrowNotFound<Unit>("La reception a actualizar no existe registrada", "ERP:NOT_FOUND_RECEPTION");
             }
-
-            var minutosTranscurridos = (DateTime.UtcNow - receptionEntrance.CreatedAt)
+            
+            var minutesElapsed = (DateTime.UtcNow - receptionEntrance.CreatedAt)
                 .TotalMinutes;
 
-            if (minutosTranscurridos >= 10)
+            if (minutesElapsed >= 10)
             {
                 return _errorManager.ThrowBadRequest<Unit>(
                     "Ya no se puede modificar la información vehicular de la recepción",
@@ -70,7 +67,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
 
                 if (request.GeneralInformation.CustomBranchId != Guid.Empty)
                 {
-                    var customBranch = await _unitOfWork.CustomerBranches.Entities
+                    var customBranch = await _unitOfWork.CustomsBranches.Entities
                         .Where(cb => cb.IsActive)
                         .Where(cb => cb.Id == request.GeneralInformation.CustomBranchId)
                         .FirstOrDefaultAsync(cancellationToken);
@@ -101,11 +98,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                     UpdateDocumentNumbersInAdditionalData(additionalData, newDocumentType, request.GeneralInformation);
                 }
             }
-            
-            //Actualizar imagenes o documentos.
+
+            //Actualizar imagenes o evidencia fotografica.
             if (request.EvidenceBase64.Count > 0 || request.EvidenceIdsToDelete.Count > 0)
             {
-                await UpdateEvidenceImagesAsync(additionalData, request.EvidenceBase64, request.EvidenceIdsToDelete, cancellationToken);
+                await UpdateEvidenceImagesAsync(additionalData, request.EvidenceBase64, request.EvidenceIdsToDelete);
             }
 
             receptionEntrance.AdditionalData = JsonSerializer.Serialize(additionalData, SnakeCaseOptions);
@@ -151,6 +148,28 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
 
         #endregion
 
+        #region Actualizar información de evidencia fotografica.
+        private async Task UpdateEvidenceImagesAsync(AdditionalReceptionEntranceData additionalData, List<string> newEvidenceBase64, List<Guid> evidenceIdsToDelete)
+        {
+            if (evidenceIdsToDelete.Count > 0)
+            {
+                additionalData.EvidenceUrls.RemoveAll(img => evidenceIdsToDelete.Contains(img.ImageId));
+            }
+
+            foreach (var base64Image in newEvidenceBase64)
+            {
+                var imageUrl = await _s3StorageService.UploadImageAsync("Warehouse", "ReceptionEntrance", base64Image, default);
+                var imageEntity = new ImagesInformation
+                {
+                    ImageId = Guid.NewGuid(),
+                    ImageUrl = imageUrl
+                };
+                additionalData.EvidenceUrls.Add(imageEntity);
+            }
+        }
+        #endregion
+
+        
         private static DocumentType? GetCurrentDocumentType(AdditionalReceptionEntranceData additionalData)
         {
             var firstDoc = additionalData.DocumentNumbers.FirstOrDefault();
@@ -241,25 +260,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                         });
                     }
                 }
-            }
-        }
-
-        private async Task UpdateEvidenceImagesAsync(AdditionalReceptionEntranceData additionalData, List<string> newEvidenceBase64, List<Guid> evidenceIdsToDelete, CancellationToken cancellationToken)
-        {
-            if (evidenceIdsToDelete.Count > 0)
-            {
-                additionalData.EvidenceUrls.RemoveAll(img => evidenceIdsToDelete.Contains(img.ImageId));
-            }
-
-            foreach (var base64Image in newEvidenceBase64)
-            {
-                var imageUrl = await _s3StorageService.UploadImageAsync("Warehouse", "ReceptionEntrance", base64Image, cancellationToken);
-                var imageEntity = new ImagesInformation
-                {
-                    ImageId = Guid.NewGuid(),
-                    ImageUrl = imageUrl
-                };
-                additionalData.EvidenceUrls.Add(imageEntity);
             }
         }
 

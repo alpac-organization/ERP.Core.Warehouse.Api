@@ -9,11 +9,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Comma
     {
         [JsonIgnore]
         public Guid ReceptionEntranceId { get; set; }
-
+        
         public GeneralInformationUpdated? GeneralInformation { get; set; }
         public ReceptionTransportInformation? ReceptionTransportInformation { get; set; }
-        
+
+        //Agregar Nuevas Evidencias, a la lista        
         public List<string> EvidenceBase64 { get; set; } = [];
+
+        //Eliminación de evidencias
         public List<Guid> EvidenceIdsToDelete { get; set; } = [];
     }
 

@@ -30,7 +30,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
 
             var operationalOrder = await _unitOfWork.OperationalOrders.Entities
                 .Where(operation => operation.CompanyId == request.CompanyId)
-                .Where(operation => operation.Status == OperationalOrderStatus.Assignment)
+                // .Where(operation => operation.Status == OperationalOrderStatus.Assignment)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (operationalOrder == null)
@@ -40,8 +40,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
 
             var assignmentOperationalEntity = AssignmentMapper.ToAssignmentOperationalEntity(request);
             
-
-
             await _unitOfWork.AssignmentOperationals.RegisterAssignmentOperational(assignmentOperationalEntity);
 
             if (request.HasAssignedCollaborators)
@@ -52,9 +50,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
 
                 foreach (var collaborator in request.AssignedCollaborators)
                 {
-                    var assignmentCollaborator = AssignmentMapper.ToAssignmentCollaboratorsEntity(collaborator, assignmentOperationalEntity.Id);
-                    assignmentCollaborator.CreatedByUserId = access.User.Id;
-
+                    var assignmentCollaborator = AssignmentMapper.ToAssignmentCollaboratorsEntity(collaborator, assignmentOperationalEntity.Id, access.Profile.UserId);
                     await _unitOfWork.AssignmentCollaborators.AssignCollaborator(assignmentCollaborator);
                 }
             }
@@ -65,9 +61,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
 
                 foreach (var machinery in request.AssignedMachineries)
                 {
-                    var assignmentMachinery = AssignmentMapper.ToAssignmentsMachineryEntity(machinery, assignmentOperationalEntity.Id);
-                    assignmentMachinery.CreatedByUserId = access.User.Id;
-
+                    var assignmentMachinery = AssignmentMapper.ToAssignmentsMachineryEntity(machinery, assignmentOperationalEntity.Id, access.Profile.UserId);
                     await _unitOfWork.AssignmentsMachineries.AssignMachinery(assignmentMachinery);
                 }
             }

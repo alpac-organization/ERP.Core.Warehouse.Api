@@ -28,8 +28,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
                 .AsSplitQuery()
                 .AsNoTracking();
 
-            //Agregar el company id
-
             if (request.Status.HasValue)
             {
                 operationalOrdersQuery = operationalOrdersQuery
