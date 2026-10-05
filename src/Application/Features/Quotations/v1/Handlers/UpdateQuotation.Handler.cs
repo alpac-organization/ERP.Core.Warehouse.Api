@@ -49,8 +49,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
             if (request.Iva.HasValue)
                 quotation.Iva = request.Iva.Value;
 
-            if (request.Price.HasValue)
-                quotation.Price = request.Price.Value;
+            // if (request.Price.HasValue)
+            //     quotation.Price = request.Price.Value;
 
             if (request.PriceUnit.HasValue)
                 quotation.PriceUnit = request.PriceUnit.Value;
@@ -70,11 +70,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
             if (request.WarrantyPeriodTimeType.HasValue)
                 quotation.WarrantyPeriodTimeType = request.WarrantyPeriodTimeType.Value;
 
-            if (request.Price.HasValue)
-            {
-                quotation.Price = request.Price.Value;
-                quotation.PriceTotal = RecalculatePriceTotal(quotation.PriceUnit, quotation.Price);
-            }
+            // if (request.Price.HasValue)
+            // {
+            //     quotation.Price = request.Price.Value;
+            //     quotation.PriceTotal = RecalculatePriceTotal(quotation.PriceUnit, quotation.Price);
+            // }
 
             await _unitOfWork.Quotations.UpdateAsync(quotation);
 

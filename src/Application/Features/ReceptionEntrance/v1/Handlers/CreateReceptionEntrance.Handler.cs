@@ -98,6 +98,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
 
                         await _unitOfWork.OperationalOrders.RegisterOperationalOrder(operationOrderEntity);
                         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                        var documentEntry = additionalData.DocumentNumbers.FirstOrDefault(
+                            document => document.DocumentNumbers == duca
+                                && document.OperationalOrderId == Guid.Empty);
+
+                        if (documentEntry is not null)
+                        {
+                            documentEntry.OperationalOrderId = operationOrderEntity.Id;
+                        }
                     }
 
                     break;
@@ -147,6 +156,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                         await _unitOfWork.AssignmentOperationals.RegisterAssignmentOperational(assignmentOperational);   
                     }
 
+                    var documentEntry = additionalData.DocumentNumbers.FirstOrDefault(
+                        document => document.DocumentNumbers == operationOrderEntity.DocumentNumber);
+
+                    if (documentEntry is not null)
+                    {
+                        documentEntry.OperationalOrderId = operationOrderEntity.Id;
+                    }
+
                     await _unitOfWork.SaveChangesAsync(cancellationToken);
                     break;   
                 }
@@ -155,6 +172,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                     return _errorManager.ThrowBadRequest<Unit>("Error al registrar la información, el tipo de documento no es aceptable", "ERP:INVALID_DOCUMENT");    
                 }
             }
+
+            receptionEntranceEntity.AdditionalData = JsonSerializer.Serialize(additionalData, SnakeCaseOptions);
+
+            await _unitOfWork.ReceptionEntrance.UpdateAsync(receptionEntranceEntity);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return Unit.Value;
         }
