@@ -32,14 +32,14 @@ namespace ERP.Core.Warehouse.Api.Infrastructure.Schedules
                 quartz.AddTrigger(opts => opts
                     .ForJob(setKey)
                     .WithIdentity("WarehouseClockSetEvents-trigger")
-                    .WithCronSchedule("0 * * * * ?", x => x.InTimeZone(managuaTimeZone))); // Cada minuto
+                    .WithCronSchedule("0 */2 * * * ?", x => x.InTimeZone(managuaTimeZone))); // Cada 2 minutos
 
-                var clearKey = new JobKey("WarehouseClockClearEvents");
-                quartz.AddJob<WarehouseStartProcessToStopClockJob>(opts => opts.WithIdentity(clearKey));
-                quartz.AddTrigger(opts => opts
-                    .ForJob(clearKey)
-                    .WithIdentity("WarehouseClockClearEvents-trigger")
-                    .WithCronSchedule("0 * * * * ?", x => x.InTimeZone(managuaTimeZone))); // Cada minuto
+                // var clearKey = new JobKey("WarehouseClockClearEvents");
+                // quartz.AddJob<WarehouseStartProcessToStopClockJob>(opts => opts.WithIdentity(clearKey));
+                // quartz.AddTrigger(opts => opts
+                //     .ForJob(clearKey)
+                //     .WithIdentity("WarehouseClockClearEvents-trigger")
+                //     .WithCronSchedule("0 * * * * ?", x => x.InTimeZone(managuaTimeZone))); // Cada minuto
             });
 
             services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
