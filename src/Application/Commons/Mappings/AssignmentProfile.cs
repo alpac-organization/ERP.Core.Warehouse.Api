@@ -54,7 +54,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             {
                 Id = Guid.NewGuid(),
                 IsActive = true,
-                Status = AssignmentOperationalStatus.Pending,
+                Status = AssignmentOperationalStatus.None,
                 Observations = command.Observations,
                 Merchandise = command.Merchandise,
                 WarehouseId = command.WarehouseId,
