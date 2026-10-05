@@ -93,35 +93,35 @@ Endpoint para registrar una recepción en el control de acceso. Genera la recepc
 }
 ```
 
-| Campo                            | Tipo                                    | Requerido | Descripción |
-|----------------------------------|-----------------------------------------|:---------:|-------------|
-| `general_information`            | `object (GeneralInformation)`           | Sí        | Datos generales de la recepción. |
-| `transport_information`          | `object (TransportInformation)`         | Sí        | Datos del transporte. |
-| `customs_declaration_information` | `object (CustomsDeclarationInformation)` | Condicional | Obligatorio solo si `document_type` es `CustomsDeclaration`. Debe ser `null` si es `DUCA`. |
-| `evidence_base64`                | `array (string)`                        | No        | Imágenes en Base64. Default `[]`. Se suben a S3. |
+| Campo                             | Tipo                                      | Requerido   | Descripción |
+|-----------------------------------|-------------------------------------------|:-----------:|-------------|
+| `general_information`             | `object (GeneralInformation)`             | Sí          | Datos generales de la recepción. |
+| `transport_information`           | `object (TransportInformation)`           | Sí          | Datos del transporte. |
+| `customs_declaration_information` | `object (CustomsDeclarationInformation)`  | Condicional | Obligatorio solo si `document_type` es `CustomsDeclaration`. Debe ser `null` si es `DUCA`. |
+| `evidence_base64`                 | `array (string)`                          | No          | Imágenes en Base64. Default `[]`. Se suben a S3. |
 
 ### `general_information`
 
-| Campo                       | Tipo                  | Requerido | Descripción |
-|-----------------------------|-----------------------|:---------:|-------------|
-| `custom_branch_id`          | `guid`                | No        | Aduana de procedencia. **No se valida contra la base de datos en este endpoint.** |
-| `seal_number`               | `string`              | No        | Número de sello. |
-| `country_origin`            | `string`              | No        | País de origen. |
-| `container_number`          | `string`              | No        | Número de contenedor. |
-| `document_type`             | `enum (DocumentType)` | Sí        | `DUCA` o `CustomsDeclaration`. |
-| `ducat_numbers`             | `array (string)`      | Condicional | Obligatorio y no vacío si `document_type` es `DUCA`. Debe estar vacío si es `CustomsDeclaration`. |
-| `customs_declaration_number` | `string`             | Condicional | Obligatorio si `document_type` es `CustomsDeclaration`. |
+| Campo                        | Tipo                  | Requerido   | Descripción |
+|------------------------------|-----------------------|:-----------:|-------------|
+| `custom_branch_id`           | `guid`                | No          | Aduana de procedencia. **No se valida contra la base de datos en este endpoint.** |
+| `seal_number`                | `string`              | No          | Número de sello. |
+| `country_origin`             | `string`              | No          | País de origen. |
+| `container_number`           | `string`              | No          | Número de contenedor. |
+| `document_type`              | `enum (DocumentType)` | Sí          | `DUCA` o `CustomsDeclaration`. |
+| `ducat_numbers`              | `array (string)`      | Condicional | Obligatorio y no vacío si `document_type` es `DUCA`. Debe estar vacío si es `CustomsDeclaration`. |
+| `customs_declaration_number` | `string`              | Condicional | Obligatorio si `document_type` es `CustomsDeclaration`. |
 
 ### `transport_information`
 
-| Campo                   | Tipo                  | Requerido | Descripción |
-|-------------------------|-----------------------|:---------:|-------------|
-| `driver_name`           | `string`              | No        | Nombre del conductor. |
-| `driver_license`        | `string`              | No        | Licencia del conductor. |
-| `transportista`         | `string`              | No        | Nombre del transportista. |
-| `vehicle_plate_number`  | `string`              | No        | Placa del vehículo. |
-| `vehicle_chassis_number` | `string`             | No        | Número de chasis. |
-| `transport_unit`        | `enum (TransportUnit)` | No      | Tipo de unidad de transporte. |
+| Campo                    | Tipo                   | Requerido | Descripción |
+|--------------------------|------------------------|:---------:|-------------|
+| `driver_name`            | `string`               | No        | Nombre del conductor. |
+| `driver_license`         | `string`               | No        | Licencia del conductor. |
+| `transportista`          | `string`               | No        | Nombre del transportista. |
+| `vehicle_plate_number`   | `string`               | No        | Placa del vehículo. |
+| `vehicle_chassis_number` | `string`               | No        | Número de chasis. |
+| `transport_unit`         | `enum (TransportUnit)` | No        | Tipo de unidad de transporte. |
 
 ### `customs_declaration_information`
 
@@ -155,7 +155,8 @@ Endpoint para registrar una recepción en el control de acceso. Genera la recepc
     - `IsConsolidated = true` si hay más de un número de DUCA
     - `CompanyId` = compañía de la ruta, `ReceptionId` = id de la recepción
 11. Genera un `po_code` único por orden con `GenerateUniqueOperationalOrderCodeAsync`.
-12. Guarda los cambios.
+12. Actualiza en `additional_data.document_numbers` el `operational_order_id` de cada entrada, asociándola con la PO recién creada.
+13. Guarda los cambios.
 
 ### Rama `CustomsDeclaration`
 
@@ -166,7 +167,8 @@ Endpoint para registrar una recepción en el control de acceso. Genera la recepc
     - Copia `total_weight` a `Weight` y `package_number` a `PackagesCount` de la orden.
 12. Asigna `DocumentNumber = customs_declaration_number` y genera el `po_code`.
 13. Si hubo asignación operativa, marca la orden con `HasAssignmentOperationalActive = true` y la registra.
-14. Guarda los cambios.
+14. Actualiza en `additional_data.document_numbers` el `operational_order_id` de la entrada.
+15. Guarda los cambios.
 
 > **Contexto de la request:** `company_id` y `module_code` llegan por la ruta y el controller los asigna al `payload`. `user_id` se lee de `HttpContext.Items["UserId"]`.
 
@@ -176,8 +178,8 @@ Endpoint para registrar una recepción en el control de acceso. Genera la recepc
 
 | Condición | Reglas |
 |-----------|--------|
-| `document_type == DUCA` | `ducat_numbers` no vacío: `Debe indicar al menos un número de DUCA cuando el tipo de documento es DUCA.` &nbsp;·&nbsp; Cada elemento no vacío: `Los números de DUCA no pueden estar vacíos.` &nbsp;·&nbsp; `customs_declaration_information` **nulo**: `No debe enviar información de declaración aduanera cuando el tipo de documento es DUCA.` |
-| `document_type == CustomsDeclaration` | `ducat_numbers` vacío: `La lista de DUCA debe estar vacía cuando el tipo de documento es Declaración Aduanera.` &nbsp;·&nbsp; `customs_declaration_information` no nulo: `Debe enviar la información de declaración aduanera.` &nbsp;·&nbsp; `customs_declaration_number` no vacío: `Debe indicar el número de declaración aduanera.` &nbsp;·&nbsp; Si no es nulo: `total_weight > 0` y `package_number > 0`. |
+| `document_type == DUCA` | `ducat_numbers` no vacío: `Debe indicar al menos un número de DUCA cuando el tipo de documento es DUCA.` · Cada elemento no vacío: `Los números de DUCA no pueden estar vacíos.` · `customs_declaration_information` **nulo**: `No debe enviar información de declaración aduanera cuando el tipo de documento es DUCA.` |
+| `document_type == CustomsDeclaration` | `ducat_numbers` vacío: `La lista de DUCA debe estar vacía cuando el tipo de documento es Declaración Aduanera.` · `customs_declaration_information` no nulo: `Debe enviar la información de declaración aduanera.` · `customs_declaration_number` no vacío: `Debe indicar el número de declaración aduanera.` · Si no es nulo: `total_weight > 0` y `package_number > 0`. |
 
 ### Ventana horaria de declaración aduanera
 
@@ -197,11 +199,11 @@ Cuando `document_type` es `CustomsDeclaration` **y** viene `customs_declaration_
 Este endpoint **no solo registra recepciones**: también crea las PO. Es el punto de entrada del módulo de órdenes operacionales.
 
 | Tipo de documento | Órdenes creadas | Asignación operativa |
-|-------------------|------------------|----------------------|
+|-------------------|-----------------|----------------------|
 | `DUCA` | **Una por cada** número de DUCA | Ninguna |
 | `CustomsDeclaration` | **Exactamente una** | Una con `Status = Pending`, solo si viene `customs_declaration_information` |
 
-> Para consultar las PO generadas, usa el [listado de órdenes operacionales](../OperationalOrders/GetOperationalOrdersDocs.md).
+> Cada orden operacional generada queda asociada a la recepción vía `reception_id`. El `operational_order_id` de cada documento se persiste en `additional_data.document_numbers` para permitir su actualización posterior por ID.
 
 ---
 
@@ -215,7 +217,7 @@ El controller responde `Created()` **sin argumentos**, por lo que la respuesta *
 {}
 ```
 
-> Los ids y códigos generados (`reception_code`, `reception_entrance_id`, `po_code`) **no se devuelven**. Para recuperarlos hay que consultar el [listado de recepciones](GetReceptionEntrancesDocs.md) o el de órdenes operacionales.
+> Los ids y códigos generados (`reception_code`, `reception_entrance_id`, `po_code`) **no se devuelven**. Para recuperarlos hay que consultar el listado de recepciones o el de órdenes operacionales.
 
 ### Notas
 
@@ -228,7 +230,8 @@ El controller responde `Created()` **sin argumentos**, por lo que la respuesta *
 | `CostCenterId` | Proviene del **perfil de acceso del usuario**, no del body. No es posible elegirlo desde la request. |
 | `CreatedByUserId` | Se toma del token, no del body. |
 | Evidencias | Base64 en el request, URLs de S3 en `additional_data`. |
-| Salida de vehículo / contenedor | **No se registra.** El controller deja pendiente el `//Endpoint para darle continuidad al registro vehicular y salid de reception.` |
+| `operational_order_id` | Se completa en `additional_data.document_numbers` después de crear cada PO. Es el valor que se reenvía en el PATCH. |
+| Salida de vehículo / contenedor | **No se registra.** El controller deja pendiente el endpoint de continuidad para el registro vehicular y salida de recepción. |
 
 ### ❌ 400 Bad Request
 
@@ -300,40 +303,3 @@ Respuesta del `ExceptionMiddleware` con `CoreException` (camelCase):
 | `401` | Rol `Supervisor` (`ERP:INVALID_ACCESS`) o token inválido. |
 | `403` | `X-Api-Key` ausente o inválida. |
 | `500` | Fallo del generador de códigos (`ERP:CODE_GENERATOR_ERROR`, `ERP:INTERNAL_ERROR`) o error no controlado. |
-
----
-
-## Catálogos de Enums Utilizados
-
-### `DocumentType`
-
-> ⚠️ **Confirmar valores numéricos.** El enum vive en el paquete NuGet `ERP.Core.Database.Domain` y sus valores enteros no son legibles desde este repositorio. La documentación anterior de este módulo asignaba `1`/`2` aquí y `3`/`4` en la actualización, lo que es internamente contradictorio: **no se documentan números**.
-
-| Miembro              | DUCAs | Declaración aduanera | Comportamiento |
-|----------------------|:-----:|:--------------------:|----------------|
-| `DUCA`               | Obligatorio, ≥ 1 | Debe estar vacío | Una orden operacional por número de DUCA. Sin asignación operativa. Sin ventana horaria. |
-| `CustomsDeclaration` | Debe estar vacío | Obligatorio | Una única orden operacional. Con asignación operativa si viene el detalle. Requiere ventana horaria. |
-
-### `TransportUnit`
-
-> ⚠️ **Confirmar valores numéricos.** El enum vive en el paquete NuGet `ERP.Core.Database.Domain`.
-
-### `AssignmentOperationalStatus`
-
-> ⚠️ **Confirmar valores numéricos.** Este endpoint crea la asignación operativa con `Status = AssignmentOperationalStatus.Pending`. El PATCH de órdenes operacionales usa `None` para el mismo tipo de entidad.
-
-### `MerchandiseCategory` y `DestinationType`
-
-> ⚠️ **Confirmar valores numéricos.** La asignación operativa se crea con `Category = MerchandiseCategory.None` y `DestinationType = DestinationType.None`.
-
----
-
-## Endpoints Relacionados
-
-| Endpoint | Descripción |
-|----------|-------------|
-| `GET /api/v1/companies/{company_id}/modules/{module_code}/reception-entrances` | Listado paginado, para localizar la recepción recién creada. |
-| `GET /api/v1/companies/{company_id}/modules/{module_code}/reception-entrances/{reception_entrance_id}/details` | Detalle completo, con `additional_data` y evidencias. |
-| `PATCH /api/v1/companies/{company_id}/modules/{module_code}/reception-entrances/{reception_entrance_id}` | Actualiza la recepción. Solo dentro de los primeros 10 minutos. |
-| `GET /api/v1/companies/{company_id}/modules/{module_code}/operational-orders` | Lista las PO generadas por este registro. |
-| `GET /api/v1/companies/{company_id}/modules/{module_code}/custom-branches` | Listado de aduanas, para obtener un `custom_branch_id` válido. |
