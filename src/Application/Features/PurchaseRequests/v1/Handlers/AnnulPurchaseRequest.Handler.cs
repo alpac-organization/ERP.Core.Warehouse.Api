@@ -26,7 +26,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             var purchaseRequest = await _unitOfWork.PurchaseRequests.Entities
                 .Include(pur => pur.AccountingReview)
                 .Include(pur => pur.ManagementReview)
-                .Include(pur => pur.PurchaseOrder)
+                // .Include(pur => pur.PurchaseOrder)
                 .Include(pur => pur.PurchaseRequestItems)
                     .ThenInclude(item => item.Quotations)
                 .Where(pur => pur.Id == request.PurchaseRequestId)
@@ -45,10 +45,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             }
 
             // Validación: ya fue aprobada por gerencia o cuenta con orden de compra emitida
-            if (purchaseRequest.PurchaseOrder is not null || purchaseRequest.ManagementReview?.Status == ManagementReviewStatus.Approved)
-            {
-                return _errorManager.ThrowBadRequest<bool>("La solicitud de compra ya fue aprobada por gerencia o cuenta con una orden de compra emitida y no puede ser anulada", "ERP:PURCHASE_REQUEST_ALREADY_APPROVED");
-            }
+            // if (purchaseRequest.PurchaseOrder is not null || purchaseRequest.ManagementReview?.Status == ManagementReviewStatus.Approved)
+            // {
+            //     return _errorManager.ThrowBadRequest<bool>("La solicitud de compra ya fue aprobada por gerencia o cuenta con una orden de compra emitida y no puede ser anulada", "ERP:PURCHASE_REQUEST_ALREADY_APPROVED");
+            // }
 
             // Validación por rol
             if (access.Role?.RoleType == RoleType.Operator)
@@ -85,7 +85,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             var now = DateTime.UtcNow;
 
             purchaseRequest.RequestStatus = PurchaseRequestStatus.Rejected;
-            purchaseRequest.AnnulmentReason = request.Reason;
+            // purchaseRequest.AnnulmentReason = request.Reason;
             purchaseRequest.AnnulledByUserId = access.User.Id;
             purchaseRequest.DeletedAt = now;
 

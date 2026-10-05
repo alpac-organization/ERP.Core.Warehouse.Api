@@ -27,7 +27,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
 
             var managementReview = await _unitOfWork.PurchaseRequestsReviewedManagement.Entities
                 .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(pur => pur.PurchaseOrder)
+                    // .ThenInclude(pur => pur.PurchaseOrder)
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.AccountingReview)
                 .Include(rev => rev.PurchaseRequest)
@@ -54,10 +54,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
             }
 
             // Validación: ya cuenta con orden de compra generada
-            if (purchaseRequest.PurchaseOrder is not null)
-            {
-                return _errorManager.ThrowBadRequest<bool>("La solicitud ya cuenta con una orden de compra generada, no se puede anular ni retornar", "ERP:PURCHASE_ORDER_ALREADY_EXISTS");
-            }
+            // if (purchaseRequest.PurchaseOrder is not null)
+            // {
+            //     return _errorManager.ThrowBadRequest<bool>("La solicitud ya cuenta con una orden de compra generada, no se puede anular ni retornar", "ERP:PURCHASE_ORDER_ALREADY_EXISTS");
+            // }
 
             if (request.Scope != AnnulmentScope.QuotationOnly && request.Scope != AnnulmentScope.FullProcess)
             {
@@ -80,7 +80,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
             }
 
             purchaseRequest.RequestStatus = isQuotationOnly ? PurchaseRequestStatus.Approved : PurchaseRequestStatus.Rejected;
-            purchaseRequest.AnnulmentReason = request.Reason;
+            // purchaseRequest.AnnulmentReason = request.Reason;
             purchaseRequest.AnnulledByUserId = access.User.Id;
             purchaseRequest.DeletedAt = isQuotationOnly ? null : now;
 

@@ -34,7 +34,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 DeliveryTimeType = command.DeliveryTimeType,
                 SupplierId = command.SupplierId,
                 SupplierSelectionJustification = command.SupplierSelectionJustification,
-                Price = command.Price,
+                // Price = command.Price,
                 PurchaseRequestItemId = command.PurchaseRequestItemId,
                 WarrantyPeriodTimeType = command.WarrantyPeriodTimeType,
                 WarrantyPeriod = command.WarrantyPeriod,

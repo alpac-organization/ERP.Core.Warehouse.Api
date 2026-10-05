@@ -27,7 +27,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
 
             var accountingReview = await _unitOfWork.PurchaseRequestsReviewedAccounting.Entities
                 .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(pur => pur.PurchaseOrder)
+                    // .ThenInclude(pur => pur.PurchaseOrder)
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.ManagementReview)
                 .Include(rev => rev.PurchaseRequest)
@@ -54,10 +54,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
             }
 
             // Validación: ya fue aprobada por gerencia o cuenta con orden de compra emitida
-            if (purchaseRequest.PurchaseOrder is not null || purchaseRequest.ManagementReview?.Status == ManagementReviewStatus.Approved)
-            {
-                return _errorManager.ThrowBadRequest<bool>("La solicitud ya fue aprobada por gerencia o tiene una orden de compra emitida, no se puede anular ni retornar desde contabilidad", "ERP:PURCHASE_REQUEST_ALREADY_APPROVED");
-            }
+            // if (purchaseRequest.PurchaseOrder is not null || purchaseRequest.ManagementReview?.Status == ManagementReviewStatus.Approved)
+            // {
+            //     return _errorManager.ThrowBadRequest<bool>("La solicitud ya fue aprobada por gerencia o tiene una orden de compra emitida, no se puede anular ni retornar desde contabilidad", "ERP:PURCHASE_REQUEST_ALREADY_APPROVED");
+            // }
 
             if (request.Scope != AnnulmentScope.QuotationOnly && request.Scope != AnnulmentScope.FullProcess)
             {
@@ -72,7 +72,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
             accountingReview.DeletedAt = now;
 
             purchaseRequest.RequestStatus = isQuotationOnly ? PurchaseRequestStatus.Approved : PurchaseRequestStatus.Rejected;
-            purchaseRequest.AnnulmentReason = request.Reason;
+            // purchaseRequest.AnnulmentReason = request.Reason;
             purchaseRequest.AnnulledByUserId = access.User.Id;
             purchaseRequest.DeletedAt = isQuotationOnly ? null : now;
 

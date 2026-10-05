@@ -10,12 +10,12 @@ using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handlers
 {
-    public class GetReceptionEntranceDetailsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper): BaseValidatorHandler<GetReceptionEntranceDetailsQuery, ReceptionEntranceDetailsDto>(_unitOfWork, _errorManager)
+    public class GetReceptionEntranceDetailsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) : BaseValidatorHandler<GetReceptionEntranceDetailsQuery, ReceptionEntranceDetailsDto>(_unitOfWork, _errorManager)
     {
         public override async Task<ReceptionEntranceDetailsDto> Handle(GetReceptionEntranceDetailsQuery request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, cancellationToken);
-            
+
             if (!access.IsSuccess)
             {
                 return access.ErrorResponse!;
@@ -25,9 +25,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                 .Include(reception => reception.User)
                 .Include(reception => reception.CustomsBranches)
                 .Include(reception => reception.ReceptionTransport)
+                .Include(reception => reception.OperationalOrders)
                 .Where(reception => reception.IsActive)
                 .Where(reception => reception.Id == request.ReceptionEntranceId)
                 .FirstOrDefaultAsync(cancellationToken);
+
 
             var receptionMapped = _mapper.Map<ReceptionEntranceDetailsDto>(receptionEntrance);
 
