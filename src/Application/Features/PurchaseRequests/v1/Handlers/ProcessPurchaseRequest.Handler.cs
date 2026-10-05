@@ -72,7 +72,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 {
                     purchaseRequest.UserRevisionId = access.User.Id;
                     purchaseRequest.RequestStatus = request.NewStatus;
-                    purchaseRequest.ReasonRejection = request.ReasonRejection;
+                    // purchaseRequest.ReasonRejection = request.ReasonRejection;
                     purchaseRequest.RevisionDate = DateOnly.FromDateTime(DateTime.UtcNow);
 
                     await _unitOfWork.PurchaseRequests.UpdateAsync(purchaseRequest);

@@ -61,11 +61,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                 if (isAccepted)
                 {
                     itemQuotation.SupplierSelectionJustification = request.SupplierSelectionJustification;
-                    itemQuotation.SupplierRejectionJustification = null;
+                    // itemQuotation.SupplierRejectionJustification = null;
                 }
                 else
                 {
-                    itemQuotation.SupplierRejectionJustification = request.SupplierRejectionJustification;
+                    // itemQuotation.SupplierRejectionJustification = request.SupplierRejectionJustification;
                 }
                 await _unitOfWork.Quotations.UpdateAsync(itemQuotation);
             }
