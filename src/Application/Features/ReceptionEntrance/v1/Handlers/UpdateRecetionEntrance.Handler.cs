@@ -30,7 +30,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                 return access.ErrorResponse!;
             }
 
-            if (access.Role?.RoleType == RoleType.Operator)
+            if (access.Role?.RoleType is not (RoleType.Administrator or RoleType.Supervisor or RoleType.Manager))
             {
                 return _errorManager.ThrowUnauthorized<Unit>("No tienes acceso a realizar esta acción","ERP:INVALID_ACCESS");
             }
@@ -38,6 +38,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
             var receptionEntrance = await _unitOfWork.ReceptionEntrance.Entities
                 .Where(reception => reception.IsActive)
                 .Where(reception => reception.Id == request.ReceptionEntranceId)
+                .Include(reception => reception.OperationalOrders)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (receptionEntrance is null)
@@ -57,10 +58,16 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
             }
 
             var additionalData = DeserializeAdditionalData(receptionEntrance.AdditionalData);
-            var currentDocumentType = GetCurrentDocumentType(additionalData);
 
             if (request.GeneralInformation is not null)
             {
+                var documentSync = SyncDocuments(receptionEntrance, additionalData, request.GeneralInformation);
+
+                if (!documentSync.IsSuccess)
+                {
+                    return (Unit)documentSync.ErrorResponse!;
+                }
+
                 receptionEntrance.SealNumber = request.GeneralInformation.SealNumber ?? receptionEntrance.SealNumber;
                 receptionEntrance.CountryOfOrigin = request.GeneralInformation.CountryOrigin ?? receptionEntrance.CountryOfOrigin;
                 receptionEntrance.ContainerNumber = request.GeneralInformation.ContainerNumber ?? receptionEntrance.ContainerNumber;
@@ -78,24 +85,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                     }
 
                     receptionEntrance.CustomBranchId = request.GeneralInformation.CustomBranchId;
-                }
-
-                var newDocumentType = request.GeneralInformation.DocumentType;
-                
-                if (currentDocumentType != newDocumentType)
-                {
-                    var validationResult = ValidateDocumentTypeChange(currentDocumentType, newDocumentType, request.GeneralInformation);
-
-                    if (!validationResult.IsSuccess)
-                    {
-                        return (Unit)validationResult.ErrorResponse!;
-                    }
-
-                    UpdateDocumentNumbersInAdditionalData(additionalData, newDocumentType, request.GeneralInformation);
-                }
-                else
-                {
-                    UpdateDocumentNumbersInAdditionalData(additionalData, newDocumentType, request.GeneralInformation);
                 }
             }
 
@@ -125,6 +114,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                 receptionTransportEntrance.DriverLicense = request.ReceptionTransportInformation?.DriverLicense ?? receptionTransportEntrance.DriverLicense;
                 receptionTransportEntrance.VehiclePlateNumber = request.ReceptionTransportInformation?.VehiclePlateNumber ?? receptionTransportEntrance.VehiclePlateNumber;
                 receptionTransportEntrance.VehicleChassisNumber = request.ReceptionTransportInformation?.VehicleChassisNumber ?? receptionTransportEntrance.VehicleChassisNumber;
+
+                if (request.ReceptionTransportInformation?.TransportUnit is not null)
+                {
+                    receptionTransportEntrance.TransportUnit = request.ReceptionTransportInformation.TransportUnit.Value;
+                }
 
                 await _unitOfWork.ReceptionTransportEntrance.UpdateAsync(receptionTransportEntrance);
             }
@@ -176,91 +170,181 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
             return firstDoc?.DocumentType;
         }
 
-        private Result ValidateDocumentTypeChange(DocumentType? currentType, DocumentType newType, GeneralInformationUpdated generalInfo)
+        private Result SyncDocuments(
+            ERP.Core.Database.Domain.Entities.Warehouse.ReceptionEntrance receptionEntrance,
+            AdditionalReceptionEntranceData additionalData,
+            GeneralInformationUpdated generalInfo)
         {
-            if (newType == DocumentType.DUCA)
+            var operationalOrders = receptionEntrance.OperationalOrders.ToList();
+
+            var hasDucas = generalInfo.DucatNumbers is { Count: > 0 };
+            var hasCustomsDeclaration = !string.IsNullOrWhiteSpace(generalInfo.CustomsDeclarationNumber);
+
+            if (hasDucas && hasCustomsDeclaration)
             {
-                if (generalInfo.DucatNumbers.Count == 0)
+                return Result.Failure(_errorManager.ThrowBadRequest<Unit>(
+                    "Envíe los números de DUCA o el número de declaración aduanera, no ambos",
+                    "ERP:CONFLICTING_DOCUMENT_FIELDS"));
+            }
+
+            if (generalInfo.DocumentType is { } requestedType
+                && requestedType is not (DocumentType.DUCA or DocumentType.CustomsDeclaration))
+            {
+                return Result.Failure(_errorManager.ThrowBadRequest<Unit>(
+                    "Tipo de documento no válido",
+                    "ERP:INVALID_DOCUMENT_TYPE"));
+            }
+
+            var inferredType = hasDucas
+                ? DocumentType.DUCA
+                : hasCustomsDeclaration
+                    ? DocumentType.CustomsDeclaration
+                    : (DocumentType?)null;
+
+            var currentType = operationalOrders.FirstOrDefault()?.DocumentType
+                              ?? GetCurrentDocumentType(additionalData);
+
+            var effectiveType = generalInfo.DocumentType ?? inferredType ?? currentType;
+
+            if (effectiveType is null)
+            {
+                return Result.Failure(_errorManager.ThrowBadRequest<Unit>(
+                    "No fue posible determinar el tipo de documento de la recepción",
+                    "ERP:INVALID_DOCUMENT_TYPE"));
+            }
+
+            var desiredNumbers = effectiveType == DocumentType.DUCA
+                ? generalInfo.DucatNumbers
+                    .Where(number => !string.IsNullOrWhiteSpace(number))
+                    .Select(number => number.Trim())
+                    .ToList()
+                : hasCustomsDeclaration
+                    ? [generalInfo.CustomsDeclarationNumber!.Trim()]
+                    : [];
+
+            if (desiredNumbers.Count == 0)
+            {
+                return Result.Success();
+            }
+
+            if (desiredNumbers.Distinct(StringComparer.OrdinalIgnoreCase).Count() != desiredNumbers.Count)
+            {
+                return Result.Failure(_errorManager.ThrowBadRequest<Unit>(
+                    "La lista de números de documento contiene valores duplicados",
+                    "ERP:DUPLICATE_DOCUMENT_NUMBERS"));
+            }
+
+            var isTypeChange = currentType is not null && currentType != effectiveType;
+
+            if (isTypeChange && operationalOrders.Count > 1)
+            {
+                return Result.Failure(_errorManager.ThrowBadRequest<Unit>(
+                    "No se puede cambiar el tipo de documento cuando la recepción tiene más de un documento",
+                    "ERP:DOCUMENT_TYPE_CHANGE_NOT_ALLOWED"));
+            }
+
+            if (desiredNumbers.Count != operationalOrders.Count)
+            {
+                return Result.Failure(_errorManager.ThrowBadRequest<Unit>(
+                    $"La recepción tiene {operationalOrders.Count} documento(s) y se recibieron {desiredNumbers.Count}. " +
+                    "No se pueden agregar ni eliminar documentos mediante esta operación",
+                    "ERP:DOCUMENT_COUNT_MISMATCH"));
+            }
+
+            var currentNumbers = operationalOrders
+                .Select(operationalOrder => operationalOrder.DocumentNumber)
+                .Where(number => !string.IsNullOrWhiteSpace(number))
+                .Select(number => number!.Trim())
+                .ToList();
+
+            var removed = currentNumbers
+                .Where(number => !desiredNumbers.Contains(number, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+
+            var added = desiredNumbers
+                .Where(number => !currentNumbers.Contains(number, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+
+            if (removed.Count > 1 || added.Count > 1)
+            {
+                return Result.Failure(_errorManager.ThrowBadRequest<Unit>(
+                    "Solo se puede cambiar un número de documento por operación",
+                    "ERP:MULTIPLE_DOCUMENT_RENAMES"));
+            }
+
+            if (removed.Count == 1 && added.Count == 1)
+            {
+                var previousNumber = removed[0];
+                var newNumber = added[0];
+
+                var matchingEntry = additionalData.DocumentNumbers.FirstOrDefault(document =>
+                    string.Equals(document.DocumentNumbers, previousNumber, StringComparison.OrdinalIgnoreCase));
+
+                foreach (var operationalOrder in operationalOrders)
                 {
-                    return Result.Failure(_errorManager.ThrowBadRequest<Unit>("Debe proporcionar al menos un número de DUCA", "ERP:MISSING_DUCA_NUMBERS"));
+                    if (string.Equals(operationalOrder.DocumentNumber, previousNumber, StringComparison.OrdinalIgnoreCase))
+                    {
+                        operationalOrder.DocumentNumber = newNumber;
+                    }
+                }
+
+                if (matchingEntry is not null)
+                {
+                    matchingEntry.DocumentNumbers = newNumber;
+                }
+                else
+                {
+                    additionalData.DocumentNumbers.Add(new DocumentInformation
+                    {
+                        DocumentId = Guid.NewGuid(),
+                        DocumentType = effectiveType.Value,
+                        DocumentNumbers = newNumber
+                    });
                 }
             }
-            else if (newType == DocumentType.CustomsDeclaration)
+
+            if (isTypeChange)
             {
-                if (string.IsNullOrWhiteSpace(generalInfo.CustomsDeclarationNumber))
+                foreach (var documentEntry in additionalData.DocumentNumbers)
                 {
-                    return Result.Failure(_errorManager.ThrowBadRequest<Unit>("El número de declaración aduanera es obligatorio", "ERP:MISSING_CUSTOMS_DECLARATION"));
+                    documentEntry.DocumentType = effectiveType.Value;
                 }
             }
-            else
+
+            foreach (var operationalOrder in operationalOrders)
             {
-                return Result.Failure(_errorManager.ThrowBadRequest<Unit>("Tipo de documento no válido", "ERP:INVALID_DOCUMENT_TYPE"));
+                operationalOrder.DocumentType = effectiveType.Value;
+                operationalOrder.IsConsolidated = desiredNumbers.Count > 1;
+            }
+
+            additionalData.DocumentNumbers = additionalData.DocumentNumbers
+                .Where(document => !string.IsNullOrWhiteSpace(document.DocumentNumbers))
+                .GroupBy(document => document.DocumentNumbers!.Trim(), StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .OrderBy(document => desiredNumbers.FindIndex(number =>
+                    string.Equals(number, document.DocumentNumbers, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+
+            var synchronizedNumbers = operationalOrders
+                .Select(operationalOrder => operationalOrder.DocumentNumber)
+                .Where(number => !string.IsNullOrWhiteSpace(number))
+                .Select(number => number!.Trim())
+                .OrderBy(number => number, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var expectedNumbers = desiredNumbers
+                .OrderBy(number => number, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (additionalData.DocumentNumbers.Count != desiredNumbers.Count
+                || !synchronizedNumbers.SequenceEqual(expectedNumbers, StringComparer.OrdinalIgnoreCase))
+            {
+                return Result.Failure(_errorManager.ThrowBadRequest<Unit>(
+                    "La información de documentos no pudo sincronizarse de forma consistente",
+                    "ERP:DOCUMENT_SYNC_INCONSISTENT"));
             }
 
             return Result.Success();
-        }
-
-        private static void UpdateDocumentNumbersInAdditionalData(AdditionalReceptionEntranceData additionalData, DocumentType newType, GeneralInformationUpdated generalInfo)
-        {
-            var currentType = GetCurrentDocumentType(additionalData);
-            
-            if (currentType == DocumentType.DUCA && newType == DocumentType.CustomsDeclaration)
-            {
-                additionalData.DocumentNumbers.RemoveAll(d => d.DocumentType == DocumentType.DUCA);
-                
-                if (!string.IsNullOrWhiteSpace(generalInfo.CustomsDeclarationNumber))
-                {
-                    additionalData.DocumentNumbers.Add(new DocumentInformation
-                    {
-                        DocumentId = Guid.NewGuid(),
-                        DocumentType = DocumentType.CustomsDeclaration,
-                        DocumentNumbers = generalInfo.CustomsDeclarationNumber
-                    });
-                }
-            }
-            else if (currentType == DocumentType.CustomsDeclaration && newType == DocumentType.DUCA)
-            {
-                additionalData.DocumentNumbers.RemoveAll(d => d.DocumentType == DocumentType.CustomsDeclaration);
-                
-                foreach (var duca in generalInfo.DucatNumbers)
-                {
-                    additionalData.DocumentNumbers.Add(new DocumentInformation
-                    {
-                        DocumentId = Guid.NewGuid(),
-                        DocumentType = DocumentType.DUCA,
-                        DocumentNumbers = duca
-                    });
-                }
-            }
-            else if (currentType == newType)
-            {
-                if (newType == DocumentType.DUCA)
-                {
-                    additionalData.DocumentNumbers.RemoveAll(d => d.DocumentType == DocumentType.DUCA);
-                    foreach (var duca in generalInfo.DucatNumbers)
-                    {
-                        additionalData.DocumentNumbers.Add(new DocumentInformation
-                        {
-                            DocumentId = Guid.NewGuid(),
-                            DocumentType = DocumentType.DUCA,
-                            DocumentNumbers = duca
-                        });
-                    }
-                }
-                else if (newType == DocumentType.CustomsDeclaration)
-                {
-                    additionalData.DocumentNumbers.RemoveAll(d => d.DocumentType == DocumentType.CustomsDeclaration);
-                    if (!string.IsNullOrWhiteSpace(generalInfo.CustomsDeclarationNumber))
-                    {
-                        additionalData.DocumentNumbers.Add(new DocumentInformation
-                        {
-                            DocumentId = Guid.NewGuid(),
-                            DocumentType = DocumentType.CustomsDeclaration,
-                            DocumentNumbers = generalInfo.CustomsDeclarationNumber
-                        });
-                    }
-                }
-            }
         }
 
         private class Result
