@@ -9,7 +9,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Comma
     {
         [JsonIgnore]
         public Guid ReceptionEntranceId { get; set; }
-        
+
         public GeneralInformationUpdated? GeneralInformation { get; set; }
         public ReceptionTransportInformation? ReceptionTransportInformation { get; set; }
 
@@ -26,10 +26,16 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Comma
         public string? SealNumber { get; set; }
         public string? CountryOrigin { get; set; }
         public string? ContainerNumber { get; set; }
-        public DocumentType DocumentType { get; set; }
+        public DocumentType? DocumentType { get; set; }
 
-        public List<string> DucatNumbers { get; set; } = [];
+        public List<DucatNumbersUpdate> DucatNumbers { get; set; } = [];
         public string? CustomsDeclarationNumber { get; set; }
+    }
+
+    public class DucatNumbersUpdate
+    {
+        public Guid OperationalOrderId { get; set; }
+        public string DocumentNumber { get; set; } = default!;
     }
 
     public class ReceptionTransportInformation
@@ -39,6 +45,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Comma
         public string? Transportista { get; set; }
         public string? VehiclePlateNumber { get; set; }
         public string? VehicleChassisNumber { get; set; }
-        public TransportUnit TransportUnit { get; set; }
+        public TransportUnit? TransportUnit { get; set; }
     }
 }

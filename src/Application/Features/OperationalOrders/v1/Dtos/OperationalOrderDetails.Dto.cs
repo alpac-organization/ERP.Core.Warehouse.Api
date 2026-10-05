@@ -8,8 +8,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Dtos
         public string? Description { get; set; }
         public string? PolicyNumber { get; set; }
 
-        public DocumentType DocumentType { get; set; }
-
         public decimal? Weight { get; set; }
         public decimal? PackagesCount { get; set; }
 

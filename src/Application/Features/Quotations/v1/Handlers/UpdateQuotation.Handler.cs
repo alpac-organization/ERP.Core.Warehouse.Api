@@ -51,6 +51,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 
             // if (request.Price.HasValue)
             //     quotation.Price = request.Price.Value;
+            // if (request.Price.HasValue)
+            //     quotation.Price = request.Price.Value;
 
             if (request.PriceUnit.HasValue)
                 quotation.PriceUnit = request.PriceUnit.Value;
