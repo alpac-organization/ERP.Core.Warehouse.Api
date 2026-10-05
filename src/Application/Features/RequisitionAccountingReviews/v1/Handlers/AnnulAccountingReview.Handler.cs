@@ -76,7 +76,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
             purchaseRequest.AnnulledByUserId = access.User.Id;
             purchaseRequest.DeletedAt = isQuotationOnly ? null : now;
 
-            await AnnulItemsAndQuotationsAsync(purchaseRequest, now, cancellationToken);
+            await AnnulItemsAndQuotationsAsync(purchaseRequest, now);
 
             await _unitOfWork.PurchaseRequestsReviewedAccounting.UpdateAsync(accountingReview);
             await _unitOfWork.PurchaseRequests.UpdateAsync(purchaseRequest);
@@ -87,8 +87,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
 
         private async Task AnnulItemsAndQuotationsAsync(
             PurchaseRequest purchaseRequest,
-            DateTime now,
-            CancellationToken cancellationToken)
+            DateTime now)
         {
             foreach (var item in purchaseRequest.PurchaseRequestItems)
             {
