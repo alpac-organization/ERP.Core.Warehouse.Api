@@ -90,20 +90,9 @@ Devuelve un `PagedResponse<OperationalOrderDto>`. El JSON se serializa con `Snak
       "operation_order_id": "56487c1b-9f4d-4b2a-8e1c-1234567890ab",
       "po_code": "ALP-MGA-OP-15",
       "document_number": "DUCA-000123",
+      "document_type": "DUCA",
       "status": "PendingDocument",
-      "is_alerted": false,
-      "customer_information": {
-        "customer_id": "8d8c47fd-337c-41b7-8156-eac944027ff7",
-        "cif": "20123456789",
-        "customer_name": "CLIENTE DE PRUEBA"
-      },
-      "cost_center_information": {
-        "cost_center_id": "f006b2d8-af3f-4c8b-b59c-a08b677b66ca",
-        "description": null,
-        "cost_center_name": "GERENCIA DE INFORMATICA",
-        "coil_code": 4,
-        "cost_center_code": 0
-      }
+      "is_alerted": false
     }
   ],
   "page_number": 1,
@@ -117,10 +106,9 @@ Devuelve un `PagedResponse<OperationalOrderDto>`. El JSON se serializa con `Snak
 | `operation_order_id`      | `guid`                          | Id de la orden operacional. Es el valor que consumen el detalle y el PATCH de información. |
 | `po_code`                 | `string`                        | Código de la PO. |
 | `document_number`         | `string`                        | Número de DUCA o de declaración aduanera asociado. |
+| `document_type`           | `enum (DocumentType)`           | Tipo de documento de la orden. |
 | `status`                  | `enum (OperationalOrderStatus)` | Estado de la orden. |
 | `is_alerted`              | `bool`                          | Si la orden tiene una alerta activa. |
-| `customer_information`    | `object (CustomerInformation)`  | Cliente asociado. `null` si no hay cliente. |
-| `cost_center_information` | `object (CostCenterInformation)` | Centro de costos asociado. `null` si no hay centro de costos. |
 
 ### Notas
 
@@ -131,7 +119,7 @@ Devuelve un `PagedResponse<OperationalOrderDto>`. El JSON se serializa con `Snak
 | Filtro de `code` | Exacto, **no parcial**. `ALP-MGA-OP-15` no coincide con `ALP-MGA-OP-150`. |
 | Filtro de `customer_cif` | Exacto sobre `Customer.Cif`. |
 | Filtro de `document_type` | **Sin efecto.** Ver nota arriba. |
-| Cliente / centro de costos | Se cargan con `Include` + `AsSplitQuery`, por lo que vienen poblados en el listado sin consultas adicionales. |
+| Cliente / centro de costos | El handler sigue haciendo `Include(Customer)` (necesario para el filtro `customer_cif`) e `Include(CostCenter)`, pero **ninguno de los dos se expone en la respuesta**: el `OperationalOrderDto` ya no tiene `customer_information` ni `cost_center_information`. |
 | `total` | Cuenta **después** de aplicar los filtros de `status`, `customer_cif` y `code`. |
 
 ### ❌ 400 Bad Request
@@ -205,7 +193,7 @@ Los miembros referenciados en el código del módulo son `DUCA` y `CustomsDeclar
 
 ### `OperationalOrderStatus`
 
-> ⚠️ **Confirmar valores numéricos y la lista completa de miembros.** El enum vive en el paquete NuGet `ERP.Core.Database.Domain`. El único miembro referenciado explícitamente en el código de este módulo es `PendingDocument`, que es el estado con el que se crea toda orden operacional desde el registro de recepción.
+> ⚠️ **Confirmar valores numéricos y la lista completa de miembros.** El enum vive en el paquete NuGet `ERP.Core.Database.Domain`. Los miembros referenciados explícitamente en el código de este módulo son `PendingDocument` (estado inicial con el que se crea toda orden operacional desde el registro de recepción) y `Assignment` (al que pasa la orden cuando se le agrega mercadería vía PATCH de información). También aparece `Completed` en el módulo de ServiceOrders.
 
 ---
 
@@ -214,5 +202,5 @@ Los miembros referenciados en el código del módulo son `DUCA` y `CustomsDeclar
 | Endpoint | Descripción |
 |----------|-------------|
 | `GET /api/v1/companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/details` | Detalle de una orden operacional. |
-| `PATCH /api/v1/companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/information` | Registra la información de recepción (cliente, peso, bultos y mercadería) de la orden. |
+| `PATCH /api/v1/companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/information` | Registra la información de recepción (cliente, peso, bultos, transporte y mercadería) de la orden. |
 | `POST /api/v1/companies/{company_id}/modules/{module_code}/reception-entrances` | Genera las órdenes operacionales a partir de una recepción. |

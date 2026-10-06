@@ -10,7 +10,7 @@ Endpoint para obtener el detalle completo de una orden operacional, incluyendo l
 |-------|-------|
 | **Método**      | `GET` |
 | **Endpoint**    | `/api/v1/companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/details` |
-| **Descripción** | Devuelve el detalle de la orden operacional indicada, con cliente, centro de costos y datos de recepción. |
+| **Descripción** | Devuelve el detalle de la orden operacional indicada, con cliente, centro de costos, datos de transporte y recepción. |
 | **Tags**        | `Solicitudes de compras` |
 
 ---
@@ -63,11 +63,14 @@ Devuelve un `OperationalOrderDetailsDto`. El JSON se serializa con `SnakeCaseLow
   "operation_order_id": "56487c1b-9f4d-4b2a-8e1c-1234567890ab",
   "po_code": "ALP-MGA-OP-15",
   "document_number": "DUCA-000123",
+  "document_type": "DUCA",
   "status": "PendingDocument",
   "is_alerted": false,
   "description": "Importación de mercadería general",
   "policy_number": "POL-99887",
-  "document_type": "DUCA",
+  "shipping_company": "Transportes del Pacífico",
+  "consignee": "RECEPTOR FINAL",
+  "sender": "EXPORTADORA XYZ",
   "weight": 1250.50,
   "packages_count": 42,
   "customer_information": {
@@ -116,15 +119,18 @@ Devuelve un `OperationalOrderDetailsDto`. El JSON se serializa con `SnakeCaseLow
 | `operation_order_id`              | `guid`                           | Id de la orden operacional. |
 | `po_code`                         | `string`                         | Código de la PO. |
 | `document_number`                 | `string`                         | Número de DUCA o de declaración aduanera. |
+| `document_type`                   | `enum (DocumentType)`            | Tipo de documento de la orden. |
 | `status`                          | `enum (OperationalOrderStatus)`  | Estado de la orden. |
 | `is_alerted`                      | `bool`                           | Si la orden tiene una alerta activa. |
-| `customer_information`            | `object (CustomerInformation)`   | Cliente asociado. |
-| `cost_center_information`         | `object (CostCenterInformation)` | Centro de costos asociado. |
 | `description`                     | `string`                         | Descripción de la orden. |
 | `policy_number`                   | `string`                         | Número de póliza. |
-| `document_type`                   | `enum (DocumentType)`            | Tipo de documento de la orden. |
+| `shipping_company`                | `string`                         | Transportista asociado a la orden. |
+| `consignee`                       | `string`                         | Consignatario. |
+| `sender`                          | `string`                         | Remitente. |
 | `weight`                          | `decimal`                        | Peso total de la mercadería. |
 | `packages_count`                  | `decimal`                        | Cantidad de bultos. |
+| `customer_information`            | `object (CustomerInformation)`   | Cliente asociado. `null` si la orden no tiene cliente. |
+| `cost_center_information`         | `object (CostCenterInformation)` | Centro de costos asociado. `null` si la orden no tiene centro de costos. |
 | `reception_entrance_information`  | `object (ReceptionEntranceDetailsDto)` | Recepción asociada. **`null` si la orden aún no ha sido recepcionada.** |
 
 > `reception_entrance_information` es el mismo `ReceptionEntranceDetailsDto` que devuelve el detalle de recepción, y por lo tanto tiene la misma forma y los mismos campos. Consulta su [documentación](../RecepcionEntrance/GetReceptionEntranceDetailsDocs.md).
@@ -134,7 +140,9 @@ Devuelve un `OperationalOrderDetailsDto`. El JSON se serializa con `SnakeCaseLow
 | Campo / regla | Descripción |
 |---|---|
 | `operation_order_id` | **Typo en el código fuente.** La propiedad C# se llama `OperationOrderId` (sin la "al"). El nombre en el contrato JSON es `operation_order_id`. |
+| `document_type` | Vive en el DTO base (`OperationalOrderDto`), por lo que también aparece en el listado. |
 | Receptoría anidada | Es el único endpoint que expone la recepción **dentro** de la orden operacional. El listado no la incluye. |
+| Centro de costos | El detalle **sí expone** `cost_center_information`: el profile lo mapea desde `CostCenter` y el handler lo trae con `Include(CostCenter)`, por lo que viene poblado. El listado, en cambio, no lo expone. |
 | Orden no encontrada | Devuelve `200` con `null`, no `404`. |
 | Rol `Supervisor` | Bloqueado con `400` / `ERP:INVALID_ACCESS`. |
 | `additional_data` | Llega como **string JSON serializado**, no como objeto. Hay que hacer doble deserialización para leer `document_numbers` y `evidence_urls`. |
@@ -209,7 +217,7 @@ Para excepciones **no controladas** (fuera de `CoreException`) el `ExceptionMidd
 
 ### `OperationalOrderStatus`
 
-> ⚠️ **Confirmar valores numéricos y la lista completa de miembros.** El único miembro referenciado explícitamente en el código de este módulo es `PendingDocument`.
+> ⚠️ **Confirmar valores numéricos y la lista completa de miembros.** Los miembros referenciados en el código son `PendingDocument` (estado inicial de toda orden) y `Assignment` (estado al que pasa cuando se le agrega mercadería vía PATCH de información). También aparece `Completed` en el módulo de ServiceOrders.
 
 ### `TransportUnit`
 
