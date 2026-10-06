@@ -4,7 +4,6 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Database.Application.Commons.Interfaces.Services.WarehouseCapacities;
 using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Warehouse.Api.Application.Commons.Utils;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -83,12 +82,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 
          if (section.SectionCapacity is not null)
          {
-            section.SectionCapacity.DeletedAt = NicaraguaClock.Now;
+            section.SectionCapacity.DeletedAt = DateTime.UtcNow;
             await _unitOfWork.SectionCapacities.UpdateAsync(section.SectionCapacity);
          }
 
          section.IsActive = false;
-         section.DeletedAt = NicaraguaClock.Now;
+         section.DeletedAt = DateTime.UtcNow;
 
          await _unitOfWork.Sections.UpdateAsync(section);
          await _unitOfWork.SaveChangesAsync(cancellationToken);
