@@ -30,7 +30,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
                 return access.ErrorResponse!;
             }
 
-            if (access.Role?.RoleType is not (RoleType.Administrator or RoleType.Supervisor or RoleType.Manager))
+            if (access.Role?.RoleType is not (RoleType.Administrator or RoleType.Supervisor or RoleType.Manager or RoleType.Operator))
             {
                 return _errorManager.ThrowUnauthorized<Unit>("No tienes acceso a realizar esta acción", "ERP:INVALID_ACCESS");
             }
