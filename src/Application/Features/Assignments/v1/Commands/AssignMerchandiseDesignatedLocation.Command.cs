@@ -12,5 +12,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Commands
 
         [JsonIgnore]
         public Guid AssignmentOperationalId { get; set; }
+        
     }
 }

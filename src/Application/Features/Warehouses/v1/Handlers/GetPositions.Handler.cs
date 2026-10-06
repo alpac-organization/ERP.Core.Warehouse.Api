@@ -21,6 +21,7 @@ public class GetPositionsHandler(IUnitOfWork unitOfWork, IErrorManager errorMana
 
         var section = await _unitOfWork.Sections.Entities
             .AsNoTracking()
+            .AsSplitQuery()
             .Where(s =>
                 s.Id == request.SectionId &&
                 s.WarehouseId == request.WarehouseId &&

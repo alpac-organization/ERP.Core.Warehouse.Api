@@ -15,11 +15,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
         public override async Task<AssignMerchandiseDesignatedLocationDto> Handle(AssignMerchandiseDesignatedLocationCommand request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode!, cancellationToken);
-
-            if (!access.IsSuccess)
-            {
-                return access.ErrorResponse!;
-            }
+            if (!access.IsSuccess) return access.ErrorResponse!;
 
             var qrCodeInformation = await _codeGenerator.GenerateQrCodeAsync(_qrConfig.Value?.RedirectUrl ?? "", _qrConfig.Value?.LogoUrl, _qrConfig.Value?.HeaderText);
             var barCodeInformation = await _codeGenerator.GenerateBarcodeAsync(_qrConfig.Value?.LogoUrl);
