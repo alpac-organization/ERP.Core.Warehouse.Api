@@ -1,15 +1,16 @@
-using MediatR;
+using Microsoft.Extensions.Options;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Services;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
+using ERP.Core.Warehouse.Api.Application.Commons.Options;
 using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
 {
-    public class AssignMerchandiseDesignatedLocationHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, ICodeGenerator _codeGenerator) : BaseValidatorHandler<AssignMerchandiseDesignatedLocationCommand, AssignMerchandiseDesignatedLocationDto>(_unitOfWork, _errorManager)
+    public class AssignMerchandiseDesignatedLocationHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, ICodeGenerator _codeGenerator, IOptions<QrConfig> _qrConfig) : BaseValidatorHandler<AssignMerchandiseDesignatedLocationCommand, AssignMerchandiseDesignatedLocationDto>(_unitOfWork, _errorManager)
     {
         public override async Task<AssignMerchandiseDesignatedLocationDto> Handle(AssignMerchandiseDesignatedLocationCommand request, CancellationToken cancellationToken)
         {
@@ -20,11 +21,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
                 return access.ErrorResponse!;
             }
 
-            var qrCode = await _codeGenerator.GenerateQrCodeAsync("https://web-alpac.onrender.com/qr-code");
+            var qrCodeInformation = await _codeGenerator.GenerateQrCodeAsync(_qrConfig.Value?.RedirectUrl ?? "", _qrConfig.Value?.LogoUrl, _qrConfig.Value?.HeaderText);
+            var barCodeInformation = await _codeGenerator.GenerateBarcodeAsync(_qrConfig.Value?.LogoUrl);
 
             return new()
             {
-                CodeQr = qrCode
+                CodeQr = qrCodeInformation.ImageUrl,
+                CodeBar = barCodeInformation.ImageUrl
             };
         }
     }

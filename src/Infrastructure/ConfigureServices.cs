@@ -1,8 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
-using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Infrastructure;
 using ERP.Core.Infrastructure.Services;
 
@@ -13,8 +11,8 @@ using ERP.Core.Warehouse.Api.Infrastructure.Services;
 using ERP.Core.Warehouse.Api.Infrastructure.Schedules;
 using ERP.Core.Warehouse.Api.Application.Commons.Options;
 using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
-using ERP.Core.Database.Application.Commons.Interfaces.Repositories.Shopping;
-using ERP.Core.Database.Infrastructure.Persistence.Repositories.Shopping;
+
+using ERP.Core.Application.Commons.Interfaces;
 
 namespace ERP.Core.Warehouse.Api.Infrastructure
 {
@@ -34,6 +32,10 @@ namespace ERP.Core.Warehouse.Api.Infrastructure
             services.Configure<WarehouseClockOptions>(
                 configuration.GetSection("WarehouseClock")
             );
+
+            services.Configure<QrConfig>(
+                configuration.GetSection("QrConfig")
+            );
             
             // services.AddJobScheduling();
             services.AddErpCoreServices(configuration);
@@ -42,7 +44,6 @@ namespace ERP.Core.Warehouse.Api.Infrastructure
             services.AddScoped<IErrorManager, ErrorManager>();
             services.AddHttpClient<IScaleServices, ScaleServices>();
             services.AddScoped<IWarehouseClockServices, WarehouseClockServices>();
-            services.AddHttpClient();
 
             services.AddScheduledServices();
 
