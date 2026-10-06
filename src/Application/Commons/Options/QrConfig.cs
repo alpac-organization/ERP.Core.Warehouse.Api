@@ -2,8 +2,11 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Options
 {
     public class QrConfig
     {
-        public string? LogoUrl { get; set; }
-        public string? HeaderText { get; set; }
-        public string? RedirectUrl { get; set; }
+        public Dictionary<string, ClientQrConfig> Clients { get; set; } = new();
+    }
+
+    public class ClientQrConfig
+    {
+        public string? BaseRedirectUrl { get; set; }
     }
 }

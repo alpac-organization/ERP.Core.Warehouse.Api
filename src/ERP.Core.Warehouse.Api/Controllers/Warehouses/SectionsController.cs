@@ -207,4 +207,29 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
 
         return NoContent();
     }
+
+
+[Tags("Coordenadas de Posiciones")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{section_id}/coordinates")]
+    [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<OkResult> RegisterCoordinatesAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid warehouse_id, [FromRoute] Guid section_id,
+        [FromBody] RegisterCoordinatesCommand payload
+    )
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        payload.CompanyId = company_id;
+        payload.ModuleCode = module_code;
+        payload.UserId = Guid.Parse(userIdStr ?? "");
+
+
+        payload.WarehouseId = warehouse_id;
+        payload.SectionId = section_id;
+
+        await _mediator.Send(payload);
+
+        return Ok();
+    }
 }
