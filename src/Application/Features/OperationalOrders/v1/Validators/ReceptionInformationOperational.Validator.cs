@@ -24,22 +24,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Valid
                 .GreaterThan(0)
                 .When(x => x.PackageAmount.HasValue)
                 .WithMessage("La cantidad de bultos debe ser mayor que cero.");
-
-
-            // Si Merchandises es null → no hay nada que validar (es opcional).
-            // Si Merchandises es [] → válido (no-op).
-            // Si Merchandises tiene items → cada item debe tener al menos
-            //   Merchandise o MerchandiseDescription no vacíos.
-
-            RuleForEach(x => x.Merchandises)
-                .ChildRules(merchandise =>
-                {
-                    merchandise.RuleFor(m => m)
-                        .Must(m => !string.IsNullOrWhiteSpace(m.Merchandise)
-                                   || !string.IsNullOrWhiteSpace(m.MerchandiseDescription))
-                        .WithMessage("Cada mercancía debe tener al menos un nombre o una descripción.");
-                })
-                .When(x => x.Merchandises is { Count: > 0 });
         }
     }
 }

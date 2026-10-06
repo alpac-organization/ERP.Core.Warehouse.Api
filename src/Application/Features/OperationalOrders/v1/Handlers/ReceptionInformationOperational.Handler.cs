@@ -72,23 +72,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
 
             #endregion
 
-            #region Validar carga de mercancías
-
-            // Fuente de verdad: existencia real de asignaciones activas en BD.
-            var alreadyHasMerchandise = await _unitOfWork.AssignmentOperationals.Entities
-                .AnyAsync(a => a.OperationalOrderId == operationalOrder.Id && a.IsActive, cancellationToken);
-
-            var isManagingMerchandise = request.Merchandises is { Count: > 0 };
-
-            if (isManagingMerchandise && alreadyHasMerchandise)
-            {
-                return _errorManager.ThrowBadRequest<Unit>(
-                    "La información de la mercancía ya ha sido recepcionada.",
-                    "ERP:02");
-            }
-
-            #endregion
-
             #region Campos escalares de la orden
 
             operationalOrder.Weight = request.MerchandiseWeight ?? operationalOrder.Weight;
@@ -99,13 +82,21 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
 
             #endregion
 
-            #region Crear asignaciones operacionales (solo la primera vez)
+            #region Crear asignaciones operacionales
 
-            if (isManagingMerchandise)
+            // Se pueden agregar mercancías en cualquier PATCH.
+            // Cada llamada con items agrega nuevas AssignmentOperational.
+
+            var validMerchandises = (request.Merchandises ?? [])
+                .Where(m => !string.IsNullOrWhiteSpace(m.Merchandise)
+                            || !string.IsNullOrWhiteSpace(m.MerchandiseDescription))
+                .ToList();
+
+            if (validMerchandises.Count > 0)
             {
                 var createResult = await CreateMerchandisesAsync(
                     operationalOrder,
-                    request.Merchandises!,
+                    validMerchandises,
                     access.User.Id);
 
                 if (!createResult.IsSuccess)
