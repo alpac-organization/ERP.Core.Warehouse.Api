@@ -12,10 +12,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Dtos
         public decimal? Weight { get; set; }
         public decimal? PackagesCount { get; set; }
         public string? Description { get; set; }
+        public string? PolicyNumber { get; set; }
 
         //Información de recepción de alpac.
         public ReceptionEntranceDetailsDto? ReceptionEntranceInformation { get; set; }
         public CustomerInformation? CustomerInformation { get; set; }
+        public CostCenterInformation? CostCenterInformation { get; set; }
 
     }
 
