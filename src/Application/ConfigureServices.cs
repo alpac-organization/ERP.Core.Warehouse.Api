@@ -4,7 +4,6 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using ERP.Core.Application.Behaviors;
 using Microsoft.Extensions.Options;
-using ERP.Core.Warehouse.Api.Application.Features.Reassignment.v1.Handlers;
 
 
 namespace ERP.Core.Warehouse.Api.Application
@@ -21,8 +20,6 @@ namespace ERP.Core.Warehouse.Api.Application
             });
 
             services.AddValidatorsFromAssembly(currentAssembly);
-
-            services.AddScoped<SessionAccessValidator>();
 
             services.AddMediatR(cfg => {
                 cfg.RegisterServicesFromAssembly(currentAssembly);
