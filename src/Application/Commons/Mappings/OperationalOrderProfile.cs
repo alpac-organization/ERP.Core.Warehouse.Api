@@ -12,13 +12,13 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         public OperationalOrderProfile()
         {
             CreateMap<OperationalOrder, OperationalOrderDto>()
-                .ForMember(dest => dest.OperationOrderId, opt => opt.MapFrom(src => src.Id))
-                .ForMember(dest => dest.CustomerInformation, opt => opt.MapFrom(src => src.Customer))
-                .ForMember(dest => dest.CostCenterInformation, opt => opt.MapFrom(src => src.CostCenter));
+                .ForMember(dest => dest.OperationOrderId, opt => opt.MapFrom(src => src.Id));
 
             CreateMap<OperationalOrder, OperationalOrderDetailsDto>()
                 .IncludeBase<OperationalOrder, OperationalOrderDto>()
-                .ForPath(dest => dest.ReceptionEntranceInformation, opt => opt.MapFrom(src => src.Reception));
+                .ForPath(dest => dest.ReceptionEntranceInformation, opt => opt.MapFrom(src => src.Reception))
+                .ForMember(dest => dest.CustomerInformation, opt => opt.MapFrom(src => src.Customer))
+                .ForMember(dest => dest.CostCenterInformation, opt => opt.MapFrom(src => src.CostCenter));
         }
     }
 
@@ -27,7 +27,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         public static OperationalOrder ToOperationalOrderEntity(this Command command, Guid costCenterId)
         {
             bool IsConsolidated = command.GeneralInformation.DucatNumbers.Count > 1;
-            
+
             return new()
             {
                 Id = Guid.NewGuid(),
