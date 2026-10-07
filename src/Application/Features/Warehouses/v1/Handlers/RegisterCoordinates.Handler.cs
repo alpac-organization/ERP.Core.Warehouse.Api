@@ -108,7 +108,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
             foreach (var positionInfo in positionsInfo)
             {
                 var lotPosition = await _unitOfWork.LotsPositions.Entities
-                    .Include(lp => lp.Lot)
                     .Where(lp => lp.LotId == LotId)
                     .Where(lp => lp.Id == positionInfo.LotPositionId)
                     .FirstOrDefaultAsync(cancellationToken);
@@ -119,25 +118,32 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
                     continue;
                 }
 
-                var existingCoordinate = await _unitOfWork.LotsPositionsCoordinates.Entities
-                    .FirstOrDefaultAsync(lpc => lpc.LotPositionId == positionInfo.LotPositionId, cancellationToken);
+                var lotPositionCoordinates = await _unitOfWork.LotsPositionsCoordinates.Entities
+                    .Where(lotPositionCoordinate => lotPositionCoordinate.LotPositionId == lotPosition.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
 
-                if (existingCoordinate is not null)
+                if (lotPositionCoordinates is not null)
                 {
-                    logger.LogWarning("⚠️ Posición de tramo {LotPositionId} ya tiene coordenadas registradas, omitiendo.", positionInfo.LotPositionId);
-                    continue;
+                    lotPositionCoordinates.PositionX = positionInfo?.PositionX ?? lotPositionCoordinates.PositionX;
+                    lotPositionCoordinates.PositionY = positionInfo?.PositionX ?? lotPositionCoordinates.PositionY;
+                    lotPositionCoordinates.PositionZ = positionInfo?.PositionX ?? lotPositionCoordinates.PositionZ;
+                    lotPositionCoordinates.RotationY = positionInfo?.RotationY ?? lotPositionCoordinates.RotationY;
+
+                    await _unitOfWork.LotsPositionsCoordinates.UpdateAsync(lotPositionCoordinates);
                 }
+                else
+                {                    
+                    var coordinate = new LotsPositionsCoordinates
+                    {
+                        LotPositionId = positionInfo.LotPositionId,
+                        PositionX = positionInfo.PositionX,
+                        PositionY = positionInfo.PositionY,
+                        PositionZ = positionInfo.PositionZ,
+                        RotationY = positionInfo.RotationY
+                    };
 
-                var coordinate = new LotsPositionsCoordinates
-                {
-                    LotPositionId = positionInfo.LotPositionId,
-                    PositionX = positionInfo.PositionX,
-                    PositionY = positionInfo.PositionY,
-                    PositionZ = positionInfo.PositionZ,
-                    RotationY = positionInfo.RotationY
-                };
-
-                await _unitOfWork.LotsPositionsCoordinates.RegisterLotPositionCoordinate(coordinate);
+                    await _unitOfWork.LotsPositionsCoordinates.RegisterLotPositionCoordinate(coordinate);
+                }
             }
 
             return true;
@@ -151,7 +157,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
 
                 var rackPosition = await _unitOfWork.RackPositions.Entities
                     .Include(rk => rk.Rack)
-                    .Where(rk => rk.Rack.Id == rackId)
+                    .Where(rk => rk.RackId == rackId)
                     .Where(rk => rk.Id == rackInfo.RackPositionId)
                     .FirstOrDefaultAsync(cancellationToken);
 
@@ -161,16 +167,32 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Handlers
                     continue;
                 }
 
-                var coordinate = new RacksPositionsCoordinates
-                {
-                    RackPositionId = rackInfo.RackPositionId,
-                    PositionX = rackInfo.PositionX,
-                    PositionY = rackInfo.PositionY,
-                    PositionZ = rackInfo.PositionZ,
-                    RotationY = rackInfo.RotationY
-                };
+                var rackPositionCoordinates = await _unitOfWork.RacksPositionsCoordinates.Entities
+                    .Where(rackp => rackp.RackPositionId == rackPosition.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
 
-                await _unitOfWork.RacksPositionsCoordinates.RegisterRackPositionCoordinate(coordinate);
+                if (rackPositionCoordinates is not null)
+                {
+                    rackPositionCoordinates.PositionX = rackInfo?.PositionX ?? rackPositionCoordinates.PositionX;
+                    rackPositionCoordinates.PositionY = rackInfo?.PositionX ?? rackPositionCoordinates.PositionY;
+                    rackPositionCoordinates.PositionZ = rackInfo?.PositionX ?? rackPositionCoordinates.PositionZ;
+                    rackPositionCoordinates.RotationY = rackInfo?.RotationY ?? rackPositionCoordinates.RotationY;
+
+                    await _unitOfWork.RacksPositionsCoordinates.UpdateAsync(rackPositionCoordinates);
+                }
+                else
+                {
+                    var coordinate = new RacksPositionsCoordinates
+                    {
+                        RackPositionId = rackInfo.RackPositionId,
+                        PositionX = rackInfo.PositionX,
+                        PositionY = rackInfo.PositionY,
+                        PositionZ = rackInfo.PositionZ,
+                        RotationY = rackInfo.RotationY
+                    };
+                 
+                    await _unitOfWork.RacksPositionsCoordinates.RegisterRackPositionCoordinate(coordinate);
+                }
             }
 
             return true;
