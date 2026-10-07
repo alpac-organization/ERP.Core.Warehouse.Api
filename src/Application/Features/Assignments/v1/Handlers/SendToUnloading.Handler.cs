@@ -41,7 +41,7 @@ public class SendToUnloadingHandler(IUnitOfWork _unitOfWork, IErrorManager _erro
 
         _logger.LogInformation("📤​ Enviando a Bodega...");
 
-        assignment.Status = AssignmentOperationalStatus.OnHold;
+        assignment.Status = AssignmentOperationalStatus.Pending;
 
         await _unitOfWork.AssignmentOperationals.UpdateAsync(assignment);
         await _unitOfWork.SaveChangesAsync(ct);
