@@ -124,6 +124,36 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
         }, cancellationToken);
     }
 
+    [Tags("Posiciones")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{section_id}/positions")]
+    [ProducesResponseType(typeof(GetPositionsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<GetPositionsDto> GetPositionsAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid warehouse_id,
+        [FromRoute] Guid section_id,
+        [FromQuery] Guid? tramo_id = null,
+        [FromQuery] Guid? rack_id = null,
+        [FromQuery] RackStatus? status = null,
+        CancellationToken cancellationToken = default)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        return await _mediator.Send(new GetPositionsQuery()
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = Guid.Parse(userIdStr ?? ""),
+            WarehouseId = warehouse_id,
+            SectionId = section_id,
+            TramoId = tramo_id,
+            RackId = rack_id,
+            Status = status
+        }, cancellationToken);
+    }
+
     [Tags("Actualizacion de Seccion")]
     [HttpPatch("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{section_id}")]
     [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
