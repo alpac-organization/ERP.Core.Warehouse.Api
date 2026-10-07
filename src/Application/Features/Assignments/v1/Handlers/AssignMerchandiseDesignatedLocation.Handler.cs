@@ -51,6 +51,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
             var sectionIds = request.Sections.ConvertAll(s => s.SectionId).Distinct().ToList();
 
             var sections = await _unitOfWork.Sections.Entities
+                .AsSingleQuery()
                 .Where(s => sectionIds.Contains(s.Id))
                 .Include(s => s.Lots.Where(l => l.DeletedAt == null))
                     .ThenInclude(l => l.Positions!.Where(p => p.DeletedAt == null))
