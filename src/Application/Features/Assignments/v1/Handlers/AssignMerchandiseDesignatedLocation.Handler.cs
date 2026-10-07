@@ -34,9 +34,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
                 return _errorManager.ThrowNotFound<AssignMerchandiseDesignatedLocationDto>(
                     "No se encontró la asignación solicitada.", "ERP:ASSIGNMENT_NOT_FOUND");
 
+            if (assignment.Status == AssignmentOperationalStatus.InProgress)
+                return _errorManager.ThrowBadRequest<AssignMerchandiseDesignatedLocationDto>(
+                    "La operación ya está en proceso/ejecución.",
+                    "ERP:ASSIGNMENT_IN_PROGRESS");
+
             if (assignment.Status != AssignmentOperationalStatus.Pending)
                 return _errorManager.ThrowBadRequest<AssignMerchandiseDesignatedLocationDto>(
-                    "La asignación aún no ha sido enviada a bodega; no es posible asignar posiciones.", "ERP:ASSIGNMENT_NOT_SENT");
+                    "La asignación aún no ha sido enviada a descargar.", "ERP:ASSIGNMENT_NOT_SENT");
 
             var allPositionIds = request.GetAllPositionIds();
             if (allPositionIds.Distinct().Count() != allPositionIds.Count)
@@ -146,7 +151,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
             await _unitOfWork.Codes.GenerateCode((assignment.Id, CodesType.Bar, bar).ToCodesEntity());
 
             assignment.Status = AssignmentOperationalStatus.InProgress;
-
+            await _unitOfWork.AssignmentOperationals.UpdateAsync(assignment);
             await _unitOfWork.SaveChangesAsync(ct);
             return (qr.Code, bar.Code).ToAssignMerchandiseDesignatedLocationDto();
         }
