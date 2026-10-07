@@ -147,8 +147,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
             
             var logo = access.Company.ImageUrl;
 
-            var qr = await _codeGenerator.GenerateQrCodeAsync(redirectUrl, logoUrl: logo, headerText: "VOUCHER DE ASIGNACIÓN");
-            var bar = await _codeGenerator.GenerateBarcodeAsync();
+            var qr = await _codeGenerator.GenerateQrCodeAsync(redirectUrl, logo);
+            var bar = await _codeGenerator.GenerateBarcodeAsync(logo);
 
             await _unitOfWork.Codes.GenerateCode((assignment.Id, CodesType.Qr, qr).ToCodesEntity());
             await _unitOfWork.Codes.GenerateCode((assignment.Id, CodesType.Bar, bar).ToCodesEntity());
