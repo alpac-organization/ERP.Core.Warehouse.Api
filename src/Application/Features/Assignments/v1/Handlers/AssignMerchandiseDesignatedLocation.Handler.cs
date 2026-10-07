@@ -144,9 +144,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
             var redirectUrl = _qrConfig.Value.Clients.TryGetValue(request.CompanyId.ToString(), out var client)
                 ? client.BaseRedirectUrl ?? string.Empty
                 : string.Empty;
+            
+            var logo = access.Company.ImageUrl;
 
-            var qr = await _codeGenerator.GenerateQrCodeAsync(redirectUrl, logoUrl: null);
-            var bar = await _codeGenerator.GenerateBarcodeAsync();
+            var qr = await _codeGenerator.GenerateQrCodeAsync(redirectUrl, logo);
+            var bar = await _codeGenerator.GenerateBarcodeAsync(logo);
 
             await _unitOfWork.Codes.GenerateCode((assignment.Id, CodesType.Qr, qr).ToCodesEntity());
             await _unitOfWork.Codes.GenerateCode((assignment.Id, CodesType.Bar, bar).ToCodesEntity());
