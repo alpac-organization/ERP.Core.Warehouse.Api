@@ -1,5 +1,6 @@
 using AutoMapper;
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Entities.Operations;
 
 using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Dtos;
@@ -125,6 +126,59 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                     Role = command.Role,
                     AssignmentOperationalId = command.AssignmentOperationalId
                 })];
+        }
+        #endregion
+
+        #region POST Asignar posiciones
+        public static List<Guid> GetAllPositionIds(this Commands.AssignMerchandiseDesignatedLocationCommand command)
+        {
+            return [.. command.Sections
+                .SelectMany(s => s.Tramos.Concat(s.Racks))
+                .SelectMany(b => b.PositionIds)];
+        }
+
+        public static Codes ToCodesEntity(this (Guid AssignmentId, CodesType CodeType, (string ImageUrl, string Code) Generated) source)
+        {
+            return new()
+            {
+                AssignmentId = source.AssignmentId,
+                CodeType = source.CodeType,
+                ImageUrl = source.Generated.ImageUrl,
+                CodeGenerated = source.Generated.Code
+            };
+        }
+
+        public static AssignMerchandiseDesignatedLocationDto ToAssignMerchandiseDesignatedLocationDto(this (string CodeQr, string CodeBar) codes)
+        {
+            return new()
+            {
+                CodeQr = codes.CodeQr,
+                CodeBar = codes.CodeBar
+            };
+        }
+
+        public static AssignmentStockPlacements ToPlacedStockPlacement(this LotsPositions position, Guid assignmentId, Guid placedByUserId, Guid sectionId)
+        {
+            return new()
+            {
+                AssignmentId = assignmentId,
+                LotPositionId = position.Id,
+                SectionId = sectionId,
+                PlacedAt = DateTime.UtcNow,
+                PlacedByUserId = placedByUserId
+            };
+        }
+
+        public static AssignmentStockPlacements ToPlacedStockPlacement(this RackPositions position, Guid assignmentId, Guid placedByUserId, Guid sectionId)
+        {
+            return new()
+            {
+                AssignmentId = assignmentId,
+                RackPositionId = position.Id,
+                SectionId = sectionId,
+                PlacedAt = DateTime.UtcNow,
+                PlacedByUserId = placedByUserId
+            };
         }
         #endregion
     }

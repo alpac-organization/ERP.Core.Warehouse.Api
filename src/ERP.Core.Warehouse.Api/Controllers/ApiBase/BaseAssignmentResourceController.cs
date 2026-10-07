@@ -39,6 +39,19 @@ namespace ERP.Core.Warehouse.Api.Controllers.ApiBase
             return Ok();
         }
 
+        protected async Task<IActionResult> AssignAsync<TResponse, TRequest>(
+            TRequest request,
+            Guid userId,
+            Guid companyId,
+            string moduleCode,
+            Guid operationalOrderId)
+            where TRequest : IAssignmentOperationalRequest, IRequest<TResponse>
+        {
+            FillRequestContext(request, userId, companyId, moduleCode, operationalOrderId);
+
+            return Ok(await mediator.Send(request));
+        }
+
         protected async Task<NoContentResult> RemoveAsync<TRequest>(
             TRequest request,
             Guid userId,
