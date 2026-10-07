@@ -8,7 +8,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
     {
         public RegisterPurchaseRequestCommandValidator()
         {
-
             RuleFor(x => x.UserId)
                 .NotEmpty().WithMessage("El identificador de usuario es obligatorio.")
                 .NotEqual(Guid.Empty)
@@ -83,16 +82,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
     {
         public RequestedProductValidator()
         {
-            RuleFor(x => x.ProductId)
-                .NotEmpty().WithMessage("El id del producto es obligatorio.")
-                .NotEqual(Guid.Empty)
-                .WithMessage("El id del producto no es válido.");
-
-            RuleFor(x => x.UnitMeasureId)
-                .NotEmpty().WithMessage("La unidad de medida es obligatoria.")
-                .NotEqual(Guid.Empty)
-                .WithMessage("La unidad de medida no es válida.");
-
             RuleFor(x => x.Quantity)
                 .GreaterThan(0)
                 .WithMessage("La cantidad debe ser mayor a cero.");
@@ -101,6 +90,60 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
                 .GreaterThan(0)
                 .When(x => x.QuantityUnit.HasValue)
                 .WithMessage("La cantidad por unidad debe ser mayor a cero.");
+
+            RuleFor(x => x)
+                .Must(x => x.ProductId.HasValue && x.ProductId != Guid.Empty || x.NewProduct is not null)
+                .WithMessage("Debe indicar un producto existente o los datos para crear uno nuevo.");
+
+            RuleFor(x => x.ProductId)
+                .NotEqual(Guid.Empty)
+                .When(x => x.ProductId.HasValue)
+                .WithMessage("El id del producto no es válido.");
+
+            RuleFor(x => x.UnitMeasureId)
+                .NotEmpty().WithMessage("La unidad de medida es obligatoria.")
+                .NotEqual(Guid.Empty)
+                .WithMessage("La unidad de medida no es válida.")
+                .When(x => x.NewProduct is null);
+
+            RuleFor(x => x.NewProduct!)
+                .SetValidator(new NewProductPayloadValidator())
+                .When(x => x.NewProduct is not null);
+        }
+    }
+
+    public class NewProductPayloadValidator : AbstractValidator<NewProductPayload>
+    {
+        public NewProductPayloadValidator()
+        {
+            RuleFor(x => x.ProductName)
+                .NotEmpty().WithMessage("El nombre del producto es obligatorio.")
+                .MaximumLength(200).WithMessage("El nombre del producto no puede exceder 200 caracteres.");
+
+            RuleFor(x => x.CategoryId)
+                .NotEmpty().WithMessage("La categoría del producto es obligatoria.")
+                .NotEqual(Guid.Empty).WithMessage("La categoría del producto no es válida.");
+
+            RuleFor(x => x.UnitMeasureId)
+                .NotEmpty().WithMessage("La unidad de medida del producto es obligatoria.")
+                .NotEqual(Guid.Empty).WithMessage("La unidad de medida del producto no es válida.");
+
+            RuleFor(x => x.ProductUsageType)
+                .IsInEnum()
+                .WithMessage("El tipo de uso del producto no es válido.");
+
+            RuleForEach(x => x.Suppliers)
+                .ChildRules(supplier =>
+                {
+                    supplier.RuleFor(s => s.SupplierId)
+                        .NotEmpty().WithMessage("El id del proveedor es obligatorio.")
+                        .NotEqual(Guid.Empty).WithMessage("El id del proveedor no es válido.");
+
+                    supplier.RuleFor(s => s.UnitPrice)
+                        .GreaterThanOrEqualTo(0)
+                        .When(s => s.UnitPrice.HasValue)
+                        .WithMessage("El precio unitario no puede ser negativo.");
+                });
         }
     }
 }

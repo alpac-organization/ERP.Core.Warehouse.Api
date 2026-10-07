@@ -8,6 +8,7 @@ using ERP.Core.Application.Commons.Interfaces.AWS;
 
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Shopping;
+using ERP.Core.Database.Domain.Entities.Warehouse;
 
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Services;
@@ -19,11 +20,15 @@ using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
-    public class RegisterPurchaseRequestHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, ICodeGenerator _codeGenerator, IS3StorageService _s3StorageService,
+    public class RegisterPurchaseRequestHandler(
+        IUnitOfWork _unitOfWork,
+        IErrorManager _errorManager,
+        ICodeGenerator _codeGenerator,
+        IS3StorageService _s3StorageService,
         ILogger<RegisterPurchaseRequestHandler> _logger,
         ISimpleNotificationServices _simpleNotificationServices,
         IOptions<PurchaseRequestOptions> _options
-    ): BaseValidatorHandler<RegisterPurchaseRequestCommand, bool>(_unitOfWork, _errorManager)
+    ) : BaseValidatorHandler<RegisterPurchaseRequestCommand, bool>(_unitOfWork, _errorManager)
     {
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
@@ -45,10 +50,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return _errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:INVALID_ACCESS");
             }
 
-            foreach(var purchaseRequest in request.PurchaseRequests)
+            foreach (var purchaseRequest in request.PurchaseRequests)
             {
-
-                //Cambiar esto.
                 Guid areaId = access.Profile.AreaId;
 
                 if (access.Role?.RoleType == RoleType.Administrator && purchaseRequest.AreaId.HasValue)
@@ -66,10 +69,20 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 var purchaseRequestEntity = PurchaseRequestMapper.ToPurchaseRequestEntity(purchaseRequest, code, areaId, access.User.Id);
                 await _unitOfWork.PurchaseRequests.RegisterPurchaseRequest(purchaseRequestEntity);
 
-                // Guardame imagenes en el S3 Bucket
-                foreach (var product in purchaseRequest.PurchaseRequestItems)
+                foreach (var productItem in purchaseRequest.PurchaseRequestItems)
                 {
-                    var purchaseRequestItemEntity = PurchaseRequestMapper.ToPurchaseRequestItemEntity(product, purchaseRequestEntity.Id);
+                    var (productId, unitMeasureId, resolveError) = await ResolveProductAsync(productItem, request.CompanyId, cancellationToken);
+
+                    if (resolveError is not null)
+                    {
+                        return resolveError.Value;
+                    }
+
+                    var purchaseRequestItemEntity = PurchaseRequestMapper.ToPurchaseRequestItemEntity(
+                        productItem,
+                        purchaseRequestEntity.Id,
+                        productId,
+                        unitMeasureId);
 
                     if (!string.IsNullOrWhiteSpace(purchaseRequestItemEntity.AdditionalData))
                     {
@@ -84,18 +97,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                                 var imageUrl = await _s3StorageService.UploadImageAsync("Compras", "SolicitudesCompras", base64Image, cancellationToken);
                                 uploadedUrls.Add(imageUrl);
                             }
-                            
+
                             additionalData.ImagesProductToChanged = uploadedUrls;
                             purchaseRequestItemEntity.AdditionalData = JsonSerializer.Serialize(additionalData, JsonOptions);
                         }
                     }
-                    
+
                     await _unitOfWork.PurchaseRequestItems.RegisterPurchaseRequestItem(purchaseRequestItemEntity);
                 }
             }
 
-            #region  Enviar push notification
-            
+            #region Enviar push notification
+
             var notificationConfig = _options.Value;
 
             string userName = access.User?.Fullname ?? "Un usuario";
@@ -110,7 +123,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 .Where(p => p.CompanyId == request.CompanyId)
                 .Where(p => p.UserModuleRole.Any(
                         umr => umr.ModuleCode == request.ModuleCode && (
-                            umr.Role.RoleType == RoleType.Administrator || 
+                            umr.Role.RoleType == RoleType.Administrator ||
                             umr.Role.RoleType == RoleType.Manager
                         )
                     )
@@ -119,42 +132,38 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
             var targetProfileIds = targetProfiles.Select(p => p.Id).ToList();
 
-            // Crear registros internos de notificación para cada destinatario
             foreach (var profile in targetProfiles)
             {
-                //Lo registramos en su bandeja
                 await _unitOfWork.Notifications.CreateNotification(new()
                 {
-                    Title          = notificationConfig.Title,
-                    Description    = descriptionCopy ,                       
-                    PathRedirect   = "/purchasing",
+                    Title = notificationConfig.Title,
+                    Description = descriptionCopy,
+                    PathRedirect = "/purchasing",
                     AdditionalData = JsonSerializer.Serialize("{}"),
-                    UserId         = profile.UserId,
+                    UserId = profile.UserId,
                 });
             }
 
-            // Obtener sus dispositivos y enviar notificaciones a ellos en especifico.
             var devices = await _unitOfWork.Devices.Entities
                 .Where(device => device.IsActive)
                 .Where(device => targetProfileIds.Contains(device.UserProfileId))
                 .ToListAsync(cancellationToken);
-            
-            //Mapear todos los dispositivos.
+
             foreach (var device in devices)
             {
                 var result = await _simpleNotificationServices.SendPushNotificationAsync(device?.EndpointArn ?? "", new()
                 {
                     Title = notificationConfig?.Title ?? "",
-                    Body  = descriptionCopy ?? "",
+                    Body = descriptionCopy ?? "",
                     WebPushConfig = new()
                     {
                         Badge = access?.Profile?.Company?.ImageUrl ?? "",
-                        Icon  = access?.Profile?.Company?.ImageUrl ?? ""
+                        Icon = access?.Profile?.Company?.ImageUrl ?? ""
                     },
                     AndroidConfig = new()
                     {
                         Badge = access?.Profile?.Company?.ImageUrl ?? "",
-                        Icon  = access?.Profile?.Company?.ImageUrl ?? ""
+                        Icon = access?.Profile?.Company?.ImageUrl ?? ""
                     }
                 });
 
@@ -162,11 +171,116 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             }
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
-            _logger.LogInformation("✅Se registro exitosame la solicitud de compra");
+            _logger.LogInformation("Se registro exitosamente la solicitud de compra");
 
             #endregion
 
             return true;
+        }
+
+        private async Task<(Guid ProductId, Guid UnitMeasureId, bool? ErrorResponse)> ResolveProductAsync(
+            Commands.PurchaseRequestItem item,
+            Guid companyId,
+            CancellationToken cancellationToken)
+        {
+            if (item.NewProduct is null)
+            {
+                var existingProductId = item.ProductId!.Value;
+
+                var exists = await _unitOfWork.Products.Entities
+                    .AnyAsync(p => p.Id == existingProductId && p.DeletedAt == null, cancellationToken);
+
+                if (!exists)
+                {
+                    return (Guid.Empty, Guid.Empty, _errorManager.ThrowNotFound<bool>(
+                        "El producto seleccionado no existe", "ERP:PRODUCT_NOT_FOUND"));
+                }
+
+                return (existingProductId, item.UnitMeasureId, null);
+            }
+
+            var payload = item.NewProduct;
+
+            var categoryExists = await _unitOfWork.CategoryProducts.Entities
+                .AnyAsync(c => c.Id == payload.CategoryId && c.DeletedAt == null, cancellationToken);
+
+            if (!categoryExists)
+            {
+                return (Guid.Empty, Guid.Empty, _errorManager.ThrowNotFound<bool>(
+                    "La categoría del producto no existe", "ERP:CATEGORY_NOT_FOUND"));
+            }
+
+            var unitExists = await _unitOfWork.UnitsMeasurement.Entities
+                .AnyAsync(u => u.Id == payload.UnitMeasureId && u.DeletedAt == null, cancellationToken);
+
+            if (!unitExists)
+            {
+                return (Guid.Empty, Guid.Empty, _errorManager.ThrowNotFound<bool>(
+                    "La unidad de medida del producto no existe", "ERP:UNIT_MEASURE_NOT_FOUND"));
+            }
+
+            if (payload.Suppliers.Count > 0)
+            {
+                var supplierIds = payload.Suppliers.Select(s => s.SupplierId).Distinct().ToList();
+                var existingSupplierCount = await _unitOfWork.Suppliers.Entities
+                    .CountAsync(s => supplierIds.Contains(s.Id) && s.DeletedAt == null, cancellationToken);
+
+                if (existingSupplierCount != supplierIds.Count)
+                {
+                    return (Guid.Empty, Guid.Empty, _errorManager.ThrowNotFound<bool>(
+                        "Uno o más proveedores seleccionados no existen", "ERP:SUPPLIER_NOT_FOUND"));
+                }
+            }
+
+            var (codeSucceeded, productCode) = await _codeGenerator.GenerateUniqueProductCode(
+                companyId,
+                payload.CategoryId,
+                cancellationToken);
+
+            if (!codeSucceeded || string.IsNullOrWhiteSpace(productCode))
+            {
+                return (Guid.Empty, Guid.Empty, _errorManager.ThrowBadRequest<bool>(
+                    "Ocurrió un error al generar el código del producto", "ERP:ERROR_PRODUCT_CODE_GENERATOR"));
+            }
+
+            var now = DateTime.UtcNow;
+            var productId = Guid.NewGuid();
+
+            var product = new Product
+            {
+                Id = productId,
+                Code = productCode,
+                ProductName = payload.ProductName.Trim(),
+                Description = payload.Description,
+                CategoryId = payload.CategoryId,
+                UnitMeasureId = payload.UnitMeasureId,
+                ProductUsageType = payload.ProductUsageType,
+                IsTaxExempt = payload.IsTaxExempt,
+                SupplierProducts = payload.Suppliers
+                    .GroupBy(s => s.SupplierId)
+                    .Select(g =>
+                    {
+                        var link = g.First();
+                        return new SupplierProduct
+                        {
+                            Id = Guid.NewGuid(),
+                            IsActive = true,
+                            ProductId = productId,
+                            SupplierId = link.SupplierId,
+                            UnitPrice = link.UnitPrice ?? 0m,
+                            LastPriceUpdate = now
+                        };
+                    })
+                    .ToList()
+            };
+
+            await _unitOfWork.Products.InsertProduct(product);
+
+            var itemUnitMeasureId = item.UnitMeasureId != Guid.Empty
+                ? item.UnitMeasureId
+                : payload.UnitMeasureId;
+
+            return (productId, itemUnitMeasureId, null);
         }
     }
 }

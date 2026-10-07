@@ -56,17 +56,17 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             };
         }
 
-        public static PurchaseRequestItem ToPurchaseRequestItemEntity(this Commands.PurchaseRequestItem command, Guid purchaseRequestId)
+        public static PurchaseRequestItem ToPurchaseRequestItemEntity(this Commands.PurchaseRequestItem command, Guid purchaseRequestId, Guid productId, Guid unitMeasureId)
         {
             return new()
             {
                 HasQuotation      = false,
                 Id                = Guid.NewGuid(),
-                PurchaseRequestId = purchaseRequestId,  
+                PurchaseRequestId = purchaseRequestId,
                 Quantity          = command.Quantity,
                 QuantityUnit      = command.QuantityUnit,
-                ProductId         = command.ProductId,
-                UnitMeasureId     = command.UnitMeasureId,
+                ProductId         = productId,
+                UnitMeasureId     = unitMeasureId,
                 Justification     = command.Justification,
                 Description       = command.Description,
                 AdditionalData    = command.AdditionalData

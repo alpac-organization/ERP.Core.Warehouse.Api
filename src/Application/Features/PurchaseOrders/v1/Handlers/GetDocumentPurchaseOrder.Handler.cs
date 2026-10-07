@@ -1,5 +1,6 @@
 using AutoMapper;
 using System.Globalization;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
@@ -10,6 +11,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Domain.Enums;
 using ERP.Core.Warehouse.Api.Domain.Entities.ObjectValues;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using ERP.Core.Warehouse.Api.Application.Commons.Services;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Queries;
 
@@ -92,6 +94,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                     var culture = new CultureInfo("es-NI");
                     var serviceAmount = quotations.Sum(quotation => quotation.PriceTotal);
                     var vatAmount = quotations.Sum(quotation => quotation.Iva);
+                    var taxMetadata = TryParseTaxMetadata(purchaseOrder.Comments);
 
                     template.DocumentInfo = new DocumentInfo
                     {
@@ -101,6 +104,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                         QuoteCount  = quotations.Count
                     };
 
+                    var incomeTax = taxMetadata?.IrAmount ?? 0m;
+                    var municipalTax = taxMetadata?.ImiAmount ?? 0m;
+
                     template.PaymentInfo = new PaymentInfo
                     {
                         Department    = purchaseOrder.PurchaseRequest.WorkArea?.WorkAreaName ?? purchaseOrder.PurchaseRequest.WorkArea?.Description,
@@ -108,7 +114,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                         Customer      = purchaseOrder.PurchaseRequest.Branch.Company?.CompanieName,
                         ServiceAmount = serviceAmount,
                         Vat           = vatAmount,
-                        NetToPay      = serviceAmount + vatAmount
+                        IncomeTax     = incomeTax,
+                        MunicipalTax  = municipalTax,
+                        NetToPay      = serviceAmount + vatAmount - incomeTax - municipalTax
                     };
 
                     var pdfBytes = await _pdfGeneratorServices.GenerateAsync<PurchaseOrderTemplateDto>(
@@ -139,6 +147,40 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 DocumentName = "",
                 DocumentUrl  = ""
             };
+        }
+
+        private static PurchaseOrderTaxMetadata? TryParseTaxMetadata(string? comments)
+        {
+            if (string.IsNullOrWhiteSpace(comments))
+            {
+                return null;
+            }
+
+            const string marker = "---TAX---";
+            var markerIndex = comments.LastIndexOf(marker, StringComparison.Ordinal);
+            if (markerIndex < 0)
+            {
+                return null;
+            }
+
+            var json = comments[(markerIndex + marker.Length)..].Trim();
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return null;
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<PurchaseOrderTaxMetadata>(json, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
         }
     }
 }

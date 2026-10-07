@@ -7,41 +7,53 @@ using Commands = ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Comma
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
-
     public class QuotationsProfile : Profile
     {
         public QuotationsProfile()
         {
             CreateMap<Quotation, QuotationInformationDto>()
                 .ForMember(dest => dest.QuotationId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.Price, opt => opt.MapFrom(src => src.PriceUnit))
+                .ForMember(dest => dest.SupplierRejectionJustification, opt => opt.MapFrom(src => src.SupplierRejectionComments))
                 .ForPath(dest => dest.SupplierInformation, opt => opt.MapFrom(src => src.Supplier));
         }
     }
 
     public static class QuotationsMapper
     {
-        public static Quotation ToQuotationsEntity(this Commands.QuotationItem command)
+        public static Quotation ToQuotationsEntity(
+            this Commands.QuotationItem command,
+            decimal priceUnit,
+            decimal priceTotal,
+            decimal ivaAmount,
+            Guid? supplierProductId,
+            string? additionalData)
         {
             return new()
             {
                 Id = Guid.NewGuid(),
                 IsActive = true,
-                QuoteDate = DateOnly.FromDateTime(DateTime.Now),
+                QuoteDate = DateOnly.FromDateTime(DateTime.UtcNow),
                 HasDelivery = command.HasDelivery,
                 HasGuarantee = command.HasGuarantee,
+                InventoryAvailable = command.InventoryAvailable,
                 BrandProduct = command.BrandProduct,
                 DeliveryTime = command.DeliveryTime,
                 DeliveryTimeType = command.DeliveryTimeType,
                 SupplierId = command.SupplierId,
                 SupplierSelectionJustification = command.SupplierSelectionJustification,
-                // Price = command.Price,
                 PurchaseRequestItemId = command.PurchaseRequestItemId,
                 WarrantyPeriodTimeType = command.WarrantyPeriodTimeType,
                 WarrantyPeriod = command.WarrantyPeriod,
-                Iva = command?.Iva ?? 0.0m,
-                PriceUnit = command?.PriceUnit ?? 0.0m,
-                ProductQuality = command?.ProductQuality ?? ProductQuality.Good,
-
+                AvailabilityTime = command.AvailabilityTime,
+                AvailabilityTimeType = command.AvailabilityTimeType,
+                PaymentMethodType = command.PaymentMethodType,
+                ProductQuality = command.ProductQuality,
+                PriceUnit = priceUnit,
+                PriceTotal = priceTotal,
+                Iva = ivaAmount,
+                SupplierProductId = supplierProductId,
+                AdditionalData = additionalData
             };
         }
     }
