@@ -145,7 +145,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
                 ? client.BaseRedirectUrl ?? string.Empty
                 : string.Empty;
 
-            var qr = await _codeGenerator.GenerateQrCodeAsync(redirectUrl, logoUrl: null, headerText: "VOUCHER DE ASIGNACIÓN");
+            var qr = await _codeGenerator.GenerateQrCodeAsync(redirectUrl, logoUrl: null);
             var bar = await _codeGenerator.GenerateBarcodeAsync();
 
             await _unitOfWork.Codes.GenerateCode((assignment.Id, CodesType.Qr, qr).ToCodesEntity());
