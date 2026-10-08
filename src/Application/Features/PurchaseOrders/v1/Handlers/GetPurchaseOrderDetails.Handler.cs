@@ -51,6 +51,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.PurchaseRequestItems)
+                        .ThenInclude(item => item.Quotations)
+                            .ThenInclude(quo => quo.Supplier)
+
+                .Include(purs => purs.PurchaseRequest)
+                    .ThenInclude(pr => pr.PurchaseRequestItems)
                         .ThenInclude(item => item.UnitMeasure)
 
                 .AsNoTracking()

@@ -52,6 +52,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public bool InventoryAvailable { get; set; }
         public bool IsAcceptedForPurchase { get; set; }
         
+        public bool IsBestOption { get; set; } // Nueva bandera para el frontend
+        
         public decimal Iva { get; set; }
         public decimal Price { get; set; }
         public decimal PriceUnit { get; set; }

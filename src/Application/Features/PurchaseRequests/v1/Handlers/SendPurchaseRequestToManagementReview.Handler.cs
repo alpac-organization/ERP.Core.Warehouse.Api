@@ -21,7 +21,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return access.ErrorResponse!;
             }
 
-            if (access.Role?.RoleType == RoleType.Supervisor)
+            if (access.Role?.RoleType != RoleType.Administrator && access.Role?.RoleType != RoleType.Supervisor)
             {
                 return _errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:INVALID_ACCESS");
             }
