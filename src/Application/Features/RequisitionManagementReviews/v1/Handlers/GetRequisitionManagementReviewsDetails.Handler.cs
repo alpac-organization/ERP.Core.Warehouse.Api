@@ -48,6 +48,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                                 .ThenInclude(sp => sp!.TierPrices)
 
                 .Include(rev => rev.PurchaseRequest)
+                    .ThenInclude(rev => rev.PurchaseRequestItems)
+                        .ThenInclude(item => item.Product)
+
+                .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(rev => rev.RegistrationUser)
                         .ThenInclude(pur => pur.Profiles
                             .Where(profile => profile.CompanyId == access.Profile.CompanyId)  // ← Filtra por compañía ACTUAL

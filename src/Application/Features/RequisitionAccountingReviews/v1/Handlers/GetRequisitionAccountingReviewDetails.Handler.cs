@@ -65,6 +65,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
 
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.PurchaseRequestItems)
+                        .ThenInclude(item => item.Quotations)
+                            .ThenInclude(quo => quo.Supplier)
+
+                .Include(rev => rev.PurchaseRequest)
+                    .ThenInclude(pur => pur.PurchaseRequestItems)
                         .ThenInclude(item => item.Product)
                             .ThenInclude(product => product.SupplierProducts.Where(sp => sp.IsActive && sp.DeletedAt == null))
                                 .ThenInclude(sp => sp.Supplier)

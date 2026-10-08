@@ -18,6 +18,11 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             CreateMap<PurchaseRequest, PurchaseRequestDetailsDto>()
                 .ForMember(dest => dest.PurchaseRequestId, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.Observations, opt => opt.MapFrom(src => src.Concept))
+                .ForMember(dest => dest.ReasonRejection, opt => opt.MapFrom(src => ExtractReasonRejection(src.AdditionalData)))
+                .ForMember(dest => dest.IsManagementApproved, opt => opt.MapFrom(src => src.ManagementReview != null && src.ManagementReview.Status == ManagementReviewStatus.Approved))
+                .ForMember(dest => dest.IsAccountingApproved, opt => opt.MapFrom(src => src.AccountingReview != null && src.AccountingReview.Status == AccountingReviewStatus.Approved))
+                .ForMember(dest => dest.IsPurchaseOrderGenerated, opt => opt.MapFrom(src => src.PurchaseOrders != null && src.PurchaseOrders.Any()))
+                .ForMember(dest => dest.PurchaseRequestItems, opt => opt.MapFrom(src => src.PurchaseRequestItems))
                 
                 .ForPath(dest => dest.BranchInformation,      opt => opt.MapFrom(src => src.Branch))
                 .ForPath(dest => dest.CostCenterInformation, opt => opt.MapFrom(src => src.CostCenter))
@@ -26,6 +31,22 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForPath(dest => dest.ReviewerUserInformation, opt => opt.MapFrom(src => src.UserRevision))
                 .ForPath(dest => dest.CreatorUserInformation, opt => opt.MapFrom(src => src.RegistrationUser))
                 .ForPath(dest => dest.AnnulledByUserInformation, opt=>opt.MapFrom(src=> src.AnnulledByUser));
+        }
+
+        private static string? ExtractReasonRejection(string? additionalDataJson)
+        {
+            if (string.IsNullOrWhiteSpace(additionalDataJson)) return null;
+            try
+            {
+                var options = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower, PropertyNameCaseInsensitive = true };
+                var history = System.Text.Json.JsonSerializer.Deserialize<List<ERP.Core.Database.Domain.Entities.Shopping.PurchaseRequestAdditionalData>>(additionalDataJson, options);
+                var rejectionEntry = history?.LastOrDefault(h => h.Description == "Rechazo de solicitud");
+                return rejectionEntry?.NewField;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 

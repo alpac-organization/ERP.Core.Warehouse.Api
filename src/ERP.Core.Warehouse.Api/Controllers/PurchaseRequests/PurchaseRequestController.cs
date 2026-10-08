@@ -48,11 +48,13 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
             [FromQuery] int? month                        = null,
             [FromQuery] Guid? branch_id                   = null,
             [FromQuery] Guid? area_id                     = null,
+            [FromQuery] Guid? cost_center_id              = null,
             [FromQuery] string? code                      = null,
             [FromQuery] PurchaseRequestType? request_type = null,
             [FromQuery] PriorityLevel? priority_Level     = null,
             [FromQuery] DestinationRequest? destination   = null,
             [FromQuery] PurchaseRequestStatus? status     = null,
+            [FromQuery] OwnershipFilter? ownership        = null,
             [FromQuery] int page_number                   = 1,
             [FromQuery] int page_size                     = 10
         )
@@ -63,6 +65,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
             {
                 BranchId      = branch_id,
                 AreaId        = area_id,
+                CostCenterId  = cost_center_id,
                 CompanyId     = company_id,
                 Code          = code,
                 Status        = status,
@@ -70,11 +73,34 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
                 RequestType   = request_type,
                 Destination   = destination,
                 PriorityLevel = priority_Level,
+                Ownership     = ownership,
                 PageNumber    = page_number,
                 PageSize      = page_size,
                 Month         = month,
                 Year          = year,
                 UserId        = Guid.Parse(userIdStr ?? ""),
+            });
+        }
+
+        [Tags("Solicitudes de compras")] 
+        [HttpGet("companies/{company_id}/modules/{module_code}/purchase-requests/monthly-report")]
+        [ProducesResponseType(typeof(List<MonthlyPurchaseReportItemDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<List<MonthlyPurchaseReportItemDto>> GetMonthlyPurchaseReportAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
+            [FromQuery] int? year = null,
+            [FromQuery] int? month = null
+        )
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            return await _mediator.Send(new GetMonthlyPurchaseReportQuery()
+            {
+                CompanyId = company_id,
+                ModuleCode = module_code,
+                UserId = Guid.Parse(userIdStr ?? ""),
+                Month = month ?? DateTime.UtcNow.Month,
+                Year = year ?? DateTime.UtcNow.Year
             });
         }
 

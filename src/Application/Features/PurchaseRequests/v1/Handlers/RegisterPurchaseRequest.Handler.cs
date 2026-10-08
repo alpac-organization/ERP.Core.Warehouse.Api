@@ -50,7 +50,20 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return _errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:INVALID_ACCESS");
             }
 
-            foreach (var purchaseRequest in request.PurchaseRequests)
+            var existingProductIds = request.PurchaseRequests
+                .SelectMany(pr => pr.PurchaseRequestItems)
+                .Where(item => item.NewProduct is null && item.ProductId.HasValue)
+                .Select(item => item.ProductId!.Value)
+                .Distinct()
+                .ToList();
+
+            var productsById = existingProductIds.Count == 0
+                ? new Dictionary<Guid, Product>()
+                : await _unitOfWork.Products.Entities
+                    .Where(p => existingProductIds.Contains(p.Id) && p.DeletedAt == null)
+                    .ToDictionaryAsync(p => p.Id, cancellationToken);
+
+            foreach(var purchaseRequest in request.PurchaseRequests)
             {
                 Guid areaId = access.Profile.AreaId;
 
@@ -69,9 +82,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 var purchaseRequestEntity = PurchaseRequestMapper.ToPurchaseRequestEntity(purchaseRequest, code, areaId, access.User.Id);
                 await _unitOfWork.PurchaseRequests.RegisterPurchaseRequest(purchaseRequestEntity);
 
+                // Guardame imagenes en el S3 Bucket
                 foreach (var productItem in purchaseRequest.PurchaseRequestItems)
                 {
-                    var (productId, unitMeasureId, resolveError) = await ResolveProductAsync(productItem, request.CompanyId, cancellationToken);
+                    var (productId, unitMeasureId, resolveError) = await ResolveProductAsync(productItem, request.CompanyId, productsById, cancellationToken);
 
                     if (resolveError is not null)
                     {
@@ -177,26 +191,25 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
             return true;
         }
-
         private async Task<(Guid ProductId, Guid UnitMeasureId, bool? ErrorResponse)> ResolveProductAsync(
             Commands.PurchaseRequestItem item,
             Guid companyId,
+            IReadOnlyDictionary<Guid, Product> productsById,
             CancellationToken cancellationToken)
         {
             if (item.NewProduct is null)
             {
                 var existingProductId = item.ProductId!.Value;
 
-                var exists = await _unitOfWork.Products.Entities
-                    .AnyAsync(p => p.Id == existingProductId && p.DeletedAt == null, cancellationToken);
-
-                if (!exists)
+                if (!productsById.TryGetValue(existingProductId, out var product))
                 {
                     return (Guid.Empty, Guid.Empty, _errorManager.ThrowNotFound<bool>(
                         "El producto seleccionado no existe", "ERP:PRODUCT_NOT_FOUND"));
                 }
 
-                return (existingProductId, item.UnitMeasureId, null);
+                var unitMeasureId = item.UnitMeasureId ?? product.UnitMeasureId;
+
+                return (existingProductId, unitMeasureId, null);
             }
 
             var payload = item.NewProduct;
@@ -246,7 +259,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             var now = DateTime.UtcNow;
             var productId = Guid.NewGuid();
 
-            var product = new Product
+            var productEntity = new Product
             {
                 Id = productId,
                 Code = productCode,
@@ -274,11 +287,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     .ToList()
             };
 
-            await _unitOfWork.Products.InsertProduct(product);
+            await _unitOfWork.Products.InsertProduct(productEntity);
 
-            var itemUnitMeasureId = item.UnitMeasureId != Guid.Empty
-                ? item.UnitMeasureId
-                : payload.UnitMeasureId;
+            var itemUnitMeasureId = item.UnitMeasureId ?? payload.UnitMeasureId;
 
             return (productId, itemUnitMeasureId, null);
         }
