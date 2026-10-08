@@ -79,6 +79,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
             operationalOrder.ShippingCompany = request.ShippingCompany ?? operationalOrder.ShippingCompany;
             operationalOrder.Consignee = request.Consignee ?? operationalOrder.Consignee;
             operationalOrder.Sender = request.Sender ?? operationalOrder.Sender;
+            operationalOrder.IsAlerted = request.IsAlerted ?? operationalOrder.IsAlerted;
 
             #endregion
 
