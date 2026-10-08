@@ -10,5 +10,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Dtos
         public DocumentType DocumentType { get; set; }
         public OperationalOrderStatus Status { get; set; }
         public bool IsAlerted { get; set; }
+        public bool IsConsolidated { get; set; }
+
     }
 }

@@ -89,6 +89,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
             payload.CompanyId = company_id;
             payload.ModuleCode = module_code;
             payload.AssignmentId = assignment_id;
+            payload.OperationalOrderId = operational_order_id;
             payload.UserId = Guid.Parse(userIdStr ?? "");
 
             await _mediator.Send(payload);
@@ -109,6 +110,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
                 CompanyId = company_id,
                 ModuleCode = module_code,
                 AssignmentId = assignment_id,
+                OperationalOrderId = operational_order_id,
                 UserId = Guid.Parse(userIdStr ?? "")
             };
 

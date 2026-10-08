@@ -209,7 +209,7 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
     }
 
 
-[Tags("Coordenadas de Posiciones")]
+    [Tags("Coordenadas de Posiciones")]
     [HttpPost("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{section_id}/coordinates")]
     [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
