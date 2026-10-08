@@ -45,15 +45,20 @@ namespace ERP.Core.Warehouse.Api.Infrastructure.Services
 
         private async Task PostEventsAsync(HttpClient client, string command, string baseUrl, string operation)
         {
-            logger.LogInformation("{Operation} - Sending to {BaseUrl}/set-events: {Command}", operation, baseUrl, command);
-            
-            using var content = new StringContent(command, Encoding.UTF8, "application/json");
-            using var response = await client.PostAsync("/set-events", content);
-            
+            var body = JsonSerializer.Serialize(command, new JsonSerializerOptions()
+            {
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            });
+
+            logger.LogInformation("{Operation} - Sending to {BaseUrl}/set-events: {Body}", operation, baseUrl, body);
+
+            using var content = new StringContent(body, Encoding.UTF8, "application/json");
+            using var response = await client.PostAsync("set-events", content);
+
             var responseBody = await response.Content.ReadAsStringAsync();
-            logger.LogInformation("{Operation} - Response from {BaseUrl}: Status={StatusCode}, Body={Body}", 
+            logger.LogInformation("{Operation} - Response from {BaseUrl}: Status={StatusCode}, Body={Body}",
                 operation, baseUrl, response.StatusCode, responseBody);
-            
+
             response.EnsureSuccessStatusCode();
         }
     }
