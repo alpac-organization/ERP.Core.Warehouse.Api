@@ -119,7 +119,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
             return NoContent();
         }
 
-        [HttpGet("companies/{company_id}/modules/{module_code}/assignments")]
+        [HttpGet("companies/{company_id}/modules/{module_code}/assignments/code")]
         [ProducesResponseType(typeof(MerchandiseLocationDetailsDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
