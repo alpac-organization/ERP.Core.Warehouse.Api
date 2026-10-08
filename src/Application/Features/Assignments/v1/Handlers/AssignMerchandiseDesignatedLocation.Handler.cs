@@ -140,18 +140,16 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
                 await _unitOfWork.RackPositions.UpdateAsync(Position);
                 await _unitOfWork.AssignmentStockPlacements.AssignStockPlacement(Position.ToPlacedStockPlacement(assignment.Id, request.UserId, SectionId));
             }
-            
-            var redirectUrl = string.Empty;
-            var companyAlias = access.Company.Alias;
 
-            if (
-                _qrConfig.Value.Clients.TryGetValue(request.CompanyId.ToString(), out var client)
-                && !string.IsNullOrWhiteSpace(client.BaseRedirectUrl)
-                && !string.IsNullOrWhiteSpace(companyAlias)
-            )
+            var redirectUrl = string.Empty;
+            var companyAlias = access.Company.Alias?.Trim('/');
+
+            if (!string.IsNullOrWhiteSpace(companyAlias)
+                && _qrConfig.Value.Clients.TryGetValue(companyAlias, out var client)
+                && !string.IsNullOrWhiteSpace(client.BaseRedirectUrl))
             {
                 var baseUrl = client.BaseRedirectUrl.TrimEnd('/');
-                var alias = Uri.EscapeDataString(companyAlias.Trim('/'));
+                var alias = Uri.EscapeDataString(companyAlias);
 
                 redirectUrl = $"{baseUrl}/{alias}/dashboard/warehouse-mga/ticket";
             }
@@ -165,9 +163,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
             await _unitOfWork.Codes.GenerateCode((assignment.Id, CodesType.Bar, bar).ToCodesEntity());
 
             assignment.Status = AssignmentOperationalStatus.InProgress;
+            
             await _unitOfWork.AssignmentOperationals.UpdateAsync(assignment);
             await _unitOfWork.SaveChangesAsync(ct);
-            return (qr.Code, bar.Code).ToAssignMerchandiseDesignatedLocationDto();
+
+            return new()
+            {
+                CodeBar = bar.ImageUrl,
+                CodeQr = qr.ImageUrl
+            };
         }
     }
 }
