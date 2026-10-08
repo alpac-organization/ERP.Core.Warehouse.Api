@@ -14,7 +14,14 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             CreateMap<Quotation, QuotationInformationDto>()
                 .ForMember(dest => dest.QuotationId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.IsBestOption, opt => opt.MapFrom(src => EvaluateBestOption(src)))
                 .ForPath(dest => dest.SupplierInformation, opt => opt.MapFrom(src => src.Supplier));
+        }
+
+        private static bool EvaluateBestOption(Quotation quotation)
+        {
+            // Lógica simple de evaluación: tiene delivery, tiene garantía y es de buena calidad
+            return quotation.HasDelivery && quotation.HasGuarantee && quotation.ProductQuality == ProductQuality.Excellent;
         }
     }
 
