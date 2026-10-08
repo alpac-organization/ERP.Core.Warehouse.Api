@@ -33,7 +33,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
                 .Include(ao => ao.Warehouse)
                 .AsSplitQuery()
                 .AsNoTracking()
-                .Where(ao => ao.OperationalOrderId == request.OperationalOrderId)
+                .Where(ao => !request.OperationalOrderId.HasValue || ao.OperationalOrderId == request.OperationalOrderId)
                 .Where(ao => ao.IsActive);
 
             if (request.Status.HasValue)

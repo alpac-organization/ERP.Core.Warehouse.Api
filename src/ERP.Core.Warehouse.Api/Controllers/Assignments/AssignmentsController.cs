@@ -19,11 +19,11 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
     [Tags("Asignaciones Operativas")]
     public class AssignmentsController(IMediator _mediator) : ApiControllerBase
     {
-        [HttpGet("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/assignments")]
+        [HttpGet("companies/{company_id}/modules/{module_code}/assignments")]
         [ProducesResponseType(typeof(PagedResponse<AssignmentOperationalDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<PagedResponse<AssignmentOperationalDto>> GetAssignmentsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id, 
+        public async Task<PagedResponse<AssignmentOperationalDto>> GetAssignmentsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromQuery] Guid? operational_order_id = null, 
             [FromQuery] int page_number = 1,
             [FromQuery] int page_size   = 10,
             [FromQuery] AssignmentOperationalStatus? status = null

@@ -9,7 +9,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Validators
         public GetAssignmentsValidator()
         {
             RuleFor(x => x.OperationalOrderId)
-                .NotEmpty().WithMessage("El ID de la orden operativa es requerido");
+                .NotEmpty().WithMessage("El ID de la orden operativa no es válido")
+                .When(x => x.OperationalOrderId.HasValue);
 
             RuleFor(x => x.Status)
                 .IsInEnum().WithMessage("El estado debe ser un valor de enum válido")
