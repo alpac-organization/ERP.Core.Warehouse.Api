@@ -14,6 +14,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Comma
         public string? ShippingCompany { get; set; }
         public string? Consignee { get; set; }
         public string? Sender { get; set; }
+        public bool? IsAlerted { get; set; } = false;
 
         public List<MerchandiseCreate>? Merchandises { get; set; }
     }
