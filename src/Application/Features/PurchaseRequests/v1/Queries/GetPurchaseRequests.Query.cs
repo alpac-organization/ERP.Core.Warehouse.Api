@@ -1,6 +1,7 @@
 using MediatR;
 using ERP.Core.Domain.Entities.Bases;
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Warehouse.Api.Domain.Enums;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 
@@ -13,11 +14,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Querie
         public string? Code { get; set; }
         public Guid? AreaId { get; set; }
         public Guid? BranchId { get; set; }
+        public Guid? CostCenterId { get; set; }
 
         public PriorityLevel? PriorityLevel { get; set; }
         public PurchaseRequestStatus? Status { get; set; }
         public DestinationRequest? Destination { get; set; }
         public PurchaseRequestType? RequestType { get; set; }
+
+        public OwnershipFilter? Ownership { get; set; }
 
         public int PageSize { get; set; }
         public int PageNumber { get; set; }

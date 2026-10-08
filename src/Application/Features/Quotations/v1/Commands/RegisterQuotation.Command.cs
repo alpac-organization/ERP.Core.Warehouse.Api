@@ -37,5 +37,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands
 
         public decimal? WarrantyPeriod { get; set; }
         public TimeType? WarrantyPeriodTimeType { get; set; }
+
+        public string? PdfUrl { get; set; }
+        public List<string>? ImagesUrls { get; set; }
     }
 }

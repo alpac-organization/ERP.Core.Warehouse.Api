@@ -8,6 +8,7 @@ using ERP.Core.Application.Commons.Interfaces.AWS;
 
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Shopping;
+using ERP.Core.Database.Domain.Entities.Warehouse;
 
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Services;
@@ -45,6 +46,19 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return _errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:INVALID_ACCESS");
             }
 
+            var existingProductIds = request.PurchaseRequests
+                .SelectMany(pr => pr.PurchaseRequestItems)
+                .Where(item => item.NewProduct is null && item.ProductId.HasValue)
+                .Select(item => item.ProductId!.Value)
+                .Distinct()
+                .ToList();
+
+            var productsById = existingProductIds.Count == 0
+                ? new Dictionary<Guid, Product>()
+                : await _unitOfWork.Products.Entities
+                    .Where(p => existingProductIds.Contains(p.Id) && p.DeletedAt == null)
+                    .ToDictionaryAsync(p => p.Id, cancellationToken);
+
             foreach(var purchaseRequest in request.PurchaseRequests)
             {
 
@@ -67,9 +81,20 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 await _unitOfWork.PurchaseRequests.RegisterPurchaseRequest(purchaseRequestEntity);
 
                 // Guardame imagenes en el S3 Bucket
-                foreach (var product in purchaseRequest.PurchaseRequestItems)
+                foreach (var productItem in purchaseRequest.PurchaseRequestItems)
                 {
-                    var purchaseRequestItemEntity = PurchaseRequestMapper.ToPurchaseRequestItemEntity(product, purchaseRequestEntity.Id);
+                    var (productId, unitMeasureId, resolveError) = await ResolveProductAsync(productItem, request.CompanyId, productsById, cancellationToken);
+
+                    if (resolveError is not null)
+                    {
+                        return resolveError.Value;
+                    }
+
+                    var purchaseRequestItemEntity = PurchaseRequestMapper.ToPurchaseRequestItemEntity(
+                        productItem,
+                        purchaseRequestEntity.Id,
+                        productId,
+                        unitMeasureId);
 
                     if (!string.IsNullOrWhiteSpace(purchaseRequestItemEntity.AdditionalData))
                     {
@@ -167,6 +192,108 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             #endregion
 
             return true;
+        }
+        private async Task<(Guid ProductId, Guid UnitMeasureId, bool? ErrorResponse)> ResolveProductAsync(
+            Commands.PurchaseRequestItem item,
+            Guid companyId,
+            IReadOnlyDictionary<Guid, Product> productsById,
+            CancellationToken cancellationToken)
+        {
+            if (item.NewProduct is null)
+            {
+                var existingProductId = item.ProductId!.Value;
+
+                if (!productsById.TryGetValue(existingProductId, out var product))
+                {
+                    return (Guid.Empty, Guid.Empty, _errorManager.ThrowNotFound<bool>(
+                        "El producto seleccionado no existe", "ERP:PRODUCT_NOT_FOUND"));
+                }
+
+                var unitMeasureId = item.UnitMeasureId ?? product.UnitMeasureId;
+
+                return (existingProductId, unitMeasureId, null);
+            }
+
+            var payload = item.NewProduct;
+
+            var categoryExists = await _unitOfWork.CategoryProducts.Entities
+                .AnyAsync(c => c.Id == payload.CategoryId && c.DeletedAt == null, cancellationToken);
+
+            if (!categoryExists)
+            {
+                return (Guid.Empty, Guid.Empty, _errorManager.ThrowNotFound<bool>(
+                    "La categoría del producto no existe", "ERP:CATEGORY_NOT_FOUND"));
+            }
+
+            var unitExists = await _unitOfWork.UnitsMeasurement.Entities
+                .AnyAsync(u => u.Id == payload.UnitMeasureId && u.DeletedAt == null, cancellationToken);
+
+            if (!unitExists)
+            {
+                return (Guid.Empty, Guid.Empty, _errorManager.ThrowNotFound<bool>(
+                    "La unidad de medida del producto no existe", "ERP:UNIT_MEASURE_NOT_FOUND"));
+            }
+
+            if (payload.Suppliers.Count > 0)
+            {
+                var supplierIds = payload.Suppliers.Select(s => s.SupplierId).Distinct().ToList();
+                var existingSupplierCount = await _unitOfWork.Suppliers.Entities
+                    .CountAsync(s => supplierIds.Contains(s.Id) && s.DeletedAt == null, cancellationToken);
+
+                if (existingSupplierCount != supplierIds.Count)
+                {
+                    return (Guid.Empty, Guid.Empty, _errorManager.ThrowNotFound<bool>(
+                        "Uno o más proveedores seleccionados no existen", "ERP:SUPPLIER_NOT_FOUND"));
+                }
+            }
+
+            var (codeSucceeded, productCode) = await _codeGenerator.GenerateUniqueProductCode(
+                companyId,
+                payload.CategoryId,
+                cancellationToken);
+
+            if (!codeSucceeded || string.IsNullOrWhiteSpace(productCode))
+            {
+                return (Guid.Empty, Guid.Empty, _errorManager.ThrowBadRequest<bool>(
+                    "Ocurrió un error al generar el código del producto", "ERP:ERROR_PRODUCT_CODE_GENERATOR"));
+            }
+
+            var now = DateTime.UtcNow;
+            var productId = Guid.NewGuid();
+
+            var productEntity = new Product
+            {
+                Id = productId,
+                Code = productCode,
+                ProductName = payload.ProductName.Trim(),
+                Description = payload.Description,
+                CategoryId = payload.CategoryId,
+                UnitMeasureId = payload.UnitMeasureId,
+                ProductUsageType = payload.ProductUsageType,
+                IsTaxExempt = payload.IsTaxExempt,
+                SupplierProducts = payload.Suppliers
+                    .GroupBy(s => s.SupplierId)
+                    .Select(g =>
+                    {
+                        var link = g.First();
+                        return new SupplierProduct
+                        {
+                            Id = Guid.NewGuid(),
+                            IsActive = true,
+                            ProductId = productId,
+                            SupplierId = link.SupplierId,
+                            UnitPrice = link.UnitPrice ?? 0m,
+                            LastPriceUpdate = now
+                        };
+                    })
+                    .ToList()
+            };
+
+            await _unitOfWork.Products.InsertProduct(productEntity);
+
+            var itemUnitMeasureId = item.UnitMeasureId ?? payload.UnitMeasureId;
+
+            return (productId, itemUnitMeasureId, null);
         }
     }
 }

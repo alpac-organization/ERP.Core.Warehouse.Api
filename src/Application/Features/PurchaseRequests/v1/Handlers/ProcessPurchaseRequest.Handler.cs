@@ -72,8 +72,36 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 {
                     purchaseRequest.UserRevisionId = access.User.Id;
                     purchaseRequest.RequestStatus = request.NewStatus;
-                    // purchaseRequest.ReasonRejection = request.ReasonRejection;
                     purchaseRequest.RevisionDate = DateOnly.FromDateTime(DateTime.UtcNow);
+
+                    var options = new System.Text.Json.JsonSerializerOptions 
+                    { 
+                        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower, 
+                        PropertyNameCaseInsensitive = true 
+                    };
+
+                    var historyList = string.IsNullOrWhiteSpace(purchaseRequest.AdditionalData) 
+                        ? [] 
+                        : System.Text.Json.JsonSerializer.Deserialize<List<ERP.Core.Database.Domain.Entities.Shopping.PurchaseRequestAdditionalData>>(purchaseRequest.AdditionalData, options) ?? [];
+                    
+                    var entry = new ERP.Core.Database.Domain.Entities.Shopping.PurchaseRequestAdditionalData
+                    {
+                        NewField = request.ReasonRejection ?? string.Empty,
+                        OldFields = string.Empty,
+                        Description = "Rechazo de solicitud",
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    
+                    if (access.User != null)
+                    {
+                        entry.UserInformation.UserId = access.User.Id;
+                        entry.UserInformation.Email = access.User.Email;
+                        entry.UserInformation.Fullname = access.User.Fullname;
+                        entry.UserInformation.UserStatus = access.User.UserStatus;
+                    }
+                    
+                    historyList.Add(entry);
+                    purchaseRequest.AdditionalData = System.Text.Json.JsonSerializer.Serialize(historyList, options);
 
                     await _unitOfWork.PurchaseRequests.UpdateAsync(purchaseRequest);
                     break;   
@@ -93,7 +121,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             #region Construcción del Copy de Notificación
 
             var rawCopy = GetCopy(request.NewStatus);
-            var reviewerName = access.User.Fullname ?? "unknow user";
+            var reviewerName = access.User?.Fullname ?? "unknow user";
 
             var title = rawCopy.Title;
             var description = rawCopy.Description?
