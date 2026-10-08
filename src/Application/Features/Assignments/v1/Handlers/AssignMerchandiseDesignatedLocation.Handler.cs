@@ -140,11 +140,22 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
                 await _unitOfWork.RackPositions.UpdateAsync(Position);
                 await _unitOfWork.AssignmentStockPlacements.AssignStockPlacement(Position.ToPlacedStockPlacement(assignment.Id, request.UserId, SectionId));
             }
-
-            var redirectUrl = _qrConfig.Value.Clients.TryGetValue(request.CompanyId.ToString(), out var client)
-                ? client.BaseRedirectUrl ?? string.Empty
-                : string.Empty;
             
+            var redirectUrl = string.Empty;
+            var companyAlias = access.Company.Alias;
+
+            if (
+                _qrConfig.Value.Clients.TryGetValue(request.CompanyId.ToString(), out var client)
+                && !string.IsNullOrWhiteSpace(client.BaseRedirectUrl)
+                && !string.IsNullOrWhiteSpace(companyAlias)
+            )
+            {
+                var baseUrl = client.BaseRedirectUrl.TrimEnd('/');
+                var alias = Uri.EscapeDataString(companyAlias.Trim('/'));
+
+                redirectUrl = $"{baseUrl}/{alias}/dashboard/warehouse-mga/ticket";
+            }
+
             var logo = access.Company.ImageUrl;
 
             var qr = await _codeGenerator.GenerateQrCodeAsync(redirectUrl, logo);

@@ -4,6 +4,7 @@ using ERP.Core.Database.Domain.Entities.Operations;
 using ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Dtos;
 
 using Command = ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands.CreateReceptionEntranceCommand;
+using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
@@ -13,6 +14,9 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             CreateMap<OperationalOrder, OperationalOrderDto>()
                 .ForMember(dest => dest.OperationOrderId, opt => opt.MapFrom(src => src.Id));
+
+            CreateMap<OperationalOrder, OperationalOrderInformation>()
+                .ForPath(dest => dest.OperationalOrderId, opt => opt.MapFrom(src => src.Id));
 
             CreateMap<OperationalOrder, OperationalOrderDetailsDto>()
                 .IncludeBase<OperationalOrder, OperationalOrderDto>()

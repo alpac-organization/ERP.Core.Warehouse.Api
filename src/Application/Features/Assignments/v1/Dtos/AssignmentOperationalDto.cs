@@ -15,12 +15,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Dtos
 
         public bool HasMachineryAssigned { get; set; }
         public bool HasCollaboratorsAssigned { get; set; }
-        public DateTime CreatedAt { get; set; }
-    }
-
-    public class OperationalOrderInformation
-    {
-        public bool IsAlerted { get; set; }
-        public Guid OperationalOrderId { get; set; }
+        public DateTime CreatedAt { get; set; }        
     }
 }
