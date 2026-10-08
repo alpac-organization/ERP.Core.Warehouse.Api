@@ -18,6 +18,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             CreateMap<PurchaseRequest, PurchaseRequestDetailsDto>()
                 .ForMember(dest => dest.PurchaseRequestId, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.Observations, opt => opt.MapFrom(src => src.Concept))
+                .ForMember(dest => dest.ReasonRejection, opt => opt.MapFrom(src => ExtractReasonRejection(src.AdditionalData)))
                 
                 .ForPath(dest => dest.BranchInformation,      opt => opt.MapFrom(src => src.Branch))
                 .ForPath(dest => dest.CostCenterInformation, opt => opt.MapFrom(src => src.CostCenter))
@@ -26,6 +27,22 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForPath(dest => dest.ReviewerUserInformation, opt => opt.MapFrom(src => src.UserRevision))
                 .ForPath(dest => dest.CreatorUserInformation, opt => opt.MapFrom(src => src.RegistrationUser))
                 .ForPath(dest => dest.AnnulledByUserInformation, opt=>opt.MapFrom(src=> src.AnnulledByUser));
+        }
+
+        private static string? ExtractReasonRejection(string? additionalDataJson)
+        {
+            if (string.IsNullOrWhiteSpace(additionalDataJson)) return null;
+            try
+            {
+                var options = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower, PropertyNameCaseInsensitive = true };
+                var history = System.Text.Json.JsonSerializer.Deserialize<List<ERP.Core.Database.Domain.Entities.Shopping.PurchaseRequestAdditionalData>>(additionalDataJson, options);
+                var rejectionEntry = history?.LastOrDefault(h => h.Description == "Rechazo de solicitud");
+                return rejectionEntry?.NewField;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 
@@ -56,7 +73,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             };
         }
 
-        public static PurchaseRequestItem ToPurchaseRequestItemEntity(this Commands.PurchaseRequestItem command, Guid purchaseRequestId)
+        public static PurchaseRequestItem ToPurchaseRequestItemEntity(this Commands.PurchaseRequestItem command, Guid purchaseRequestId, Guid productId, Guid unitMeasureId)
         {
             return new()
             {
@@ -65,8 +82,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 PurchaseRequestId = purchaseRequestId,  
                 Quantity          = command.Quantity,
                 QuantityUnit      = command.QuantityUnit,
-                ProductId         = command.ProductId,
-                UnitMeasureId     = command.UnitMeasureId,
+                ProductId         = productId,
+                UnitMeasureId     = unitMeasureId,
                 Justification     = command.Justification,
                 Description       = command.Description,
                 AdditionalData    = command.AdditionalData

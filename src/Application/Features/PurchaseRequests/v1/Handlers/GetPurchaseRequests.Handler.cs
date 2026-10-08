@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Warehouse.Api.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Shopping;
 
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
@@ -44,9 +45,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
                 if (access.Role?.RoleType == RoleType.Manager)
                 {
-                    //Obtener todas las solicitudes del area del usuario
+                    // Obtener solicitudes de la sucursal y centro de costo del manager
                     purchaseRequestsQuery = purchaseRequestsQuery
-                        .Where(pur => pur.AreaId == access.Profile.AreaId);
+                        .Where(pur => pur.BranchId == access.Profile.BranchId)
+                        .Where(pur => pur.CostCenterId == access.Profile.CostCenterId);
                 }
             }
 
@@ -73,9 +75,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
         }
 
         #region Filtros periodos
-        private static IQueryable<PurchaseRequest> ApplyPeriodFilter(IQueryable<PurchaseRequest> query,GetPurchaseRequestsQuery request)
+        private static IQueryable<PurchaseRequest> ApplyPeriodFilter(IQueryable<PurchaseRequest> query, GetPurchaseRequestsQuery request)
         {
-            var year  = request.Year   ?? DateTime.UtcNow.Year;
+            if (!request.Year.HasValue && !request.Month.HasValue)
+            {
+                return query;
+            }
+
+            var year = request.Year ?? DateTime.UtcNow.Year;
             var month = request.Month ?? DateTime.UtcNow.Month;
 
             var firstDayOfMonth = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -93,6 +100,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             {
                 query = query
                     .Where(pr => pr.AreaId == request.AreaId);
+            }
+
+            if (request.Ownership.HasValue && access.Role?.RoleType != RoleType.Operator)
+            {
+                if (request.Ownership.Value == OwnershipFilter.Mine)
+                {
+                    query = query.Where(pr => pr.RegisteredByUserId == request.UserId);
+                }
+                else if (request.Ownership.Value == OwnershipFilter.Others)
+                {
+                    query = query.Where(pr => pr.RegisteredByUserId != request.UserId);
+                }
             }
  
             if (request.PriorityLevel.HasValue)
@@ -129,6 +148,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             {
                 query = query
                     .Where(pr => pr.BranchId == request.BranchId);
+            }
+
+            if (request.CostCenterId.HasValue)
+            {
+                query = query
+                    .Where(pr => pr.CostCenterId == request.CostCenterId);
             }
  
             return query;
