@@ -9,7 +9,7 @@ Endpoint para obtener la lista paginada de asignaciones operativas de una orden 
 | Campo | Valor |
 |-------|-------|
 | **Método** | `GET` |
-| **Endpoint** | `/api/v1/companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/assignments` |
+| **Endpoint** | `/api/v1/companies/{company_id}/modules/{module_code}/assignments` |
 | **Descripción** | Retorna las asignaciones operativas paginadas con filtros opcionales. Requiere autenticación con token. |
 
 ---
@@ -20,7 +20,6 @@ Endpoint para obtener la lista paginada de asignaciones operativas de una orden 
 |:---------:|:----:|-----------|-------------|
 | `company_id` | `guid` | Sí | Identificador único de la compañía. |
 | `module_code` | `string` | Sí | Código del módulo dentro de la compañía. |
-| `operational_order_id` | `guid` | Sí | Identificador único de la orden operativa. |
 
 ---
 
@@ -28,6 +27,7 @@ Endpoint para obtener la lista paginada de asignaciones operativas de una orden 
 
 | Parámetro | Tipo | Requerido | Default | Descripción |
 |-----------|------|-----------|---------|-------------|
+| `operational_order_id` | `guid` | No | - | Identificador único de la orden operativa. Si se omite, retorna las asignaciones de todas las órdenes accesibles. |
 | `page_number` | `int` | No | `1` | Número de página. |
 | `page_size` | `int` | No | `10` | Tamaño de página (máx. recomendado 100). |
 | `status` | `enum (AssignmentOperationalStatus)` | No | - | Filtrar por estado de la asignación. Valores: `None` (0), `Pending` (1), `InProgress` (2), `OnHold` (3), `Downloaded` (4). |
