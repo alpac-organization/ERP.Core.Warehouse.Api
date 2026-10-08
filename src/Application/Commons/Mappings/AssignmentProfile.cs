@@ -21,6 +21,17 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForPath(dest => dest.WarehouseInformation, opt => opt.MapFrom(src => src.Warehouse))
                 .IncludeBase<AssignmentOperational, AssignmentOperationalDto>();
 
+            CreateMap<AssignmentStockPlacements, AssignmentStockPlacementsInformation>()
+                .ForPath(dest => dest.SectionInformation, opt => opt.MapFrom(src => src.Section))
+                .ForPath(dest => dest.LotPositionInformation, opt => opt.MapFrom(src => src.LotPosition))
+                .ForPath(dest => dest.RackPositionInformation, opt => opt.MapFrom(src => src.RackPosition));
+
+            CreateMap<AssignmentOperational, MerchandiseLocationDetailsDto>()
+                .ForMember(dest => dest.WarehouseInformation, opt => opt.MapFrom(src => src.Warehouse))
+                .ForMember(dest => dest.OperationalOrderInformation, opt => opt.MapFrom(src => src.OperationalOrder))
+                .ForPath(dest => dest.AssignmentStockPlacementsInformation, opt => opt.MapFrom(src => src.AssignmentStockPlacements))
+                ;
+
             // Get de asignamientos de maquinaria
             CreateMap<AssignmentsMachinery, GetAssignmentMachineryDto>()
                 .ForMember(dest => dest.AssignmentMachineryId, opt => opt.MapFrom(src => src.Id))

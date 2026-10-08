@@ -1,7 +1,8 @@
 using AutoMapper;
-using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 
@@ -20,6 +21,8 @@ public class RackProfile : Profile
             .ForMember(dest => dest.TotalPositions, opt => opt.MapFrom(src => src.Positions.Count))
             .ForMember(dest => dest.OccupiedPositions, opt => opt.MapFrom(src => src.Positions.Count(p => p.Status == RackStatus.Occupied)))
             .ForMember(dest => dest.AvailablePositions, opt => opt.MapFrom(src => src.Positions.Count(p => p.Status == RackStatus.Available)));
+
+        CreateMap<RackPositions, RackLocationInformation>();
 
         CreateMap<RackCapacity, RackCapacityDto>()
             .ForMember(dest => dest.RackCapacityId, opt => opt.MapFrom(src => src.Id));

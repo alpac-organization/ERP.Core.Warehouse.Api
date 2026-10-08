@@ -116,5 +116,22 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
 
             return NoContent();
         }
+
+        [HttpGet("companies/{company_id}/modules/{module_code}/assignments")]
+        [ProducesResponseType(typeof(MerchandiseLocationDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<MerchandiseLocationDetailsDto> GetMerchandiseLocationDetailsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromQuery] string assignment_code)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            return await _mediator.Send(new GetMerchandiseLocationDetailsQuery()
+            {
+                AssignmentCode = assignment_code,
+                CompanyId = company_id,
+                ModuleCode = module_code,
+                UserId = Guid.Parse(userIdStr ?? "")
+            });
+        }
     }
 }
