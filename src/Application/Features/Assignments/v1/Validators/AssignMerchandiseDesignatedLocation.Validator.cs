@@ -1,4 +1,5 @@
 using FluentValidation;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Commons.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Commands;
 
@@ -8,18 +9,58 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Validators
     {
         public AssignMerchandiseDesignatedLocationValidator()
         {
-            RuleFor(x => x.Sections)
-                .NotEmpty()
-                .WithMessage("Debe indicar al menos una sección con posiciones a asignar.");
-
             RuleFor(x => x)
-                .Must(x => !HasDuplicatedPositions(x))
-                .WithMessage("No puede asignar la misma posición más de una vez.");
+                .Must(x => x.Sections.Count > 0 || x.MerchandiseType.HasValue || x.Pallets is { Count: > 0 })
+                .WithMessage("Debe indicar posiciones a asignar, el tipo de mercadería o al menos un registro de polines.");
 
-            RuleForEach(x => x.Sections)
-                .SetValidator(new AssignMerchandiseSectionValidator());
+            RuleFor(x => x.MerchandiseType)
+                .IsInEnum().WithMessage("El tipo de mercadería no es válido.")
+                .When(x => x.MerchandiseType.HasValue);
+
+            RuleFor(x => x.Pallets)
+                .NotEmpty().WithMessage("Debe indicar al menos un registro de polines.")
+                .When(x => x.Pallets is not null);
+
+            RuleForEach(x => x.Pallets)
+                .ChildRules(p =>
+                {
+                    p.RuleFor(p => p.Type)
+                        .IsInEnum().WithMessage("El tipo de polín no es válido.");
+
+                    p.When(p => !p.Delete, () =>
+                    {
+                        p.RuleFor(p => p.CountPallets)
+                            .GreaterThan(0).WithMessage("La cantidad de polines debe ser mayor que cero.")
+                            .When(p => p.CountPallets.HasValue);
+
+                        p.RuleFor(p => p.Width)
+                            .GreaterThan(0).WithMessage("El largo del polín sobredimensionado debe ser mayor que cero.")
+                            .When(p => p.Type == PalletType.Oversized && p.Width.HasValue);
+
+                        p.RuleFor(p => p.Length)
+                            .GreaterThan(0).WithMessage("El ancho del polín sobredimensionado debe ser mayor que cero.")
+                            .When(p => p.Type == PalletType.Oversized && p.Length.HasValue);
+
+                        p.RuleFor(p => p.BulksPerPallet)
+                            .GreaterThan(0).WithMessage("La cantidad de bultos por polín debe ser mayor que cero.")
+                            .When(p => p.BulksPerPallet.HasValue);
+                    });
+                });
+
+            When(x => x.Sections.Count > 0, () =>
+            {
+                RuleFor(x => x.Sections)
+                    .NotEmpty()
+                    .WithMessage("Debe indicar al menos una sección con posiciones a asignar.");
+
+                RuleFor(x => x)
+                    .Must(x => !HasDuplicatedPositions(x))
+                    .WithMessage("No puede asignar la misma posición más de una vez.");
+
+                RuleForEach(x => x.Sections)
+                    .SetValidator(new AssignMerchandiseSectionValidator());
+            });
         }
-
         private static bool HasDuplicatedPositions(AssignMerchandiseDesignatedLocationCommand request)
         {
             var ids = request.Sections
