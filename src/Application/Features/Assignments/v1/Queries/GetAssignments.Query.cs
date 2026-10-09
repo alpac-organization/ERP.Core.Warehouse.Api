@@ -12,7 +12,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Queries
     public class GetAssignmentsQuery : BaseRequest, IRequest<PagedResponse<AssignmentOperationalDto>>
     {
         [JsonIgnore]
-        public Guid OperationalOrderId { get; set; }
+        public Guid? OperationalOrderId { get; set; }
         public AssignmentOperationalStatus? Status { get; set; }
 
         public int PageNumber { get; set; } = 1;

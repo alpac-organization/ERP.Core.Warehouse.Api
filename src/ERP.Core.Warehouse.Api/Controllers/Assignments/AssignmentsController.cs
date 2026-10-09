@@ -19,11 +19,11 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
     [Tags("Asignaciones Operativas")]
     public class AssignmentsController(IMediator _mediator) : ApiControllerBase
     {
-        [HttpGet("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/assignments")]
+        [HttpGet("companies/{company_id}/modules/{module_code}/assignments")]
         [ProducesResponseType(typeof(PagedResponse<AssignmentOperationalDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<PagedResponse<AssignmentOperationalDto>> GetAssignmentsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id, 
+        public async Task<PagedResponse<AssignmentOperationalDto>> GetAssignmentsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromQuery] Guid? operational_order_id = null, 
             [FromQuery] int page_number = 1,
             [FromQuery] int page_size   = 10,
             [FromQuery] AssignmentOperationalStatus? status = null
@@ -117,6 +117,86 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
             await _mediator.Send(payload);
 
             return NoContent();
+        }
+
+        [HttpPost("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/assignments/{assignment_id}/start-task")]
+        [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<NoContentResult> StartTaskAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id, [FromRoute] Guid assignment_id)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            var payload = new StartTaskCommand
+            {
+                CompanyId = company_id,
+                ModuleCode = module_code,
+                OperationalOrderId = operational_order_id,
+                AssignmentId = assignment_id,
+                UserId = Guid.Parse(userIdStr ?? "")
+            };
+
+            await _mediator.Send(payload);
+
+            return NoContent();
+        }
+
+        [HttpPost("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/assignments/{assignment_id}/finish-task")]
+        [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<NoContentResult> FinishTaskAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id, [FromRoute] Guid assignment_id)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            var payload = new FinishTaskCommand
+            {
+                CompanyId = company_id,
+                ModuleCode = module_code,
+                OperationalOrderId = operational_order_id,
+                AssignmentId = assignment_id,
+                UserId = Guid.Parse(userIdStr ?? "")
+            };
+
+            await _mediator.Send(payload);
+
+            return NoContent();
+        }
+
+        [HttpGet("companies/{company_id}/modules/{module_code}/assignments/code")]
+        [ProducesResponseType(typeof(MerchandiseLocationDetailsDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<MerchandiseLocationDetailsDto> GetMerchandiseLocationDetailsAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromQuery] string assignment_code)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            return await _mediator.Send(new GetMerchandiseLocationDetailsQuery()
+            {
+                AssignmentCode = assignment_code,
+                CompanyId = company_id,
+                ModuleCode = module_code,
+                UserId = Guid.Parse(userIdStr ?? "")
+            });
+        }
+
+        [HttpGet("companies/{company_id}/modules/{module_code}/positions/{position_id}/position-detail")]
+        [ProducesResponseType(typeof(PositionDetailDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<PositionDetailDto> GetPositionDetailAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid position_id)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            return await _mediator.Send(new GetPositionDetailQuery()
+            {
+                PositionId = position_id,
+                CompanyId = company_id,
+                ModuleCode = module_code,
+                UserId = Guid.Parse(userIdStr ?? "")
+            });
         }
     }
 }
