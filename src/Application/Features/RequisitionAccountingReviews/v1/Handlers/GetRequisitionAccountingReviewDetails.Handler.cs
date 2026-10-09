@@ -97,6 +97,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.CostCenter)
 
+                .AsSplitQuery()
                 .AsNoTracking()
                 .Where(rev => rev.Id == request.RequisitionAccountingReviewId)
                 .FirstOrDefaultAsync(cancellationToken);

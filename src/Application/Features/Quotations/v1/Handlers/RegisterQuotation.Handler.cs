@@ -49,6 +49,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                 .Include(s => s.SupplierPaymentMethods.Where(spm => spm.IsActive && spm.DeletedAt == null))
                 .Include(s => s.SupplierProducts.Where(sp => sp.IsActive && sp.DeletedAt == null))
                     .ThenInclude(sp => sp.TierPrices)
+                .AsSplitQuery()
                 .Where(s => supplierIds.Contains(s.Id) && s.DeletedAt == null)
                 .ToDictionaryAsync(s => s.Id, cancellationToken);
 

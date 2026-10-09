@@ -43,6 +43,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                     .ThenInclude(sp => sp!.TierPrices)
                 .Include(quo => quo.Supplier)
                     .ThenInclude(s => s.SupplierPaymentMethods.Where(spm => spm.IsActive && spm.DeletedAt == null))
+                .AsSplitQuery()
                 .Where(quo => quo.IsActive)
                 .Where(quo => quo.Id == request.QuotationId)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -58,6 +59,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                     .Include(s => s.SupplierPaymentMethods.Where(spm => spm.IsActive && spm.DeletedAt == null))
                     .Include(s => s.SupplierProducts.Where(sp => sp.IsActive && sp.DeletedAt == null))
                         .ThenInclude(sp => sp.TierPrices)
+                    .AsSplitQuery()
                     .Where(s => s.Id == request.SupplierId.Value && s.DeletedAt == null)
                     .FirstOrDefaultAsync(cancellationToken);
 
