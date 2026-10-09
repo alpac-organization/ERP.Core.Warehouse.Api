@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 
@@ -5,6 +6,7 @@ using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Application.Commons.Interfaces.AWS;
 
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
@@ -13,8 +15,19 @@ using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
-    public class ProcessPurchaseRequestHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, ISimpleNotificationServices _simpleNotificationServices, IOptions<Dictionary<PurchaseRequestStatus, ProcessPurchaseRequestOptions>> _options) : BaseValidatorHandler<ProcessPurchaseRequestCommand, bool>(_unitOfWork, _errorManager)
+    public class ProcessPurchaseRequestHandler(
+        IUnitOfWork _unitOfWork,
+        IErrorManager _errorManager,
+        ISimpleNotificationServices _simpleNotificationServices,
+        IOptions<Dictionary<PurchaseRequestStatus, ProcessPurchaseRequestOptions>> _options)
+        : BaseValidatorHandler<ProcessPurchaseRequestCommand, bool>(_unitOfWork, _errorManager)
     {
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+            PropertyNameCaseInsensitive = true
+        };
+
         private static readonly ProcessPurchaseRequestOptions DefaultCopy = new()
         {
             Title = "Actualización de Solicitud",
@@ -60,38 +73,49 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             {
                 case PurchaseRequestStatus.Approved:
                 {
-                    //Verificamos quien aprobo la solicitud de compra
                     purchaseRequest.UserRevisionId = access.User.Id;
                     purchaseRequest.RequestStatus = request.NewStatus;
                     purchaseRequest.RevisionDate = DateOnly.FromDateTime(DateTime.UtcNow);
-                    
+
                     await _unitOfWork.PurchaseRequests.UpdateAsync(purchaseRequest);
                     break;
                 }
                 case PurchaseRequestStatus.Rejected:
                 {
+                    var rejectionReason = await _unitOfWork.SubCatalogs.Entities
+                        .Where(sub => sub.Id == request.ReasonRejectionId)
+                        .Where(sub => sub.CatalogId == (int)CatalogType.PurchaseRejectionReasons)
+                        .Where(sub => sub.IsActive)
+                        .Where(sub => sub.DeletedAt == null)
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    if (rejectionReason is null)
+                    {
+                        return _errorManager.ThrowBadRequest<bool>(
+                            "El motivo de rechazo no es válido o no pertenece al catálogo de motivos de rechazo",
+                            "ERP:INVALID_REJECTION_REASON");
+                    }
+
                     purchaseRequest.UserRevisionId = access.User.Id;
                     purchaseRequest.RequestStatus = request.NewStatus;
                     purchaseRequest.RevisionDate = DateOnly.FromDateTime(DateTime.UtcNow);
+                    purchaseRequest.ReasonRejectionId = rejectionReason.Id;
+                    purchaseRequest.RejectionComments = string.IsNullOrWhiteSpace(request.RejectionComments)
+                        ? null
+                        : request.RejectionComments.Trim();
 
-                    var options = new System.Text.Json.JsonSerializerOptions 
-                    { 
-                        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower, 
-                        PropertyNameCaseInsensitive = true 
-                    };
+                    var historyList = string.IsNullOrWhiteSpace(purchaseRequest.AdditionalData)
+                        ? []
+                        : JsonSerializer.Deserialize<List<PurchaseRequestAdditionalData>>(purchaseRequest.AdditionalData, JsonOptions) ?? [];
 
-                    var historyList = string.IsNullOrWhiteSpace(purchaseRequest.AdditionalData) 
-                        ? [] 
-                        : System.Text.Json.JsonSerializer.Deserialize<List<ERP.Core.Database.Domain.Entities.Shopping.PurchaseRequestAdditionalData>>(purchaseRequest.AdditionalData, options) ?? [];
-                    
-                    var entry = new ERP.Core.Database.Domain.Entities.Shopping.PurchaseRequestAdditionalData
+                    var entry = new PurchaseRequestAdditionalData
                     {
-                        NewField = request.ReasonRejection ?? string.Empty,
-                        OldFields = string.Empty,
+                        NewField = rejectionReason.CatalogName ?? string.Empty,
+                        OldFields = purchaseRequest.RejectionComments ?? string.Empty,
                         Description = "Rechazo de solicitud",
                         UpdatedAt = DateTime.UtcNow
                     };
-                    
+
                     if (access.User != null)
                     {
                         entry.UserInformation.UserId = access.User.Id;
@@ -99,12 +123,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                         entry.UserInformation.Fullname = access.User.Fullname;
                         entry.UserInformation.UserStatus = access.User.UserStatus;
                     }
-                    
+
                     historyList.Add(entry);
-                    purchaseRequest.AdditionalData = System.Text.Json.JsonSerializer.Serialize(historyList, options);
+                    purchaseRequest.AdditionalData = JsonSerializer.Serialize(historyList, JsonOptions);
 
                     await _unitOfWork.PurchaseRequests.UpdateAsync(purchaseRequest);
-                    break;   
+                    break;
                 }
                 case PurchaseRequestStatus.Canceled:
                 {
@@ -112,7 +136,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     purchaseRequest.RequestStatus = request.NewStatus;
                     purchaseRequest.RevisionDate = DateOnly.FromDateTime(DateTime.UtcNow);
                     await _unitOfWork.PurchaseRequests.UpdateAsync(purchaseRequest);
-                    break;   
+                    break;
                 }
                 default:
                     return _errorManager.ThrowBadRequest<bool>("El nuevo estado de la solicitud no es válido", "ERP:INVALID_STATUS_CHANGE");

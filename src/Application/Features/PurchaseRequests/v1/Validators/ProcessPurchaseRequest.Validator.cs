@@ -8,7 +8,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
     {
         public ProcessPurchaseRequestValidator()
         {
-
             RuleFor(x => x.UserId)
                 .NotEmpty().WithMessage("El identificador de usuario es obligatorio.")
                 .NotEqual(Guid.Empty)
@@ -31,11 +30,17 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
                 .IsInEnum()
                 .WithMessage("El nuevo estado de la solicitud no es válido.");
 
-            // Solo obligatoria cuando el nuevo estado es "Rejected"
-            RuleFor(x => x.ReasonRejection)
-                .NotEmpty()
-                .WithMessage("La razón de rechazo es obligatoria cuando la solicitud es rechazada.")
+            RuleFor(x => x.ReasonRejectionId)
+                .NotNull()
+                .WithMessage("El motivo de rechazo del catálogo es obligatorio cuando la solicitud es rechazada.")
+                .GreaterThan(0)
+                .WithMessage("El identificador del motivo de rechazo no es válido.")
                 .When(x => x.NewStatus == PurchaseRequestStatus.Rejected);
+
+            RuleFor(x => x.RejectionComments)
+                .MaximumLength(1000)
+                .WithMessage("Los comentarios de rechazo no pueden exceder los 1000 caracteres.")
+                .When(x => !string.IsNullOrWhiteSpace(x.RejectionComments));
         }
     }
 }
