@@ -17,9 +17,17 @@ using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 {
-    public class GetDocumentPurchaseOrderHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper, IPdfGeneratorServices _pdfGeneratorServices, IS3StorageService _s3StorageService) : BaseValidatorHandler<GetDocumentPurchaseOrderQuery, PurchaseOrderDocumentDto>(_unitOfWork, _errorManager)
+    public class GetDocumentPurchaseOrderHandler(
+        IUnitOfWork unitOfWork,
+        IErrorManager errorManager,
+        IMapper mapper,
+        IPdfGeneratorServices pdfGeneratorServices,
+        IS3StorageService s3StorageService)
+        : BaseValidatorHandler<GetDocumentPurchaseOrderQuery, PurchaseOrderDocumentDto>(unitOfWork, errorManager)
     {
-        public override async Task<PurchaseOrderDocumentDto> Handle(GetDocumentPurchaseOrderQuery request, CancellationToken cancellationToken)
+        public override async Task<PurchaseOrderDocumentDto> Handle(
+            GetDocumentPurchaseOrderQuery request,
+            CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode!, cancellationToken);
 
@@ -27,40 +35,30 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             {
                 return access.ErrorResponse!;
             }
-            
-            //Incluir información de mapeo
-            var purchaseOrder = await _unitOfWork.PurchaseOrders.Entities
+
+            var purchaseOrder = await unitOfWork.PurchaseOrders.Entities
                 .Include(purs => purs.SentByUser)
-
                 .Include(purs => purs.ReviewedByUser)
-
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.Branch)
                         .ThenInclude(branch => branch.Company)
-
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.WorkArea)
                         .ThenInclude(area => area.CostCenters)
-
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.RegistrationUser)
-
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.UserRevision)
-
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.PurchaseRequestItems)
                         .ThenInclude(item => item.Product)
-
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.PurchaseRequestItems)
                         .ThenInclude(item => item.UnitMeasure)
-
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.PurchaseRequestItems)
                         .ThenInclude(item => item.Quotations)
                             .ThenInclude(quotation => quotation.Supplier)
-
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Where(purs => purs.Id == request.PurchaseOrderId)
@@ -68,84 +66,76 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             if (purchaseOrder is null)
             {
-                return _errorManager.ThrowBadRequest<PurchaseOrderDocumentDto>("No se encontro la orden de compra", "ERP:NOT_FOUND");
+                return errorManager.ThrowBadRequest<PurchaseOrderDocumentDto>(
+                    "No se encontro la orden de compra",
+                    "ERP:NOT_FOUND");
             }
 
-            var template = _mapper.Map<PurchaseOrderTemplateDto>(purchaseOrder);
+            var template = mapper.Map<PurchaseOrderTemplateDto>(purchaseOrder);
+            var culture = new CultureInfo("es-NI");
+            var taxMetadata = TryParseTaxMetadata(purchaseOrder.Comments);
 
-            switch (request.PaymentMethod)
+            var quotations = purchaseOrder.PurchaseRequest.PurchaseRequestItems
+                .SelectMany(item => item.Quotations)
+                .Where(quotation => quotation.IsActive && quotation.IsAcceptedForPurchase)
+                .ToList();
+
+            if (quotations.Count == 0)
             {
-                case PaymentMethod.Check:
-                case PaymentMethod.BankTransfer:
-                {
-                    var quotations = purchaseOrder.PurchaseRequest.PurchaseRequestItems
-                        .SelectMany(item => item.Quotations)
-                        .Where(quotation => quotation.IsActive && quotation.IsAcceptedForPurchase)
-                        .ToList();
-
-                    if (quotations.Count == 0)
-                    {
-                        quotations = purchaseOrder.PurchaseRequest.PurchaseRequestItems
-                            .SelectMany(item => item.Quotations)
-                            .Where(quotation => quotation.IsActive)
-                            .ToList();
-                    }
-
-                    var culture = new CultureInfo("es-NI");
-                    var serviceAmount = quotations.Sum(quotation => quotation.PriceTotal);
-                    var vatAmount = quotations.Sum(quotation => quotation.Iva);
-                    var taxMetadata = TryParseTaxMetadata(purchaseOrder.Comments);
-
-                    template.DocumentInfo = new DocumentInfo
-                    {
-                        Title       = PurchaseOrdersMapper.GetDocumentTitleByMethodPayment(request.PaymentMethod!.Value),
-                        RequestCode = purchaseOrder.PurchaseRequest.Code,
-                        Date        = DateTime.Now.ToString("dd/MM/yyyy", culture),
-                        QuoteCount  = quotations.Count
-                    };
-
-                    var incomeTax = taxMetadata?.IrAmount ?? 0m;
-                    var municipalTax = taxMetadata?.ImiAmount ?? 0m;
-
-                    template.PaymentInfo = new PaymentInfo
-                    {
-                        Department    = purchaseOrder.PurchaseRequest.WorkArea?.WorkAreaName ?? purchaseOrder.PurchaseRequest.WorkArea?.Description,
-                        Payee         = quotations.FirstOrDefault()?.Supplier?.SuppliersLegalName,
-                        Customer      = purchaseOrder.PurchaseRequest.Branch.Company?.CompanieName,
-                        ServiceAmount = serviceAmount,
-                        Vat           = vatAmount,
-                        IncomeTax     = incomeTax,
-                        MunicipalTax  = municipalTax,
-                        NetToPay      = serviceAmount + vatAmount - incomeTax - municipalTax
-                    };
-
-                    var pdfBytes = await _pdfGeneratorServices.GenerateAsync<PurchaseOrderTemplateDto>(
-                        "PaymentRequestTemplate",
-                        template);
-
-                    var fileName = $"{template.DocumentInfo.Title}-{template.DocumentInfo.RequestCode}.pdf";
-
-                    await using var pdfStream = new MemoryStream(pdfBytes);
-                    var documentUrl = await _s3StorageService.UploadPdfAsync("Compras", "OrdenesCompra", pdfStream, fileName);
-
-                    return new PurchaseOrderDocumentDto
-                    {
-                        DocumentName = fileName,
-                        DocumentUrl  = documentUrl
-                    };
-                }
-                case PaymentMethod.Credit:
-                {
-                    //Cuentas por pagar: lógica pendiente (queda vacía de forma intencional).
-
-                    break;
-                }
+                quotations = purchaseOrder.PurchaseRequest.PurchaseRequestItems
+                    .SelectMany(item => item.Quotations)
+                    .Where(quotation => quotation.IsActive)
+                    .ToList();
             }
+
+            var serviceAmount = quotations.Sum(quotation => quotation.PriceTotal);
+            var vatAmount = quotations.Sum(quotation => quotation.Iva);
+            var incomeTax = taxMetadata?.IrAmount ?? 0m;
+            var municipalTax = taxMetadata?.ImiAmount ?? 0m;
+
+            var isPaymentRequest = request.PaymentMethod.HasValue;
+            var title = isPaymentRequest
+                ? PurchaseOrdersMapper.GetDocumentTitleByMethodPayment(request.PaymentMethod!.Value)
+                : "Orden de compra";
+
+            var requestCode = isPaymentRequest
+                ? taxMetadata?.PaymentRequestCode ?? purchaseOrder.Code ?? purchaseOrder.PurchaseRequest.Code
+                : purchaseOrder.Code ?? purchaseOrder.PurchaseRequest.Code;
+
+            template.DocumentInfo = new DocumentInfo
+            {
+                Title = title,
+                RequestCode = requestCode,
+                Date = DateTime.Now.ToString("dd/MM/yyyy", culture),
+                QuoteCount = quotations.Count
+            };
+
+            template.PaymentInfo = new PaymentInfo
+            {
+                Department = purchaseOrder.PurchaseRequest.WorkArea?.WorkAreaName
+                    ?? purchaseOrder.PurchaseRequest.WorkArea?.Description,
+                Payee = quotations.FirstOrDefault()?.Supplier?.SuppliersLegalName,
+                Customer = purchaseOrder.PurchaseRequest.Branch.Company?.CompanieName,
+                ServiceAmount = serviceAmount,
+                Vat = vatAmount,
+                IncomeTax = incomeTax,
+                MunicipalTax = municipalTax,
+                NetToPay = serviceAmount + vatAmount - incomeTax - municipalTax
+            };
+
+            var pdfBytes = await pdfGeneratorServices.GenerateAsync<PurchaseOrderTemplateDto>(
+                "PaymentRequestTemplate",
+                template);
+
+            var fileName = $"{template.DocumentInfo.Title}-{template.DocumentInfo.RequestCode}.pdf";
+
+            await using var pdfStream = new MemoryStream(pdfBytes);
+            var documentUrl = await s3StorageService.UploadPdfAsync("Compras", "OrdenesCompra", pdfStream, fileName);
 
             return new PurchaseOrderDocumentDto
             {
-                DocumentName = "",
-                DocumentUrl  = ""
+                DocumentName = fileName,
+                DocumentUrl = documentUrl
             };
         }
 

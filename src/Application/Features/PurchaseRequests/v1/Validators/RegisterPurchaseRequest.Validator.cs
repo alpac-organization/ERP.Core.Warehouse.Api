@@ -88,10 +88,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
                 .WithMessage("El id del producto no es válido.");
 
             RuleFor(x => x.UnitMeasureId)
-                .NotEmpty().WithMessage("La unidad de medida es obligatoria.")
                 .NotEqual(Guid.Empty)
-                .WithMessage("La unidad de medida no es válida.")
-                .When(x => x.NewProduct == null);
+                .When(x => x.UnitMeasureId.HasValue)
+                .WithMessage("La unidad de medida no es válida.");
+
+            RuleForEach(x => x.AdditionalSupplierIds)
+                .NotEqual(Guid.Empty)
+                .When(x => x.AdditionalSupplierIds is { Count: > 0 })
+                .WithMessage("Uno o más proveedores adicionales no son válidos.");
 
             RuleFor(x => x.Quantity)
                 .GreaterThan(0)
@@ -109,41 +113,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
             RuleFor(x => x.NewProduct!)
                 .SetValidator(new NewProductPayloadValidator())
                 .When(x => x.NewProduct is not null);
-        }
-    }
-
-    public class NewProductPayloadValidator : AbstractValidator<NewProductPayload>
-    {
-        public NewProductPayloadValidator()
-        {
-            RuleFor(x => x.ProductName)
-                .NotEmpty().WithMessage("El nombre del producto es obligatorio.")
-                .MaximumLength(200).WithMessage("El nombre del producto no puede exceder 200 caracteres.");
-
-            RuleFor(x => x.CategoryId)
-                .NotEmpty().WithMessage("La categoría del producto es obligatoria.")
-                .NotEqual(Guid.Empty).WithMessage("La categoría del producto no es válida.");
-
-            RuleFor(x => x.UnitMeasureId)
-                .NotEmpty().WithMessage("La unidad de medida del producto es obligatoria.")
-                .NotEqual(Guid.Empty).WithMessage("La unidad de medida del producto no es válida.");
-
-            RuleFor(x => x.ProductUsageType)
-                .IsInEnum()
-                .WithMessage("El tipo de uso del producto no es válido.");
-
-            RuleForEach(x => x.Suppliers)
-                .ChildRules(supplier =>
-                {
-                    supplier.RuleFor(s => s.SupplierId)
-                        .NotEmpty().WithMessage("El id del proveedor es obligatorio.")
-                        .NotEqual(Guid.Empty).WithMessage("El id del proveedor no es válido.");
-
-                    supplier.RuleFor(s => s.UnitPrice)
-                        .GreaterThanOrEqualTo(0)
-                        .When(s => s.UnitPrice.HasValue)
-                        .WithMessage("El precio unitario no puede ser negativo.");
-                });
         }
     }
 

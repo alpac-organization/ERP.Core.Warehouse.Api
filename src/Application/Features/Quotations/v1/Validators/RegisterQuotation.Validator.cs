@@ -41,17 +41,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Validators
 
             RuleFor(x => x.PaymentMethodType)
                 .IsInEnum()
+                .When(x => x.PaymentMethodType.HasValue)
                 .WithMessage("El método de pago no es válido.");
 
             RuleFor(x => x.PurchaseRequestItemId)
                 .NotEmpty().WithMessage("El id del ítem de la solicitud de compra no puede estar vacío.")
                 .NotEqual(Guid.Empty)
                 .WithMessage("El id del ítem de la solicitud de compra no es válido.");
-
-            RuleFor(x => x.PriceUnit)
-                .GreaterThan(0)
-                .When(x => x.PriceUnit.HasValue)
-                .WithMessage("El precio unitario debe ser mayor a cero.");
 
             RuleFor(x => x.BrandProduct)
                 .MaximumLength(200)
@@ -101,27 +97,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Validators
                 .NotEmpty()
                 .WithMessage("La justificación de selección del proveedor es obligatoria.");
 
-            RuleForEach(x => x.Images)
-                .ChildRules(file =>
-                {
-                    file.RuleFor(f => f.Base64Content)
-                        .NotEmpty()
-                        .WithMessage("El contenido de la imagen es obligatorio.");
-                })
-                .When(x => x.Images is { Count: > 0 });
+            RuleFor(x => x.Attachments!.ImagesBase64!)
+                .Must(images => images.Count <= 2)
+                .When(x => x.Attachments?.ImagesBase64 is { Count: > 0 })
+                .WithMessage("Solo se permiten hasta 2 imágenes por cotización.");
 
-            RuleForEach(x => x.Documents)
-                .ChildRules(file =>
-                {
-                    file.RuleFor(f => f.Base64Content)
-                        .NotEmpty()
-                        .WithMessage("El contenido del documento PDF es obligatorio.");
-
-                    file.RuleFor(f => f.FileName)
-                        .NotEmpty()
-                        .WithMessage("El nombre del documento PDF es obligatorio.");
-                })
-                .When(x => x.Documents is { Count: > 0 });
+            RuleFor(x => x.Attachments!.PdfBase64)
+                .NotEmpty()
+                .When(x => x.Attachments is not null && !string.IsNullOrWhiteSpace(x.Attachments.PdfFileName))
+                .WithMessage("Debe enviar el contenido Base64 del PDF cuando indica un nombre de archivo.");
         }
     }
 }

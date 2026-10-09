@@ -16,10 +16,11 @@ using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Commands;
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 {
     public class ProcessPurchaseOrderHandler(
-        IUnitOfWork _unitOfWork,
-        IErrorManager _errorManager,
-        ICodeGenerator _codeGenerator)
-        : BaseValidatorHandler<ProcessPurchaseOrderCommand, bool>(_unitOfWork, _errorManager)
+        IUnitOfWork unitOfWork,
+        IErrorManager errorManager,
+        ICodeGenerator codeGenerator,
+        IPurchaseTaxService purchaseTaxService)
+        : BaseValidatorHandler<ProcessPurchaseOrderCommand, bool>(unitOfWork, errorManager)
     {
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
@@ -38,17 +39,21 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             if (access.Role?.RoleType == RoleType.Supervisor || access.Role?.RoleType == RoleType.Operator)
             {
-                return _errorManager.ThrowBadRequest<bool>(
+                return errorManager.ThrowBadRequest<bool>(
                     "No tienes permiso para aprobar o rechazar la solicitud y procesar la orden de compra",
                     "ERP:INVALID_ACCESS");
             }
 
-            var review = await _unitOfWork.PurchaseRequestsReviewedManagement.Entities
+            var review = await unitOfWork.PurchaseRequestsReviewedManagement.Entities
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pr => pr.PurchaseRequestItems)
                         .ThenInclude(item => item.Quotations.Where(q => q.IsActive && q.DeletedAt == null && q.IsAcceptedForPurchase))
                             .ThenInclude(q => q.Supplier)
                                 .ThenInclude(s => s.SupplierDetails)
+                .Include(rev => rev.PurchaseRequest)
+                    .ThenInclude(pr => pr.PurchaseRequestItems)
+                        .ThenInclude(item => item.Quotations.Where(q => q.IsActive && q.DeletedAt == null && q.IsAcceptedForPurchase))
+                            .ThenInclude(q => q.SupplierProduct)
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pr => pr.PurchaseRequestItems)
                         .ThenInclude(item => item.Quotations.Where(q => q.IsActive && q.DeletedAt == null && q.IsAcceptedForPurchase))
@@ -59,7 +64,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             if (review is null)
             {
-                return _errorManager.ThrowNotFound<bool>(
+                return errorManager.ThrowNotFound<bool>(
                     "La revisión de gerencia no fue encontrada o no está en estado pendiente",
                     "ERP:MANAGEMENT_REVIEW_NOT_FOUND");
             }
@@ -72,7 +77,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 case ManagementReviewStatus.Approved:
                 {
                     review.Status = ManagementReviewStatus.Approved;
-                    await _unitOfWork.PurchaseRequestsReviewedManagement.UpdateAsync(review);
+                    await unitOfWork.PurchaseRequestsReviewedManagement.UpdateAsync(review);
 
                     var acceptedQuotations = review.PurchaseRequest.PurchaseRequestItems
                         .SelectMany(item => item.Quotations)
@@ -81,55 +86,51 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
                     if (acceptedQuotations.Count == 0)
                     {
-                        return _errorManager.ThrowBadRequest<bool>(
+                        return errorManager.ThrowBadRequest<bool>(
                             "No hay cotizaciones aceptadas para generar la orden de compra",
                             "ERP:NO_ACCEPTED_QUOTATIONS");
                     }
 
-                    var exchangeRate = await PurchaseTaxPricingService.GetActiveTaxValueAsync(
-                        _unitOfWork, TaxType.ExchangeRate, cancellationToken) ?? 36.6243m;
-
-                    var imiRate = await PurchaseTaxPricingService.GetActiveTaxValueAsync(
-                        _unitOfWork, TaxType.Imi, cancellationToken);
-
-                    var irRate = await PurchaseTaxPricingService.GetActiveTaxValueAsync(
-                        _unitOfWork, TaxType.Ir, cancellationToken);
-
-                    var quotationsBySupplier = acceptedQuotations
-                        .GroupBy(q => q.SupplierId)
-                        .ToList();
+                    var rates = await purchaseTaxService.GetActiveRatesAsync(cancellationToken);
+                    var quotationsBySupplier = acceptedQuotations.GroupBy(q => q.SupplierId).ToList();
 
                     foreach (var supplierGroup in quotationsBySupplier)
                     {
                         var supplierQuotations = supplierGroup.ToList();
                         var firstQuote = supplierQuotations.First();
                         var supplierDetails = firstQuote.Supplier?.SupplierDetails;
+                        var currency = firstQuote.SupplierProduct?.Currency ?? Currency.NIO;
 
                         var subtotal = supplierQuotations.Sum(q => q.PriceTotal);
                         var ivaTotal = supplierQuotations.Sum(q => q.Iva);
-                        var totalNio = subtotal + ivaTotal;
 
-                        var retentionsApplied = PurchaseTaxPricingService.ShouldApplyRetentions(
-                            totalNio,
-                            supplierDetails?.IsTaxExempt ?? false);
+                        var retention = purchaseTaxService.CalculateRetentions(
+                            subtotal,
+                            ivaTotal,
+                            currency,
+                            supplierDetails?.SupplierType,
+                            supplierDetails?.IsTaxExempt ?? false,
+                            rates);
 
-                        var imiAmount = retentionsApplied
-                            ? PurchaseTaxPricingService.CalculateRetentionAmount(totalNio, imiRate)
-                            : 0m;
-
-                        var irAmount = retentionsApplied
-                            ? PurchaseTaxPricingService.CalculateRetentionAmount(totalNio, irRate)
-                            : 0m;
+                        var paymentMethod = firstQuote.PaymentMethodType;
+                        var (paymentCodeSucceeded, paymentRequestCode) =
+                            await codeGenerator.GenerateUniquePaymentRequestCodeAsync(
+                                review.PurchaseRequest.BranchId,
+                                paymentMethod,
+                                cancellationToken);
 
                         var taxMetadata = new PurchaseOrderTaxMetadata
                         {
-                            ExchangeRate = exchangeRate,
-                            TotalNio = totalNio,
-                            ImiAmount = imiAmount,
-                            IrAmount = irAmount,
-                            ImiRate = imiRate ?? 0m,
-                            IrRate = irRate ?? 0m,
-                            RetentionsApplied = retentionsApplied
+                            ExchangeRate = retention.ExchangeRate,
+                            TotalNio = retention.TotalNio,
+                            ImiAmount = retention.ImiAmount,
+                            IrAmount = retention.IrAmount,
+                            ImiRate = retention.ImiRate,
+                            IrRate = retention.IrRate,
+                            RetentionsApplied = retention.RetentionsApplied,
+                            SupplierType = retention.SupplierType,
+                            IrTaxType = retention.IrTaxType,
+                            PaymentRequestCode = paymentCodeSucceeded ? paymentRequestCode : null
                         };
 
                         var taxJson = JsonSerializer.Serialize(taxMetadata, JsonOptions);
@@ -137,8 +138,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                             ? $"---TAX---{taxJson}"
                             : $"{request.Comments}\n---TAX---{taxJson}";
 
-                        var (codeSucceeded, poCode) = await _codeGenerator.GenerateUniquePurchaseOrderCode(
-                            review.PurchaseRequest.BranchId);
+                        var (codeSucceeded, poCode) = await codeGenerator.GenerateUniquePurchaseOrderCode(
+                            review.PurchaseRequest.BranchId, cancellationToken);
 
                         var purchaseOrder = review.ToPurchaseOrderEntity(access.User.Id);
                         purchaseOrder.SupplierId = supplierGroup.Key;
@@ -149,7 +150,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                             purchaseOrder.Code = poCode;
                         }
 
-                        await _unitOfWork.PurchaseOrders.RegisterPurchaseOrder(purchaseOrder);
+                        await unitOfWork.PurchaseOrders.RegisterPurchaseOrder(purchaseOrder);
 
                         foreach (var quote in supplierQuotations)
                         {
@@ -163,7 +164,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                                 UnitPrice = quote.PriceUnit
                             };
 
-                            await _unitOfWork.PurchaseOrderItems.RegisterPurchaseOrderItem(orderItem);
+                            await unitOfWork.PurchaseOrderItems.RegisterPurchaseOrderItem(orderItem);
                         }
                     }
 
@@ -172,15 +173,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 case ManagementReviewStatus.Rejected:
                 {
                     review.Status = ManagementReviewStatus.Rejected;
-                    await _unitOfWork.PurchaseRequestsReviewedManagement.UpdateAsync(review);
+                    await unitOfWork.PurchaseRequestsReviewedManagement.UpdateAsync(review);
                     break;
                 }
                 default:
-                    return _errorManager.ThrowBadRequest<bool>(
+                    return errorManager.ThrowBadRequest<bool>(
                         "El nuevo estado de la revisión no es válido", "ERP:INVALID_STATUS_CHANGE");
             }
 
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
 
             return true;
         }

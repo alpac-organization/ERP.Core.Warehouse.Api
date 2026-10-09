@@ -10,9 +10,16 @@ using ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementReviews.v
 
 namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementReviews.v1.Handlers
 {
-    public class GetRequisitionManagementReviewsDetailsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) : BaseValidatorHandler<GetRequisitionManagementReviewsDetailsQuery, PurchaseRequestsReviewedManagementDetailsDto>(_unitOfWork, _errorManager)
+    public class GetRequisitionManagementReviewsDetailsHandler(
+        IUnitOfWork unitOfWork,
+        IErrorManager errorManager,
+        IMapper mapper)
+        : BaseValidatorHandler<GetRequisitionManagementReviewsDetailsQuery, PurchaseRequestsReviewedManagementDetailsDto>(
+            unitOfWork, errorManager)
     {
-        public override async Task<PurchaseRequestsReviewedManagementDetailsDto> Handle(GetRequisitionManagementReviewsDetailsQuery request, CancellationToken cancellationToken)
+        public override async Task<PurchaseRequestsReviewedManagementDetailsDto> Handle(
+            GetRequisitionManagementReviewsDetailsQuery request,
+            CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode!, cancellationToken);
 
@@ -21,62 +28,51 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                 return access.ErrorResponse!;
             }
 
-            var reviewsQuery = await _unitOfWork.PurchaseRequestsReviewedManagement.Entities
+            var review = await unitOfWork.PurchaseRequestsReviewedManagement.Entities
                 .Include(rev => rev.SentByUser)
                     .ThenInclude(pur => pur.Profiles
                         .Where(profile => profile.CompanyId == access.Profile.CompanyId)
-                        .Take(1)
-                    )
+                        .Take(1))
                     .ThenInclude(profile => profile.WorkArea)
-                    
                 .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(rev => rev.PurchaseRequestItems)
+                    .ThenInclude(pr => pr.PurchaseRequestItems)
                         .ThenInclude(item => item.Product)
                             .ThenInclude(product => product.SupplierProducts.Where(sp => sp.IsActive && sp.DeletedAt == null))
                                 .ThenInclude(sp => sp.Supplier)
-
                 .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(rev => rev.PurchaseRequestItems)
-                        .ThenInclude(item => item.Quotations.Where(q => q.IsActive && q.DeletedAt == null))
+                    .ThenInclude(pr => pr.PurchaseRequestItems)
+                        .ThenInclude(item => item.UnitMeasure)
+                .Include(rev => rev.PurchaseRequest)
+                    .ThenInclude(pr => pr.PurchaseRequestItems)
+                        .ThenInclude(item => item.Quotations.Where(q =>
+                            q.IsActive && q.DeletedAt == null && q.IsAcceptedForPurchase))
                             .ThenInclude(q => q.Supplier)
                                 .ThenInclude(s => s.SupplierDetails)
-
                 .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(rev => rev.PurchaseRequestItems)
-                        .ThenInclude(item => item.Quotations.Where(q => q.IsActive && q.DeletedAt == null))
+                    .ThenInclude(pr => pr.PurchaseRequestItems)
+                        .ThenInclude(item => item.Quotations.Where(q =>
+                            q.IsActive && q.DeletedAt == null && q.IsAcceptedForPurchase))
                             .ThenInclude(q => q.SupplierProduct)
                                 .ThenInclude(sp => sp!.TierPrices)
-
                 .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(rev => rev.PurchaseRequestItems)
-                        .ThenInclude(item => item.Product)
-
-                .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(rev => rev.RegistrationUser)
+                    .ThenInclude(pr => pr.RegistrationUser)
                         .ThenInclude(pur => pur.Profiles
-                            .Where(profile => profile.CompanyId == access.Profile.CompanyId)  // ← Filtra por compañía ACTUAL
-                            .Take(1)
-                        )
+                            .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                            .Take(1))
                         .ThenInclude(profile => profile.WorkArea)
-
                 .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(rev => rev.Branch)
-
+                    .ThenInclude(pr => pr.Branch)
                 .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(rev => rev.UserRevision)
-
+                    .ThenInclude(pr => pr.UserRevision)
                 .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(rev => rev.WorkArea)
-
+                    .ThenInclude(pr => pr.WorkArea)
                 .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(rev => rev.CostCenter)
-
+                    .ThenInclude(pr => pr.CostCenter)
+                .AsNoTracking()
                 .Where(review => review.Id == request.RequisitionManagementReviewsId)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            var mapped = _mapper.Map<PurchaseRequestsReviewedManagementDetailsDto>(reviewsQuery);
-
-            return mapped;
+            return mapper.Map<PurchaseRequestsReviewedManagementDetailsDto>(review);
         }
     }
 }

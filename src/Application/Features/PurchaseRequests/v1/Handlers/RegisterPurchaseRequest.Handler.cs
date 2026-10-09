@@ -16,6 +16,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Commons.Options;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using ERP.Core.Warehouse.Api.Application.Commons.Services;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
@@ -27,7 +28,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
         IS3StorageService _s3StorageService,
         ILogger<RegisterPurchaseRequestHandler> _logger,
         ISimpleNotificationServices _simpleNotificationServices,
-        IOptions<PurchaseRequestOptions> _options
+        IOptions<PurchaseRequestOptions> _options,
+        IPurchasePeriodService _purchasePeriodService
     ) : BaseValidatorHandler<RegisterPurchaseRequestCommand, bool>(_unitOfWork, _errorManager)
     {
         private static readonly JsonSerializerOptions JsonOptions = new()
@@ -60,8 +62,33 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             var productsById = existingProductIds.Count == 0
                 ? new Dictionary<Guid, Product>()
                 : await _unitOfWork.Products.Entities
+                    .Include(p => p.SupplierProducts.Where(sp => sp.DeletedAt == null))
                     .Where(p => existingProductIds.Contains(p.Id) && p.DeletedAt == null)
                     .ToDictionaryAsync(p => p.Id, cancellationToken);
+
+            var additionalSupplierIds = request.PurchaseRequests
+                .SelectMany(pr => pr.PurchaseRequestItems)
+                .Where(item => item.AdditionalSupplierIds is { Count: > 0 })
+                .SelectMany(item => item.AdditionalSupplierIds!)
+                .Distinct()
+                .ToList();
+
+            HashSet<Guid>? validAdditionalSuppliers = null;
+            if (additionalSupplierIds.Count > 0)
+            {
+                validAdditionalSuppliers = (await _unitOfWork.Suppliers.Entities
+                    .Where(s => additionalSupplierIds.Contains(s.Id) && s.DeletedAt == null && s.IsActive)
+                    .Select(s => s.Id)
+                    .ToListAsync(cancellationToken))
+                    .ToHashSet();
+
+                if (validAdditionalSuppliers.Count != additionalSupplierIds.Count)
+                {
+                    return _errorManager.ThrowNotFound<bool>(
+                        "Uno o más proveedores adicionales no existen o están inactivos",
+                        "ERP:SUPPLIER_NOT_FOUND");
+                }
+            }
 
             foreach(var purchaseRequest in request.PurchaseRequests)
             {
@@ -79,13 +106,27 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     return _errorManager.ThrowBadRequest<bool>("Ocurrio un error la generar la solucitud de comprar", "ERP:ERROR_CODE_GENERATOR");
                 }
 
-                var purchaseRequestEntity = PurchaseRequestMapper.ToPurchaseRequestEntity(purchaseRequest, code, areaId, access.User.Id);
+                var requestDate = _purchasePeriodService.ResolveRequestPeriod(
+                    purchaseRequest.RequestType,
+                    DateOnly.FromDateTime(DateTime.UtcNow));
+
+                var purchaseRequestEntity = PurchaseRequestMapper.ToPurchaseRequestEntity(
+                    purchaseRequest,
+                    code,
+                    areaId,
+                    access.User.Id,
+                    requestDate);
                 await _unitOfWork.PurchaseRequests.RegisterPurchaseRequest(purchaseRequestEntity);
 
                 // Guardame imagenes en el S3 Bucket
                 foreach (var productItem in purchaseRequest.PurchaseRequestItems)
                 {
-                    var (productId, unitMeasureId, resolveError) = await ResolveProductAsync(productItem, request.CompanyId, productsById, cancellationToken);
+                    var (productId, unitMeasureId, resolveError) = await ResolveProductAsync(
+                        productItem,
+                        request.CompanyId,
+                        productsById,
+                        validAdditionalSuppliers,
+                        cancellationToken);
 
                     if (resolveError is not null)
                     {
@@ -195,6 +236,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             Commands.PurchaseRequestItem item,
             Guid companyId,
             IReadOnlyDictionary<Guid, Product> productsById,
+            HashSet<Guid>? validAdditionalSuppliers,
             CancellationToken cancellationToken)
         {
             if (item.NewProduct is null)
@@ -205,6 +247,46 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 {
                     return (Guid.Empty, Guid.Empty, _errorManager.ThrowNotFound<bool>(
                         "El producto seleccionado no existe", "ERP:PRODUCT_NOT_FOUND"));
+                }
+
+                if (item.AdditionalSupplierIds is { Count: > 0 })
+                {
+                    var linkTimestamp = DateTime.UtcNow;
+                    var linked = false;
+
+                    foreach (var supplierId in item.AdditionalSupplierIds.Distinct())
+                    {
+                        if (validAdditionalSuppliers is null || !validAdditionalSuppliers.Contains(supplierId))
+                        {
+                            return (Guid.Empty, Guid.Empty, _errorManager.ThrowNotFound<bool>(
+                                "Uno o más proveedores adicionales no existen o están inactivos",
+                                "ERP:SUPPLIER_NOT_FOUND"));
+                        }
+
+                        var alreadyLinked = product.SupplierProducts
+                            .Any(sp => sp.SupplierId == supplierId && sp.DeletedAt == null);
+
+                        if (alreadyLinked)
+                        {
+                            continue;
+                        }
+
+                        product.SupplierProducts.Add(new SupplierProduct
+                        {
+                            Id = Guid.NewGuid(),
+                            IsActive = true,
+                            ProductId = product.Id,
+                            SupplierId = supplierId,
+                            UnitPrice = 0m,
+                            LastPriceUpdate = linkTimestamp
+                        });
+                        linked = true;
+                    }
+
+                    if (linked)
+                    {
+                        await _unitOfWork.Products.UpdateAsync(product);
+                    }
                 }
 
                 var unitMeasureId = item.UnitMeasureId ?? product.UnitMeasureId;

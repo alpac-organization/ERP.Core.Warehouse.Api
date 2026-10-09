@@ -3,8 +3,7 @@ using FluentValidation;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using ERP.Core.Application.Behaviors;
-using Microsoft.Extensions.Options;
-
+using ERP.Core.Warehouse.Api.Application.Commons.Services;
 
 namespace ERP.Core.Warehouse.Api.Application
 {
@@ -26,8 +25,12 @@ namespace ERP.Core.Warehouse.Api.Application
                 cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
             });
 
+            services.AddScoped<IPurchaseTaxService, PurchaseTaxService>();
+            services.AddScoped<IQuotationAttachmentService, QuotationAttachmentService>();
+            services.AddScoped<IPurchaseRequestVisibilityService, PurchaseRequestVisibilityService>();
+            services.AddScoped<IPurchasePeriodService, PurchasePeriodService>();
+
             return services;
         }
     }
-
 }

@@ -52,7 +52,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 WarrantyPeriod = command.WarrantyPeriod,
                 AvailabilityTime = command.AvailabilityTime,
                 AvailabilityTimeType = command.AvailabilityTimeType,
-                PaymentMethodType = command.PaymentMethodType,
+                PaymentMethodType = command.PaymentMethodType ?? default,
                 ProductQuality = command.ProductQuality,
                 PriceUnit = priceUnit,
                 PriceTotal = priceTotal,

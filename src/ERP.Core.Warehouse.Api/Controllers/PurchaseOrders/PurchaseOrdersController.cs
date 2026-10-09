@@ -104,46 +104,45 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseOrders
 
         [Tags("Reportes")]
         [HttpGet("companies/{company_id}/modules/{module_code}/reports/transfer-request/{purchase_order_id}")]
-        [ProducesResponseType(typeof(PurchaseOrderDocumentDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PurchaseOrderTemplateDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<PurchaseOrderDocumentDto> GetTransferRequestReportAsync(
+        public async Task<PurchaseOrderTemplateDto> GetTransferRequestReportAsync(
             [FromRoute] Guid company_id,
             [FromRoute] string module_code,
             [FromRoute] Guid purchase_order_id)
         {
-            // Reutiliza el mismo handler del documento, pero se podría crear uno específico si los cálculos difieren
             var userIdStr = HttpContext.Items["UserId"] as string;
 
-            return await _mediator.Send(new GetDocumentPurchaseOrderQuery
+            return await _mediator.Send(new GetPurchaseOrderReportDataQuery
             {
                 CompanyId       = company_id,
                 ModuleCode      = module_code,
                 UserId          = Guid.Parse(userIdStr ?? ""),
                 PurchaseOrderId = purchase_order_id,
-                PaymentMethod   = PaymentMethod.BankTransfer // Forzar transferencia
+                PaymentMethod   = PaymentMethod.BankTransfer
             });
         }
 
         [Tags("Reportes")]
         [HttpGet("companies/{company_id}/modules/{module_code}/reports/purchase-order/{purchase_order_id}")]
-        [ProducesResponseType(typeof(PurchaseOrderDocumentDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PurchaseOrderTemplateDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<PurchaseOrderDocumentDto> GetPurchaseOrderReportAsync(
+        public async Task<PurchaseOrderTemplateDto> GetPurchaseOrderReportAsync(
             [FromRoute] Guid company_id,
             [FromRoute] string module_code,
             [FromRoute] Guid purchase_order_id)
         {
-            // Reutiliza el mismo handler del documento
             var userIdStr = HttpContext.Items["UserId"] as string;
 
-            return await _mediator.Send(new GetDocumentPurchaseOrderQuery
+            return await _mediator.Send(new GetPurchaseOrderReportDataQuery
             {
                 CompanyId       = company_id,
                 ModuleCode      = module_code,
                 UserId          = Guid.Parse(userIdStr ?? ""),
-                PurchaseOrderId = purchase_order_id
+                PurchaseOrderId = purchase_order_id,
+                PaymentMethod   = null
             });
         }
     }
