@@ -8,7 +8,7 @@ Endpoint para obtener el detalle completo de una solicitud de compra dentro del 
 |-------|-------|
 | **Método**      | `GET` |
 | **Endpoint**    | `/api/v1/companies/{company_id}/modules/{module_code}/purchase-requests/{purchase_request_id}` |
-| **Descripción** | Retorna el detalle completo de una solicitud de compra incluyendo información del creador, revisor, sucursal, área solicitante, centro de costos y los items de la solicitud. |
+| **Descripción** | Retorna el detalle completo de una solicitud de compra incluyendo información del creador, revisor, sucursal, área solicitante, centro de costos, ítems, cotizaciones activas, suppliers vinculados al producto (`supplier_products`) y datos de exención de IVA. |
 
 ---
 

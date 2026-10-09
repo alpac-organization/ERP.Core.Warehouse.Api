@@ -42,7 +42,21 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                         .ThenInclude(product => product.Category)
 
                 .Include(pur => pur.PurchaseRequestItems)
+                    .ThenInclude(item => item.Product)
+                        .ThenInclude(product => product.SupplierProducts.Where(sp => sp.IsActive && sp.DeletedAt == null))
+                            .ThenInclude(sp => sp.Supplier)
+
+                .Include(pur => pur.PurchaseRequestItems)
                     .ThenInclude(item => item.UnitMeasure)
+
+                .Include(pur => pur.PurchaseRequestItems)
+                    .ThenInclude(item => item.Quotations.Where(q => q.IsActive && q.DeletedAt == null))
+                        .ThenInclude(q => q.Supplier)
+                            .ThenInclude(s => s.SupplierDetails)
+
+                .Include(pur => pur.PurchaseRequestItems)
+                    .ThenInclude(item => item.Quotations.Where(q => q.IsActive && q.DeletedAt == null))
+                        .ThenInclude(q => q.SupplierProduct)
 
                 .Include(pur => pur.CostCenter)
                 

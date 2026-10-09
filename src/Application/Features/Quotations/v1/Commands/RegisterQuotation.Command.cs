@@ -18,17 +18,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands
         public bool HasGuarantee { get; set; }
         public bool InventoryAvailable { get; set; } = true;
 
-        public decimal Price { get; set; }
-        public decimal PriceTotal { get; set; }
-
-        public decimal? Iva { get; set; }
-        public decimal? PriceUnit { get; set; }
         public string? SupplierSelectionJustification { get; set; }
 
         public string? BrandProduct { get; set; }
         public ProductQuality ProductQuality { get; set; }
-        public PaymentMethodType PaymentMethodType { get; set; }
-        
+
+        public PaymentMethodType? PaymentMethodType { get; set; }
+
         public decimal? AvailabilityTime { get; set; }
         public TimeType? AvailabilityTimeType { get; set; }
 
@@ -37,5 +33,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands
 
         public decimal? WarrantyPeriod { get; set; }
         public TimeType? WarrantyPeriodTimeType { get; set; }
+
+        public QuotationAttachmentsInput? Attachments { get; set; }
     }
 }
