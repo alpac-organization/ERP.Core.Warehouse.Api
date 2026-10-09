@@ -38,10 +38,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Commands
     public class AssignMerchandisePalletDto
     {
         public PalletType Type { get; set; }
-        public int? CountPallets { get; set; }
+        public int CountPallets { get; set; }
         public decimal? Width { get; set; }
         public decimal? Length { get; set; }
         public int? BulksPerPallet { get; set; }
-        public bool Delete { get; set; } = false;
     }
 }

@@ -5,7 +5,7 @@
 Endpoint único que fusiona dos operaciones sobre una asignación operativa **en proceso de descarga** (estado `InProgress`):
 
 - **Asignar posiciones de almacén** (tramos y/o racks): reserva las posiciones (`Available → Reserved`), registra el histórico en `assignment_stock_placements` y genera los códigos QR/barcode del voucher. Es el mismo flujo que antes exponía el `POST .../assignment-positions` y el `POST .../merchandise`.
-- **Registrar/actualizar la información de polines** de la descarga: tipo de mercadería (`merchandise_type`) y pallets (`pallets`), con semántica de **upsert parcial** sobre `AdditionalData` (patrón `UpdateReceptionEntrance`).
+- **Registrar/actualizar la información de polines** de la descarga: tipo de mercadería (`merchandise_type`) y pallets (`pallets`), con semántica **estilo reception**: el array de `pallets` es el **estado completo** y se reemplaza (no hay upsert por `type` ni flag `delete`; los tipos pueden repetirse).
 
 Es un **PATCH parcial**: solo se procesa lo que llega en el body. Debe venir **al menos uno** de `sections`, `merchandise_type` o `pallets`. El endpoint **solo se consume** cuando la asignación está `InProgress`; el estado no cambia. Para llegar a `InProgress` primero debe ejecutarse `POST .../start-task` (que valida `Pending`).
 
@@ -53,7 +53,7 @@ Debe venir **al menos uno** de los tres grupos. Los campos no enviados no se pro
 |-------------------|--------|:---------:|-------------|
 | `sections`        | `array`| No        | Posiciones a asignar (tramos y/o racks). Si viene, ejecuta el flujo completo de asignación de posiciones (reserva + histórico + códigos). |
 | `merchandise_type`| `enum (UnloadingMerchandiseType)` | No | Tipo de mercadería del camión: `Bulk` (1, granel) o `Armed` (2, armada/empolinada). |
-| `pallets`         | `array`| No        | Registros de polines a agregar/actualizar/eliminar (upsert por `type`). Máx. 1 registro por tipo de polín. |
+| `pallets`         | `array`| No        | Estado **completo** de los polines de la descarga. Si viene, **reemplaza** la lista actual (patrón reception). Se permiten registros con el mismo `type` (cada registro declara su `count_pallets`). Un tipo que no se incluya desaparece. **Sin flag `delete`.** |
 
 ### Campos de `sections[]`
 
@@ -69,24 +69,27 @@ Debe venir **al menos uno** de los tres grupos. Los campos no enviados no se pro
 
 ### Campos de `pallets[]`
 
-Semántica de **upsert por `type`**: si el `type` ya existe, se actualizan únicamente los campos informados.
+Semántica de **reemplazo** (patrón reception): el array recibido **es** la nueva lista de polines. Puede contener varios registros con el mismo `type` (p. ej. 4 estándar con 50 bultos + 1 estándar con 30 bultos).
 
 | Parámetro         | Tipo   | Requerido | Descripción |
 |-------------------|--------|:---------:|-------------|
-| `type`            | `enum (PalletType)` | Sí | Referencia el tipo de polín: `Standard` (1, 1×1.2 m) o `Oversized` (2, sobredimensionado). |
-| `delete`          | `bool` | No (default `false`) | Si `true`, elimina el registro de ese `type` del estado actual e ignora el resto de campos. |
-| `count_pallets`   | `int`  | No*    | * Si se informa: mayor que cero. Si se omite conserva el valor existente. |
-| `width`           | `decimal` | No* | * Solo aplica a `Oversized`; si se informa: mayor que cero. En `Standard` se ignora: el servidor fuerza `1`. |
-| `length`          | `decimal` | No* | * Solo aplica a `Oversized`; si se informa: mayor que cero. En `Standard` se ignora: el servidor fuerza `1.2`. |
-| `bulks_per_pallet`| `int`  | No*    | * Bultos por polín. Si se informa: mayor que cero. Si `merchandise_type` final es `Armed` se fuerza `null`. |
+| `type`            | `enum (PalletType)` | Sí | Tipo de polín: `Standard` (1, 1×1.2 m) o `Oversized` (2, sobredimensionado). |
+| `count_pallets`   | `int`  | Sí        | Cantidad de polines del registro. Mayor que cero. Cada polín `Standard` ocupa **1 posición**. |
+| `width`           | `decimal` | No*    | * Solo aplica a `Oversized`; si se informa: mayor que cero. En `Standard` se ignora: el servidor fuerza `1`. |
+| `length`          | `decimal` | No*    | * Solo aplica a `Oversized`; si se informa: mayor que cero. En `Standard` se ignora: el servidor fuerza `1.2`. |
+| `bulks_per_pallet`| `int`  | No*    | * Bultos por polín. Si se informa: mayor que cero. Si `merchandise_type` final es `Armed` se fuerza `null`; si es `Bulk` es **obligatorio** en todos los registros. |
 
-**Reglas de consistencia de polines (validadas por el handler tras el merge):**
+**Reglas de consistencia de polines (validadas por el handler):**
 - Cada registro debe quedar con `count_pallets > 0`.
 - Cada `Oversized` debe quedar con `width > 0` y `length > 0`.
-- Si el `merchandise_type` final es `Bulk`, **todos** los registros deben quedar con `bulks_per_pallet > 0` (`ERP:INVALID_POSITIONATING_INFORMATION`).
-- Si el `merchandise_type` final es `Armed`, todos los `bulks_per_pallet` se limpian a `null` automáticamente.
-- Al crear un registro nuevo con `merchandise_type = Bulk`, `bulks_per_pallet` es obligatorio en ese registro (`ERP:INVALID_BULKS_PER_PALLET`).
+- Si el `merchandise_type` final es `Bulk`, **todos** los registros deben quedar con `bulks_per_pallet > 0` (`ERP:INVALID_BULKS_PER_PALLET` / `ERP:INVALID_POSITIONATING_INFORMATION`).
+- Si el `merchandise_type` final es `Armed`, los `bulks_per_pallet` se limpian a `null` automáticamente.
 - No valida los bultos contra el total declarado de la orden operativa (`PackagesCount`).
+
+**Validación de posiciones vs polines (solo en la misma llamada):**
+- Solo aplica cuando `sections` y `pallets` llegan **juntos** en el mismo request y **todos** los polines declarados son `Standard` (ningún `Oversized`).
+- En ese caso, la cantidad de posiciones asignadas (`sections[].tramos[].position_ids` + `sections[].racks[].position_ids`) debe ser **igual** a `Σ count_pallets` (cada `Standard` ocupa 1 posición). Si difieren → `ERP:PALLETS_POSITIONS_MISMATCH`.
+- Si hay al menos un `Oversized` en el mismo request, **no se valida** el conteo (el usuario elige cuántas posiciones ocupan los sobredimensionados).
 
 ---
 
@@ -98,7 +101,8 @@ Semántica de **upsert por `type`**: si el `type` ya existe, se actualizan únic
 {
   "merchandise_type": 1,
   "pallets": [
-    { "type": 1, "count_pallets": 10, "bulks_per_pallet": 5 },
+    { "type": 1, "count_pallets": 5, "bulks_per_pallet": 5 },
+    { "type": 1, "count_pallets": 5, "bulks_per_pallet": 5 },
     { "type": 2, "count_pallets": 3, "width": 1.5, "length": 2.1, "bulks_per_pallet": 8 }
   ],
   "sections": [
@@ -118,6 +122,36 @@ Semántica de **upsert por `type`**: si el `type` ya existe, se actualizan únic
   ]
 }
 ```
+
+> En este ejemplo hay 5 posiciones asignadas, polines estándar declarados (`5 + 5`) y un `Oversized`, por lo que **no** se valida el conteo.
+
+### Asignar posiciones + solo polines estándar (sí se valida el conteo)
+
+```json
+{
+  "merchandise_type": 1,
+  "pallets": [
+    { "type": 1, "count_pallets": 10, "bulks_per_pallet": 5 }
+  ],
+  "sections": [
+    {
+      "section_id": "f8a964a3-76a0-4fc7-bf98-251f28b4d081",
+      "tramos": [
+        {
+          "block_id": "e2a48b32-0001-4444-8888-abcdef012345",
+          "position_ids": [
+            "3b2e591c-1111-4444-9999-012345abcdef",
+            "4c3f692d-2222-4444-aaaa-123456789abc"
+          ]
+        }
+      ],
+      "racks": []
+    }
+  ]
+}
+```
+
+> Ten posiciones solicitadas y 10 polines estándar → válido. Si vinieran 9 ó 11 posiciones → `ERP:PALLETS_POSITIONS_MISMATCH`.
 
 ### Solo posiciones (equivalente al antiguo POST de posiciones / POST /merchandise)
 
@@ -140,37 +174,22 @@ Semántica de **upsert por `type`**: si el `type` ya existe, se actualizan únic
 }
 ```
 
-### Solo información de polines (mercaduría armada)
+### Re-declarar la lista completa de polines (mercaderia armada)
+
+Cada vez que se envía `pallets`, la lista existente se reemplaza por completo. Los tipos repetidos están permitidos:
 
 ```json
 {
   "merchandise_type": 2,
   "pallets": [
     { "type": 1, "count_pallets": 8 },
+    { "type": 1, "count_pallets": 2 },
     { "type": 2, "count_pallets": 2, "width": 1.6, "length": 2.0 }
   ]
 }
 ```
 
-### Actualización parcial: solo cambiar la cantidad del polín estándar
-
-```json
-{
-  "pallets": [
-    { "type": 1, "count_pallets": 12 }
-  ]
-}
-```
-
-### Eliminar el tipo sobredimensionado
-
-```json
-{
-  "pallets": [
-    { "type": 2, "delete": true }
-  ]
-}
-```
+> Para eliminar un tipo basta con no incluirlo en el array (no existe flag `delete`).
 
 ---
 
@@ -180,27 +199,28 @@ Semántica de **upsert por `type`**: si el `type` ya existe, se actualizan únic
 2. Bloquea al rol `Supervisor` (`ERP:INVALID_ACCESS`).
 3. Carga la asignación operativa (`Id == assignment_id AND OperationalOrderId == operational_order_id AND IsActive AND DeletedAt == null`). Si no existe: `ERP:ASSIGNMENT_NOT_FOUND`.
 4. Si `assignment.Status != InProgress`: `ERP:ASSIGNMENT_NOT_IN_PROGRESS` ("La asignación no está en proceso."). El endpoint **no se consume** fuera de `InProgress`; para llegar a ese estado debe ejecutarse previamente `POST .../start-task`.
-5. **Si `sections` viene** → flujo de asignación de posiciones:
+5. **Validación de conteo (fail-fast)**: si `sections` y `pallets` llegan juntos y **todos** los polines son `Standard`, la cantidad de posiciones debe ser igual a `Σ count_pallets`; si difieren → `ERP:PALLETS_POSITIONS_MISMATCH`. Si hay `Oversized` → no se valida. Esta validación ocurre **antes** de reservar posiciones.
+6. **Si `sections` viene** → flujo de asignación de posiciones:
    - Recoge todos los `position_ids`; si hay repetidos (global, entre todos los bloques): `ERP:DUPLICATED_POSITIONS`.
    - Consulta `Sections` en un solo query (`AsSingleQuery`); si no se encuentran todas: `ERP:SECTION_NOT_FOUND`.
    - Por sección valida: pertenencia al almacén de la asignación, tipo de almacenamiento (`Lots`/`Racks`), pertenencia de tramos/racks y que cada posición esté `Available` (`ERP:POSITION_SECTION_MISMATCH`, `ERP:POSITION_NOT_FOUND`, `ERP:POSITION_NOT_AVAILABLE`).
    - Reserva: `Position.Status = Reserved` + histórico en `assignment_stock_placements` (`AssignStockPlacement`).
    - Genera códigos QR/barcode (URL de redirección desde `QrConfig`, `logo = company.ImageUrl`), inserta en `Codes` (uno `Qr` y uno `Bar`) y guarda los códigos para la respuesta.
    - **No cambia** el estado (la asignación ya está `InProgress`).
-6. **Si `merchandise_type` o `pallets` vienen** → merge de polines:
+7. **Si `merchandise_type` o `pallets` vienen** → reemplazo de polines:
    - **Deserializa** `assignment.AdditionalData` en `AdditionalDataAssingmentOperational` (patrón `DeserializeAdditionalData`); si no hay datos, parte de una lista vacía.
-   - Actualiza `MerchandiseType` si viene (antes del merge, para que las reglas de granel usen el tipo final).
-   - **Upsert por `type`**: `delete = true` → elimina el tipo; si el `type` no existe lo agrega (en granel exige `bulks_per_pallet > 0` desde el registro); si existe actualiza solo los campos informados.
-   - `Standard` → fuerza `width = 1`, `length = 1.2` (ignora lo enviado). `Oversized` → conserva/provee `width`/`length`.
-   - `Bulk` → guarda `bulks_per_pallet` cuando se envía. `Armed` → fuerza `bulks_per_pallet = null` en todos los registros.
+   - Actualiza `MerchandiseType` si viene (antes de mapear, para que las reglas de granel usen el tipo final).
+   - **Reemplazo de lista** (patrón reception): el array `pallets` recibido es el estado completo; se mapea registro a registro (tipos repetidos permitidos). Sin upsert por `type`, sin flag `delete`. Si `merchandise_type` final es `Bulk`, todos los registros exigen `bulks_per_pallet > 0` (`ERP:INVALID_BULKS_PER_PALLET`).
+   - `Standard` → fuerza `width = 1`, `length = 1.2` (ignora lo enviado). `Oversized` → conserva `width`/`length` enviados.
+   - `Armed` → fuerza `bulks_per_pallet = null` en todos los registros.
    - Valida la consistencia final (reglas arriba): si falla, `ERP:INVALID_POSITIONATING_INFORMATION`.
    - Setea `HasPositionatingInformation = count de registros > 0` y serializa `AdditionalData` como JSON `snake_case`.
-7. `SaveChangesAsync` **único al final**: si alguna validación falla en pasos anteriores, **nada** se persiste.
-8. Responde:
+8. `SaveChangesAsync` **único al final**: si alguna validación falla en pasos anteriores, **nada** se persiste.
+9. Responde:
    - Si se asignaron posiciones → `200` con `AssignMerchandiseDesignatedLocationDto` (URLs/imágenes de los códigos QR y de barras).
    - Si solo se actualizó información de polines → `204 No Content`.
 
-> **Validación (FluentValidation):** `AssignMerchandiseDesignatedLocationValidator` valida que venga al menos uno de `sections`, `merchandise_type` o `pallets`; enum válidos; `pallets` sin `type` repetido y con campos informados válidos; y si `sections` viene, las reglas de sección/tramo/rack y sin posiciones duplicadas. La consistencia post-merge se valida en el handler.
+> **Validación (FluentValidation):** `AssignMerchandiseDesignatedLocationValidator` valida que venga al menos uno de `sections`, `merchandise_type` o `pallets`; enums válidos; `count_pallets > 0` obligatorio por registro; `width`/`length` (> 0) y `bulks_per_pallet` (> 0) cuando se informan; y si `sections` viene, las reglas de sección/tramo/rack y sin posiciones duplicadas. La consistencia post-reemplazo (granel/armada) se valida en el handler.
 
 ---
 
@@ -208,19 +228,19 @@ Semántica de **upsert por `type`**: si el `type` ya existe, se actualizan únic
 
 ### ✅ 200 OK
 
-Solo cuando se asignaron posiciones (vino `sections`). Devuelve un `AssignMerchandiseDesignatedLocationDto` con la URL/imagen de los códigos generados. El JSON se serializa con `SnakeCaseLower`.
+Solo cuando se asignaron posiciones (vino `sections`). Devuelve un `AssignMerchandiseDesignatedLocationDto` con las **URL de las imágenes** tal cual se guardan en `Codes.ImageUrl`: sin modificar, transformar ni normalizar. El JSON se serializa con `SnakeCaseLower`.
 
 ```json
 {
-  "code_qr": "iVBORw0KGgoAAAANSUhEUg...",
-  "code_bar": "6500000000012"
+  "code_qr": "https://storage.erp.com/warehouse/qr/a9e7f3c1-...png",
+  "code_bar": "https://storage.erp.com/warehouse/barcode/a9e7f3c1-...png"
 }
 ```
 
 | Campo | Tipo | Descripción |
 |---|---|---|
-| `code_qr` | `string` | URL/imagen del código QR generado para el voucher de la asignación. |
-| `code_bar` | `string` | Contenido del código de barras generado para el voucher de la asignación. |
+| `code_qr` | `string` | `ImageUrl` del código QR generado, tal cual se guarda en la entidad `Codes`. |
+| `code_bar` | `string` | `ImageUrl` del código de barras generado, tal cual se guarda en la entidad `Codes`. |
 
 ### ✅ 204 No Content
 
@@ -231,6 +251,7 @@ Solo si se actualizó información de polines (vino `merchandise_type` y/o `pall
 | `typeError` | `description` |
 |-------------|---------------|
 | `ERP:ASSIGNMENT_NOT_IN_PROGRESS` | `La asignación no está en proceso.` |
+| `ERP:PALLETS_POSITIONS_MISMATCH` | `La cantidad de posiciones ({n}) no coincide con la cantidad de polines estándar declarados ({m}).` (solo aplica cuando todos los polines son `Standard` en la misma llamada). |
 | `ERP:INVALID_BULKS_PER_PALLET` | `Debe indicar la cantidad de bultos por polín para mercadería a granel.` |
 | `ERP:INVALID_POSITIONATING_INFORMATION` | `La información de polines no es coherente con el tipo de mercadería.` |
 | `ERP:DUPLICATED_POSITIONS` | `No puede asignar la misma posición más de una vez.` |
@@ -299,8 +320,8 @@ Para excepciones **no controladas** (fuera de `CoreException`) el `ExceptionMidd
 
 | Valor | Nombre | Descripción |
 |:---:|---|---|
-| `1` | `Standard` | Polín estándar: dimensiones fijas `1 × 1.2` m (server). |
-| `2` | `Oversized` | Polín sobredimensionado: requiere `width`/`length` medidos. |
+| `1` | `Standard` | Polín estándar: dimensiones fijas `1 × 1.2` m (server). Cada polín ocupa **1 posición**. |
+| `2` | `Oversized` | Polín sobredimensionado: requiere `width`/`length` medidos; el usuario elige cuántas posiciones ocupa (no se valida el conteo si hay `Oversized`). |
 
 ### `AssignmentOperationalStatus`
 

@@ -27,24 +27,20 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Validators
                     p.RuleFor(p => p.Type)
                         .IsInEnum().WithMessage("El tipo de polín no es válido.");
 
-                    p.When(p => !p.Delete, () =>
-                    {
-                        p.RuleFor(p => p.CountPallets)
-                            .GreaterThan(0).WithMessage("La cantidad de polines debe ser mayor que cero.")
-                            .When(p => p.CountPallets.HasValue);
+                    p.RuleFor(p => p.CountPallets)
+                        .GreaterThan(0).WithMessage("La cantidad de polines debe ser mayor que cero.");
 
-                        p.RuleFor(p => p.Width)
-                            .GreaterThan(0).WithMessage("El largo del polín sobredimensionado debe ser mayor que cero.")
-                            .When(p => p.Type == PalletType.Oversized && p.Width.HasValue);
+                    p.RuleFor(p => p.Width)
+                        .GreaterThan(0).WithMessage("El largo del polín sobredimensionado debe ser mayor que cero.")
+                        .When(p => p.Type == PalletType.Oversized && p.Width.HasValue);
 
-                        p.RuleFor(p => p.Length)
-                            .GreaterThan(0).WithMessage("El ancho del polín sobredimensionado debe ser mayor que cero.")
-                            .When(p => p.Type == PalletType.Oversized && p.Length.HasValue);
+                    p.RuleFor(p => p.Length)
+                        .GreaterThan(0).WithMessage("El ancho del polín sobredimensionado debe ser mayor que cero.")
+                        .When(p => p.Type == PalletType.Oversized && p.Length.HasValue);
 
-                        p.RuleFor(p => p.BulksPerPallet)
-                            .GreaterThan(0).WithMessage("La cantidad de bultos por polín debe ser mayor que cero.")
-                            .When(p => p.BulksPerPallet.HasValue);
-                    });
+                    p.RuleFor(p => p.BulksPerPallet)
+                        .GreaterThan(0).WithMessage("La cantidad de bultos por polín debe ser mayor que cero.")
+                        .When(p => p.BulksPerPallet.HasValue);
                 });
 
             When(x => x.Sections.Count > 0, () =>

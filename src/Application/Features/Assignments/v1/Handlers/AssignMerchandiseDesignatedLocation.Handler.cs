@@ -45,6 +45,24 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
                 return _errorManager.ThrowBadRequest<AssignMerchandiseDesignatedLocationDto>(
                     "La asignación no está en proceso.", "ERP:ASSIGNMENT_NOT_IN_PROGRESS");
 
+            if (request.Sections.Count > 0 && request.Pallets is { Count: > 0 })
+            {
+                var hasOversized = request.Pallets.Any(p => p.Type == PalletType.Oversized);
+
+                if (!hasOversized)
+                {
+                    var declaredStandardPallets = request.Pallets.Sum(p => p.CountPallets);
+                    var assignedPositions = request.GetAllPositionIds().Count();
+
+                    if (declaredStandardPallets != assignedPositions)
+                    {
+                        return _errorManager.ThrowBadRequest<AssignMerchandiseDesignatedLocationDto>(
+                            $"La cantidad de posiciones ({assignedPositions}) no coincide con la cantidad de polines declarados ({declaredStandardPallets}).",
+                            "ERP:PALLETS_POSITIONS_MISMATCH");
+                    }
+                }
+            }
+
             string? qrCode = null;
             string? barCode = null;
 
@@ -171,8 +189,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
                 await _unitOfWork.Codes.GenerateCode((assignment.Id, CodesType.Qr, qr).ToCodesEntity());
                 await _unitOfWork.Codes.GenerateCode((assignment.Id, CodesType.Bar, bar).ToCodesEntity());
 
-                qrCode = qr.Code;
-                barCode = bar.Code;
+                qrCode = qr.ImageUrl;
+                barCode = bar.ImageUrl;
             }
 
             if (request.MerchandiseType.HasValue || request.Pallets is not null)
@@ -186,61 +204,25 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
 
                 if (request.Pallets is not null)
                 {
-                    foreach (var pallet in request.Pallets)
+                    if (assignment.MerchandiseType == UnloadingMerchandiseType.Bulk)
                     {
-                        if (pallet.Delete)
+                        var invalidBulk = request.Pallets.FirstOrDefault(p => p.BulksPerPallet is not > 0);
+                        if (invalidBulk is not null)
                         {
-                            var existingToRemove = data.PositionatingInformation.FirstOrDefault(p => p.Type == pallet.Type);
-                            if (existingToRemove is not null)
-                            {
-                                data.PositionatingInformation.Remove(existingToRemove);
-                            }
-                            continue;
-                        }
-
-                        var target = data.PositionatingInformation.FirstOrDefault(p => p.Type == pallet.Type);
-
-                        if (target is null)
-                        {
-                            if (assignment.MerchandiseType == UnloadingMerchandiseType.Bulk && pallet.BulksPerPallet is not > 0)
-                            {
-                                return _errorManager.ThrowBadRequest<AssignMerchandiseDesignatedLocationDto>(
-                                    "Debe indicar la cantidad de bultos por polín para mercadería a granel.",
-                                    "ERP:INVALID_BULKS_PER_PALLET");
-                            }
-
-                            target = new PositionatingInformation { Type = pallet.Type };
-                            data.PositionatingInformation.Add(target);
-                        }
-
-                        if (pallet.CountPallets.HasValue)
-                        {
-                            target.CountPallets = pallet.CountPallets.Value;
-                        }
-
-                        if (target.Type == PalletType.Standard)
-                        {
-                            target.Width = 1;
-                            target.Length = 1.2m;
-                        }
-                        else
-                        {
-                            if (pallet.Width.HasValue)
-                            {
-                                target.Width = pallet.Width.Value;
-                            }
-
-                            if (pallet.Length.HasValue)
-                            {
-                                target.Length = pallet.Length.Value;
-                            }
-                        }
-
-                        if (assignment.MerchandiseType == UnloadingMerchandiseType.Bulk && pallet.BulksPerPallet.HasValue)
-                        {
-                            target.BulksPerPallet = pallet.BulksPerPallet.Value;
+                            return _errorManager.ThrowBadRequest<AssignMerchandiseDesignatedLocationDto>(
+                                "Debe indicar la cantidad de bultos por polín para mercadería a granel.",
+                                "ERP:INVALID_BULKS_PER_PALLET");
                         }
                     }
+
+                    data.PositionatingInformation = [.. request.Pallets.Select(p => new PositionatingInformation
+                    {
+                        Type = p.Type,
+                        CountPallets = p.CountPallets,
+                        Width = p.Type == PalletType.Standard ? 1 : p.Width ?? 0,
+                        Length = p.Type == PalletType.Standard ? 1.2m : p.Length ?? 0,
+                        BulksPerPallet = p.BulksPerPallet
+                    })];
                 }
 
                 if (assignment.MerchandiseType == UnloadingMerchandiseType.Armed)
