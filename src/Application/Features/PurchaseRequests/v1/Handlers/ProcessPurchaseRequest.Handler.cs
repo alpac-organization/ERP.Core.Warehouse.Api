@@ -84,9 +84,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 {
                     var rejectionReason = await _unitOfWork.SubCatalogs.Entities
                         .Where(sub => sub.Id == request.ReasonRejectionId)
-                        .Where(sub => sub.CatalogId == (int)CatalogType.PurchaseRejectionReasons)
+                        .Where(sub => sub.Catalog.CatalogType == CatalogType.PurchaseRejectionReasons)
                         .Where(sub => sub.IsActive)
                         .Where(sub => sub.DeletedAt == null)
+                        .Where(sub => sub.Catalog.DeletedAt == null)
                         .FirstOrDefaultAsync(cancellationToken);
 
                     if (rejectionReason is null)
