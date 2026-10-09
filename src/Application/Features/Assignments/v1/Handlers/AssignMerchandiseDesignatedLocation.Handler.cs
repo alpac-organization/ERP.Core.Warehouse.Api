@@ -150,8 +150,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
             {
                 var baseUrl = client.BaseRedirectUrl.TrimEnd('/');
                 var alias = Uri.EscapeDataString(companyAlias);
+                var assignmentCode = request.AssignmentOperationalId.ToString();
 
-                redirectUrl = $"{baseUrl}/{alias}/dashboard/warehouse-mga/ticket";
+                redirectUrl = $"{baseUrl}/{alias}/dashboard/warehouse-mga/ticket?code={assignmentCode}";
             }
 
             var logo = access.Company.ImageUrl;
