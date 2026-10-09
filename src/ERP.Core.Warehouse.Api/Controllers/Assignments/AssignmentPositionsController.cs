@@ -15,7 +15,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
     [Route("api/v1/")]
     public class AssignmentPositionsController(IMediator _mediator) : ApiControllerBase
     {
-        [Tags("Asignaciones de posiciones")]
+        [Tags("Asignaciones de recursos")]
         [HttpPatch("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/assignments/{assignment_id}/assignment-resources")]
         [ProducesResponseType(typeof(AssignMerchandiseDesignatedLocationDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
