@@ -90,57 +90,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 }
             }
 
-            var existingProductIds = request.PurchaseRequests
-                .SelectMany(pr => pr.PurchaseRequestItems)
-                .Where(item => item.NewProduct is null && item.ProductId.HasValue)
-                .Select(item => item.ProductId!.Value)
-                .Distinct()
-                .ToList();
-
-            var productsById = existingProductIds.Count == 0
-                ? new Dictionary<Guid, Product>()
-                : await _unitOfWork.Products.Entities
-                    .Include(p => p.SupplierProducts.Where(sp => sp.DeletedAt == null))
-                    .Where(p => existingProductIds.Contains(p.Id) && p.DeletedAt == null)
-                    .ToDictionaryAsync(p => p.Id, cancellationToken);
-
-            var additionalSupplierIds = request.PurchaseRequests
-                .SelectMany(pr => pr.PurchaseRequestItems)
-                .Where(item => item.AdditionalSupplierIds is { Count: > 0 })
-                .SelectMany(item => item.AdditionalSupplierIds!)
-                .Distinct()
-                .ToList();
-
-            HashSet<Guid>? validAdditionalSuppliers = null;
-            if (additionalSupplierIds.Count > 0)
-            {
-                validAdditionalSuppliers = (await _unitOfWork.Suppliers.Entities
-                    .Where(s => additionalSupplierIds.Contains(s.Id) && s.DeletedAt == null && s.IsActive)
-                    .Select(s => s.Id)
-                    .ToListAsync(cancellationToken))
-                    .ToHashSet();
-
-                if (validAdditionalSuppliers.Count != additionalSupplierIds.Count)
-                {
-                    return _errorManager.ThrowNotFound<bool>(
-                        "Uno o más proveedores adicionales no existen o están inactivos",
-                        "ERP:SUPPLIER_NOT_FOUND");
-                }
-            }
-
-            var existingProductIds = request.PurchaseRequests
-                .SelectMany(pr => pr.PurchaseRequestItems)
-                .Where(item => item.NewProduct is null && item.ProductId.HasValue)
-                .Select(item => item.ProductId!.Value)
-                .Distinct()
-                .ToList();
-
-            var productsById = existingProductIds.Count == 0
-                ? new Dictionary<Guid, Product>()
-                : await _unitOfWork.Products.Entities
-                    .Where(p => existingProductIds.Contains(p.Id) && p.DeletedAt == null)
-                    .ToDictionaryAsync(p => p.Id, cancellationToken);
-
             foreach(var purchaseRequest in request.PurchaseRequests)
             {
                 Guid areaId = access.Profile.AreaId;

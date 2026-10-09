@@ -40,7 +40,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 return access.ErrorResponse!;
             }
 
-            var purchaseOrder = await unitOfWork.PurchaseOrders.Entities
+            var purchaseOrder = await _unitOfWork.PurchaseOrders.Entities
                 .Include(po => po.Supplier)
                 .Include(po => po.PurchaseOrderItems)
                     .ThenInclude(item => item.Product)
@@ -66,7 +66,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             if (purchaseOrder is null)
             {
-                return errorManager.ThrowNotFound<PurchaseOrderTemplateDto>(
+                return _errorManager.ThrowNotFound<PurchaseOrderTemplateDto>(
                     "No se encontro la orden de compra",
                     "ERP:NOT_FOUND");
             }

@@ -28,7 +28,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                 return access.ErrorResponse!;
             }
 
-            var review = await unitOfWork.PurchaseRequestsReviewedManagement.Entities
+            var review = await _unitOfWork.PurchaseRequestsReviewedManagement.Entities
                 .Include(rev => rev.SentByUser)
                     .ThenInclude(pur => pur.Profiles
                         .Where(profile => profile.CompanyId == access.Profile.CompanyId)

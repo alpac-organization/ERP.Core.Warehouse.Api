@@ -31,12 +31,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 
             if (access.Role?.RoleType == RoleType.Supervisor)
             {
-                return errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:INVALID_ACCESS");
+                return _errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:INVALID_ACCESS");
             }
 
             logger.LogInformation("Iniciando actualización de cotización.");
 
-            var quotation = await unitOfWork.Quotations.Entities
+            var quotation = await _unitOfWork.Quotations.Entities
                 .Include(quo => quo.PurchaseRequestItem)
                     .ThenInclude(item => item.Product)
                 .Include(quo => quo.SupplierProduct)
@@ -49,12 +49,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 
             if (quotation is null)
             {
-                return errorManager.ThrowNotFound<bool>("La cotización no existe.", "ERP:QUOTATION_NOT_FOUND");
+                return _errorManager.ThrowNotFound<bool>("La cotización no existe.", "ERP:QUOTATION_NOT_FOUND");
             }
 
             if (request.SupplierId.HasValue && request.SupplierId.Value != quotation.SupplierId)
             {
-                var supplier = await unitOfWork.Suppliers.Entities
+                var supplier = await _unitOfWork.Suppliers.Entities
                     .Include(s => s.SupplierPaymentMethods.Where(spm => spm.IsActive && spm.DeletedAt == null))
                     .Include(s => s.SupplierProducts.Where(sp => sp.IsActive && sp.DeletedAt == null))
                         .ThenInclude(sp => sp.TierPrices)
@@ -63,14 +63,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 
                 if (supplier is null)
                 {
-                    return errorManager.ThrowNotFound<bool>("El proveedor no existe.", "ERP:SUPPLIER_NOT_FOUND");
+                    return _errorManager.ThrowNotFound<bool>("El proveedor no existe.", "ERP:SUPPLIER_NOT_FOUND");
                 }
 
                 var productId = quotation.PurchaseRequestItem.ProductId;
                 var supplierProduct = supplier.SupplierProducts.FirstOrDefault(sp => sp.ProductId == productId);
                 if (supplierProduct is null)
                 {
-                    return errorManager.ThrowBadRequest<bool>(
+                    return _errorManager.ThrowBadRequest<bool>(
                         "El proveedor no está vinculado al producto.",
                         "ERP:SUPPLIER_PRODUCT_NOT_LINKED");
                 }
@@ -125,7 +125,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 
             if (paymentResolution.error is not null)
             {
-                return errorManager.ThrowBadRequest<bool>(paymentResolution.error, "ERP:PAYMENT_METHOD_REQUIRED");
+                return _errorManager.ThrowBadRequest<bool>(paymentResolution.error, "ERP:PAYMENT_METHOD_REQUIRED");
             }
 
             quotation.PaymentMethodType = paymentResolution.method;
@@ -156,14 +156,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 
                 if (attachmentError is not null)
                 {
-                    return errorManager.ThrowBadRequest<bool>(attachmentError, "ERP:INVALID_QUOTATION_ATTACHMENT");
+                    return _errorManager.ThrowBadRequest<bool>(attachmentError, "ERP:INVALID_QUOTATION_ATTACHMENT");
                 }
 
                 quotation.AdditionalData = json;
             }
 
-            await unitOfWork.Quotations.UpdateAsync(quotation);
-            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.Quotations.UpdateAsync(quotation);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             logger.LogInformation("Cotización actualizada con éxito");
             return true;

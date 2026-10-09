@@ -39,12 +39,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             if (access.Role?.RoleType == RoleType.Supervisor || access.Role?.RoleType == RoleType.Operator)
             {
-                return errorManager.ThrowBadRequest<bool>(
+                return _errorManager.ThrowBadRequest<bool>(
                     "No tienes permiso para aprobar o rechazar la solicitud y procesar la orden de compra",
                     "ERP:INVALID_ACCESS");
             }
 
-            var review = await unitOfWork.PurchaseRequestsReviewedManagement.Entities
+            var review = await _unitOfWork.PurchaseRequestsReviewedManagement.Entities
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pr => pr.PurchaseRequestItems)
                         .ThenInclude(item => item.Quotations.Where(q => q.IsActive && q.DeletedAt == null && q.IsAcceptedForPurchase))
@@ -64,7 +64,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             if (review is null)
             {
-                return errorManager.ThrowNotFound<bool>(
+                return _errorManager.ThrowNotFound<bool>(
                     "La revisión de gerencia no fue encontrada o no está en estado pendiente",
                     "ERP:MANAGEMENT_REVIEW_NOT_FOUND");
             }
@@ -77,7 +77,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 case ManagementReviewStatus.Approved:
                 {
                     review.Status = ManagementReviewStatus.Approved;
-                    await unitOfWork.PurchaseRequestsReviewedManagement.UpdateAsync(review);
+                    await _unitOfWork.PurchaseRequestsReviewedManagement.UpdateAsync(review);
 
                     var acceptedQuotations = review.PurchaseRequest.PurchaseRequestItems
                         .SelectMany(item => item.Quotations)
@@ -86,7 +86,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
                     if (acceptedQuotations.Count == 0)
                     {
-                        return errorManager.ThrowBadRequest<bool>(
+                        return _errorManager.ThrowBadRequest<bool>(
                             "No hay cotizaciones aceptadas para generar la orden de compra",
                             "ERP:NO_ACCEPTED_QUOTATIONS");
                     }
@@ -150,7 +150,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                             purchaseOrder.Code = poCode;
                         }
 
-                        await unitOfWork.PurchaseOrders.RegisterPurchaseOrder(purchaseOrder);
+                        await _unitOfWork.PurchaseOrders.RegisterPurchaseOrder(purchaseOrder);
 
                         foreach (var quote in supplierQuotations)
                         {
@@ -164,7 +164,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                                 UnitPrice = quote.PriceUnit
                             };
 
-                            await unitOfWork.PurchaseOrderItems.RegisterPurchaseOrderItem(orderItem);
+                            await _unitOfWork.PurchaseOrderItems.RegisterPurchaseOrderItem(orderItem);
                         }
                     }
 
@@ -173,15 +173,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 case ManagementReviewStatus.Rejected:
                 {
                     review.Status = ManagementReviewStatus.Rejected;
-                    await unitOfWork.PurchaseRequestsReviewedManagement.UpdateAsync(review);
+                    await _unitOfWork.PurchaseRequestsReviewedManagement.UpdateAsync(review);
                     break;
                 }
                 default:
-                    return errorManager.ThrowBadRequest<bool>(
+                    return _errorManager.ThrowBadRequest<bool>(
                         "El nuevo estado de la revisión no es válido", "ERP:INVALID_STATUS_CHANGE");
             }
 
-            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return true;
         }

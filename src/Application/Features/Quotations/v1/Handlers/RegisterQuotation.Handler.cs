@@ -21,12 +21,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
         IQuotationAttachmentService quotationAttachmentService)
         : BaseValidatorHandler<RegisterQuotationCommand, bool>(unitOfWork, errorManager)
     {
-        private static readonly JsonSerializerOptions JsonOptions = new()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-            PropertyNameCaseInsensitive = true
-        };
-
         public override async Task<bool> Handle(RegisterQuotationCommand request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode!, cancellationToken);
@@ -38,7 +32,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 
             if (access.Role?.RoleType == RoleType.Supervisor)
             {
-                return errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:INVALID_ACCESS");
+                return _errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:INVALID_ACCESS");
             }
 
             logger.LogInformation("Iniciando registro de cotizaciones.");
@@ -46,12 +40,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
             var itemIds = request.QuotationItems.Select(q => q.PurchaseRequestItemId).Distinct().ToList();
             var supplierIds = request.QuotationItems.Select(q => q.SupplierId).Distinct().ToList();
 
-            var items = await unitOfWork.PurchaseRequestItems.Entities
+            var items = await _unitOfWork.PurchaseRequestItems.Entities
                 .Include(i => i.Product)
                 .Where(i => itemIds.Contains(i.Id) && i.DeletedAt == null)
                 .ToDictionaryAsync(i => i.Id, cancellationToken);
 
-            var suppliers = await unitOfWork.Suppliers.Entities
+            var suppliers = await _unitOfWork.Suppliers.Entities
                 .Include(s => s.SupplierPaymentMethods.Where(spm => spm.IsActive && spm.DeletedAt == null))
                 .Include(s => s.SupplierProducts.Where(sp => sp.IsActive && sp.DeletedAt == null))
                     .ThenInclude(sp => sp.TierPrices)
@@ -65,14 +59,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
             {
                 if (!items.TryGetValue(quotation.PurchaseRequestItemId, out var item))
                 {
-                    return errorManager.ThrowNotFound<bool>(
+                    return _errorManager.ThrowNotFound<bool>(
                         "No se encontró el ítem de la solicitud de compra",
                         "ERP:PURCHASE_REQUEST_ITEM_NOT_FOUND");
                 }
 
                 if (!suppliers.TryGetValue(quotation.SupplierId, out var supplier))
                 {
-                    return errorManager.ThrowNotFound<bool>(
+                    return _errorManager.ThrowNotFound<bool>(
                         "No se encontró el proveedor",
                         "ERP:SUPPLIER_NOT_FOUND");
                 }
@@ -82,7 +76,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 
                 if (supplierProduct is null)
                 {
-                    return errorManager.ThrowBadRequest<bool>(
+                    return _errorManager.ThrowBadRequest<bool>(
                         "El proveedor no está vinculado al producto. Agregue la relación desde la solicitud de compra.",
                         "ERP:SUPPLIER_PRODUCT_NOT_LINKED");
                 }
@@ -90,7 +84,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                 var paymentMethod = ResolvePaymentMethod(quotation.PaymentMethodType, supplier.SupplierPaymentMethods);
                 if (paymentMethod.error is not null)
                 {
-                    return errorManager.ThrowBadRequest<bool>(paymentMethod.error, "ERP:PAYMENT_METHOD_REQUIRED");
+                    return _errorManager.ThrowBadRequest<bool>(paymentMethod.error, "ERP:PAYMENT_METHOD_REQUIRED");
                 }
 
                 quotation.PaymentMethodType = paymentMethod.method;
@@ -109,7 +103,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 
                 if (attachmentError is not null)
                 {
-                    return errorManager.ThrowBadRequest<bool>(attachmentError, "ERP:INVALID_QUOTATION_ATTACHMENT");
+                    return _errorManager.ThrowBadRequest<bool>(attachmentError, "ERP:INVALID_QUOTATION_ATTACHMENT");
                 }
 
                 var quotationEntity = QuotationsMapper.ToQuotationsEntity(
@@ -123,13 +117,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                 if (!item.HasQuotation)
                 {
                     item.HasQuotation = true;
-                    await unitOfWork.PurchaseRequestItems.UpdateAsync(item);
+                    await _unitOfWork.PurchaseRequestItems.UpdateAsync(item);
                 }
 
-                await unitOfWork.Quotations.RegisterQuotation(quotationEntity);
+                await _unitOfWork.Quotations.RegisterQuotation(quotationEntity);
             }
 
-            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             logger.LogInformation("Cotización agregada con éxito");
             return true;
