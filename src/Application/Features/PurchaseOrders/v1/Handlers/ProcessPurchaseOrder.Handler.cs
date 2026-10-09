@@ -54,10 +54,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                     .ThenInclude(pr => pr.PurchaseRequestItems)
                         .ThenInclude(item => item.Quotations.Where(q => q.IsActive && q.DeletedAt == null && q.IsAcceptedForPurchase))
                             .ThenInclude(q => q.SupplierProduct)
-                .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(pr => pr.PurchaseRequestItems)
-                        .ThenInclude(item => item.Quotations.Where(q => q.IsActive && q.DeletedAt == null && q.IsAcceptedForPurchase))
-                            .ThenInclude(q => q.PurchaseRequestItem)
                 .Where(rev => rev.Id == request.RequisitionManagementReviewId)
                 .Where(rev => rev.Status == ManagementReviewStatus.Pending)
                 .FirstOrDefaultAsync(cancellationToken);
