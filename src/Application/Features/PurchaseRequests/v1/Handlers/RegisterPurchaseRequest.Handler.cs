@@ -235,7 +235,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
         private async Task<(Guid ProductId, Guid UnitMeasureId, bool? ErrorResponse)> ResolveProductAsync(
             Commands.PurchaseRequestItem item,
             Guid companyId,
-            IReadOnlyDictionary<Guid, Product> productsById,
+            Dictionary<Guid, Product> productsById,
             HashSet<Guid>? validAdditionalSuppliers,
             CancellationToken cancellationToken)
         {

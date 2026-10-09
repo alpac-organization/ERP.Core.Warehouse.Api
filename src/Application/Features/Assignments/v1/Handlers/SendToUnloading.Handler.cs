@@ -5,9 +5,8 @@ using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Commands;
-using Microsoft.EntityFrameworkCore;
 
-namespace ERp.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers;
+namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers;
 
 public class SendToUnloadingHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, ILogger<SendToUnloadingHandler> _logger)
     : BaseValidatorHandler<SendToUnloadingCommand, Unit>(_unitOfWork, _errorManager)
@@ -18,10 +17,8 @@ public class SendToUnloadingHandler(IUnitOfWork _unitOfWork, IErrorManager _erro
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, ct);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        var assignment = await _unitOfWork.AssignmentOperationals.Entities
-            .Where(a => a.Id == request.AssignmentId && a.OperationalOrderId == request.OperationalOrderId)
-            .Where(a => a.IsActive && a.DeletedAt == null)
-            .FirstOrDefaultAsync(ct);
+        var assignment = await AssignmentOperationalFinder.FindActiveByOrderAsync(
+            _unitOfWork, request.AssignmentId, request.OperationalOrderId, ct);
 
         if (assignment is null)
             return _errorManager.ThrowNotFound<Unit>("No se encontró la asignación solicitada.",

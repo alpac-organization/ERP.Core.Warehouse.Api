@@ -25,6 +25,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
         IS3StorageService s3StorageService)
         : BaseValidatorHandler<GetDocumentPurchaseOrderQuery, PurchaseOrderDocumentDto>(unitOfWork, errorManager)
     {
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+            PropertyNameCaseInsensitive = true
+        };
+
         public override async Task<PurchaseOrderDocumentDto> Handle(
             GetDocumentPurchaseOrderQuery request,
             CancellationToken cancellationToken)
@@ -36,7 +42,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 return access.ErrorResponse!;
             }
 
-            var purchaseOrder = await unitOfWork.PurchaseOrders.Entities
+            var purchaseOrder = await _unitOfWork.PurchaseOrders.Entities
                 .Include(purs => purs.SentByUser)
                 .Include(purs => purs.ReviewedByUser)
                 .Include(purs => purs.PurchaseRequest)
@@ -66,7 +72,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             if (purchaseOrder is null)
             {
-                return errorManager.ThrowBadRequest<PurchaseOrderDocumentDto>(
+                return _errorManager.ThrowBadRequest<PurchaseOrderDocumentDto>(
                     "No se encontro la orden de compra",
                     "ERP:NOT_FOUND");
             }
@@ -161,11 +167,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             try
             {
-                return JsonSerializer.Deserialize<PurchaseOrderTaxMetadata>(json, new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-                    PropertyNameCaseInsensitive = true
-                });
+                return JsonSerializer.Deserialize<PurchaseOrderTaxMetadata>(json, JsonOptions);
             }
             catch (JsonException)
             {

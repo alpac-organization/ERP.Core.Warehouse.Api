@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AutoMapper;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Shopping;
@@ -9,6 +10,12 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 
     public class PurchaseRequestProfile : Profile
     {
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+            PropertyNameCaseInsensitive = true
+        };
+
         public PurchaseRequestProfile()
         {
             CreateMap<PurchaseRequest, PurchaseRequestDto>()
@@ -38,8 +45,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             if (string.IsNullOrWhiteSpace(additionalDataJson)) return null;
             try
             {
-                var options = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower, PropertyNameCaseInsensitive = true };
-                var history = System.Text.Json.JsonSerializer.Deserialize<List<ERP.Core.Database.Domain.Entities.Shopping.PurchaseRequestAdditionalData>>(additionalDataJson, options);
+                var history = JsonSerializer.Deserialize<List<PurchaseRequestAdditionalData>>(additionalDataJson, JsonOptions);
                 var rejectionEntry = history?.LastOrDefault(h => h.Description == "Rechazo de solicitud");
                 return rejectionEntry?.NewField;
             }

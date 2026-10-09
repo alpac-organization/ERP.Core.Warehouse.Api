@@ -1,6 +1,7 @@
 using AutoMapper;
 using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Dtos;
 using Commands = ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 
@@ -22,6 +23,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             .ForMember(dest => dest.PositionY, opt => opt.MapFrom(src => src.SectionCoordinates != null ? (decimal?)src.SectionCoordinates.PositionY : null))
             .ForMember(dest => dest.PositionZ, opt => opt.MapFrom(src => src.SectionCoordinates != null ? (decimal?)src.SectionCoordinates.PositionZ : null))
             .ForMember(dest => dest.RotationY, opt => opt.MapFrom(src => src.SectionCoordinates != null ? (decimal?)src.SectionCoordinates.RotationY : null));
+
+         CreateMap<Sections, SectionInformation>();
 
          CreateMap<SectionCapacity, SectionCapacityDto>()
             .ForMember(dest => dest.SectionCapacityId, opt => opt.MapFrom(src => src.Id));

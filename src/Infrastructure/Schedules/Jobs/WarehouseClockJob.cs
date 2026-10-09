@@ -7,18 +7,18 @@ namespace ERP.Core.Warehouse.Api.Infrastructure.Schedules.Jobs
     [DisallowConcurrentExecution]
     public class WarehouseStartProcessToStartClockJob(ISender _mediator): IJob
     {
-        public async Task Execute(IJobExecutionContext context)
+        public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
-            await _mediator.Send(new StartProcessToStartClockCommand());
+            await _mediator.Send(new StartProcessToStartClockCommand(), cancellationToken);
         }
     }
 
     [DisallowConcurrentExecution]
     public class WarehouseStartProcessToStopClockJob(ISender _mediator): IJob
     {
-        public async Task Execute(IJobExecutionContext context)
+        public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
-            await _mediator.Send(new StartProcessToStopClockCommand());
+            await _mediator.Send(new StartProcessToStopClockCommand(), cancellationToken);
         }
     }
 }

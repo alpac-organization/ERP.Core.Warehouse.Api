@@ -28,7 +28,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                 return access.ErrorResponse!;
             }
 
-            var review = await unitOfWork.PurchaseRequestsReviewedManagement.Entities
+            var review = await _unitOfWork.PurchaseRequestsReviewedManagement.Entities
                 .Include(rev => rev.SentByUser)
                     .ThenInclude(pur => pur.Profiles
                         .Where(profile => profile.CompanyId == access.Profile.CompanyId)
@@ -68,6 +68,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                     .ThenInclude(pr => pr.WorkArea)
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pr => pr.CostCenter)
+                .AsSplitQuery()
                 .AsNoTracking()
                 .Where(review => review.Id == request.RequisitionManagementReviewsId)
                 .FirstOrDefaultAsync(cancellationToken);
