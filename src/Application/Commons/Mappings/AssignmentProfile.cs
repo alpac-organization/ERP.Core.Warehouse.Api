@@ -15,7 +15,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             CreateMap<AssignmentOperational, AssignmentOperationalDto>()
                 .ForMember(dest => dest.AssignmentId, opt => opt.MapFrom(src => src.Id))
-                .ForMember(dest => dest.IsAlerted, opt => opt.MapFrom(src => src.OperationalOrder.IsAlerted));
+                .ForMember(dest => dest.IsAlerted, opt => opt.MapFrom(src => src.OperationalOrder.IsAlerted))
+                .ForMember(dest => dest.PoCode, opt => opt.MapFrom(src => src.OperationalOrder.PoCode));
 
             CreateMap<AssignmentOperational, AssignmentOperationalDetailsDto>()
                 .ForPath(dest => dest.WarehouseInformation, opt => opt.MapFrom(src => src.Warehouse))

@@ -142,6 +142,29 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
             return NoContent();
         }
 
+        [HttpPost("companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/assignments/{assignment_id}/finish-task")]
+        [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<NoContentResult> FinishTaskAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid operational_order_id, [FromRoute] Guid assignment_id)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            var payload = new FinishTaskCommand
+            {
+                CompanyId = company_id,
+                ModuleCode = module_code,
+                OperationalOrderId = operational_order_id,
+                AssignmentId = assignment_id,
+                UserId = Guid.Parse(userIdStr ?? "")
+            };
+
+            await _mediator.Send(payload);
+
+            return NoContent();
+        }
+
         [HttpGet("companies/{company_id}/modules/{module_code}/assignments/code")]
         [ProducesResponseType(typeof(MerchandiseLocationDetailsDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
