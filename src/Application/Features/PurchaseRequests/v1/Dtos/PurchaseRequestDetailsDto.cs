@@ -5,7 +5,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
     public class PurchaseRequestDetailsDto : PurchaseRequestDto
     {
         public string? Observations { get; set; }
+
+        public int? ReasonRejectionId { get; set; }
+
         public string? ReasonRejection { get; set; }
+
+        public string? ReasonRejectionDescription { get; set; }
+
+        public string? RejectionComments { get; set; }
+
         public string? AdditionalData { get; set; }
 
         public bool IsManagementApproved { get; set; }

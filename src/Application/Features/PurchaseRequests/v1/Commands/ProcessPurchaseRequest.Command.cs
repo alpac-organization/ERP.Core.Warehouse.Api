@@ -10,7 +10,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Comman
     {
         [JsonIgnore]
         public Guid PurchaseRequestId { get; set; }
-        public string? ReasonRejection { get; set; }
+
+        public int? ReasonRejectionId { get; set; }
+
+        public string? RejectionComments { get; set; }
+
         public PurchaseRequestStatus NewStatus { get; set; }
     }
 }
