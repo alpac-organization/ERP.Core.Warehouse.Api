@@ -12,5 +12,17 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
                 .Where(a => a.Id == assignmentId && a.OperationalOrderId == operationalOrderId)
                 .Where(a => a.IsActive && a.DeletedAt == null)
                 .FirstOrDefaultAsync(ct);
+
+        public static Task<AssignmentOperational?> FindActiveWithStockPlacementsAsync(
+            IUnitOfWork unitOfWork, Guid assignmentId, Guid operationalOrderId, CancellationToken ct)
+            => unitOfWork.AssignmentOperationals.Entities
+                .Where(a => a.Id == assignmentId && a.OperationalOrderId == operationalOrderId)
+                .Where(a => a.IsActive && a.DeletedAt == null)
+                .Include(a => a.AssignmentStockPlacements)
+                    .ThenInclude(p => p.LotPosition)
+                .Include(a => a.AssignmentStockPlacements)
+                    .ThenInclude(p => p.RackPosition)
+                .Include(a => a.OperationalOrder)
+                .FirstOrDefaultAsync(ct);
     }
 }
