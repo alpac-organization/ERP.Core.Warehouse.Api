@@ -181,5 +181,22 @@ namespace ERP.Core.Warehouse.Api.Controllers.Assignments
                 UserId = Guid.Parse(userIdStr ?? "")
             });
         }
+
+        [HttpGet("companies/{company_id}/modules/{module_code}/positions/{position_id}/position-detail")]
+        [ProducesResponseType(typeof(PositionDetailDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<PositionDetailDto> GetPositionDetailAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid position_id)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            return await _mediator.Send(new GetPositionDetailQuery()
+            {
+                PositionId = position_id,
+                CompanyId = company_id,
+                ModuleCode = module_code,
+                UserId = Guid.Parse(userIdStr ?? "")
+            });
+        }
     }
 }

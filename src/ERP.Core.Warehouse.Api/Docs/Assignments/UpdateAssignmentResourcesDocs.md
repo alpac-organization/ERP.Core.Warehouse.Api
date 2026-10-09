@@ -16,7 +16,7 @@ Es un **PATCH parcial**: solo se procesa lo que llega en el body. Debe venir **a
 | Campo | Valor |
 |-------|-------|
 | **Método**      | `PATCH` |
-| **Endpoint**    | `/api/v1/companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/assignments/{assignment_id}/assignment-positions` |
+| **Endpoint**    | `/api/v1/companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/assignments/{assignment_id}/assignment-resources` |
 | **Descripción** | Asigna posiciones y/o actualiza el tipo de mercadería y la información de polines de la asignación. |
 | **Tags**        | `Asignaciones de posiciones` |
 
