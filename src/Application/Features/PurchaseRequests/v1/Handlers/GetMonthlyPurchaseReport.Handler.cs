@@ -4,12 +4,16 @@ using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
+using ERP.Core.Warehouse.Api.Application.Commons.Services;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
-    public class GetMonthlyPurchaseReportHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager) 
+    public class GetMonthlyPurchaseReportHandler(
+        IUnitOfWork _unitOfWork,
+        IErrorManager _errorManager,
+        IPurchaseRequestVisibilityService _visibilityService)
         : BaseValidatorHandler<GetMonthlyPurchaseReportQuery, List<MonthlyPurchaseReportItemDto>>(_unitOfWork, _errorManager)
     {
         public override async Task<List<MonthlyPurchaseReportItemDto>> Handle(GetMonthlyPurchaseReportQuery request, CancellationToken cancellationToken)
@@ -28,6 +32,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 .Replace(".", string.Empty)
                 .ToLowerInvariant();
 
+            var visibleRequests = _visibilityService.Apply(
+                _unitOfWork.PurchaseRequests.Entities
+                    .Where(pr => pr.IsActive && pr.DeletedAt == null)
+                    .Where(pr => pr.Branch.CompanyId == request.CompanyId),
+                access.Role?.RoleType,
+                request.UserId,
+                access.Profile?.AreaId,
+                access.Profile?.CostCenterId,
+                access.Profile?.BranchId);
+
+            var visibleRequestIds = visibleRequests.Select(pr => pr.Id);
+
             var query = _unitOfWork.PurchaseRequestItems.Entities
                 .Include(pri => pri.PurchaseRequest)
                     .ThenInclude(pr => pr.Branch)
@@ -40,6 +56,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     q.IsAcceptedForPurchase))
                     .ThenInclude(q => q.Supplier)
                 .Where(pri => pri.DeletedAt == null)
+                .Where(pri => visibleRequestIds.Contains(pri.PurchaseRequestId))
                 .Where(pri => pri.PurchaseRequest.IsActive && pri.PurchaseRequest.DeletedAt == null)
                 .Where(pri => pri.PurchaseRequest.Branch.CompanyId == request.CompanyId)
                 .Where(pri => pri.PurchaseRequest.RequestStatus == PurchaseRequestStatus.Approved)
@@ -52,21 +69,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     q.IsAcceptedForPurchase))
                 .AsNoTracking()
                 .AsSplitQuery();
-
-            if (access.Role?.RoleType != RoleType.Administrator && access.Role?.RoleType != RoleType.Supervisor)
-            {
-                if (access.Role?.RoleType == RoleType.Operator)
-                {
-                    query = query.Where(pri => pri.PurchaseRequest.RegisteredByUserId == request.UserId);
-                }
-
-                if (access.Role?.RoleType == RoleType.Manager)
-                {
-                    query = query
-                        .Where(pri => pri.PurchaseRequest.BranchId == access.Profile.BranchId)
-                        .Where(pri => pri.PurchaseRequest.CostCenterId == access.Profile.CostCenterId);
-                }
-            }
 
             var purchaseRequestItems = await query.ToListAsync(cancellationToken);
 

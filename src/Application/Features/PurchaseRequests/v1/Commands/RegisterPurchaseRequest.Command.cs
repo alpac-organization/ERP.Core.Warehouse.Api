@@ -6,7 +6,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Comman
 {
     public class RegisterPurchaseRequestCommand : BaseRequest, IRequest<bool>
     {
-        public List<RegisterPurchaseRequest> PurchaseRequests { get; set;} =  [];
+        public List<RegisterPurchaseRequest> PurchaseRequests { get; set; } = [];
     }
 
     public class RegisterPurchaseRequest
@@ -30,6 +30,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Comman
 
         public Guid? ProductId { get; set; }
         public Guid? UnitMeasureId { get; set; }
+
+        public List<Guid>? AdditionalSupplierIds { get; set; }
 
         public string? Description { get; set; }
         public string? Justification { get; set; }

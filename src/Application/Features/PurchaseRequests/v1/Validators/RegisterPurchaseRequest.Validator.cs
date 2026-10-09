@@ -8,7 +8,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
     {
         public RegisterPurchaseRequestCommandValidator()
         {
-
             RuleFor(x => x.UserId)
                 .NotEmpty().WithMessage("El identificador de usuario es obligatorio.")
                 .NotEqual(Guid.Empty)
@@ -89,10 +88,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
                 .WithMessage("El id del producto no es válido.");
 
             RuleFor(x => x.UnitMeasureId)
-                .NotEmpty().WithMessage("La unidad de medida es obligatoria.")
                 .NotEqual(Guid.Empty)
-                .WithMessage("La unidad de medida no es válida.")
-                .When(x => x.NewProduct == null);
+                .When(x => x.UnitMeasureId.HasValue)
+                .WithMessage("La unidad de medida no es válida.");
+
+            RuleForEach(x => x.AdditionalSupplierIds)
+                .NotEqual(Guid.Empty)
+                .When(x => x.AdditionalSupplierIds is { Count: > 0 })
+                .WithMessage("Uno o más proveedores adicionales no son válidos.");
 
             RuleFor(x => x.Quantity)
                 .GreaterThan(0)

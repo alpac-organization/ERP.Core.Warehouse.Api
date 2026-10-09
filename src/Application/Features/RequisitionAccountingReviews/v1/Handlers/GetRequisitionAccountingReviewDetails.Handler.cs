@@ -5,6 +5,8 @@ using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
+using ERP.Core.Warehouse.Api.Application.Commons.Services;
+using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Queries;
 
@@ -71,6 +73,26 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.PurchaseRequestItems)
                         .ThenInclude(item => item.Product)
+                            .ThenInclude(product => product.SupplierProducts.Where(sp => sp.IsActive && sp.DeletedAt == null))
+                                .ThenInclude(sp => sp.Supplier)
+
+                .Include(rev => rev.PurchaseRequest)
+                    .ThenInclude(pur => pur.PurchaseRequestItems)
+                        .ThenInclude(item => item.Product)
+                            .ThenInclude(product => product.SupplierProducts.Where(sp => sp.IsActive && sp.DeletedAt == null))
+                                .ThenInclude(sp => sp.TierPrices)
+
+                .Include(rev => rev.PurchaseRequest)
+                    .ThenInclude(pur => pur.PurchaseRequestItems)
+                        .ThenInclude(item => item.Quotations.Where(q => q.IsActive && q.DeletedAt == null))
+                            .ThenInclude(q => q.Supplier)
+                                .ThenInclude(s => s.SupplierDetails)
+
+                .Include(rev => rev.PurchaseRequest)
+                    .ThenInclude(pur => pur.PurchaseRequestItems)
+                        .ThenInclude(item => item.Quotations.Where(q => q.IsActive && q.DeletedAt == null))
+                            .ThenInclude(q => q.SupplierProduct)
+                                .ThenInclude(sp => sp!.TierPrices)
 
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.CostCenter)
@@ -84,8 +106,54 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 return _errorManager.ThrowBadRequest<PurchaseRequestsReviewedAccountingDetailsDto>("No se encontro la revision contable", "ERP:NOT_FOUND");
             }
 
-            return _mapper.Map<PurchaseRequestsReviewedAccountingDetailsDto>(review);
+            var mapped = _mapper.Map<PurchaseRequestsReviewedAccountingDetailsDto>(review);
+            ApplyRecommendations(mapped.PurchaseRequest?.PurchaseRequestItems);
+            return mapped;
+        }
+
+        private static void ApplyRecommendations(List<PurchaseRequestItemDto>? items)
+        {
+            if (items is null)
+            {
+                return;
+            }
+
+            foreach (var item in items)
+            {
+                var activeQuotes = item.Quotations
+                    .Where(q => q.IsActive)
+                    .ToList();
+
+                Guid? bestWarranty = activeQuotes
+                    .Where(q => q.HasGuarantee)
+                    .Select(q => new
+                    {
+                        q.QuotationId,
+                        Days = TimePeriodNormalizer.ToDays(q.WarrantyPeriod, q.WarrantyPeriodTimeType)
+                    })
+                    .Where(x => x.Days.HasValue)
+                    .OrderByDescending(x => x.Days)
+                    .Select(x => (Guid?)x.QuotationId)
+                    .FirstOrDefault();
+
+                Guid? bestDelivery = activeQuotes
+                    .Where(q => q.HasDelivery)
+                    .Select(q => new
+                    {
+                        q.QuotationId,
+                        Days = TimePeriodNormalizer.ToDays(q.DeliveryTime, q.DeliveryTimeType)
+                    })
+                    .Where(x => x.Days.HasValue)
+                    .OrderBy(x => x.Days)
+                    .Select(x => (Guid?)x.QuotationId)
+                    .FirstOrDefault();
+
+                item.Recommendations = new QuotationRecommendationDto
+                {
+                    BestWarrantyQuotationId = bestWarranty,
+                    BestDeliveryQuotationId = bestDelivery
+                };
+            }
         }
     }
-    
 }

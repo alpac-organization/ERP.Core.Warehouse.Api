@@ -19,14 +19,44 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public UnitMeasureInformation UnitMeasureInformation { get; set; } = new();
 
         public List<QuotationInformationDto> Quotations { get; set; } = [];
+        public QuotationRecommendationDto Recommendations { get; set; } = new();
     }
 
     public class ProductDetails
     {
-        // public string? ProductCode { get; set; }
         public Guid ProductId { get; set; }
         public string? ProductName { get; set; }
+        public string? Code { get; set; }
+        public bool IsTaxExempt { get; set; }
         public CategoryInformation CategoryInformation { get; set; } = new();
+        public List<SupplierProductLinkDto> SupplierProducts { get; set; } = [];
+    }
+
+    public class SupplierProductLinkDto
+    {
+        public Guid SupplierProductId { get; set; }
+        public Guid SupplierId { get; set; }
+        public decimal UnitPrice { get; set; }
+        public Currency Currency { get; set; }
+        public string? ExclusiveStatusComments { get; set; }
+        public string? SuppliersLegalName { get; set; }
+        public string? CommercialName { get; set; }
+        public List<SupplierProductTierPriceDto> TierPrices { get; set; } = [];
+    }
+
+    public class SupplierProductTierPriceDto
+    {
+        public Guid TierPriceId { get; set; }
+        public int MinQuantity { get; set; }
+        public decimal PreferentialPrice { get; set; }
+        public DateOnly ValidFrom { get; set; }
+        public DateOnly? ValidTo { get; set; }
+    }
+
+    public class QuotationRecommendationDto
+    {
+        public Guid? BestWarrantyQuotationId { get; set; }
+        public Guid? BestDeliveryQuotationId { get; set; }
     }
 
     public class CategoryInformation
@@ -52,7 +82,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public bool InventoryAvailable { get; set; }
         public bool IsAcceptedForPurchase { get; set; }
         
-        public bool IsBestOption { get; set; } // Nueva bandera para el frontend
+        public bool IsBestOption { get; set; } 
         
         public decimal Iva { get; set; }
         public decimal Price { get; set; }
@@ -72,10 +102,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public string? SupplierRejectionJustification { get; set; }
 
         public ProductQuality ProductQuality { get; set; }
-        public PaymentCondition PaymentCondition { get; set; }
+        public PaymentMethodType PaymentMethodType { get; set; }
 
         public decimal? AvailabilityTime { get; set; }
         public TimeType? AvailabilityTimeType { get; set; }
+
+        public string? AdditionalData { get; set; }
+        public Guid? SupplierProductId { get; set; }
 
         public Guid SupplierId { get; set; }
         public SupplierInformation SupplierInformation { get; set; } = new();

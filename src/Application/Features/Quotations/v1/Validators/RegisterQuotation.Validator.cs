@@ -40,29 +40,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Validators
                 .WithMessage("El id del proveedor no es válido.");
 
             RuleFor(x => x.PaymentMethodType)
-                .NotNull()
-                .WithMessage("El método de pago es requerido!")
                 .IsInEnum()
+                .When(x => x.PaymentMethodType.HasValue)
                 .WithMessage("El método de pago no es válido.");
 
             RuleFor(x => x.PurchaseRequestItemId)
-                .NotEmpty().WithMessage("El id de la solicitud de compra no puede estar vacío.")
+                .NotEmpty().WithMessage("El id del ítem de la solicitud de compra no puede estar vacío.")
                 .NotEqual(Guid.Empty)
-                .WithMessage("El id de la solicitud de compra no es válido.");
-
-            RuleFor(x => x.Iva)
-                .GreaterThanOrEqualTo(0)
-                .When(x => x.Iva.HasValue)
-                .WithMessage("El IVA no puede ser negativo.");
-
-            RuleFor(x => x.Price)
-                .GreaterThan(0)
-                .WithMessage("El precio debe ser mayor a cero.");
-
-            RuleFor(x => x.PriceUnit)
-                .GreaterThan(0)
-                .When(x => x.PriceUnit.HasValue)
-                .WithMessage("El precio unitario debe ser mayor a cero.");
+                .WithMessage("El id del ítem de la solicitud de compra no es válido.");
 
             RuleFor(x => x.BrandProduct)
                 .MaximumLength(200)
@@ -77,11 +62,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Validators
                 .GreaterThan(0)
                 .When(x => x.WarrantyPeriod.HasValue)
                 .WithMessage("El período de garantía debe ser mayor a cero.");
-
-            RuleFor(x => x.WarrantyPeriodTimeType)
-                .IsInEnum()
-                .When(x => x.WarrantyPeriodTimeType.HasValue && x.HasGuarantee)
-                .WithMessage("El tipo de período de garantía no es válido.");
 
             RuleFor(x => x.DeliveryTime)
                 .NotNull()
@@ -108,9 +88,24 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Validators
                 .When(x => x.HasGuarantee)
                 .WithMessage("Debe indicar el tipo de período de garantía si la cotización incluye garantía.");
 
+            RuleFor(x => x.WarrantyPeriodTimeType)
+                .IsInEnum()
+                .When(x => x.WarrantyPeriodTimeType.HasValue && x.HasGuarantee)
+                .WithMessage("El tipo de período de garantía no es válido.");
+
             RuleFor(x => x.SupplierSelectionJustification)
                 .NotEmpty()
                 .WithMessage("La justificación de selección del proveedor es obligatoria.");
+
+            RuleFor(x => x.Attachments!.ImagesBase64!)
+                .Must(images => images.Count <= 2)
+                .When(x => x.Attachments?.ImagesBase64 is { Count: > 0 })
+                .WithMessage("Solo se permiten hasta 2 imágenes por cotización.");
+
+            RuleFor(x => x.Attachments!.PdfBase64)
+                .NotEmpty()
+                .When(x => x.Attachments is not null && !string.IsNullOrWhiteSpace(x.Attachments.PdfFileName))
+                .WithMessage("Debe enviar el contenido Base64 del PDF cuando indica un nombre de archivo.");
         }
     }
 }

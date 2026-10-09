@@ -1,24 +1,25 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
-using ERP.Core.Application.Commons.Interfaces;
-using ERP.Core.Application.Commons.Interfaces.AWS;
-using System.Text.Json;
 
+using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using ERP.Core.Warehouse.Api.Application.Commons.Services;
 using ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 {
     public class RegisterQuotationHandler(
-        IUnitOfWork _unitOfWork, 
-        IErrorManager _errorManager, 
-        ILogger<RegisterQuotationHandler> _logger,
-        IS3StorageService _s3StorageService) :  BaseValidatorHandler<RegisterQuotationCommand, bool>(_unitOfWork, _errorManager)
+        IUnitOfWork unitOfWork,
+        IErrorManager errorManager,
+        ILogger<RegisterQuotationHandler> logger,
+        IPurchaseTaxService purchaseTaxService,
+        IQuotationAttachmentService quotationAttachmentService)
+        : BaseValidatorHandler<RegisterQuotationCommand, bool>(unitOfWork, errorManager)
     {
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
@@ -37,142 +38,134 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 
             if (access.Role?.RoleType == RoleType.Supervisor)
             {
-                return _errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:INVALID_ACCESS");
+                return errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:INVALID_ACCESS");
             }
 
-            _logger.LogInformation("🚩Iniciando registro de cotizaciones.");
+            logger.LogInformation("Iniciando registro de cotizaciones.");
 
-            var validityDeductions = await _unitOfWork.ValidityDeductions.Entities
-                .Where(v => v.DeletedAt == null)
-                .ToListAsync(cancellationToken);
+            var itemIds = request.QuotationItems.Select(q => q.PurchaseRequestItemId).Distinct().ToList();
+            var supplierIds = request.QuotationItems.Select(q => q.SupplierId).Distinct().ToList();
 
-            // var ivaDeduction = validityDeductions.FirstOrDefault(v => v.Name.Contains("IVA", StringComparison.OrdinalIgnoreCase));
-            // var irDeduction = validityDeductions.FirstOrDefault(v => v.Name.Contains("IR", StringComparison.OrdinalIgnoreCase));
-            // var imiDeduction = validityDeductions.FirstOrDefault(v => v.Name.Contains("IMI", StringComparison.OrdinalIgnoreCase));
-            var ivaDeduction = validityDeductions.FirstOrDefault(); // TODO: Ajustar según la entidad real
-            var irDeduction = validityDeductions.FirstOrDefault();
-            var imiDeduction = validityDeductions.FirstOrDefault();
+            var items = await unitOfWork.PurchaseRequestItems.Entities
+                .Include(i => i.Product)
+                .Where(i => itemIds.Contains(i.Id) && i.DeletedAt == null)
+                .ToDictionaryAsync(i => i.Id, cancellationToken);
+
+            var suppliers = await unitOfWork.Suppliers.Entities
+                .Include(s => s.SupplierPaymentMethods.Where(spm => spm.IsActive && spm.DeletedAt == null))
+                .Include(s => s.SupplierProducts.Where(sp => sp.IsActive && sp.DeletedAt == null))
+                    .ThenInclude(sp => sp.TierPrices)
+                .Where(s => supplierIds.Contains(s.Id) && s.DeletedAt == null)
+                .ToDictionaryAsync(s => s.Id, cancellationToken);
+
+            var rates = await purchaseTaxService.GetActiveRatesAsync(cancellationToken);
+            var quoteDate = DateOnly.FromDateTime(DateTime.UtcNow);
 
             foreach (var quotation in request.QuotationItems)
             {
-                var item = await _unitOfWork.PurchaseRequestItems.Entities
-                    .Include(pur => pur.Product)
-                    .Where(pur => pur.Id == quotation.PurchaseRequestItemId)
-                    .FirstOrDefaultAsync(cancellationToken);
-
-                if (item is null)
+                if (!items.TryGetValue(quotation.PurchaseRequestItemId, out var item))
                 {
-                    _logger.LogInformation("❌No se encontro la información del item requisado");
-                    continue;
+                    return errorManager.ThrowNotFound<bool>(
+                        "No se encontró el ítem de la solicitud de compra",
+                        "ERP:PURCHASE_REQUEST_ITEM_NOT_FOUND");
                 }
 
-                var supplier = await _unitOfWork.Suppliers.Entities
-                    .Include(s => s.SupplierProducts.Where(sp => sp.ProductId == item.ProductId && sp.IsActive && sp.DeletedAt == null))
-                    .Include(s => s.SupplierPaymentMethods.Where(spm => spm.IsActive && spm.DeletedAt == null))
-                    .Where(s => s.Id == quotation.SupplierId)
-                    .FirstOrDefaultAsync(cancellationToken);
-
-                if (supplier is null)
+                if (!suppliers.TryGetValue(quotation.SupplierId, out var supplier))
                 {
-                    _logger.LogInformation("❌No se encontro la información del proveedor");
-                    continue;
+                    return errorManager.ThrowNotFound<bool>(
+                        "No se encontró el proveedor",
+                        "ERP:SUPPLIER_NOT_FOUND");
                 }
 
-                var supplierProduct = supplier.SupplierProducts.FirstOrDefault();
+                var supplierProduct = supplier.SupplierProducts
+                    .FirstOrDefault(sp => sp.ProductId == item.ProductId);
+
                 if (supplierProduct is null)
                 {
-                    supplierProduct = new SupplierProduct
-                    {
-                        Id = Guid.NewGuid(),
-                        IsActive = true,
-                        ProductId = item.ProductId,
-                        SupplierId = supplier.Id,
-                        UnitPrice = quotation.Price,
-                        LastPriceUpdate = DateTime.UtcNow
-                    };
-                    supplier.SupplierProducts.Add(supplierProduct);
+                    return errorManager.ThrowBadRequest<bool>(
+                        "El proveedor no está vinculado al producto. Agregue la relación desde la solicitud de compra.",
+                        "ERP:SUPPLIER_PRODUCT_NOT_LINKED");
                 }
 
-                var priceUnit = supplierProduct.UnitPrice;
-                var totalToPay = item.Quantity * priceUnit;
-
-                var quotationEntity = QuotationsMapper.ToQuotationsEntity(quotation);
-                // quotationEntity.Price = priceUnit;
-                quotationEntity.PriceUnit = priceUnit;
-                quotationEntity.PriceTotal = totalToPay;
-
-                // Calculo de IVA
-                if (item.Product != null && !item.Product.IsTaxExempt && ivaDeduction != null)
+                var paymentMethod = ResolvePaymentMethod(quotation.PaymentMethodType, supplier.SupplierPaymentMethods);
+                if (paymentMethod.error is not null)
                 {
-                    // quotationEntity.Iva = totalToPay * (ivaDeduction.Percentage / 100m);
-                    quotationEntity.Iva = totalToPay * (15m / 100m); // TODO: Ajustar a la propiedad real
-                }
-                else
-                {
-                    quotationEntity.Iva = 0;
+                    return errorManager.ThrowBadRequest<bool>(paymentMethod.error, "ERP:PAYMENT_METHOD_REQUIRED");
                 }
 
-                // Calculo de IR e IMI (si aplica)
-                // Se asume que el umbral es 1000 córdobas (o su equivalente).
-                // En un sistema real, se debería verificar la moneda, pero para este caso se aplica directo.
-                if (totalToPay >= 1000m)
+                quotation.PaymentMethodType = paymentMethod.method;
+
+                var priceUnit = purchaseTaxService.ResolveUnitPrice(supplierProduct, item.Quantity, quoteDate);
+                var subtotal = Math.Round(item.Quantity * priceUnit, 2, MidpointRounding.AwayFromZero);
+                var ivaAmount = purchaseTaxService.CalculateIva(
+                    subtotal,
+                    item.Product?.IsTaxExempt ?? false,
+                    rates);
+
+                var (additionalData, attachmentError) = await quotationAttachmentService.BuildAdditionalDataAsync(
+                    quotation.Attachments,
+                    existingJson: null,
+                    cancellationToken);
+
+                if (attachmentError is not null)
                 {
-                    // Asumimos que el IR aplica según el método de pago o tipo de proveedor.
-                    // Aquí aplicamos el porcentaje de la tabla ValidityDeductions.
-                    if (irDeduction != null)
-                    {
-                        // Se podría guardar en algún campo de Quotation si existiera,
-                        // pero como Quotation no tiene campos para IR e IMI, no lo guardamos aquí.
-                        // Solo lo calculamos para demostración o lo dejamos para el reporte.
-                    }
+                    return errorManager.ThrowBadRequest<bool>(attachmentError, "ERP:INVALID_QUOTATION_ATTACHMENT");
                 }
 
-                // Método de pago
-                if (supplier.SupplierPaymentMethods.Count == 1)
-                {
-                    quotationEntity.PaymentMethodType = supplier.SupplierPaymentMethods.First().PaymentMethodType;
-                }
-                else
-                {
-                    quotationEntity.PaymentMethodType = quotation.PaymentMethodType;
-                }
-
-                // Adjuntos
-                if (!string.IsNullOrWhiteSpace(quotation.PdfUrl) || (quotation.ImagesUrls != null && quotation.ImagesUrls.Count > 0))
-                {
-                    var additionalData = new ERP.Core.Database.Domain.Entities.Shopping.QuotationAdditionalData();
-                    
-                    if (!string.IsNullOrWhiteSpace(quotation.PdfUrl))
-                    {
-                        var pdfUrl = await _s3StorageService.UploadImageAsync("Compras", "Cotizaciones", quotation.PdfUrl, cancellationToken);
-                        // additionalData.PdfUrl = pdfUrl; // Se omitirá si la propiedad no existe en la base
-                    }
-
-                    // if (quotation.ImagesUrls != null && quotation.ImagesUrls.Count > 0)
-                    // {
-                    //     additionalData.ImagesUrls = new List<string>();
-                    //     foreach (var img in quotation.ImagesUrls)
-                    //     {
-                    //         additionalData.ImagesUrls.Add(await _s3StorageService.UploadImageAsync("Compras", "Cotizaciones", img, cancellationToken));
-                    //     }
-                    // }
-
-                    quotationEntity.AdditionalData = JsonSerializer.Serialize(additionalData, JsonOptions);
-                }
+                var quotationEntity = QuotationsMapper.ToQuotationsEntity(
+                    quotation,
+                    priceUnit,
+                    subtotal,
+                    ivaAmount,
+                    supplierProduct.Id,
+                    additionalData);
 
                 if (!item.HasQuotation)
                 {
                     item.HasQuotation = true;
-                    await _unitOfWork.PurchaseRequestItems.UpdateAsync(item);
+                    await unitOfWork.PurchaseRequestItems.UpdateAsync(item);
                 }
 
-                await _unitOfWork.Quotations.RegisterQuotation(quotationEntity);
+                await unitOfWork.Quotations.RegisterQuotation(quotationEntity);
             }
- 
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Cotización agregada con exito✅");
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            logger.LogInformation("Cotización agregada con éxito");
             return true;
+        }
+
+        private static (PaymentMethodType method, string? error) ResolvePaymentMethod(
+            PaymentMethodType? requested,
+            IEnumerable<SupplierPaymentMethod> methods)
+        {
+            var active = methods
+                .Where(m => m.IsActive && m.DeletedAt == null)
+                .Select(m => m.PaymentMethodType)
+                .Distinct()
+                .ToList();
+
+            if (active.Count == 0)
+            {
+                return (default, "El proveedor no tiene métodos de pago activos.");
+            }
+
+            if (requested.HasValue)
+            {
+                if (!active.Contains(requested.Value))
+                {
+                    return (default, "El método de pago seleccionado no pertenece al proveedor.");
+                }
+
+                return (requested.Value, null);
+            }
+
+            if (active.Count == 1)
+            {
+                return (active[0], null);
+            }
+
+            return (default, "Debe seleccionar un método de pago porque el proveedor tiene varios.");
         }
     }
 }

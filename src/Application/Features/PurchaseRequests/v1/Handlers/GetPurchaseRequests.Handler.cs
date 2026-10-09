@@ -10,12 +10,18 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+using ERP.Core.Warehouse.Api.Application.Commons.Services;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
-    public class GetPurchaseRequestsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) :  BaseValidatorHandler<GetPurchaseRequestsQuery, PagedResponse<PurchaseRequestDto>>(_unitOfWork, _errorManager)
+    public class GetPurchaseRequestsHandler(
+        IUnitOfWork _unitOfWork,
+        IErrorManager _errorManager,
+        IMapper _mapper,
+        IPurchaseRequestVisibilityService _visibilityService)
+        : BaseValidatorHandler<GetPurchaseRequestsQuery, PagedResponse<PurchaseRequestDto>>(_unitOfWork, _errorManager)
     {
         public override async Task<PagedResponse<PurchaseRequestDto>> Handle(GetPurchaseRequestsQuery request, CancellationToken cancellationToken)
         {
@@ -26,7 +32,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return access.ErrorResponse!;
             }
 
-            //Inicializar IQuerable<T>
             var purchaseRequestsQuery = _unitOfWork.PurchaseRequests.Entities
                 .Where(purs => purs.IsActive && purs.DeletedAt == null) 
                 .Include(purs => purs.Branch)
@@ -34,23 +39,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 .Where(purs => purs.Branch.CompanyId == request.CompanyId)
                 .AsNoTracking();
 
-            if (access.Role?.RoleType != RoleType.Administrator && access.Role?.RoleType != RoleType.Supervisor)
-            {
-                if (access.Role?.RoleType == RoleType.Operator)
-                {  
-                    //Obtener unicamente las solicitudes del usuario que genero sus solocitudes
-                    purchaseRequestsQuery = purchaseRequestsQuery
-                        .Where(pur => pur.RegisteredByUserId == request.UserId);
-                }
-
-                if (access.Role?.RoleType == RoleType.Manager)
-                {
-                    // Obtener solicitudes de la sucursal y centro de costo del manager
-                    purchaseRequestsQuery = purchaseRequestsQuery
-                        .Where(pur => pur.BranchId == access.Profile.BranchId)
-                        .Where(pur => pur.CostCenterId == access.Profile.CostCenterId);
-                }
-            }
+            purchaseRequestsQuery = _visibilityService.Apply(
+                purchaseRequestsQuery,
+                access.Role?.RoleType,
+                request.UserId,
+                access.Profile?.AreaId,
+                access.Profile?.CostCenterId,
+                access.Profile?.BranchId);
 
             purchaseRequestsQuery = ApplyRequestFilters(purchaseRequestsQuery, request, access);
 

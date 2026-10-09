@@ -52,7 +52,12 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 
     public static class PurchaseRequestMapper
     {
-        public static PurchaseRequest ToPurchaseRequestEntity(this Commands.RegisterPurchaseRequest command, string codeGenerated, Guid areaId, Guid userId)
+        public static PurchaseRequest ToPurchaseRequestEntity(
+            this Commands.RegisterPurchaseRequest command,
+            string codeGenerated,
+            Guid areaId,
+            Guid userId,
+            DateOnly requestDate)
         {
             return new()
             {
@@ -72,7 +77,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 Id                  = Guid.NewGuid(),
                 
                 IsActive            = true,
-                RequestDate         = DateOnly.FromDateTime(DateTime.UtcNow),
+                RequestDate         = requestDate,
                 RevisionDate        = null
             };
         }
@@ -83,7 +88,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             {
                 HasQuotation      = false,
                 Id                = Guid.NewGuid(),
-                PurchaseRequestId = purchaseRequestId,  
+                PurchaseRequestId = purchaseRequestId,
                 Quantity          = command.Quantity,
                 QuantityUnit      = command.QuantityUnit,
                 ProductId         = productId,

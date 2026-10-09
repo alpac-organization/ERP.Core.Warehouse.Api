@@ -14,14 +14,22 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands
         public Guid? SupplierId { get; set; }
         public bool? HasDelivery { get; set; }
         public bool? HasGuarantee { get; set; }
+        public bool? InventoryAvailable { get; set; }
 
-        public decimal? Iva { get; set; }
-        public decimal? Price { get; set; }
-        public decimal? PriceUnit { get; set; }
         public string? BrandProduct { get; set; }
+        public ProductQuality? ProductQuality { get; set; }
+        public PaymentMethodType? PaymentMethodType { get; set; }
+
         public decimal? DeliveryTime { get; set; }
         public decimal? WarrantyPeriod { get; set; }
         public TimeType? DeliveryTimeType { get; set; }
         public TimeType? WarrantyPeriodTimeType { get; set; }
+
+        public decimal? AvailabilityTime { get; set; }
+        public TimeType? AvailabilityTimeType { get; set; }
+
+        public string? SupplierSelectionJustification { get; set; }
+
+        public QuotationAttachmentsInput? Attachments { get; set; }
     }
 }
