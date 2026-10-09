@@ -52,7 +52,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
                 if (!hasOversized)
                 {
                     var declaredStandardPallets = request.Pallets.Sum(p => p.CountPallets);
-                    var assignedPositions = request.GetAllPositionIds().Count();
+                    var assignedPositions = request.GetAllPositionIds().Count;
 
                     if (declaredStandardPallets != assignedPositions)
                     {

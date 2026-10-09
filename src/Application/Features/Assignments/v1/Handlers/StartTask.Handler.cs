@@ -1,5 +1,4 @@
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
@@ -16,10 +15,8 @@ public class StartTaskHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManag
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, ct);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        var assignment = await _unitOfWork.AssignmentOperationals.Entities
-            .Where(a => a.Id == request.AssignmentId && a.OperationalOrderId == request.OperationalOrderId)
-            .Where(a => a.IsActive && a.DeletedAt == null)
-            .FirstOrDefaultAsync(ct);
+        var assignment = await AssignmentOperationalFinder.FindActiveByOrderAsync(
+            _unitOfWork, request.AssignmentId, request.OperationalOrderId, ct);
 
         if (assignment is null)
             return _errorManager.ThrowNotFound<Unit>("No se encontró la asignación solicitada.",

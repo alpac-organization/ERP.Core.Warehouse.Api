@@ -57,13 +57,17 @@ Debe venir **al menos uno** de los tres grupos. Los campos no enviados no se pro
 
 ### Campos de `sections[]`
 
+Cada elemento de `sections[]` representa **una** sección, que es de tipo `Lots` (usa `tramos`) **o** de tipo `Racks` (usa `racks`), nunca ambos en el mismo elemento. Para asignar posiciones de tramos **y** de racks en la misma llamada, se incluyen **dos elementos** en `sections[]`: uno con `tramos` (sección `Lots`) y otro con `racks` (sección `Racks`); en cada elemento el array del otro tipo va vacío (`[]`).
+
+Los `position_ids` no pueden repetirse, ni dentro de un bloque ni **entre los elementos** de `sections[]` (validación global `ERP:DUPLICATED_POSITIONS`).
+
 | Parámetro                   | Tipo      | Requerido | Descripción |
 |-----------------------------|-----------|:---------:|-------------|
 | `sections[].section_id`     | `guid`    | Sí        | Id de la sección. |
-| `sections[].tramos`         | `array`   | No        | Bloques de tramos de la sección. Solo válido si la sección es de tipo `Lots`. |
+| `sections[].tramos`         | `array`   | Cond*     | * Requerido si la sección es de tipo `Lots`; debe ir vacío (`[]`) si es `Racks`. Bloques de tramos (entidad `Lots`). |
 | `sections[].tramos[].block_id` | `guid` | Sí        | Id del tramo (entidad `Lots`). |
 | `sections[].tramos[].position_ids` | `guid[]` | Sí   | Ids de las posiciones del tramo a asignar. Mínimo uno. |
-| `sections[].racks`           | `array`   | No        | Bloques de racks de la sección. Solo válido si la sección es de tipo `Racks`. |
+| `sections[].racks`           | `array`   | Cond*    | * Requerido si la sección es de tipo `Racks`; debe ir vacío (`[]`) si es `Lots`. Bloques de racks (entidad `Racks`). |
 | `sections[].racks[].block_id` | `guid`   | Sí        | Id del rack (entidad `Racks`). |
 | `sections[].racks[].position_ids` | `guid[]` | Sí    | Ids de las posiciones a asignar. Mínimo una. |
 
@@ -94,6 +98,46 @@ Semántica de **reemplazo** (patrón reception): el array recibido **es** la nue
 ---
 
 ## Ejemplos del Body
+
+### Asignar posiciones de tramos y de racks a la vez
+
+Una sección es `Lots` **o** `Racks`, por lo que para asignar ambos tipos en una sola llamada se envían un elemento por sección (el otro array va vacío `[]`):
+
+```json
+{
+  "sections": [
+    {
+      "section_id": "f8a964a3-76a0-4fc7-bf98-251f28b4d081",
+      "tramos": [
+        {
+          "block_id": "e2a48b32-0001-4444-8888-abcdef012345",
+          "position_ids": [
+            "3b2e591c-1111-4444-9999-012345abcdef",
+            "4c3f692d-2222-4444-aaaa-123456789abc"
+          ]
+        }
+      ],
+      "racks": []
+    },
+    {
+      "section_id": "1b1f7d7e-3333-4444-aaaa-bbbbcccc0001",
+      "tramos": [],
+      "racks": [
+        {
+          "block_id": "2c2f8d8f-4444-4444-bbbb-ccccdddd0002",
+          "position_ids": [
+            "5d4e7a80-5555-4444-cccc-dddd01234567",
+            "6e5f8b91-6666-4444-dddd-eeee12345678"
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+> - El primer elemento es una sección `Lots` (tramos); el segundo, una sección `Racks` (racks). Se procesan en la **misma llamada** (4 posiciones en total) y generan **un solo** par de códigos QR/barcode.
+> - Los `position_ids` no pueden repetirse entre tramos y racks.
 
 ### Asignar posiciones + declarar mercadería granel con ambos tipos de polines
 
