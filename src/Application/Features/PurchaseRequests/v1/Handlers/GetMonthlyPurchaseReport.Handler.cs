@@ -59,10 +59,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 .Where(pri => visibleRequestIds.Contains(pri.PurchaseRequestId))
                 .Where(pri => pri.PurchaseRequest.IsActive && pri.PurchaseRequest.DeletedAt == null)
                 .Where(pri => pri.PurchaseRequest.Branch.CompanyId == request.CompanyId)
-                .Where(pri => pri.PurchaseRequest.RequestStatus == PurchaseRequestStatus.Approved)
                 .Where(pri => pri.PurchaseRequest.RequestType == PurchaseRequestType.Monthly)
-                .Where(pri => pri.PurchaseRequest.RequestDate >= DateOnly.FromDateTime(firstDayOfMonth) &&
-                              pri.PurchaseRequest.RequestDate < DateOnly.FromDateTime(firstDayOfNextMonth))
+                .Where(pri => pri.PurchaseRequest.PurchaseOrders.Any(po =>
+                    po.IsActive && po.DeletedAt == null))
+                .Where(pri => pri.PurchaseRequest.CreatedAt >= firstDayOfMonth &&
+                              pri.PurchaseRequest.CreatedAt < firstDayOfNextMonth)
                 .Where(pri => pri.Quotations.Any(q =>
                     q.IsActive &&
                     q.DeletedAt == null &&

@@ -18,6 +18,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
         IErrorManager errorManager,
         ILogger<RegisterQuotationHandler> logger,
         IPurchaseTaxService purchaseTaxService,
+        ISupplierProductLinkService supplierProductLinkService,
         IQuotationAttachmentService quotationAttachmentService)
         : BaseValidatorHandler<RegisterQuotationCommand, bool>(unitOfWork, errorManager)
     {
@@ -65,6 +66,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                         "ERP:PURCHASE_REQUEST_ITEM_NOT_FOUND");
                 }
 
+                if (item.Product is null)
+                {
+                    return _errorManager.ThrowNotFound<bool>(
+                        "No se encontró el producto del ítem de la solicitud",
+                        "ERP:PRODUCT_NOT_FOUND");
+                }
+
                 if (!suppliers.TryGetValue(quotation.SupplierId, out var supplier))
                 {
                     return _errorManager.ThrowNotFound<bool>(
@@ -72,15 +80,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                         "ERP:SUPPLIER_NOT_FOUND");
                 }
 
-                var supplierProduct = supplier.SupplierProducts
-                    .FirstOrDefault(sp => sp.ProductId == item.ProductId);
+                var linkResult = ResolveOrCreateSupplierProduct(
+                    quotation,
+                    item,
+                    supplier,
+                    quoteDate);
 
-                if (supplierProduct is null)
+                if (linkResult.ErrorCode is not null)
                 {
-                    return _errorManager.ThrowBadRequest<bool>(
-                        "El proveedor no está vinculado al producto. Agregue la relación desde la solicitud de compra.",
-                        "ERP:SUPPLIER_PRODUCT_NOT_LINKED");
+                    return _errorManager.ThrowBadRequest<bool>(linkResult.ErrorMessage!, linkResult.ErrorCode);
                 }
+
+                var supplierProduct = linkResult.SupplierProduct!;
 
                 var paymentMethod = ResolvePaymentMethod(quotation.PaymentMethodType, supplier.SupplierPaymentMethods);
                 if (paymentMethod.error is not null)
@@ -90,11 +101,24 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 
                 quotation.PaymentMethodType = paymentMethod.method;
 
-                var priceUnit = purchaseTaxService.ResolveUnitPrice(supplierProduct, item.Quantity, quoteDate);
-                var subtotal = Math.Round(item.Quantity * priceUnit, 2, MidpointRounding.AwayFromZero);
+                var priceUnit = supplierProductLinkService.ResolveQuotationUnitPrice(
+                    supplierProduct,
+                    item.Quantity,
+                    quoteDate,
+                    quotation.PriceUnit,
+                    purchaseTaxService);
+
+                if (priceUnit is null or <= 0)
+                {
+                    return _errorManager.ThrowBadRequest<bool>(
+                        "Debe indicar el precio unitario porque el vínculo no tiene precio vigente.",
+                        "ERP:PRICE_UNIT_REQUIRED");
+                }
+
+                var subtotal = Math.Round(item.Quantity * priceUnit.Value, 2, MidpointRounding.AwayFromZero);
                 var ivaAmount = purchaseTaxService.CalculateIva(
                     subtotal,
-                    item.Product?.IsTaxExempt ?? false,
+                    item.Product.IsTaxExempt,
                     rates);
 
                 var (additionalData, attachmentError) = await quotationAttachmentService.BuildAdditionalDataAsync(
@@ -109,7 +133,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 
                 var quotationEntity = QuotationsMapper.ToQuotationsEntity(
                     quotation,
-                    priceUnit,
+                    priceUnit.Value,
                     subtotal,
                     ivaAmount,
                     supplierProduct.Id,
@@ -128,6 +152,61 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 
             logger.LogInformation("Cotización agregada con éxito");
             return true;
+        }
+
+        private (SupplierProduct? SupplierProduct, string? ErrorMessage, string? ErrorCode) ResolveOrCreateSupplierProduct(
+            QuotationItem quotation,
+            PurchaseRequestItem item,
+            Supplier supplier,
+            DateOnly quoteDate)
+        {
+            var supplierProduct = supplier.SupplierProducts
+                .FirstOrDefault(sp => sp.ProductId == item.ProductId && sp.DeletedAt == null);
+
+            if (supplierProduct is not null)
+            {
+                return (supplierProduct, null, null);
+            }
+
+            if (!quotation.CreateSupplierProductIfMissing)
+            {
+                return (
+                    null,
+                    "El proveedor no está vinculado al producto.",
+                    "ERP:SUPPLIER_PRODUCT_NOT_FOUND");
+            }
+
+            if (quotation.PriceUnit is null or <= 0)
+            {
+                return (
+                    null,
+                    "Debe indicar el precio unitario para vincular el proveedor al producto.",
+                    "ERP:PRICE_UNIT_REQUIRED");
+            }
+
+            var unitMeasureId = item.UnitMeasureId != Guid.Empty
+                ? item.UnitMeasureId
+                : item.Product.UnitMeasureId;
+
+            if (unitMeasureId == Guid.Empty)
+            {
+                return (
+                    null,
+                    "No se pudo determinar la unidad de medida para el vínculo proveedor–producto.",
+                    "ERP:UNIT_MEASURE_REQUIRED");
+            }
+
+            var created = supplierProductLinkService.CreateLink(
+                productId: item.ProductId,
+                supplierId: supplier.Id,
+                unitMeasureId: unitMeasureId,
+                unitPrice: quotation.PriceUnit.Value,
+                currency: quotation.Currency ?? Currency.NIO,
+                preferentialPrice: quotation.PreferentialPrice,
+                validFrom: quoteDate);
+
+            supplier.SupplierProducts.Add(created);
+            return (created, null, null);
         }
 
         private static (PaymentMethodType method, string? error) ResolvePaymentMethod(

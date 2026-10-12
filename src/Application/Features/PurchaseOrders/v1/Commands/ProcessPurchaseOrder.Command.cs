@@ -13,5 +13,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Commands
         public ManagementReviewStatus NewStatus { get; set; }
 
         public string? Comments { get; set; }
+
+        public bool GeneratePaymentRequest { get; set; }
     }
 }

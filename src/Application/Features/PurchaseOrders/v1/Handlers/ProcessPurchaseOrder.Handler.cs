@@ -15,6 +15,9 @@ using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 {
+    /// <summary>
+    /// Procesa la revisión de gerencia: emite OC por supplier, calcula retenciones y opcionalmente crea PaymentRequest.
+    /// </summary>
     public class ProcessPurchaseOrderHandler(
         IUnitOfWork unitOfWork,
         IErrorManager errorManager,
@@ -28,6 +31,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             PropertyNameCaseInsensitive = true
         };
 
+        /// <inheritdoc />
         public override async Task<bool> Handle(ProcessPurchaseOrderCommand request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode!, cancellationToken);
@@ -109,11 +113,25 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                             rates);
 
                         var paymentMethod = firstQuote.PaymentMethodType;
-                        var (paymentCodeSucceeded, paymentRequestCode) =
-                            await codeGenerator.GenerateUniquePaymentRequestCodeAsync(
-                                review.PurchaseRequest.BranchId,
-                                paymentMethod,
-                                cancellationToken);
+                        string? paymentRequestCode = null;
+
+                        if (request.GeneratePaymentRequest)
+                        {
+                            var (paymentCodeSucceeded, generatedPaymentCode) =
+                                await codeGenerator.GenerateUniquePaymentRequestCodeAsync(
+                                    review.PurchaseRequest.BranchId,
+                                    paymentMethod,
+                                    cancellationToken);
+
+                            if (!paymentCodeSucceeded || string.IsNullOrWhiteSpace(generatedPaymentCode))
+                            {
+                                return _errorManager.ThrowBadRequest<bool>(
+                                    "Ocurrió un error al generar el código de la solicitud de pago",
+                                    "ERP:ERROR_PAYMENT_REQUEST_CODE_GENERATOR");
+                            }
+
+                            paymentRequestCode = generatedPaymentCode;
+                        }
 
                         var taxMetadata = new PurchaseOrderTaxMetadata
                         {
@@ -126,7 +144,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                             RetentionsApplied = retention.RetentionsApplied,
                             SupplierType = retention.SupplierType,
                             IrTaxType = retention.IrTaxType,
-                            PaymentRequestCode = paymentCodeSucceeded ? paymentRequestCode : null
+                            PaymentRequestCode = paymentRequestCode
                         };
 
                         var taxJson = JsonSerializer.Serialize(taxMetadata, JsonOptions);
@@ -144,6 +162,17 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                         if (codeSucceeded && !string.IsNullOrWhiteSpace(poCode))
                         {
                             purchaseOrder.Code = poCode;
+                        }
+
+                        if (request.GeneratePaymentRequest && !string.IsNullOrWhiteSpace(paymentRequestCode))
+                        {
+                            purchaseOrder.PaymentRequest = new PaymentRequest
+                            {
+                                Id = Guid.NewGuid(),
+                                Code = paymentRequestCode,
+                                PaymentMethodType = paymentMethod,
+                                PurchaseOrderId = purchaseOrder.Id
+                            };
                         }
 
                         await _unitOfWork.PurchaseOrders.RegisterPurchaseOrder(purchaseOrder);

@@ -12,27 +12,42 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands
     public class QuotationItem
     {
         public Guid SupplierId { get; set; }
+
         public Guid PurchaseRequestItemId { get; set; }
 
         public bool HasDelivery { get; set; }
+
         public bool HasGuarantee { get; set; }
+
         public bool InventoryAvailable { get; set; } = true;
 
         public string? SupplierSelectionJustification { get; set; }
 
         public string? BrandProduct { get; set; }
+
         public ProductQuality ProductQuality { get; set; }
 
         public PaymentMethodType? PaymentMethodType { get; set; }
 
         public decimal? AvailabilityTime { get; set; }
+
         public TimeType? AvailabilityTimeType { get; set; }
 
         public decimal? DeliveryTime { get; set; }
+
         public TimeType? DeliveryTimeType { get; set; }
 
         public decimal? WarrantyPeriod { get; set; }
+
         public TimeType? WarrantyPeriodTimeType { get; set; }
+
+        public decimal? PriceUnit { get; set; }
+
+        public decimal? PreferentialPrice { get; set; }
+
+        public Currency? Currency { get; set; }
+
+        public bool CreateSupplierProductIfMissing { get; set; } = true;
 
         public QuotationAttachmentsInput? Attachments { get; set; }
     }
