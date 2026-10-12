@@ -26,6 +26,7 @@ namespace ERP.Core.Warehouse.Api.Application
             });
 
             services.AddScoped<IPurchaseTaxService, PurchaseTaxService>();
+            services.AddScoped<ISupplierProductLinkService, SupplierProductLinkService>();
             services.AddScoped<IQuotationAttachmentService, QuotationAttachmentService>();
             services.AddScoped<IPurchaseRequestVisibilityService, PurchaseRequestVisibilityService>();
             services.AddScoped<IPurchasePeriodService, PurchasePeriodService>();

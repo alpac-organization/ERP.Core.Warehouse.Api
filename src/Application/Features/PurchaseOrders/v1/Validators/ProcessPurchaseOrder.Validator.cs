@@ -37,6 +37,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Validato
                 .NotEmpty()
                 .WithMessage("Debes dejar un comentario al aprobar o rechazar la solicitud.")
                 .When(x => x.NewStatus == ManagementReviewStatus.Approved || x.NewStatus == ManagementReviewStatus.Rejected);
+
+            RuleFor(x => x)
+                .Must(x => !x.GeneratePaymentRequest || x.NewStatus == ManagementReviewStatus.Approved)
+                .WithMessage("Solo se puede generar solicitud de pago al aprobar la revisión.");
         }
     }
 }

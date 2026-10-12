@@ -17,6 +17,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
         IErrorManager errorManager,
         ILogger<UpdateQuotationHandler> logger,
         IPurchaseTaxService purchaseTaxService,
+        ISupplierProductLinkService supplierProductLinkService,
         IQuotationAttachmentService quotationAttachmentService)
         : BaseValidatorHandler<UpdateQuotationCommand, bool>(unitOfWork, errorManager)
     {
@@ -53,6 +54,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                 return _errorManager.ThrowNotFound<bool>("La cotización no existe.", "ERP:QUOTATION_NOT_FOUND");
             }
 
+            var quoteDate = quotation.QuoteDate == default
+                ? DateOnly.FromDateTime(DateTime.UtcNow)
+                : quotation.QuoteDate;
+
             if (request.SupplierId.HasValue && request.SupplierId.Value != quotation.SupplierId)
             {
                 var supplier = await _unitOfWork.Suppliers.Entities
@@ -69,12 +74,46 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                 }
 
                 var productId = quotation.PurchaseRequestItem.ProductId;
-                var supplierProduct = supplier.SupplierProducts.FirstOrDefault(sp => sp.ProductId == productId);
+                var supplierProduct = supplier.SupplierProducts.FirstOrDefault(sp => sp.ProductId == productId && sp.DeletedAt == null);
+
                 if (supplierProduct is null)
                 {
-                    return _errorManager.ThrowBadRequest<bool>(
-                        "El proveedor no está vinculado al producto.",
-                        "ERP:SUPPLIER_PRODUCT_NOT_LINKED");
+                    if (!request.CreateSupplierProductIfMissing)
+                    {
+                        return _errorManager.ThrowBadRequest<bool>(
+                            "El proveedor no está vinculado al producto.",
+                            "ERP:SUPPLIER_PRODUCT_NOT_FOUND");
+                    }
+
+                    if (request.PriceUnit is null or <= 0)
+                    {
+                        return _errorManager.ThrowBadRequest<bool>(
+                            "Debe indicar el precio unitario para vincular el proveedor al producto.",
+                            "ERP:PRICE_UNIT_REQUIRED");
+                    }
+
+                    var item = quotation.PurchaseRequestItem;
+                    var unitMeasureId = item.UnitMeasureId != Guid.Empty
+                        ? item.UnitMeasureId
+                        : item.Product?.UnitMeasureId ?? Guid.Empty;
+
+                    if (unitMeasureId == Guid.Empty)
+                    {
+                        return _errorManager.ThrowBadRequest<bool>(
+                            "No se pudo determinar la unidad de medida para el vínculo proveedor–producto.",
+                            "ERP:UNIT_MEASURE_REQUIRED");
+                    }
+
+                    supplierProduct = supplierProductLinkService.CreateLink(
+                        productId: productId,
+                        supplierId: supplier.Id,
+                        unitMeasureId: unitMeasureId,
+                        unitPrice: request.PriceUnit.Value,
+                        currency: request.Currency ?? Currency.NIO,
+                        preferentialPrice: request.PreferentialPrice,
+                        validFrom: quoteDate);
+
+                    supplier.SupplierProducts.Add(supplierProduct);
                 }
 
                 quotation.SupplierId = supplier.Id;
@@ -133,14 +172,25 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
             quotation.PaymentMethodType = paymentResolution.method;
 
             var quantity = quotation.PurchaseRequestItem?.Quantity ?? 0;
-            var quoteDate = quotation.QuoteDate == default
-                ? DateOnly.FromDateTime(DateTime.UtcNow)
-                : quotation.QuoteDate;
 
             if (quotation.SupplierProduct is not null && quantity > 0)
             {
                 var rates = await purchaseTaxService.GetActiveRatesAsync(cancellationToken);
-                quotation.PriceUnit = purchaseTaxService.ResolveUnitPrice(quotation.SupplierProduct, quantity, quoteDate);
+                var priceUnit = supplierProductLinkService.ResolveQuotationUnitPrice(
+                    quotation.SupplierProduct,
+                    quantity,
+                    quoteDate,
+                    request.PriceUnit,
+                    purchaseTaxService);
+
+                if (priceUnit is null or <= 0)
+                {
+                    return _errorManager.ThrowBadRequest<bool>(
+                        "Debe indicar el precio unitario porque el vínculo no tiene precio vigente.",
+                        "ERP:PRICE_UNIT_REQUIRED");
+                }
+
+                quotation.PriceUnit = priceUnit.Value;
                 var subtotal = Math.Round(quantity * quotation.PriceUnit, 2, MidpointRounding.AwayFromZero);
                 quotation.PriceTotal = subtotal;
                 quotation.Iva = purchaseTaxService.CalculateIva(

@@ -42,6 +42,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             var purchaseOrder = await _unitOfWork.PurchaseOrders.Entities
                 .Include(po => po.Supplier)
+                .Include(po => po.PaymentRequest)
                 .Include(po => po.PurchaseOrderItems)
                     .ThenInclude(item => item.Product)
                 .Include(po => po.PurchaseRequest)
@@ -124,7 +125,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 ? PurchaseOrdersMapper.GetDocumentTitleByMethodPayment(request.PaymentMethod!.Value)
                 : "Orden de compra";
 
-            var paymentRequestCode = taxMetadata?.PaymentRequestCode;
+            var paymentRequestCode = purchaseOrder.PaymentRequest?.Code
+                ?? taxMetadata?.PaymentRequestCode;
             var requestCode = isPaymentRequest
                 ? paymentRequestCode ?? purchaseOrder.Code ?? purchaseOrder.PurchaseRequest.Code
                 : purchaseOrder.Code ?? purchaseOrder.PurchaseRequest.Code;
