@@ -80,11 +80,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                         "ERP:SUPPLIER_NOT_FOUND");
                 }
 
-                var linkResult = ResolveOrCreateSupplierProduct(
+                var linkResult = await ResolveOrCreateSupplierProductAsync(
                     quotation,
                     item,
                     supplier,
-                    quoteDate);
+                    quoteDate,
+                    cancellationToken);
 
                 if (linkResult.ErrorCode is not null)
                 {
@@ -139,6 +140,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                     supplierProduct.Id,
                     additionalData);
 
+                quotationEntity.SupplierProduct = supplierProduct;
+
                 if (!item.HasQuotation)
                 {
                     item.HasQuotation = true;
@@ -154,17 +157,37 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
             return true;
         }
 
-        private (SupplierProduct? SupplierProduct, string? ErrorMessage, string? ErrorCode) ResolveOrCreateSupplierProduct(
+        private async Task<(SupplierProduct? SupplierProduct, string? ErrorMessage, string? ErrorCode)> ResolveOrCreateSupplierProductAsync(
             QuotationItem quotation,
             PurchaseRequestItem item,
             Supplier supplier,
-            DateOnly quoteDate)
+            DateOnly quoteDate,
+            CancellationToken cancellationToken)
         {
-            var supplierProduct = supplier.SupplierProducts
-                .FirstOrDefault(sp => sp.ProductId == item.ProductId && sp.DeletedAt == null);
+            var product = await _unitOfWork.Products.Entities
+                .Include(p => p.SupplierProducts)
+                    .ThenInclude(sp => sp.TierPrices)
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(p => p.Id == item.ProductId, cancellationToken);
+
+            var supplierProduct = product?.SupplierProducts
+                .FirstOrDefault(sp => sp.SupplierId == supplier.Id);
 
             if (supplierProduct is not null)
             {
+                if (!supplierProduct.IsActive || supplierProduct.DeletedAt is not null)
+                {
+                    supplierProduct.IsActive = true;
+                    supplierProduct.DeletedAt = null;
+                    supplierProduct.UnitPrice = quotation.PriceUnit ?? supplierProduct.UnitPrice;
+                    supplierProduct.Currency = quotation.Currency ?? supplierProduct.Currency;
+                    supplierProduct.UnitMeasureId = item.UnitMeasureId != Guid.Empty
+                        ? item.UnitMeasureId
+                        : item.Product.UnitMeasureId;
+                    supplierProduct.LastPriceUpdate = DateTime.UtcNow;
+
+                }
+
                 return (supplierProduct, null, null);
             }
 
@@ -206,6 +229,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                 validFrom: quoteDate);
 
             supplier.SupplierProducts.Add(created);
+
             return (created, null, null);
         }
 

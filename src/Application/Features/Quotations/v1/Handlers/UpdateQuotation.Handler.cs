@@ -74,7 +74,24 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                 }
 
                 var productId = quotation.PurchaseRequestItem.ProductId;
-                var supplierProduct = supplier.SupplierProducts.FirstOrDefault(sp => sp.ProductId == productId && sp.DeletedAt == null);
+                var productWithLinks = await _unitOfWork.Products.Entities
+                    .Include(p => p.SupplierProducts)
+                        .ThenInclude(sp => sp.TierPrices)
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
+
+                var supplierProduct = productWithLinks?.SupplierProducts
+                    .FirstOrDefault(sp => sp.SupplierId == supplier.Id);
+
+                if (supplierProduct is not null &&
+                    (!supplierProduct.IsActive || supplierProduct.DeletedAt is not null))
+                {
+                    supplierProduct.IsActive = true;
+                    supplierProduct.DeletedAt = null;
+                    supplierProduct.UnitPrice = request.PriceUnit ?? supplierProduct.UnitPrice;
+                    supplierProduct.Currency = request.Currency ?? supplierProduct.Currency;
+                    supplierProduct.LastPriceUpdate = DateTime.UtcNow;
+                }
 
                 if (supplierProduct is null)
                 {
