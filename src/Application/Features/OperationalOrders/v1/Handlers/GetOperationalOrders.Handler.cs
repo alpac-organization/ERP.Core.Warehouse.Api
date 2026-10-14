@@ -25,6 +25,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
             var operationalOrdersQuery = _unitOfWork.OperationalOrders.Entities
                 .Include(po => po.Customer)
                 .Include(po => po.CostCenter)
+                .Include(po => po.Reception)
                 .AsSplitQuery()
                 .AsNoTracking();
 
