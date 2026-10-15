@@ -12,9 +12,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Comma
         public decimal? PackageAmount { get; set; }
         public decimal? MerchandiseWeight { get; set; }
         public string? ShippingCompany { get; set; }
-        public string? Consignee { get; set; }
         public string? Sender { get; set; }
-        public bool? IsAlerted { get; set; } = false;
+        public bool? IsAlerted { get; set; }
+        public bool? HasConsignees { get; set; }
+        public bool? IsInTransit { get; set; }
+
 
         public List<MerchandiseCreate>? Merchandises { get; set; }
     }

@@ -2,7 +2,7 @@
 
 ## Registrar Información de Recepción
 
-Endpoint para registrar y actualizar la información de recepción de una orden operacional: cliente, peso, bultos, datos de transporte (`shipping_company`, `consignee`, `sender`) y, opcionalmente, la lista de mercaderías contenidas.
+Endpoint para registrar y actualizar la información de recepción de una orden operacional: cliente, peso, bultos, datos de transporte (`shipping_company`, `sender`), confirmaciones (`is_alerted`, `has_consignees`, `is_in_transit`) y, opcionalmente, la lista de mercaderías contenidas.
 
 ## Información General
 
@@ -45,8 +45,10 @@ Endpoint para registrar y actualizar la información de recepción de una orden 
   "package_amount": 42,
   "merchandise_weight": 1250.50,
   "shipping_company": "Transportes del Pacífico",
-  "consignee": "RECEPTOR FINAL",
   "sender": "EXPORTADORA XYZ",
+  "is_alerted": false,
+  "has_consignees": false,
+  "is_in_transit": true,
   "merchandises": [
     {
       "merchandise": "Acero inoxidable",
@@ -66,8 +68,10 @@ Endpoint para registrar y actualizar la información de recepción de una orden 
 | `package_amount`     | `decimal?`              | No        | `null`  | Cantidad de bultos. Se escribe en `OperationalOrder.PackagesCount`. |
 | `merchandise_weight` | `decimal?`              | No        | `null`  | Peso de la mercadería. Se escribe en `OperationalOrder.Weight`. |
 | `shipping_company`   | `string?`               | No        | `null`  | Transportista. Se escribe en `OperationalOrder.ShippingCompany`. |
-| `consignee`          | `string?`               | No        | `null`  | Consignatario. Se escribe en `OperationalOrder.Consignee`. |
 | `sender`             | `string?`               | No        | `null`  | Remitente. Se escribe en `OperationalOrder.Sender`. |
+| `is_alerted`         | `bool?`                 | No        | `null`  | Alerta activa de la orden. Se escribe en `OperationalOrder.IsAlerted`. |
+| `has_consignees`     | `bool?`                 | No        | `null`  | Si la orden tiene consignatarios. Se escribe en `OperationalOrder.HasConsignees`. |
+| `is_in_transit`      | `bool?`                 | No        | `null`  | Si la mercadería está en tránsito. Se escribe en `OperationalOrder.IsInTransit`. |
 | `merchandises`       | `array<MerchandiseCreate>?` | No    | `null`  | Lista de mercaderías. Cada llamada **agrega** nuevas asignaciones; no reemplaza las existentes. |
 
 | Campo de cada item de `merchandises` | Tipo     | Descripción |
@@ -86,7 +90,7 @@ Endpoint para registrar y actualizar la información de recepción de una orden 
 3. Calcula `customerChanged = CustomerId.HasValue && CustomerId != Guid.Empty`.
 4. Si la orden **no tiene cliente** (`CustomerId == null`) y no se envió uno nuevo, devuelve `400` con `ERP:CUSTOMER_REQUIRED`.
 5. Si `customerChanged`, busca el cliente con `IsActive && Id == customer_id`. Si no existe devuelve `404` con `ERP:04`; si existe, asigna `operationalOrder.CustomerId`. Si `customerChanged` es `false`, **se conserva el cliente actual**.
-6. Actualiza los escalares con semántica de **omisión**: `Weight = merchandise_weight ?? Weight`, `PackagesCount = package_amount ?? PackagesCount`, `ShippingCompany`, `Consignee` y `Sender` de la misma forma (`??` con el valor actual).
+6. Actualiza los escalares con semántica de **omisión**: `Weight = merchandise_weight ?? Weight`, `PackagesCount = package_amount ?? PackagesCount`, `ShippingCompany`, `Sender`, `IsAlerted`, `HasConsignees` e `IsInTransit` de la misma forma (`??` con el valor actual).
 7. Filtra `merchandises` descartando los items sin contenido. Si queda al menos uno:
    7.1 Detecta duplicados agrupando por `Merchandise.Trim()` con `StringComparer.OrdinalIgnoreCase`. Si hay duplicados devuelve `400` con `ERP:DUPLICATE_MERCHANDISE`.
    7.2 Crea una `AssignmentOperational` por item: `Id = Guid.NewGuid()`, `IsActive = true`, `OperationalOrderId`, `Merchandise`/`MerchandiseDescription` (con `Trim()`), `HasMerchandiseDescription = !IsNullOrWhiteSpace(description)`, `Status = AssignmentOperationalStatus.None`, `Category = MerchandiseCategory.None`, `DestinationType = DestinationType.None`, `AdditionalData = "{}"`.
@@ -95,7 +99,7 @@ Endpoint para registrar y actualizar la información de recepción de una orden 
 
 > **Contexto de la request:** `company_id`, `module_code` y `operational_order_id` llegan por la ruta, `user_id` se lee de `HttpContext.Items["UserId"]`, y el resto del body se deserializa al `ReceptionInformationOperationalCommand`.
 
-> **Validación (FluentValidation):** `ReceptionInformationOperationalValidator` valida las reglas de `BaseRequestValidator` (`company_id`, `module_code`, `user_id`), más: `OperationalOrderId` no vacío ni `Guid.Empty`; `MerchandiseWeight > 0` **solo si viene informado**; `PackageAmount > 0` **solo si viene informado**. **No** se valida `customer_id`, `shipping_company`, `consignee`, `sender` ni ningún campo de `merchandises`.
+> **Validación (FluentValidation):** `ReceptionInformationOperationalValidator` valida las reglas de `BaseRequestValidator` (`company_id`, `module_code`, `user_id`), más: `OperationalOrderId` no vacío ni `Guid.Empty`; `MerchandiseWeight > 0` **solo si viene informado**; `PackageAmount > 0` **solo si viene informado**. **No** se valida `customer_id`, `shipping_company`, `sender`, `is_alerted`, `has_consignees`, `is_in_transit` ni ningún campo de `merchandises`.
 
 > **La regla de `OperationalOrderId` es inalcanzable en la práctica:** el validator recibe el valor que el controller ya pisó con la ruta. Si la ruta trae un GUID mal formado, el binding del modelo falla antes y produce `400 Validation_Error` del framework.
 
@@ -109,7 +113,8 @@ Todos los campos del body son opcionales y el handler conserva el valor actual c
 |---------------|------------------------|
 | `package_amount` omitido / `null` | Se conserva `OperationalOrder.PackagesCount` actual. |
 | `merchandise_weight` omitido / `null` | Se conserva `OperationalOrder.Weight` actual. |
-| `shipping_company`, `consignee`, `sender` omitidos / `null` | Se conserva el valor actual de cada campo. |
+| `shipping_company`, `sender` omitidos / `null` | Se conserva el valor actual de cada campo. |
+| `is_alerted`, `has_consignees`, `is_in_transit` omitidos / `null` | Se conserva el valor actual de cada campo. Para cambiarlos hay que enviarlos explícitamente (`true` o `false`). |
 | `customer_id` omitido, `null` o `Guid.Empty` | Se conserva el cliente actual. **Excepto:** si la orden no tiene cliente, responde `400 ERP:CUSTOMER_REQUIRED`. |
 | `merchandises` omitido / `null` / `[]` | No se crean asignaciones y el estado de la orden no cambia. |
 

@@ -77,8 +77,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
             operationalOrder.Weight = request.MerchandiseWeight ?? operationalOrder.Weight;
             operationalOrder.PackagesCount = request.PackageAmount ?? operationalOrder.PackagesCount;
             operationalOrder.ShippingCompany = request.ShippingCompany ?? operationalOrder.ShippingCompany;
-            operationalOrder.Consignee = request.Consignee ?? operationalOrder.Consignee;
             operationalOrder.Sender = request.Sender ?? operationalOrder.Sender;
+            operationalOrder.HasConsignees = request.HasConsignees ?? operationalOrder.HasConsignees;
+            operationalOrder.IsInTransit = request.IsInTransit ?? operationalOrder.IsInTransit;
             operationalOrder.IsAlerted = request.IsAlerted ?? operationalOrder.IsAlerted;
 
             #endregion

@@ -61,18 +61,21 @@ Devuelve un `OperationalOrderDetailsDto`. El JSON se serializa con `SnakeCaseLow
 ```json
 {
   "operation_order_id": "56487c1b-9f4d-4b2a-8e1c-1234567890ab",
+  "reception_code": "REC-00045",
   "po_code": "ALP-MGA-OP-15",
   "document_number": "DUCA-000123",
   "document_type": "DUCA",
   "status": "PendingDocument",
   "is_alerted": false,
+  "is_consolidated": false,
   "description": "Importación de mercadería general",
   "policy_number": "POL-99887",
   "shipping_company": "Transportes del Pacífico",
-  "consignee": "RECEPTOR FINAL",
   "sender": "EXPORTADORA XYZ",
   "weight": 1250.50,
   "packages_count": 42,
+  "has_consignees": false,
+  "is_in_transit": true,
   "customer_information": {
     "customer_id": "8d8c47fd-337c-41b7-8156-eac944027ff7",
     "cif": "20123456789",
@@ -117,18 +120,21 @@ Devuelve un `OperationalOrderDetailsDto`. El JSON se serializa con `SnakeCaseLow
 | Campo                             | Tipo                             | Descripción |
 |-----------------------------------|----------------------------------|-------------|
 | `operation_order_id`              | `guid`                           | Id de la orden operacional. |
+| `reception_code`                  | `string`                         | Código de la recepción asociada. `null` si la orden no tiene recepción. |
 | `po_code`                         | `string`                         | Código de la PO. |
 | `document_number`                 | `string`                         | Número de DUCA o de declaración aduanera. |
 | `document_type`                   | `enum (DocumentType)`            | Tipo de documento de la orden. |
 | `status`                          | `enum (OperationalOrderStatus)`  | Estado de la orden. |
 | `is_alerted`                      | `bool`                           | Si la orden tiene una alerta activa. |
+| `is_consolidated`                 | `bool`                           | Si la orden está consolidada. |
 | `description`                     | `string`                         | Descripción de la orden. |
 | `policy_number`                   | `string`                         | Número de póliza. |
 | `shipping_company`                | `string`                         | Transportista asociado a la orden. |
-| `consignee`                       | `string`                         | Consignatario. |
 | `sender`                          | `string`                         | Remitente. |
 | `weight`                          | `decimal`                        | Peso total de la mercadería. |
 | `packages_count`                  | `decimal`                        | Cantidad de bultos. |
+| `has_consignees`                  | `bool?`                          | Si la orden tiene consignatarios. |
+| `is_in_transit`                   | `bool?`                          | Si la mercadería se encuentra en tránsito. |
 | `customer_information`            | `object (CustomerInformation)`   | Cliente asociado. `null` si la orden no tiene cliente. |
 | `cost_center_information`         | `object (CostCenterInformation)` | Centro de costos asociado. `null` si la orden no tiene centro de costos. |
 | `reception_entrance_information`  | `object (ReceptionEntranceDetailsDto)` | Recepción asociada. **`null` si la orden aún no ha sido recepcionada.** |
@@ -141,7 +147,9 @@ Devuelve un `OperationalOrderDetailsDto`. El JSON se serializa con `SnakeCaseLow
 |---|---|
 | `operation_order_id` | **Typo en el código fuente.** La propiedad C# se llama `OperationOrderId` (sin la "al"). El nombre en el contrato JSON es `operation_order_id`. |
 | `document_type` | Vive en el DTO base (`OperationalOrderDto`), por lo que también aparece en el listado. |
-| Receptoría anidada | Es el único endpoint que expone la recepción **dentro** de la orden operacional. El listado no la incluye. |
+| `reception_code` / `is_consolidated` | Viven en el DTO base (`OperationalOrderDto`), por lo que también aparecen en el listado. |
+| `has_consignees` / `is_in_transit` | Son propios del detalle (`OperationalOrderDetailsDto`) y **nulables**: solo se pueblan desde la entidad (no se editan aquí; se actualizan vía el PATCH de información). |
+| Receptoría anidada | Es el único endpoint que expone la recepción **dentro** de la orden operacional. El listado solo expone `reception_code`. |
 | Centro de costos | El detalle **sí expone** `cost_center_information`: el profile lo mapea desde `CostCenter` y el handler lo trae con `Include(CostCenter)`, por lo que viene poblado. El listado, en cambio, no lo expone. |
 | Orden no encontrada | Devuelve `200` con `null`, no `404`. |
 | Rol `Supervisor` | Bloqueado con `400` / `ERP:INVALID_ACCESS`. |
