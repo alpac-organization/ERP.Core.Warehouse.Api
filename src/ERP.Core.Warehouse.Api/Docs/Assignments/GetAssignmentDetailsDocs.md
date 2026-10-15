@@ -37,26 +37,32 @@ Endpoint para obtener el detalle completo de una asignación operativa específi
 
 ### 200 OK
 
-Detalle completo de la asignación operativa.
+Detalle completo de la asignación operativa. El JSON se serializa con `SnakeCaseLower`; los enums viajan como **string** (`JsonStringEnumConverter`).
 
 ```json
 {
-  "assignmentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "operationalOrderId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "isAlerted": false,
-  "destinationType": 1,
-  "status": 1,
+  "assignment_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "operational_order_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "reception_code": "REC-2026-0001",
+  "po_code": "PO-2026-0001",
+  "is_alerted": false,
+  "destination_type": "Warehouse",
+  "status": "Pending",
   "merchandise": "Contenedor 40ft",
-  "merchandiseDescription": "Contenedor con mercancía paletizada",
-  "hasMachineryAssigned": true,
-  "hasCollaboratorsAssigned": true,
-  "createdAt": "2025-01-15T10:30:00Z",
+  "merchandise_description": "Contenedor con mercancía paletizada",
+  "has_machinery_assigned": true,
+  "has_collaborators_assigned": true,
+  "has_outsourced_crew": true,
+  "has_outsourced_machinery": true,
+  "created_at": "2025-01-15T10:30:00Z",
   "observations": "Asignación para descarga de contenedor",
-  "additionalData": "{}",
-  "warehouseInformation": {
-    "warehouseId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "additional_data": "{}",
+  "outsourced_crew_count": 4,
+  "outsourced_machinery_supplier": "Maquinarias del Norte S.A.",
+  "warehouse_information": {
+    "warehouse_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
     "code": "WH-001",
-    "warehouseType": 1
+    "warehouse_type": "Warehouse"
   }
 }
 ```
@@ -65,22 +71,28 @@ Detalle completo de la asignación operativa.
 
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
-| `assignmentId` | `guid` | Identificador único de la asignación. |
-| `operationalOrderId` | `guid` | Identificador de la orden operativa padre. |
-| `isAlerted` | `bool` | Indica si la asignación tiene alerta. |
-| `destinationType` | `enum (DestinationType)` | Tipo de destino: `None` (0), `Warehouse` (1), `CustomYard` (2), `CustomSheld` (3). |
+| `assignment_id` | `guid` | Identificador único de la asignación. |
+| `operational_order_id` | `guid` | Identificador de la orden operativa padre. |
+| `reception_code` | `string` | Código de la recepción asociada a la orden operativa. Puede ser `null`. |
+| `po_code` | `string` | Código de la orden de compra (`PoCode`) de la orden operativa. Puede ser `null`. |
+| `is_alerted` | `bool` | Indica si la orden operativa tiene alerta. |
+| `destination_type` | `enum (DestinationType)` | Tipo de destino: `None` (0), `Warehouse` (1), `CustomYard` (2), `CustomSheld` (3). |
 | `status` | `enum (AssignmentOperationalStatus)` | Estado: `None` (0), `Pending` (1), `InProgress` (2), `OnHold` (3), `Downloaded` (4). |
 | `merchandise` | `string` | Nombre de la mercancía. |
-| `merchandiseDescription` | `string` | Descripción de la mercancía. |
-| `hasMachineryAssigned` | `bool` | Indica si tiene maquinaria asignada. |
-| `hasCollaboratorsAssigned` | `bool` | Indica si tiene colaboradores asignados. |
-| `createdAt` | `datetime` | Fecha de creación (UTC). |
+| `merchandise_description` | `string` | Descripción de la mercancía. |
+| `has_machinery_assigned` | `bool` | Indica si tiene maquinaria propia asignada. |
+| `has_collaborators_assigned` | `bool` | Indica si tiene colaboradores propios asignados. |
+| `has_outsourced_crew` | `bool` | Indica si cuenta con personal externo (cuadrilla). |
+| `has_outsourced_machinery` | `bool` | Indica si cuenta con maquinaria externa. |
+| `created_at` | `datetime` | Fecha de creación (UTC). |
 | `observations` | `string` | Observaciones adicionales. |
-| `additionalData` | `string` | Datos adicionales (JSON serializado). |
-| `warehouseInformation` | `object` | Información del almacén (si aplica). |
-| `warehouseInformation.warehouseId` | `guid` | Identificador del almacén. |
-| `warehouseInformation.code` | `string` | Código del almacén. |
-| `warehouseInformation.warehouseType` | `enum (WarehouseType)` | Tipo de almacén. |
+| `additional_data` | `string` | Datos adicionales (JSON serializado). |
+| `outsourced_crew_count` | `int?` | Cantidad de personal externo. Puede ser `null`. |
+| `outsourced_machinery_supplier` | `string` | Proveedor de maquinaria externa. Puede ser `null`. |
+| `warehouse_information` | `object` | Información del almacén (si aplica). |
+| `warehouse_information.warehouse_id` | `guid` | Identificador del almacén. |
+| `warehouse_information.code` | `string` | Código del almacén. |
+| `warehouse_information.warehouse_type` | `enum (WarehouseType)` | Tipo de almacén. |
 
 ### 400 Bad Request
 

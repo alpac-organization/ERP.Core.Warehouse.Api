@@ -18,6 +18,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Dtos
 
         public bool HasMachineryAssigned { get; set; }
         public bool HasCollaboratorsAssigned { get; set; }
+        public bool HasOutsourcedCrew { get; set; }
+        public bool HasOutsourcedMachinery { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 }

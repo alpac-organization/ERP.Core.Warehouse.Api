@@ -41,7 +41,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForPath(dest => dest.MachineryInformation.MachineryType, opt => opt.MapFrom(src => src.Machinery.Type))
                 .ForPath(dest => dest.MachineryInformation.MachineryCode, opt => opt.MapFrom(src => src.Machinery.Code))
                 .ForPath(dest => dest.MachineryInformation.MachineryBrand, opt => opt.MapFrom(src => src.Machinery.Brand));
-                
+
             // get de asignamiento de colaboradores
             CreateMap<AssignmentCollaborators, GetAssignmentCollaboratorsDto>()
                 .ForMember(dest => dest.AssignmentCollaboratorId, opt => opt.MapFrom(src => src.Id))
@@ -75,6 +75,10 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 DestinationType = command.DestinationType ?? DestinationType.Warehouse,
                 MerchandiseDescription = command.MerchandiseDescription,
                 OperationalOrderId = command.OperationalOrderId,
+                HasOutsourcedCrew = command.HasOutsourcedCrew ?? false,
+                HasOutsourcedMachinery = command.HasOutsourcedMachinery ?? false,
+                OutsourcedCrewCount = command.OutsourcedCrewCount,
+                OutsourcedMachinerySupplier = command.OutsourcedMachinerySupplier
             };
         }
         #endregion
@@ -93,7 +97,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         }
 
         public static AssignmentCollaborators ToAssignmentCollaboratorsEntity(this Commands.AssignedCollaborator command, Guid assignmentOperationalId, Guid createdByUserId)
-        {   
+        {
             return new()
             {
                 Id = Guid.NewGuid(),
