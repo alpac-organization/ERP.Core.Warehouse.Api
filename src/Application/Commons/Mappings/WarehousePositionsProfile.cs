@@ -15,9 +15,11 @@ public class WarehousePositionsProfile : Profile
             .ForMember(dest => dest.Blocks, opt => opt.MapFrom((src, dest, context, resolutionContext) =>
                 src.SectionStorageType == SectionStorageType.Lots
                     ? resolutionContext.Mapper.Map<List<PositionBlockDto>>(src.Lots.OrderBy(lot => lot.Code))
-                    : resolutionContext.Mapper.Map<List<PositionBlockDto>>(src.Racks
-                        .OrderBy(rack => rack.RowNumber)
-                        .ThenBy(rack => rack.Code))));
+                    : src.SectionStorageType == SectionStorageType.Racks
+                        ? resolutionContext.Mapper.Map<List<PositionBlockDto>>(src.Racks
+                            .OrderBy(rack => rack.RowNumber)
+                            .ThenBy(rack => rack.Code))
+                        : new List<PositionBlockDto> { resolutionContext.Mapper.Map<PositionBlockDto>(src) }));
 
         CreateMap<Lots, PositionBlockDto>()
             .ForMember(dest => dest.Code, opt => opt.MapFrom(src => src.Code ?? string.Empty))
@@ -35,6 +37,14 @@ public class WarehousePositionsProfile : Profile
                 .ThenBy(position => position.Level)
                 .ToList()));
 
+        CreateMap<Sections, PositionBlockDto>()
+            .ForMember(dest => dest.Code, opt => opt.MapFrom(src => src.Code ?? string.Empty))
+            .ForMember(dest => dest.Positions, opt => opt.MapFrom(src => (src.Positions ?? Enumerable.Empty<SectionPositions>())
+                .OrderBy(position => position.Level)
+                .ThenBy(position => position.Row)
+                .ThenBy(position => position.Column)
+                .ToList()));
+
         CreateMap<LotsPositions, PositionItemDto>()
             .ForMember(dest => dest.Code, opt => opt.MapFrom(src => src.PositionCode ?? string.Empty))
             .ForMember(dest => dest.Coordinates, opt => opt.MapFrom(src =>
@@ -49,8 +59,17 @@ public class WarehousePositionsProfile : Profile
                     ? src.RacksPositionsCoordinates
                     : null));
 
+        CreateMap<SectionPositions, PositionItemDto>()
+            .ForMember(dest => dest.Code, opt => opt.MapFrom(src => src.PositionCode ?? string.Empty))
+            .ForMember(dest => dest.Coordinates, opt => opt.MapFrom(src =>
+                src.SectionPositionsCoordinates != null && src.SectionPositionsCoordinates.DeletedAt == null
+                    ? src.SectionPositionsCoordinates
+                    : null));
+
         CreateMap<LotsPositionsCoordinates, PositionCoordinatesDto>();
 
         CreateMap<RacksPositionsCoordinates, PositionCoordinatesDto>();
+
+        CreateMap<SectionPositionsCoordinates, PositionCoordinatesDto>();
     }
 }
