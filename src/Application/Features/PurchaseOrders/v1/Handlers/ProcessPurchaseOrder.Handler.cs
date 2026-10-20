@@ -16,13 +16,12 @@ using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Commands;
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 {
     /// <summary>
-    /// Procesa la revisión de gerencia: emite OC por supplier, calcula retenciones y opcionalmente crea PaymentRequest.
+    /// Procesa la revisión de gerencia: emite una orden por supplier usando las retenciones ya guardadas en cada cotización.
     /// </summary>
     public class ProcessPurchaseOrderHandler(
         IUnitOfWork unitOfWork,
         IErrorManager errorManager,
-        ICodeGenerator codeGenerator,
-        IPurchaseTaxService purchaseTaxService)
+        ICodeGenerator codeGenerator)
         : BaseValidatorHandler<ProcessPurchaseOrderCommand, bool>(unitOfWork, errorManager)
     {
         private static readonly JsonSerializerOptions JsonOptions = new()
@@ -91,27 +90,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                             "ERP:NO_ACCEPTED_QUOTATIONS");
                     }
 
-                    var rates = await purchaseTaxService.GetActiveRatesAsync(cancellationToken);
                     var quotationsBySupplier = acceptedQuotations.GroupBy(q => q.SupplierId).ToList();
 
                     foreach (var supplierGroup in quotationsBySupplier)
                     {
                         var supplierQuotations = supplierGroup.ToList();
                         var firstQuote = supplierQuotations.First();
-                        var supplierDetails = firstQuote.Supplier?.SupplierDetails;
-                        var currency = firstQuote.SupplierProduct?.Currency ?? Currency.NIO;
-
-                        var subtotal = supplierQuotations.Sum(q => q.PriceTotal);
-                        var ivaTotal = supplierQuotations.Sum(q => q.Iva);
-
-                        var retention = purchaseTaxService.CalculateRetentions(
-                            subtotal,
-                            ivaTotal,
-                            currency,
-                            supplierDetails?.SupplierType,
-                            supplierDetails?.IsTaxExempt ?? false,
-                            rates);
-
+                        var irAmount = supplierQuotations.Sum(q => q.Ir);
+                        var imiAmount = supplierQuotations.Sum(q => q.Imi);
                         var paymentMethod = firstQuote.PaymentMethodType;
                         string? paymentRequestCode = null;
 
@@ -135,15 +121,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
                         var taxMetadata = new PurchaseOrderTaxMetadata
                         {
-                            ExchangeRate = retention.ExchangeRate,
-                            TotalNio = retention.TotalNio,
-                            ImiAmount = retention.ImiAmount,
-                            IrAmount = retention.IrAmount,
-                            ImiRate = retention.ImiRate,
-                            IrRate = retention.IrRate,
-                            RetentionsApplied = retention.RetentionsApplied,
-                            SupplierType = retention.SupplierType,
-                            IrTaxType = retention.IrTaxType,
+                            TotalNio = supplierQuotations.Sum(q => q.PriceTotal),
+                            ImiAmount = imiAmount,
+                            IrAmount = irAmount,
+                            RetentionsApplied = irAmount > 0m || imiAmount > 0m,
+                            SupplierType = firstQuote.Supplier?.SupplierDetails?.SupplierType,
                             PaymentRequestCode = paymentRequestCode
                         };
 

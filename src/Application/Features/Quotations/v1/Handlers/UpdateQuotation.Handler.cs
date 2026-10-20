@@ -44,6 +44,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                     .ThenInclude(sp => sp!.TierPrices)
                 .Include(quo => quo.Supplier)
                     .ThenInclude(s => s.SupplierPaymentMethods.Where(spm => spm.IsActive && spm.DeletedAt == null))
+                .Include(quo => quo.Supplier)
+                    .ThenInclude(s => s.SupplierDetails)
                 .AsSplitQuery()
                 .Where(quo => quo.IsActive)
                 .Where(quo => quo.Id == request.QuotationId)
@@ -61,6 +63,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
             if (request.SupplierId.HasValue && request.SupplierId.Value != quotation.SupplierId)
             {
                 var supplier = await _unitOfWork.Suppliers.Entities
+                    .Include(s => s.SupplierDetails)
                     .Include(s => s.SupplierPaymentMethods.Where(spm => spm.IsActive && spm.DeletedAt == null))
                     .Include(s => s.SupplierProducts.Where(sp => sp.IsActive && sp.DeletedAt == null))
                         .ThenInclude(sp => sp.TierPrices)
@@ -214,6 +217,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                     subtotal,
                     quotation.PurchaseRequestItem?.Product?.IsTaxExempt ?? false,
                     rates);
+
+                var details = quotation.Supplier?.SupplierDetails;
+                var retention = purchaseTaxService.CalculateRetentions(
+                    subtotal,
+                    quotation.SupplierProduct.Currency,
+                    details?.SupplierType,
+                    details?.IsTaxExempt ?? false,
+                    details?.ApplyIrRetention ?? false,
+                    details?.ApplyMunicipalRetention ?? false,
+                    rates);
+                quotation.Ir = retention.IrAmount;
+                quotation.Imi = retention.ImiAmount;
             }
 
             if (request.Attachments is not null)

@@ -6,6 +6,8 @@ using ERP.Core.Infrastructure.Services;
 
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Infrastructure;
+using ERP.Core.Database.Infrastructure.Persistence.Repositories.Inventory;
+using ERP.Core.Database.Application.Commons.Interfaces.Repositories.Inventory;
 
 using ERP.Core.Warehouse.Api.Infrastructure.Services;
 using ERP.Core.Warehouse.Api.Infrastructure.Schedules;
@@ -40,6 +42,9 @@ namespace ERP.Core.Warehouse.Api.Infrastructure
             // services.AddJobScheduling();
             services.AddErpCoreServices(configuration);
             services.AddErpDatabaseServices(configuration);
+
+            // El paquete 1.174.0 no registra este repositorio y UnitOfWork lo exige.
+            services.AddScoped<IInventoryOutputsRepository, InventoryOutputsRepository>();
 
             services.AddScoped<IErrorManager, ErrorManager>();
             services.AddHttpClient<IScaleServices, ScaleServices>();

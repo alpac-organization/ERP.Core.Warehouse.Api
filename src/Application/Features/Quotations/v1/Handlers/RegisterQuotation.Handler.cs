@@ -47,6 +47,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                 .ToDictionaryAsync(i => i.Id, cancellationToken);
 
             var suppliers = await _unitOfWork.Suppliers.Entities
+                .Include(s => s.SupplierDetails)
                 .Include(s => s.SupplierPaymentMethods.Where(spm => spm.IsActive && spm.DeletedAt == null))
                 .Include(s => s.SupplierProducts.Where(sp => sp.IsActive && sp.DeletedAt == null))
                     .ThenInclude(sp => sp.TierPrices)
@@ -121,6 +122,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                     subtotal,
                     item.Product.IsTaxExempt,
                     rates);
+                var retention = CalculateRetention(supplier, supplierProduct.Currency, subtotal, rates);
 
                 var (additionalData, attachmentError) = await quotationAttachmentService.BuildAdditionalDataAsync(
                     quotation.Attachments,
@@ -137,6 +139,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                     priceUnit.Value,
                     subtotal,
                     ivaAmount,
+                    retention.IrAmount,
+                    retention.ImiAmount,
                     supplierProduct.Id,
                     additionalData);
 
@@ -231,6 +235,24 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
             supplier.SupplierProducts.Add(created);
 
             return (created, null, null);
+        }
+
+        private PurchaseRetentionResult CalculateRetention(
+            Supplier supplier,
+            Currency currency,
+            decimal subtotal,
+            PurchaseTaxRates rates)
+        {
+            var details = supplier.SupplierDetails;
+
+            return purchaseTaxService.CalculateRetentions(
+                subtotal,
+                currency,
+                details?.SupplierType,
+                details?.IsTaxExempt ?? false,
+                details?.ApplyIrRetention ?? false,
+                details?.ApplyMunicipalRetention ?? false,
+                rates);
         }
 
         private static (PaymentMethodType method, string? error) ResolvePaymentMethod(

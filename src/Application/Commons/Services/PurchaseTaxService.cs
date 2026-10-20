@@ -74,54 +74,50 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Services
                 return 0m;
             }
 
-            return subtotal * rates.Iva.Value / 100m;
+            return RoundMoney(subtotal * rates.Iva.Value / 100m);
         }
 
+        /// <inheritdoc />
         public PurchaseRetentionResult CalculateRetentions(
             decimal subtotal,
-            decimal ivaAmount,
             Currency currency,
             SupplierType? supplierType,
             bool supplierIsTaxExempt,
+            bool applyIrRetention,
+            bool applyMunicipalRetention,
             PurchaseTaxRates rates)
         {
             ArgumentNullException.ThrowIfNull(rates);
 
             var exchangeRate = rates.ExchangeRate is > 0 ? rates.ExchangeRate.Value : 36.6243m;
-            var total = subtotal + ivaAmount;
-            var totalNio = currency == Currency.USD
-                ? Math.Round(total * exchangeRate, 2, MidpointRounding.AwayFromZero)
-                : total;
+            var subtotalNio = currency == Currency.USD
+                ? RoundMoney(subtotal * exchangeRate)
+                : subtotal;
 
             var result = new PurchaseRetentionResult
             {
                 ExchangeRate = exchangeRate,
-                TotalNio = totalNio,
+                TotalNio = subtotalNio,
                 SupplierType = supplierType,
                 RetentionsApplied = false
             };
 
-            if (supplierIsTaxExempt || totalNio < RetentionThresholdNio)
+            if (supplierIsTaxExempt || subtotalNio < RetentionThresholdNio)
             {
                 return result;
             }
 
             var isInternational = supplierType == SupplierType.International;
             var irRate = isInternational ? rates.IrSupplierInternation : rates.Ir;
-            var irTaxType = isInternational ? TaxType.IrSupplierInternation : TaxType.Ir;
-
-            var imiAmount = CalculatePercent(subtotal, rates.Imi);
-            var irBase = currency == Currency.USD
-                ? Math.Round(subtotal * exchangeRate, 2, MidpointRounding.AwayFromZero)
-                : subtotal;
-            var irAmount = CalculatePercent(irBase, irRate);
+            var irAmount = applyIrRetention ? CalculatePercent(subtotal, irRate) : 0m;
+            var imiAmount = applyMunicipalRetention ? CalculatePercent(subtotal, rates.Imi) : 0m;
 
             result.ImiAmount = imiAmount;
             result.IrAmount = irAmount;
-            result.ImiRate = rates.Imi ?? 0m;
-            result.IrRate = irRate ?? 0m;
-            result.IrTaxType = irTaxType;
-            result.RetentionsApplied = imiAmount > 0 || irAmount > 0;
+            result.ImiRate = applyMunicipalRetention ? rates.Imi ?? 0m : 0m;
+            result.IrRate = applyIrRetention ? irRate ?? 0m : 0m;
+            result.IrTaxType = isInternational ? TaxType.IrSupplierInternation : TaxType.Ir;
+            result.RetentionsApplied = imiAmount > 0m || irAmount > 0m;
 
             return result;
         }
@@ -133,7 +129,10 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Services
                 return 0m;
             }
 
-            return baseAmount * ratePercent.Value / 100m;
+            return RoundMoney(baseAmount * ratePercent.Value / 100m);
         }
+
+        private static decimal RoundMoney(decimal amount) =>
+            Math.Round(amount, 2, MidpointRounding.AwayFromZero);
     }
 }

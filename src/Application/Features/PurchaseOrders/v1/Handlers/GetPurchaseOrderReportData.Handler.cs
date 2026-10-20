@@ -117,8 +117,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             var serviceAmount = items.Sum(i => i.PriceTotal);
             var vatAmount = items.Sum(i => i.Iva);
-            var incomeTax = taxMetadata?.IrAmount ?? 0m;
-            var municipalTax = taxMetadata?.ImiAmount ?? 0m;
+            var incomeTax = supplierQuotations.Sum(q => q.Ir);
+            var municipalTax = supplierQuotations.Sum(q => q.Imi);
 
             var isPaymentRequest = request.PaymentMethod.HasValue;
             var title = isPaymentRequest
@@ -127,9 +127,24 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             var paymentRequestCode = purchaseOrder.PaymentRequest?.Code
                 ?? taxMetadata?.PaymentRequestCode;
+
+            if (isPaymentRequest && string.IsNullOrWhiteSpace(paymentRequestCode))
+            {
+                return _errorManager.ThrowBadRequest<PurchaseOrderTemplateDto>(
+                    "La solicitud de pago no tiene código.",
+                    "ERP:PAYMENT_REQUEST_CODE_REQUIRED");
+            }
+
+            if (!isPaymentRequest && string.IsNullOrWhiteSpace(purchaseOrder.Code))
+            {
+                return _errorManager.ThrowBadRequest<PurchaseOrderTemplateDto>(
+                    "La orden de compra no tiene código.",
+                    "ERP:PURCHASE_ORDER_CODE_REQUIRED");
+            }
+
             var requestCode = isPaymentRequest
-                ? paymentRequestCode ?? purchaseOrder.Code ?? purchaseOrder.PurchaseRequest.Code
-                : purchaseOrder.Code ?? purchaseOrder.PurchaseRequest.Code;
+                ? paymentRequestCode
+                : purchaseOrder.Code;
 
             template.PurchaseOrderId = purchaseOrder.Id;
             template.PurchaseOrderCode = purchaseOrder.Code;
