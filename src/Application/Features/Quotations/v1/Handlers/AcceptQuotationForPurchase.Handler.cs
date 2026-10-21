@@ -5,11 +5,16 @@ using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 {
-    public class AcceptQuotationForPurchaseHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager) : BaseValidatorHandler<AcceptQuotationForPurchaseCommand, bool>(_unitOfWork, _errorManager)
+    public class AcceptQuotationForPurchaseHandler(
+        IUnitOfWork _unitOfWork,
+        IErrorManager _errorManager,
+        IPurchaseRequestVisibilityService _visibilityService)
+        : BaseValidatorHandler<AcceptQuotationForPurchaseCommand, bool>(_unitOfWork, _errorManager)
     {
         public override async Task<bool> Handle(AcceptQuotationForPurchaseCommand request, CancellationToken cancellationToken)
         {
@@ -26,6 +31,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
             }
 
             var quotation = await _unitOfWork.Quotations.Entities
+                .Include(quo => quo.PurchaseRequestItem)
                 .Where(quo => quo.IsActive)
                 .Where(quo => quo.Id == request.QuotationId)
                 .Where(quo => quo.PurchaseRequestItemId == request.PurchaseRequestItemId)
@@ -34,6 +40,23 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
             if (quotation is null)
             {
                 return _errorManager.ThrowNotFound<bool>("La cotización no existe o no pertenece al producto solicitado", "ERP:QUOTATION_NOT_FOUND");
+            }
+
+            var isVisible = await _visibilityService.Apply(
+                    _unitOfWork.PurchaseRequests.Entities
+                        .Where(pr => pr.Id == quotation.PurchaseRequestItem.PurchaseRequestId),
+                    access.Role?.RoleType,
+                    request.UserId,
+                    access.Profile?.AreaId,
+                    access.Profile?.CostCenterId,
+                    access.Profile?.BranchId)
+                .AnyAsync(cancellationToken);
+
+            if (!isVisible)
+            {
+                return _errorManager.ThrowNotFound<bool>(
+                    "La solicitud de compra no fue encontrada",
+                    "ERP:PURCHASE_REQUEST_NOT_FOUND");
             }
 
             var itemQuotations = await _unitOfWork.Quotations.Entities

@@ -6,11 +6,16 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
-    public class SendPurchaseRequestToManagementReviewHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager) :  BaseValidatorHandler<SendPurchaseRequestToManagementReviewCommand, bool>(_unitOfWork, _errorManager)
+    public class SendPurchaseRequestToManagementReviewHandler(
+        IUnitOfWork _unitOfWork,
+        IErrorManager _errorManager,
+        IPurchaseRequestVisibilityService _visibilityService)
+        : BaseValidatorHandler<SendPurchaseRequestToManagementReviewCommand, bool>(_unitOfWork, _errorManager)
     {
         public override async Task<bool> Handle(SendPurchaseRequestToManagementReviewCommand request, CancellationToken cancellationToken)
         {
@@ -42,12 +47,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
             if(request.IsApproved)
             {
-                var purchaseRequest = await _unitOfWork.PurchaseRequests.Entities
+                var purchaseRequest = await _visibilityService.Apply(
+                        _unitOfWork.PurchaseRequests.Entities
+                            .Where(pur => pur.IsActive)
+                            .Where(pur => pur.Id == requisitionPending.PurchaseRequestId),
+                        access.Role?.RoleType,
+                        request.UserId,
+                        access.Profile?.AreaId,
+                        access.Profile?.CostCenterId,
+                        access.Profile?.BranchId)
                     .Include(pur => pur.ManagementReview)
                     .Include(pur => pur.PurchaseRequestItems)
                         .ThenInclude(item => item.Quotations)
-                    .Where(pur => pur.IsActive)
-                    .Where(pur => pur.Id == requisitionPending.PurchaseRequestId)
                     .FirstOrDefaultAsync(cancellationToken);
 
                 if (purchaseRequest is null)

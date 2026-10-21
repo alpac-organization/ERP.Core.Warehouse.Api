@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Models;
 
-namespace ERP.Core.Warehouse.Api.Application.Commons.Services
+namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services
 {
     public class PurchaseTaxService(IUnitOfWork unitOfWork) : IPurchaseTaxService
     {
@@ -19,10 +21,9 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Services
             TaxType.IrSupplierInternation
         ];
 
+        /* Obtiene las tasas vigentes  para los distintos tipos de impuestos utilizados en  compras.*/
         public async Task<PurchaseTaxRates> GetActiveRatesAsync(CancellationToken cancellationToken)
         {
-            ArgumentNullException.ThrowIfNull(unitOfWork);
-
             var rows = await unitOfWork.ValidityDeductions.Entities
                 .AsNoTracking()
                 .Where(v => v.Status)
@@ -46,10 +47,10 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Services
                 IrSupplierInternation: Pick(TaxType.IrSupplierInternation));
         }
 
+        /* Calcula el precio unitario a utilizar de un vinculo supplier-product determinando si aplica un precio preferencial por cantidad y fecha de cotización.
+        Retorna el precio preferencial si existe uno vigente y aplicable, en caso contrario retorna el precio unitario base del producto. */
         public decimal ResolveUnitPrice(SupplierProduct supplierProduct, int quantity, DateOnly quoteDate)
         {
-            ArgumentNullException.ThrowIfNull(supplierProduct);
-
             var tiers = supplierProduct.TierPrices ?? [];
 
             var preferential = tiers
@@ -65,19 +66,18 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Services
             return preferential ?? supplierProduct.UnitPrice;
         }
 
+        /* este Calcula el monto del IVA a partir del subtotal, el estado de exención y la tasa de IVA vigente.
+        / Retornando 0 si el proveedor es exento, la tasa de IVA no es válida o el subtotal es menor o igual a 0. */
         public decimal CalculateIva(decimal subtotal, bool isTaxExempt, PurchaseTaxRates rates)
         {
-            ArgumentNullException.ThrowIfNull(rates);
-
             if (isTaxExempt || !rates.Iva.HasValue || rates.Iva.Value <= 0 || subtotal <= 0)
             {
                 return 0m;
             }
 
-            return RoundMoney(subtotal * rates.Iva.Value / 100m);
+            return subtotal * rates.Iva.Value;
         }
 
-        /// <inheritdoc />
         public PurchaseRetentionResult CalculateRetentions(
             decimal subtotal,
             Currency currency,
@@ -87,11 +87,9 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Services
             bool applyMunicipalRetention,
             PurchaseTaxRates rates)
         {
-            ArgumentNullException.ThrowIfNull(rates);
-
             var exchangeRate = rates.ExchangeRate is > 0 ? rates.ExchangeRate.Value : 36.6243m;
             var subtotalNio = currency == Currency.USD
-                ? RoundMoney(subtotal * exchangeRate)
+                ? subtotal * exchangeRate
                 : subtotal;
 
             var result = new PurchaseRetentionResult
@@ -122,6 +120,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Services
             return result;
         }
 
+        /* aqui Calcula el porcentaje de un monto base dado una tasa en porcentaje.  */
         private static decimal CalculatePercent(decimal baseAmount, decimal? ratePercent)
         {
             if (!ratePercent.HasValue || ratePercent.Value <= 0 || baseAmount <= 0)
@@ -129,10 +128,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Services
                 return 0m;
             }
 
-            return RoundMoney(baseAmount * ratePercent.Value / 100m);
+            return baseAmount * ratePercent.Value;
         }
-
-        private static decimal RoundMoney(decimal amount) =>
-            Math.Round(amount, 2, MidpointRounding.AwayFromZero);
     }
 }

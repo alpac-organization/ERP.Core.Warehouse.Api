@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
@@ -10,27 +9,16 @@ using ERP.Core.Database.Application.Commons.Interfaces.Services;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
-using ERP.Core.Warehouse.Api.Application.Commons.Services;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 {
-    /// <summary>
-    /// Procesa la revisión de gerencia: emite una orden por supplier usando las retenciones ya guardadas en cada cotización.
-    /// </summary>
     public class ProcessPurchaseOrderHandler(
         IUnitOfWork unitOfWork,
         IErrorManager errorManager,
         ICodeGenerator codeGenerator)
         : BaseValidatorHandler<ProcessPurchaseOrderCommand, bool>(unitOfWork, errorManager)
     {
-        private static readonly JsonSerializerOptions JsonOptions = new()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-            PropertyNameCaseInsensitive = true
-        };
-
-        /// <inheritdoc />
         public override async Task<bool> Handle(ProcessPurchaseOrderCommand request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode!, cancellationToken);
@@ -48,17 +36,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             }
 
             var review = await _unitOfWork.PurchaseRequestsReviewedManagement.Entities
-                .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(pr => pr.PurchaseRequestItems)
-                        .ThenInclude(item => item.Quotations.Where(q => q.IsActive && q.DeletedAt == null && q.IsAcceptedForPurchase))
-                            .ThenInclude(q => q.Supplier)
-                                .ThenInclude(s => s.SupplierDetails)
-                .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(pr => pr.PurchaseRequestItems)
-                        .ThenInclude(item => item.Quotations.Where(q => q.IsActive && q.DeletedAt == null && q.IsAcceptedForPurchase))
-                            .ThenInclude(q => q.SupplierProduct)
-                .Where(rev => rev.Id == request.RequisitionManagementReviewId)
-                .Where(rev => rev.Status == ManagementReviewStatus.Pending)
+                .Where(rev => rev.Id == request.RequisitionManagementReviewId
+                           && rev.Status == ManagementReviewStatus.Pending)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (review is null)
@@ -78,10 +57,23 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                     review.Status = ManagementReviewStatus.Approved;
                     await _unitOfWork.PurchaseRequestsReviewedManagement.UpdateAsync(review);
 
-                    var acceptedQuotations = review.PurchaseRequest.PurchaseRequestItems
-                        .SelectMany(item => item.Quotations)
-                        .Where(q => q.IsActive && q.IsAcceptedForPurchase && q.DeletedAt == null)
-                        .ToList();
+                    var acceptedQuotations = await _unitOfWork.PurchaseRequestsReviewedManagement.Entities
+                        .AsNoTracking()
+                        .Where(rev => rev.Id == review.Id)
+                        .SelectMany(rev => rev.PurchaseRequest.PurchaseRequestItems
+                            .SelectMany(item => item.Quotations
+                                .Where(q => q.IsActive && q.DeletedAt == null && q.IsAcceptedForPurchase)
+                                .Select(q => new
+                                {
+                                    rev.PurchaseRequest.BranchId,
+                                    q.SupplierId,
+                                    q.PaymentMethodType,
+                                    q.PriceUnit,
+                                    q.PurchaseRequestItemId,
+                                    item.ProductId,
+                                    item.Quantity
+                                })))
+                        .ToListAsync(cancellationToken);
 
                     if (acceptedQuotations.Count == 0)
                     {
@@ -90,22 +82,20 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                             "ERP:NO_ACCEPTED_QUOTATIONS");
                     }
 
+                    var branchId = acceptedQuotations[0].BranchId;
                     var quotationsBySupplier = acceptedQuotations.GroupBy(q => q.SupplierId).ToList();
 
                     foreach (var supplierGroup in quotationsBySupplier)
                     {
                         var supplierQuotations = supplierGroup.ToList();
-                        var firstQuote = supplierQuotations.First();
-                        var irAmount = supplierQuotations.Sum(q => q.Ir);
-                        var imiAmount = supplierQuotations.Sum(q => q.Imi);
-                        var paymentMethod = firstQuote.PaymentMethodType;
+                        var paymentMethod = supplierQuotations[0].PaymentMethodType;
                         string? paymentRequestCode = null;
 
                         if (request.GeneratePaymentRequest)
                         {
                             var (paymentCodeSucceeded, generatedPaymentCode) =
                                 await codeGenerator.GenerateUniquePaymentRequestCodeAsync(
-                                    review.PurchaseRequest.BranchId,
+                                    branchId,
                                     paymentMethod,
                                     cancellationToken);
 
@@ -119,27 +109,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                             paymentRequestCode = generatedPaymentCode;
                         }
 
-                        var taxMetadata = new PurchaseOrderTaxMetadata
-                        {
-                            TotalNio = supplierQuotations.Sum(q => q.PriceTotal),
-                            ImiAmount = imiAmount,
-                            IrAmount = irAmount,
-                            RetentionsApplied = irAmount > 0m || imiAmount > 0m,
-                            SupplierType = firstQuote.Supplier?.SupplierDetails?.SupplierType,
-                            PaymentRequestCode = paymentRequestCode
-                        };
-
-                        var taxJson = JsonSerializer.Serialize(taxMetadata, JsonOptions);
-                        var comments = string.IsNullOrWhiteSpace(request.Comments)
-                            ? $"---TAX---{taxJson}"
-                            : $"{request.Comments}\n---TAX---{taxJson}";
-
                         var (codeSucceeded, poCode) = await codeGenerator.GenerateUniquePurchaseOrderCode(
-                            review.PurchaseRequest.BranchId, cancellationToken);
+                            branchId, cancellationToken);
 
                         var purchaseOrder = review.ToPurchaseOrderEntity(access.User.Id);
                         purchaseOrder.SupplierId = supplierGroup.Key;
-                        purchaseOrder.Comments = comments;
 
                         if (codeSucceeded && !string.IsNullOrWhiteSpace(poCode))
                         {
@@ -165,15 +139,29 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                             {
                                 Id = Guid.NewGuid(),
                                 PurchaseOrderId = purchaseOrder.Id,
-                                ProductId = quote.PurchaseRequestItem.ProductId,
+                                ProductId = quote.ProductId,
                                 PurchaseRequestItemId = quote.PurchaseRequestItemId,
-                                Quantity = quote.PurchaseRequestItem.Quantity,
+                                Quantity = quote.Quantity,
                                 UnitPrice = quote.PriceUnit
                             };
 
                             await _unitOfWork.PurchaseOrderItems.RegisterPurchaseOrderItem(orderItem);
                         }
                     }
+
+                    var purchaseRequest = await _unitOfWork.PurchaseRequests.Entities
+                        .Where(pr => pr.Id == review.PurchaseRequestId)
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    if (purchaseRequest is null)
+                    {
+                        return _errorManager.ThrowNotFound<bool>(
+                            "La solicitud de compra no fue encontrada",
+                            "ERP:PURCHASE_REQUEST_NOT_FOUND");
+                    }
+
+                    purchaseRequest.RequestStatus = PurchaseRequestStatus.Finished;
+                    await _unitOfWork.PurchaseRequests.UpdateAsync(purchaseRequest);
 
                     break;
                 }

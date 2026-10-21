@@ -3,11 +3,8 @@ using System.Text.Json;
 using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 
-namespace ERP.Core.Warehouse.Api.Application.Commons.Services
+namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services
 {
-    /// <summary>
-    /// Lee las URLs de imágenes y PDF guardadas en el JSON de la cotización.
-    /// </summary>
     public static class QuotationAttachmentReader
     {
         private static readonly JsonSerializerOptions JsonOptions = new()
@@ -16,9 +13,6 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Services
             PropertyNameCaseInsensitive = true
         };
 
-        /// <summary>
-        /// Deserializa los adjuntos ya subidos a almacenamiento. Un JSON vacío o inválido devuelve listas vacías.
-        /// </summary>
         public static QuotationAttachmentsDto Read(string? additionalData)
         {
             if (string.IsNullOrWhiteSpace(additionalData))
@@ -56,9 +50,6 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Services
         }
     }
 
-    /// <summary>
-    /// Imágenes y PDF de una cotización, listos para el detalle.
-    /// </summary>
     public sealed record QuotationAttachmentsDto(List<QuotationFileDto> Images, List<QuotationFileDto> Documents)
     {
         public static QuotationAttachmentsDto Empty { get; } = new([], []);

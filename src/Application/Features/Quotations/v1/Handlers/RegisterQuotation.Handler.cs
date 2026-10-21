@@ -8,7 +8,8 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
-using ERP.Core.Warehouse.Api.Application.Commons.Services;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Models;
 using ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
@@ -19,7 +20,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
         ILogger<RegisterQuotationHandler> logger,
         IPurchaseTaxService purchaseTaxService,
         ISupplierProductLinkService supplierProductLinkService,
-        IQuotationAttachmentService quotationAttachmentService)
+        IQuotationAttachmentService quotationAttachmentService,
+        IPurchaseRequestVisibilityService visibilityService)
         : BaseValidatorHandler<RegisterQuotationCommand, bool>(unitOfWork, errorManager)
     {
         public override async Task<bool> Handle(RegisterQuotationCommand request, CancellationToken cancellationToken)
@@ -45,6 +47,23 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                 .Include(i => i.Product)
                 .Where(i => itemIds.Contains(i.Id) && i.DeletedAt == null)
                 .ToDictionaryAsync(i => i.Id, cancellationToken);
+
+            var purchaseRequestIds = items.Values.Select(i => i.PurchaseRequestId).Distinct().ToList();
+            var visibleRequestCount = await visibilityService.Apply(
+                    _unitOfWork.PurchaseRequests.Entities.Where(pr => purchaseRequestIds.Contains(pr.Id)),
+                    access.Role?.RoleType,
+                    request.UserId,
+                    access.Profile?.AreaId,
+                    access.Profile?.CostCenterId,
+                    access.Profile?.BranchId)
+                .CountAsync(cancellationToken);
+
+            if (purchaseRequestIds.Count == 0 || visibleRequestCount != purchaseRequestIds.Count)
+            {
+                return _errorManager.ThrowNotFound<bool>(
+                    "La solicitud de compra no fue encontrada",
+                    "ERP:PURCHASE_REQUEST_NOT_FOUND");
+            }
 
             var suppliers = await _unitOfWork.Suppliers.Entities
                 .Include(s => s.SupplierDetails)
@@ -85,7 +104,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                     quotation,
                     item,
                     supplier,
-                    quoteDate,
                     cancellationToken);
 
                 if (linkResult.ErrorCode is not null)
@@ -107,13 +125,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                     supplierProduct,
                     item.Quantity,
                     quoteDate,
-                    quotation.PriceUnit,
                     purchaseTaxService);
 
                 if (priceUnit is null or <= 0)
                 {
                     return _errorManager.ThrowBadRequest<bool>(
-                        "Debe indicar el precio unitario porque el vínculo no tiene precio vigente.",
+                        "El vínculo proveedor–producto no tiene un precio vigente.",
                         "ERP:PRICE_UNIT_REQUIRED");
                 }
 
@@ -165,34 +182,24 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
             QuotationItem quotation,
             PurchaseRequestItem item,
             Supplier supplier,
-            DateOnly quoteDate,
             CancellationToken cancellationToken)
         {
-            var product = await _unitOfWork.Products.Entities
-                .Include(p => p.SupplierProducts)
-                    .ThenInclude(sp => sp.TierPrices)
-                .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(p => p.Id == item.ProductId, cancellationToken);
-
-            var supplierProduct = product?.SupplierProducts
-                .FirstOrDefault(sp => sp.SupplierId == supplier.Id);
-
+            var supplierProduct = supplierProductLinkService.FindActiveLink(supplier, item.ProductId);
             if (supplierProduct is not null)
             {
-                if (!supplierProduct.IsActive || supplierProduct.DeletedAt is not null)
-                {
-                    supplierProduct.IsActive = true;
-                    supplierProduct.DeletedAt = null;
-                    supplierProduct.UnitPrice = quotation.PriceUnit ?? supplierProduct.UnitPrice;
-                    supplierProduct.Currency = quotation.Currency ?? supplierProduct.Currency;
-                    supplierProduct.UnitMeasureId = item.UnitMeasureId != Guid.Empty
-                        ? item.UnitMeasureId
-                        : item.Product.UnitMeasureId;
-                    supplierProduct.LastPriceUpdate = DateTime.UtcNow;
-
-                }
-
                 return (supplierProduct, null, null);
+            }
+
+            if (await supplierProductLinkService.InactiveLinkExistsAsync(
+                    _unitOfWork.Products.Entities.SelectMany(product => product.SupplierProducts),
+                    item.ProductId,
+                    supplier.Id,
+                    cancellationToken))
+            {
+                return (
+                    null,
+                    "El vínculo proveedor–producto existe pero está inactivo.",
+                    "ERP:SUPPLIER_PRODUCT_INACTIVE");
             }
 
             if (!quotation.CreateSupplierProductIfMissing)
@@ -203,17 +210,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                     "ERP:SUPPLIER_PRODUCT_NOT_FOUND");
             }
 
-            if (quotation.PriceUnit is null or <= 0)
-            {
-                return (
-                    null,
-                    "Debe indicar el precio unitario para vincular el proveedor al producto.",
-                    "ERP:PRICE_UNIT_REQUIRED");
-            }
-
             var unitMeasureId = item.UnitMeasureId != Guid.Empty
                 ? item.UnitMeasureId
-                : item.Product.UnitMeasureId;
+                : item.Product?.UnitMeasureId ?? Guid.Empty;
 
             if (unitMeasureId == Guid.Empty)
             {
@@ -227,10 +226,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                 productId: item.ProductId,
                 supplierId: supplier.Id,
                 unitMeasureId: unitMeasureId,
-                unitPrice: quotation.PriceUnit.Value,
-                currency: quotation.Currency ?? Currency.NIO,
-                preferentialPrice: quotation.PreferentialPrice,
-                validFrom: quoteDate);
+                unitPrice: 0m,
+                currency: quotation.Currency ?? Currency.NIO);
 
             supplier.SupplierProducts.Add(created);
 

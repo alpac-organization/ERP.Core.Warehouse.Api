@@ -1,6 +1,5 @@
 using AutoMapper;
 using System.Globalization;
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
@@ -8,10 +7,8 @@ using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
-using ERP.Core.Warehouse.Api.Domain.Enums;
 using ERP.Core.Warehouse.Api.Domain.Entities.ObjectValues;
-using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
-using ERP.Core.Warehouse.Api.Application.Commons.Services;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Queries;
 
@@ -20,15 +17,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
     public class GetPurchaseOrderReportDataHandler(
         IUnitOfWork unitOfWork,
         IErrorManager errorManager,
-        IMapper mapper)
+        IMapper mapper,
+        IPurchaseRequestVisibilityService visibilityService)
         : BaseValidatorHandler<GetPurchaseOrderReportDataQuery, PurchaseOrderTemplateDto>(unitOfWork, errorManager)
     {
-        private static readonly JsonSerializerOptions JsonOptions = new()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-            PropertyNameCaseInsensitive = true
-        };
-
         public override async Task<PurchaseOrderTemplateDto> Handle(
             GetPurchaseOrderReportDataQuery request,
             CancellationToken cancellationToken)
@@ -39,6 +31,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             {
                 return access.ErrorResponse!;
             }
+
+            var visibleRequestIds = visibilityService.Apply(
+                    _unitOfWork.PurchaseRequests.Entities,
+                    access.Role?.RoleType,
+                    request.UserId,
+                    access.Profile?.AreaId,
+                    access.Profile?.CostCenterId,
+                    access.Profile?.BranchId)
+                .Select(pr => pr.Id);
 
             var purchaseOrder = await _unitOfWork.PurchaseOrders.Entities
                 .Include(po => po.Supplier)
@@ -63,6 +64,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 .AsSplitQuery()
                 .Where(po => po.Id == request.PurchaseOrderId)
                 .Where(po => po.DeletedAt == null)
+                .Where(po => visibleRequestIds.Contains(po.PurchaseRequestId))
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (purchaseOrder is null)
@@ -74,7 +76,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             var template = mapper.Map<PurchaseOrderTemplateDto>(purchaseOrder);
             var culture = new CultureInfo("es-NI");
-            var taxMetadata = TryParseTaxMetadata(purchaseOrder.Comments);
 
             var supplierQuotations = purchaseOrder.PurchaseRequest.PurchaseRequestItems
                 .SelectMany(item => item.Quotations)
@@ -98,7 +99,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                     var unitPrice = orderItem.UnitPrice;
                     var quantity = orderItem.Quantity;
                     var priceTotal = quotation?.PriceTotal
-                        ?? Math.Round(quantity * unitPrice, 2, MidpointRounding.AwayFromZero);
+                        ?? quantity * unitPrice;
 
                     return new PurchaseOrderReportItemDto
                     {
@@ -122,11 +123,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             var isPaymentRequest = request.PaymentMethod.HasValue;
             var title = isPaymentRequest
-                ? PurchaseOrdersMapper.GetDocumentTitleByMethodPayment(request.PaymentMethod!.Value)
+                ? "Solicitud de pago" 
                 : "Orden de compra";
 
-            var paymentRequestCode = purchaseOrder.PaymentRequest?.Code
-                ?? taxMetadata?.PaymentRequestCode;
+            var paymentRequestCode = purchaseOrder.PaymentRequest?.Code;
 
             if (isPaymentRequest && string.IsNullOrWhiteSpace(paymentRequestCode))
             {
@@ -150,7 +150,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             template.PurchaseOrderCode = purchaseOrder.Code;
             template.PaymentMethod = request.PaymentMethod;
             template.PaymentRequestCode = paymentRequestCode;
-            template.Tax = taxMetadata;
             template.Title = title;
             template.Concept ??= purchaseOrder.PurchaseRequest.Concept;
             template.Items = items;
@@ -180,36 +179,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             };
 
             return template;
-        }
-
-        private static PurchaseOrderTaxMetadata? TryParseTaxMetadata(string? comments)
-        {
-            if (string.IsNullOrWhiteSpace(comments))
-            {
-                return null;
-            }
-
-            const string marker = "---TAX---";
-            var markerIndex = comments.LastIndexOf(marker, StringComparison.Ordinal);
-            if (markerIndex < 0)
-            {
-                return null;
-            }
-
-            var json = comments[(markerIndex + marker.Length)..].Trim();
-            if (string.IsNullOrWhiteSpace(json))
-            {
-                return null;
-            }
-
-            try
-            {
-                return JsonSerializer.Deserialize<PurchaseOrderTaxMetadata>(json, JsonOptions);
-            }
-            catch (JsonException)
-            {
-                return null;
-            }
         }
     }
 }

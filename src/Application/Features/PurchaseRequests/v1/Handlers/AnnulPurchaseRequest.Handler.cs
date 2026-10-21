@@ -3,11 +3,16 @@ using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
-    public class AnnulPurchaseRequestHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager) : BaseValidatorHandler<AnnulPurchaseRequestCommand, bool>(_unitOfWork, _errorManager)
+    public class AnnulPurchaseRequestHandler(
+        IUnitOfWork _unitOfWork,
+        IErrorManager _errorManager,
+        IPurchaseRequestVisibilityService _visibilityService)
+        : BaseValidatorHandler<AnnulPurchaseRequestCommand, bool>(_unitOfWork, _errorManager)
     {
         public override async Task<bool> Handle(AnnulPurchaseRequestCommand request, CancellationToken cancellationToken)
         {
@@ -23,14 +28,19 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return _errorManager.ThrowForbidden<bool>("No tienes permiso para anular la solicitud de compra", "ERP:FORBIDDEN");
             }
 
-            var purchaseRequest = await _unitOfWork.PurchaseRequests.Entities
+            var purchaseRequest = await _visibilityService.Apply(
+                    _unitOfWork.PurchaseRequests.Entities
+                        .Where(pur => pur.Id == request.PurchaseRequestId)
+                        .Where(pur => pur.DeletedAt == null),
+                    access.Role?.RoleType,
+                    request.UserId,
+                    access.Profile?.AreaId,
+                    access.Profile?.CostCenterId,
+                    access.Profile?.BranchId)
                 .Include(pur => pur.AccountingReview)
                 .Include(pur => pur.ManagementReview)
-                // .Include(pur => pur.PurchaseOrder)
                 .Include(pur => pur.PurchaseRequestItems)
                     .ThenInclude(item => item.Quotations)
-                .Where(pur => pur.Id == request.PurchaseRequestId)
-                .Where(pur => pur.DeletedAt == null)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (purchaseRequest is null)

@@ -6,11 +6,16 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
-    public class SendPurchaseRequestToAccountingReviewHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager) :  BaseValidatorHandler<SendPurchaseRequestToReviewCommand, bool>(_unitOfWork, _errorManager)
+    public class SendPurchaseRequestToAccountingReviewHandler(
+        IUnitOfWork _unitOfWork,
+        IErrorManager _errorManager,
+        IPurchaseRequestVisibilityService _visibilityService)
+        : BaseValidatorHandler<SendPurchaseRequestToReviewCommand, bool>(_unitOfWork, _errorManager)
     {
         public override async Task<bool> Handle(SendPurchaseRequestToReviewCommand request, CancellationToken cancellationToken)
         {
@@ -26,11 +31,16 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return _errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:INVALID_ACCESS");
             }
 
-            var purchaseRequest = await _unitOfWork.PurchaseRequests.Entities
+            var purchaseRequest = await _visibilityService.Apply(
+                    _unitOfWork.PurchaseRequests.Entities.Where(pur => pur.Id == request.PurchaseRequestId),
+                    access.Role?.RoleType,
+                    request.UserId,
+                    access.Profile?.AreaId,
+                    access.Profile?.CostCenterId,
+                    access.Profile?.BranchId)
                 .Include(pur => pur.AccountingReview)
                 .Include(pur => pur.PurchaseRequestItems)
                     .ThenInclude(item => item.Quotations)
-                .Where(pur => pur.Id == request.PurchaseRequestId)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (purchaseRequest is null)

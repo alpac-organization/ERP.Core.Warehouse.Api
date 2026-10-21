@@ -1,7 +1,7 @@
 using AutoMapper;
 using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Warehouse.Api.Application.Commons.Services;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 
 using Commands = ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands;
