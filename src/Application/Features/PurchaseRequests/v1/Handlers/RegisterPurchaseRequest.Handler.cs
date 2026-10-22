@@ -90,82 +90,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 }
             }
 
-            foreach(var purchaseRequest in request.PurchaseRequests)
-            {
-                Guid areaId = access.Profile.AreaId;
-
-                if (access.Role?.RoleType == RoleType.Administrator && purchaseRequest.AreaId.HasValue)
-                {
-                    areaId = purchaseRequest.AreaId.Value;
-                }
-
-                var (isSucceded, code) = await _codeGenerator.GenerateUniqueCodeToPurchaseRequest(purchaseRequest.RequestType, purchaseRequest.BranchId);
-
-                if (!isSucceded)
-                {
-                    return _errorManager.ThrowBadRequest<bool>("Ocurrio un error la generar la solucitud de comprar", "ERP:ERROR_CODE_GENERATOR");
-                }
-
-                var requestDate = _purchasePeriodService.ResolveRequestPeriod(
-                    purchaseRequest.RequestType,
-                    DateOnly.FromDateTime(DateTime.UtcNow));
-
-                var purchaseRequestEntity = PurchaseRequestMapper.ToPurchaseRequestEntity(
-                    purchaseRequest,
-                    code,
-                    areaId,
-                    access.User.Id,
-                    requestDate);
-                await _unitOfWork.PurchaseRequests.RegisterPurchaseRequest(purchaseRequestEntity);
-
-                // Guardame imagenes en el S3 Bucket
-                foreach (var productItem in purchaseRequest.PurchaseRequestItems)
-                {
-                    var (productId, unitMeasureId, resolveError) = await ResolveProductAsync(
-                        productItem,
-                        request.CompanyId,
-                        productsById,
-                        validAdditionalSuppliers,
-                        cancellationToken);
-
-                    if (resolveError is not null)
-                    {
-                        return resolveError.Value;
-                    }
-
-                    var purchaseRequestItemEntity = PurchaseRequestMapper.ToPurchaseRequestItemEntity(
-                        productItem,
-                        purchaseRequestEntity.Id,
-                        productId,
-                        unitMeasureId);
-
-                    if (!string.IsNullOrWhiteSpace(purchaseRequestItemEntity.AdditionalData))
-                    {
-                        var additionalData = JsonSerializer.Deserialize<PurchaseRequestItemAdditionalData>(purchaseRequestItemEntity.AdditionalData, JsonOptions);
-
-                        if (additionalData?.ImagesProductToChanged is { Count: > 0 })
-                        {
-                            var uploadedUrls = new List<string>();
-
-                            foreach (var base64Image in additionalData.ImagesProductToChanged)
-                            {
-                                var imageUrl = await _s3StorageService.UploadImageAsync("Compras", "SolicitudesCompras", base64Image, cancellationToken);
-                                uploadedUrls.Add(imageUrl);
-                            }
-
-                            additionalData.ImagesProductToChanged = uploadedUrls;
-                            purchaseRequestItemEntity.AdditionalData = JsonSerializer.Serialize(additionalData, JsonOptions);
-                        }
-                    }
-
-                    await _unitOfWork.PurchaseRequestItems.RegisterPurchaseRequestItem(purchaseRequestItemEntity);
-                }
-            }
-
-            #region Enviar push notification
-
             var notificationConfig = _options.Value;
-
             string userName = access.User?.Fullname ?? "Un usuario";
             string descriptionCopy = (notificationConfig.Description ?? "{{Name}} registró una nueva solicitud de compra {{Type}}.")
                 .Replace("{{Name}}", userName);
@@ -185,20 +110,105 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 )
                 .ToListAsync(cancellationToken);
 
-            var targetProfileIds = targetProfiles.Select(p => p.Id).ToList();
+            await UploadItemImagesAsync(request, cancellationToken);
 
-            foreach (var profile in targetProfiles)
+            bool? resolveError = null;
+
+            try
             {
-                await _unitOfWork.Notifications.CreateNotification(new()
+                await _unitOfWork.ExecuteWithUniqueCodeRetryAsync(async token =>
                 {
-                    Title = notificationConfig.Title,
-                    Description = descriptionCopy,
-                    PathRedirect = "/purchasing",
-                    AdditionalData = JsonSerializer.Serialize("{}"),
-                    UserId = profile.UserId,
-                });
+                    resolveError = null;
+
+                    foreach (var purchaseRequest in request.PurchaseRequests)
+                    {
+                        Guid areaId = access.Profile.AreaId;
+
+                        if (access.Role?.RoleType == RoleType.Administrator && purchaseRequest.AreaId.HasValue)
+                        {
+                            areaId = purchaseRequest.AreaId.Value;
+                        }
+
+                        var (isSucceded, code) = await _codeGenerator.GenerateUniqueCodeToPurchaseRequest(
+                            purchaseRequest.RequestType,
+                            purchaseRequest.BranchId);
+
+                        if (!isSucceded)
+                        {
+                            throw new InvalidOperationException(
+                                "Ocurrio un error la generar la solucitud de comprar");
+                        }
+
+                        var requestDate = _purchasePeriodService.ResolveRequestPeriod(
+                            purchaseRequest.RequestType,
+                            DateOnly.FromDateTime(DateTime.UtcNow));
+
+                        var purchaseRequestEntity = PurchaseRequestMapper.ToPurchaseRequestEntity(
+                            purchaseRequest,
+                            code,
+                            areaId,
+                            access.User.Id,
+                            requestDate);
+                        await _unitOfWork.PurchaseRequests.RegisterPurchaseRequest(purchaseRequestEntity);
+
+                        foreach (var productItem in purchaseRequest.PurchaseRequestItems)
+                        {
+                            var (productId, unitMeasureId, productError) = await ResolveProductAsync(
+                                productItem,
+                                request.CompanyId,
+                                productsById,
+                                validAdditionalSuppliers,
+                                token);
+
+                            if (productError is not null)
+                            {
+                                resolveError = productError;
+                                return;
+                            }
+
+                            var purchaseRequestItemEntity = PurchaseRequestMapper.ToPurchaseRequestItemEntity(
+                                productItem,
+                                purchaseRequestEntity.Id,
+                                productId,
+                                unitMeasureId);
+
+                            await _unitOfWork.PurchaseRequestItems.RegisterPurchaseRequestItem(purchaseRequestItemEntity);
+                        }
+                    }
+
+                    if (resolveError is not null)
+                    {
+                        return;
+                    }
+
+                    foreach (var profile in targetProfiles)
+                    {
+                        await _unitOfWork.Notifications.CreateNotification(new()
+                        {
+                            Title = notificationConfig.Title,
+                            Description = descriptionCopy,
+                            PathRedirect = "/purchasing",
+                            AdditionalData = JsonSerializer.Serialize("{}"),
+                            UserId = profile.UserId,
+                        });
+                    }
+
+                    await _unitOfWork.SaveChangesAsync(token);
+                }, cancellationToken);
+            }
+            catch (InvalidOperationException)
+            {
+                return _errorManager.ThrowBadRequest<bool>(
+                    "Ocurrio un error la generar la solucitud de comprar",
+                    "ERP:ERROR_CODE_GENERATOR");
             }
 
+            if (resolveError is not null)
+            {
+                return resolveError.Value;
+            }
+
+            var targetProfileIds = targetProfiles.Select(p => p.Id).ToList();
             var devices = await _unitOfWork.Devices.Entities
                 .Where(device => device.IsActive)
                 .Where(device => targetProfileIds.Contains(device.UserProfileId))
@@ -225,13 +235,49 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 _logger.LogInformation("Push notification result for device {EndpointArn}: {@Result}", device?.EndpointArn, result);
             }
 
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
             _logger.LogInformation("Se registro exitosamente la solicitud de compra");
-
-            #endregion
 
             return true;
         }
+
+        private async Task UploadItemImagesAsync(RegisterPurchaseRequestCommand request, CancellationToken cancellationToken)
+        {
+            foreach (var purchaseRequest in request.PurchaseRequests)
+            {
+                foreach (var productItem in purchaseRequest.PurchaseRequestItems)
+                {
+                    if (string.IsNullOrWhiteSpace(productItem.AdditionalData))
+                    {
+                        continue;
+                    }
+
+                    var additionalData = JsonSerializer.Deserialize<PurchaseRequestItemAdditionalData>(
+                        productItem.AdditionalData,
+                        JsonOptions);
+
+                    if (additionalData?.ImagesProductToChanged is not { Count: > 0 })
+                    {
+                        continue;
+                    }
+
+                    var uploadedUrls = new List<string>(additionalData.ImagesProductToChanged.Count);
+
+                    foreach (var base64Image in additionalData.ImagesProductToChanged)
+                    {
+                        var imageUrl = await _s3StorageService.UploadImageAsync(
+                            "Compras",
+                            "SolicitudesCompras",
+                            base64Image,
+                            cancellationToken);
+                        uploadedUrls.Add(imageUrl);
+                    }
+
+                    additionalData.ImagesProductToChanged = uploadedUrls;
+                    productItem.AdditionalData = JsonSerializer.Serialize(additionalData, JsonOptions);
+                }
+            }
+        }
+
         private async Task<(Guid ProductId, Guid UnitMeasureId, bool? ErrorResponse)> ResolveProductAsync(
             Commands.PurchaseRequestItem item,
             Guid companyId,
