@@ -37,7 +37,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
             if (!string.IsNullOrEmpty(request.CustomerCif))
             {
                 operationalOrdersQuery = operationalOrdersQuery
-                    .Where(po => po.Customer.Cif == request.CustomerCif);
+                    .Where(po => po.Customer.CIFCode == request.CustomerCif);
             }
 
             if (!string.IsNullOrEmpty(request.PoCode))
