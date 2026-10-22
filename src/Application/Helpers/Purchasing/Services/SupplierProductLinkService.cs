@@ -46,7 +46,9 @@ namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services
             SupplierProduct supplierProduct,
             int quantity,
             DateOnly quoteDate,
-            IPurchaseTaxService purchaseTaxService)
+            IPurchaseTaxService purchaseTaxService,
+            decimal? requestPriceUnit = null,
+            Currency? requestCurrency = null)
         {
             var catalogPrice = purchaseTaxService.ResolveUnitPrice(supplierProduct, quantity, quoteDate);
             if (catalogPrice > 0)
@@ -54,7 +56,20 @@ namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services
                 return catalogPrice;
             }
 
-            return null;
+            if (requestPriceUnit is not > 0)
+            {
+                return null;
+            }
+
+            supplierProduct.UnitPrice = requestPriceUnit.Value;
+            supplierProduct.LastPriceUpdate = DateTime.UtcNow;
+
+            if (requestCurrency.HasValue)
+            {
+                supplierProduct.Currency = requestCurrency.Value;
+            }
+
+            return requestPriceUnit;
         }
     }
 }

@@ -133,7 +133,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                         productId: productId,
                         supplierId: supplier.Id,
                         unitMeasureId: unitMeasureId,
-                        unitPrice: 0m,
+                        unitPrice: request.PriceUnit is > 0 ? request.PriceUnit.Value : 0m,
                         currency: request.Currency ?? Currency.NIO);
 
                     supplier.SupplierProducts.Add(supplierProduct);
@@ -203,9 +203,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                     quotation.SupplierProduct,
                     quantity,
                     quoteDate,
-                    purchaseTaxService);
+                    purchaseTaxService,
+                    request.PriceUnit,
+                    request.Currency);
 
-                if (priceUnit is null or <= 0)
+                if (priceUnit is null)
                 {
                     return _errorManager.ThrowBadRequest<bool>(
                         "El vínculo proveedor–producto no tiene un precio vigente.",

@@ -57,6 +57,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Validators
                 .Null()
                 .WithMessage("La cotización no admite precio preferencial.");
 
+            RuleFor(x => x.PriceUnit)
+                .GreaterThan(0)
+                .When(x => x.PriceUnit.HasValue)
+                .WithMessage("El precio unitario debe ser mayor a cero.");
+
             RuleFor(x => x.Currency)
                 .IsInEnum()
                 .When(x => x.Currency.HasValue)

@@ -43,6 +43,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands
 
         public decimal? PreferentialPrice { get; set; }
 
+        public decimal? PriceUnit { get; set; }
+
         public Currency? Currency { get; set; }
 
         public bool CreateSupplierProductIfMissing { get; set; } = true;
