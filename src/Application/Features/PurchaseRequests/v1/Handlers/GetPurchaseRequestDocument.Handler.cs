@@ -12,14 +12,23 @@ using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
+using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Domain.Entities.ObjectValues;
 using ERP.Core.Warehouse.Api.Domain.Enums;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
-    public class GetPurchaseRequestDocumentHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper, IPdfGeneratorServices _pdfGeneratorServices, IS3StorageService _s3StorageService) : BaseValidatorHandler<GetPurchaseRequestDocumentQuery, PurchaseRequestDocumentDto>(_unitOfWork, _errorManager)
+    public class GetPurchaseRequestDocumentHandler(
+        IUnitOfWork _unitOfWork,
+        IErrorManager _errorManager,
+        IMapper _mapper,
+        IPdfGeneratorServices _pdfGeneratorServices,
+        IS3StorageService _s3StorageService,
+        IPurchaseRequestVisibilityService _visibilityService)
+        : BaseValidatorHandler<GetPurchaseRequestDocumentQuery, PurchaseRequestDocumentDto>(_unitOfWork, _errorManager)
     {
         public override async Task<PurchaseRequestDocumentDto> Handle(GetPurchaseRequestDocumentQuery request, CancellationToken cancellationToken)
         {
@@ -31,8 +40,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             }
 
             var template = request.DocumentType == PurchaseRequestType.Monthly
-                ? await BuildMonthlyDocumentAsync(request, cancellationToken)
-                : await BuildRequestDocumentAsync(request, cancellationToken);
+                ? await BuildMonthlyDocumentAsync(request, access, cancellationToken)
+                : await BuildRequestDocumentAsync(request, access, cancellationToken);
 
             if (template is null)
             {
@@ -54,7 +63,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
         }
 
         #region Documento mensual (consolidado)
-        private async Task<PurchaseRequestDocumentTemplateDto?> BuildMonthlyDocumentAsync(GetPurchaseRequestDocumentQuery request, CancellationToken cancellationToken)
+        private async Task<PurchaseRequestDocumentTemplateDto?> BuildMonthlyDocumentAsync(
+            GetPurchaseRequestDocumentQuery request,
+            AccessValidationResult<PurchaseRequestDocumentDto> access,
+            CancellationToken cancellationToken)
         {
             var year  = request.Year  ?? DateTime.UtcNow.Year;
             var month = request.Month ?? DateTime.UtcNow.Month;
@@ -62,8 +74,21 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             var firstDayOfMonth = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
             var firstDayOfNextMonth = firstDayOfMonth.AddMonths(1);
 
-            var purchaseRequests = await _unitOfWork.PurchaseRequests.Entities
-                .Where(purs => purs.IsActive)
+            var purchaseRequestsQuery = _visibilityService.Apply(
+                _unitOfWork.PurchaseRequests.Entities
+                    .Where(purs => purs.IsActive)
+                    .Where(purs => purs.RequestType == PurchaseRequestType.Monthly)
+                    .Where(purs => purs.Branch.CompanyId == request.CompanyId)
+                    .Where(purs => purs.CreatedAt >= firstDayOfMonth && purs.CreatedAt < firstDayOfNextMonth)
+                    .Where(purs => purs.RequestStatus == PurchaseRequestStatus.Approved
+                                || purs.RequestStatus == PurchaseRequestStatus.Rejected),
+                access.Role?.RoleType,
+                request.UserId,
+                access.Profile?.AreaId,
+                access.Profile?.CostCenterId,
+                access.Profile?.BranchId);
+
+            var purchaseRequests = await purchaseRequestsQuery
                 .Include(purs => purs.Branch)
                     .ThenInclude(branch => branch.Company)
                 .Include(purs => purs.WorkArea)
@@ -72,11 +97,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                         .ThenInclude(product => product.Category)
                 .Include(purs => purs.PurchaseRequestItems)
                     .ThenInclude(item => item.UnitMeasure)
-                .Where(purs => purs.RequestType == PurchaseRequestType.Monthly)
-                .Where(purs => purs.Branch.CompanyId == request.CompanyId)
-                .Where(purs => purs.CreatedAt >= firstDayOfMonth && purs.CreatedAt < firstDayOfNextMonth)
-                .Where(purs => purs.RequestStatus == PurchaseRequestStatus.Approved
-                            || purs.RequestStatus == PurchaseRequestStatus.Rejected)
                 .AsNoTracking()
                 .AsSplitQuery()
                 .ToListAsync(cancellationToken);
@@ -163,9 +183,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
         #endregion
 
         #region Documento individual (Requisición / Eventual)
-        private async Task<PurchaseRequestDocumentTemplateDto?> BuildRequestDocumentAsync(GetPurchaseRequestDocumentQuery request, CancellationToken cancellationToken)
+        private async Task<PurchaseRequestDocumentTemplateDto?> BuildRequestDocumentAsync(
+            GetPurchaseRequestDocumentQuery request,
+            AccessValidationResult<PurchaseRequestDocumentDto> access,
+            CancellationToken cancellationToken)
         {
-            var purchaseRequest = await _unitOfWork.PurchaseRequests.Entities
+            var purchaseRequest = await _visibilityService.Apply(
+                    _unitOfWork.PurchaseRequests.Entities.Where(purs => purs.Id == request.PurchaseRequestId),
+                    access.Role?.RoleType,
+                    request.UserId,
+                    access.Profile?.AreaId,
+                    access.Profile?.CostCenterId,
+                    access.Profile?.BranchId)
                 .Include(purs => purs.Branch)
                     .ThenInclude(branch => branch.Company)
                 .Include(purs => purs.WorkArea)
@@ -174,7 +203,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                         .ThenInclude(product => product.Category)
                 .Include(purs => purs.PurchaseRequestItems)
                     .ThenInclude(item => item.UnitMeasure)
-                .Where(purs => purs.Id == request.PurchaseRequestId)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (purchaseRequest is null)

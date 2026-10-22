@@ -2,14 +2,13 @@ using System.Text.Json;
 using ERP.Core.Application.Commons.Interfaces.AWS;
 using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
 
-namespace ERP.Core.Warehouse.Api.Application.Commons.Services
+namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services
 {
     public class QuotationAttachmentService(IS3StorageService s3StorageService) : IQuotationAttachmentService
     {
         private const int MaxImages = 2;
-        private const long MaxImageBytes = 5 * 1024 * 1024;
-        private const long MaxPdfBytes = 10 * 1024 * 1024;
 
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
@@ -22,8 +21,6 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Services
             string? existingJson,
             CancellationToken cancellationToken)
         {
-            ArgumentNullException.ThrowIfNull(s3StorageService);
-
             if (attachments is null)
             {
                 return (existingJson, null);
@@ -73,7 +70,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Services
                     return (null, "El PDF adjunto no tiene un formato Base64 válido.");
                 }
 
-                if (bytes.Length == 0 || bytes.Length > MaxPdfBytes)
+                if (bytes.Length == 0)
                 {
                     return (null, "El PDF adjunto es inválido o excede el tamaño permitido.");
                 }
@@ -103,7 +100,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Services
                     try
                     {
                         var imageBytes = Convert.FromBase64String(imageBase64);
-                        if (imageBytes.Length == 0 || imageBytes.Length > MaxImageBytes)
+                        if (imageBytes.Length == 0)
                         {
                             return (null, "Una o más imágenes son inválidas o exceden el tamaño permitido.");
                         }

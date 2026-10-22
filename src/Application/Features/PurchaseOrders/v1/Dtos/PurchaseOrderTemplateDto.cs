@@ -2,7 +2,6 @@ using ERP.Core.Database.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Domain.Enums;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Domain.Entities.ObjectValues;
-using ERP.Core.Warehouse.Api.Application.Commons.Services;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos
 {
@@ -15,8 +14,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos
         public PaymentMethod? PaymentMethod { get; set; }
 
         public string? PaymentRequestCode { get; set; }
-
-        public PurchaseOrderTaxMetadata? Tax { get; set; }
 
         public PaymentInfo PaymentInfo { get; set; } = new();
 

@@ -6,12 +6,18 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Handlers
 {
-    public class GetRequisitionAccountingReviewsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) :  BaseValidatorHandler<GetRequisitionAccountingReviewsQuery, PagedResponse<PurchaseRequestsReviewedAccountingDto>>(_unitOfWork, _errorManager)
+    public class GetRequisitionAccountingReviewsHandler(
+        IUnitOfWork _unitOfWork,
+        IErrorManager _errorManager,
+        IMapper _mapper,
+        IPurchaseRequestVisibilityService _visibilityService)
+        : BaseValidatorHandler<GetRequisitionAccountingReviewsQuery, PagedResponse<PurchaseRequestsReviewedAccountingDto>>(_unitOfWork, _errorManager)
     {
         public override async Task<PagedResponse<PurchaseRequestsReviewedAccountingDto>> Handle(GetRequisitionAccountingReviewsQuery request, CancellationToken cancellationToken)
         {
@@ -22,33 +28,41 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 return access.ErrorResponse!;
             }
 
+            var profileCompanyId = access.Profile!.CompanyId;
+
+            var visibleRequestIds = _visibilityService.Apply(
+                    _unitOfWork.PurchaseRequests.Entities,
+                    access.Role?.RoleType,
+                    request.UserId,
+                    access.Profile?.AreaId,
+                    access.Profile?.CostCenterId,
+                    access.Profile?.BranchId)
+                .Select(pr => pr.Id);
+
             var reviewsQuery = _unitOfWork.PurchaseRequestsReviewedAccounting.Entities
                 .Where(rev => rev.DeletedAt == null)
                 .Include(rev => rev.SentByUser)
                     .ThenInclude(rev => rev.Profiles
-                        .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                        .Where(profile => profile.CompanyId == profileCompanyId)
                         .Take(1)
                     )
                     .ThenInclude(profile => profile.WorkArea)
                 .Include(rev => rev.ReviewedByUser)
                     .ThenInclude(rev => rev!.Profiles
-                        .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                        .Where(profile => profile.CompanyId == profileCompanyId)
                         .Take(1)
                     )
                     .ThenInclude(profile => profile.WorkArea)
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(purs => purs.CostCenter)
+                .Where(rev => rev.PurchaseRequest.Branch.Company.Id == request.CompanyId)
+                .Where(rev => visibleRequestIds.Contains(rev.PurchaseRequestId))
                 .AsNoTracking();
 
             if (request.BranchId.HasValue)
             {
                 reviewsQuery = reviewsQuery
                     .Where(rev => rev.PurchaseRequest.BranchId == request.BranchId);
-            }
-            else
-            {
-                reviewsQuery = reviewsQuery
-                    .Where(rev => rev.PurchaseRequest.Branch.Company.Id == request.CompanyId);
             }
 
             if (request.AreaId.HasValue)

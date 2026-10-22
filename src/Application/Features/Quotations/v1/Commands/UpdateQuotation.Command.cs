@@ -41,12 +41,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands
         public string? SupplierSelectionJustification { get; set; }
 
         /// <summary>
-        /// Precio unitario para crear vínculo o como fallback de precio.
-        /// </summary>
-        public decimal? PriceUnit { get; set; }
-
-        /// <summary>
-        /// Precio preferencial al crear el vínculo.
+        /// Precio preferencial. La cotización no lo admite.
         /// </summary>
         public decimal? PreferentialPrice { get; set; }
 

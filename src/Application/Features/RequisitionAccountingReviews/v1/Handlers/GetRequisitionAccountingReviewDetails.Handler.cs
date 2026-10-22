@@ -5,14 +5,20 @@ using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
-using ERP.Core.Warehouse.Api.Application.Commons.Services;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Handlers
 {
-    public class GetRequisitionAccountingReviewDetailsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) :  BaseValidatorHandler<GetRequisitionAccountingReviewDetailsQuery, PurchaseRequestsReviewedAccountingDetailsDto>(_unitOfWork, _errorManager)
+    public class GetRequisitionAccountingReviewDetailsHandler(
+        IUnitOfWork _unitOfWork,
+        IErrorManager _errorManager,
+        IMapper _mapper,
+        IPurchaseRequestVisibilityService _visibilityService)
+        : BaseValidatorHandler<GetRequisitionAccountingReviewDetailsQuery, PurchaseRequestsReviewedAccountingDetailsDto>(_unitOfWork, _errorManager)
     {
         public override async Task<PurchaseRequestsReviewedAccountingDetailsDto> Handle(GetRequisitionAccountingReviewDetailsQuery request, CancellationToken cancellationToken)
         {
@@ -23,6 +29,17 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 return access.ErrorResponse!;
             }
 
+            var profileCompanyId = access.Profile!.CompanyId;
+
+            var visibleRequestIds = _visibilityService.Apply(
+                    _unitOfWork.PurchaseRequests.Entities,
+                    access.Role?.RoleType,
+                    request.UserId,
+                    access.Profile?.AreaId,
+                    access.Profile?.CostCenterId,
+                    access.Profile?.BranchId)
+                .Select(pr => pr.Id);
+
             var review = await _unitOfWork.PurchaseRequestsReviewedAccounting.Entities
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(purs => purs.CostCenter)
@@ -30,7 +47,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 //Usuario que envia la solicitud a revición
                 .Include(rev => rev.SentByUser)
                     .ThenInclude(pur => pur.Profiles
-                        .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                        .Where(profile => profile.CompanyId == profileCompanyId)
                         .Take(1)
                     )
                     .ThenInclude(profile => profile.WorkArea)
@@ -39,16 +56,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.Branch)
 
-                //Areas la que va realizada la solicitud            
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.WorkArea)
-                        .ThenInclude(area => area.CostCenters)
 
                 //Usuario que registro la solicitud de compra
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.RegistrationUser)
                         .ThenInclude(pur => pur.Profiles
-                            .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                            .Where(profile => profile.CompanyId == profileCompanyId)
                             .Take(1)
                         )
                         .ThenInclude(profile => profile.WorkArea)
@@ -56,7 +71,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.UserRevision)
                         .ThenInclude(pur => pur.Profiles
-                            .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                            .Where(profile => profile.CompanyId == profileCompanyId)
                             .Take(1)
                         )
                         .ThenInclude(profile => profile.WorkArea)
@@ -67,8 +82,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
 
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.PurchaseRequestItems)
-                        .ThenInclude(item => item.Quotations)
-                            .ThenInclude(quo => quo.Supplier)
+                        .ThenInclude(item => item.Product)
+                            .ThenInclude(product => product.Category)
 
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.PurchaseRequestItems)
@@ -86,20 +101,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                     .ThenInclude(pur => pur.PurchaseRequestItems)
                         .ThenInclude(item => item.Quotations.Where(q => q.IsActive && q.DeletedAt == null))
                             .ThenInclude(q => q.Supplier)
-                                .ThenInclude(s => s.SupplierDetails)
-
-                .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(pur => pur.PurchaseRequestItems)
-                        .ThenInclude(item => item.Quotations.Where(q => q.IsActive && q.DeletedAt == null))
-                            .ThenInclude(q => q.SupplierProduct)
-                                .ThenInclude(sp => sp!.TierPrices)
-
-                .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(pur => pur.CostCenter)
 
                 .AsSplitQuery()
                 .AsNoTracking()
                 .Where(rev => rev.Id == request.RequisitionAccountingReviewId)
+                .Where(rev => visibleRequestIds.Contains(rev.PurchaseRequestId))
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (review is null)

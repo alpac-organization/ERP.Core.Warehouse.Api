@@ -1,7 +1,8 @@
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Shopping;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Models;
 
-namespace ERP.Core.Warehouse.Api.Application.Commons.Services
+namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces
 {
     public interface IPurchaseTaxService
     {
@@ -13,10 +14,11 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Services
 
         PurchaseRetentionResult CalculateRetentions(
             decimal subtotal,
-            decimal ivaAmount,
             Currency currency,
             SupplierType? supplierType,
             bool supplierIsTaxExempt,
+            bool applyIrRetention,
+            bool applyMunicipalRetention,
             PurchaseTaxRates rates);
     }
 }

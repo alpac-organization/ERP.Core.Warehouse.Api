@@ -47,14 +47,5 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             };
         }
 
-        public static string GetDocumentTitleByMethodPayment(PaymentMethod paymentMethod)
-        {
-            return paymentMethod switch
-            {
-                PaymentMethod.BankTransfer => "Solicitud de transferencia",
-                PaymentMethod.Check        => "Solicitud de cheque",
-                _                          => "Solicitud de pago"
-            };
-        }
     }
 }   
