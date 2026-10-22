@@ -5,7 +5,6 @@
 **/obj/
 
 ## VS Code y herramientas
-.vscode/
 *.user
 *.suo
 *.userosscache
@@ -17,7 +16,5 @@
 nuget.config
 .env
 repomix.config.json
-
-
 .opencodeignore
 .cursor
