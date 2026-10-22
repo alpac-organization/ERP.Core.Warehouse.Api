@@ -9,6 +9,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Queries
         List<T> Data,
         int PageNumber,
         int PageSize,
+        int InMinimumStock,
         int Total
     ) : PagedResponse<T>(Data, PageNumber, PageSize, Total);
 

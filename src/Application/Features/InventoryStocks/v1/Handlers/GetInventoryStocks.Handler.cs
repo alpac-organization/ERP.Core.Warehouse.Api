@@ -29,24 +29,38 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                 .Include(inventory => inventory.Product)
                     .ThenInclude(product => product.CostCenter)
 
+                .Include(inventory => inventory.CostCenter)
+
                 .Where(inventory => inventory.Product.BranchId == access.Profile.BranchId)
-                .Where(inventory => inventory.Product.CostCenterId == access.Profile.CostCenterId)
+                .Where(inventory => inventory.CostCenterId == access.Profile.CostCenterId)
                 .Where(inventory => inventory.Product.CostCenter.WorkAreaId == access.Profile.AreaId)
                 .Where(inventory => inventory.Product.ProductUsageType == ProductUsageType.Operational)
                 .AsNoTracking()
                 .AsSplitQuery();
 
-
             var productStocks = await productStocksQuery
+                .OrderBy(product => product.CreatedAt)
+                .Skip((request.PageNumber - 1) * request.PageSize)
+                .Take(request.PageSize)
                 .ToListAsync(cancellationToken);
 
+            var counts = await productStocksQuery
+                .GroupBy(_ => 1)
+                .Select(group => new
+                {
+                    TotalRecords = group.Count(),
+                    InMinimum = group.Count(inventory => inventory.AvailableQuantity <= inventory.MinimumStock)
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
             var productStocksMapped = _mapper.Map<List<InventoryStockDto>>(productStocks);
-            
+
             return new PagedResponseStock<InventoryStockDto>(
                 productStocksMapped,
                 request.PageNumber,
                 request.PageSize,
-                0
+                counts?.InMinimum ?? 0,
+                counts?.TotalRecords ?? 0
             );
         }
     }
