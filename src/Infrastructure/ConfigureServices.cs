@@ -43,10 +43,6 @@ namespace ERP.Core.Warehouse.Api.Infrastructure
             services.AddErpCoreServices(configuration);
             services.AddErpDatabaseServices(configuration);
 
-            // El paquete 1.174.0 no registra este repositorio y UnitOfWork lo exige.
-            services.AddScoped<IInventoryOutputsRepository, InventoryOutputsRepository>();
-
-            services.AddScoped<IErrorManager, ErrorManager>();
             services.AddHttpClient<IScaleServices, ScaleServices>();
             services.AddScoped<IWarehouseClockServices, WarehouseClockServices>();
 
