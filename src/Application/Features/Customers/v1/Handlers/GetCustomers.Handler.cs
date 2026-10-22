@@ -25,10 +25,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Customers.v1.Handlers
             var customerQuery = _unitOfWork.Customers.Entities
                 .Where(customer => customer.IsActive)
                 .Where(customer => customer.CompanyId == request.CompanyId)
+                .Where(customer => customer.DeletedAt == null)
                 .AsNoTracking();
 
             var customers = await customerQuery
-                .OrderBy(m => m.CreatedAt)
+                .OrderByDescending(m => m.CreatedAt)
                 .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .ToListAsync(cancellationToken);
