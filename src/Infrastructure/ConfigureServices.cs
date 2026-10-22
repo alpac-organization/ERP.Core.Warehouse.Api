@@ -43,6 +43,7 @@ namespace ERP.Core.Warehouse.Api.Infrastructure
             services.AddErpCoreServices(configuration);
             services.AddErpDatabaseServices(configuration);
 
+            services.AddScoped<IErrorManager, ErrorManager>();
             services.AddHttpClient<IScaleServices, ScaleServices>();
             services.AddScoped<IWarehouseClockServices, WarehouseClockServices>();
 
