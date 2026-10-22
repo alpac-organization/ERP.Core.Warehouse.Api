@@ -29,6 +29,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 return access.ErrorResponse!;
             }
 
+            var profileCompanyId = access.Profile!.CompanyId;
+
             var visibleRequestIds = _visibilityService.Apply(
                     _unitOfWork.PurchaseRequests.Entities,
                     access.Role?.RoleType,
@@ -45,7 +47,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 //Usuario que envia la solicitud a revición
                 .Include(rev => rev.SentByUser)
                     .ThenInclude(pur => pur.Profiles
-                        .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                        .Where(profile => profile.CompanyId == profileCompanyId)
                         .Take(1)
                     )
                     .ThenInclude(profile => profile.WorkArea)
@@ -61,7 +63,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.RegistrationUser)
                         .ThenInclude(pur => pur.Profiles
-                            .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                            .Where(profile => profile.CompanyId == profileCompanyId)
                             .Take(1)
                         )
                         .ThenInclude(profile => profile.WorkArea)
@@ -69,7 +71,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pur => pur.UserRevision)
                         .ThenInclude(pur => pur.Profiles
-                            .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                            .Where(profile => profile.CompanyId == profileCompanyId)
                             .Take(1)
                         )
                         .ThenInclude(profile => profile.WorkArea)

@@ -30,6 +30,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                 return access.ErrorResponse!;
             }
 
+            var profileCompanyId = access.Profile!.CompanyId;
+
             var visibleRequestIds = visibilityService.Apply(
                     _unitOfWork.PurchaseRequests.Entities,
                     access.Role?.RoleType,
@@ -42,7 +44,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
             var review = await _unitOfWork.PurchaseRequestsReviewedManagement.Entities
                 .Include(rev => rev.SentByUser)
                     .ThenInclude(pur => pur.Profiles
-                        .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                        .Where(profile => profile.CompanyId == profileCompanyId)
                         .Take(1))
                     .ThenInclude(profile => profile.WorkArea)
                 .Include(rev => rev.PurchaseRequest)
@@ -68,7 +70,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pr => pr.RegistrationUser)
                         .ThenInclude(pur => pur.Profiles
-                            .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                            .Where(profile => profile.CompanyId == profileCompanyId)
                             .Take(1))
                         .ThenInclude(profile => profile.WorkArea)
                 .Include(rev => rev.PurchaseRequest)

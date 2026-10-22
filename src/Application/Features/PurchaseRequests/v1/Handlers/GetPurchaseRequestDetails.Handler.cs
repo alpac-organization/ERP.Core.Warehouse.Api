@@ -25,6 +25,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return access.ErrorResponse!;
             }
 
+            var profileCompanyId = access.Profile!.CompanyId;
+
             var purchaseRequestsQuery = _visibilityService.Apply(
                 _unitOfWork.PurchaseRequests.Entities.Where(pur => pur.Id == request.PurchaseRequestId),
                 access.Role?.RoleType,
@@ -37,14 +39,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 .Include(pur => pur.Branch)
                 .Include(pur => pur.RegistrationUser)
                     .ThenInclude(pur => pur.Profiles
-                        .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                        .Where(profile => profile.CompanyId == profileCompanyId)
                         .Take(1)
                     )
                     .ThenInclude(profile => profile.WorkArea)
 
                 .Include(pur => pur.UserRevision)
                     .ThenInclude(pur => pur.Profiles
-                        .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                        .Where(profile => profile.CompanyId == profileCompanyId)
                         .Take(1)
                     )
                     .ThenInclude(profile => profile.WorkArea)

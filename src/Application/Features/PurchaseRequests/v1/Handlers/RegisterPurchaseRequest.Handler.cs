@@ -147,7 +147,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                             purchaseRequest,
                             code,
                             areaId,
-                            access.User.Id,
+                            access.User!.Id,
                             requestDate);
                         await _unitOfWork.PurchaseRequests.RegisterPurchaseRequest(purchaseRequestEntity);
 

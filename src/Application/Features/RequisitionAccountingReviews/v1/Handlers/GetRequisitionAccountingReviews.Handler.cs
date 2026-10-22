@@ -28,6 +28,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 return access.ErrorResponse!;
             }
 
+            var profileCompanyId = access.Profile!.CompanyId;
+
             var visibleRequestIds = _visibilityService.Apply(
                     _unitOfWork.PurchaseRequests.Entities,
                     access.Role?.RoleType,
@@ -41,13 +43,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
                 .Where(rev => rev.DeletedAt == null)
                 .Include(rev => rev.SentByUser)
                     .ThenInclude(rev => rev.Profiles
-                        .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                        .Where(profile => profile.CompanyId == profileCompanyId)
                         .Take(1)
                     )
                     .ThenInclude(profile => profile.WorkArea)
                 .Include(rev => rev.ReviewedByUser)
                     .ThenInclude(rev => rev!.Profiles
-                        .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                        .Where(profile => profile.CompanyId == profileCompanyId)
                         .Take(1)
                     )
                     .ThenInclude(profile => profile.WorkArea)
