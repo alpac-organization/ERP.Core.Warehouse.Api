@@ -10,14 +10,20 @@
 *.suo
 *.userosscache
 *.sln.docstates
-
 ## Paquetes NuGet
 *.nupkg
 **/packages/
 nuget.config
 .env
 repomix.config.json
-
-
 .opencodeignore
-.cursor
+
+
+# Auto update packages (local only)
+.cursor# Auto update packages (local only)
+scripts/UpdatePackages.v2.ps1
+.vscode/tasks.json
+
+# Auto update packages (local only)
+scripts/UpdatePackages.v2.ps1
+.vscode/tasks.json
