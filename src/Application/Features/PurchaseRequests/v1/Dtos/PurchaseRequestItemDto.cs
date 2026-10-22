@@ -85,6 +85,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public bool IsBestOption { get; set; } 
         
         public decimal Iva { get; set; }
+        public decimal Ir { get; set; }
+        public decimal Imi { get; set; }
         public decimal Price { get; set; }
         public decimal PriceUnit { get; set; }
         public decimal PriceTotal { get; set; }
@@ -108,10 +110,20 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public TimeType? AvailabilityTimeType { get; set; }
 
         public string? AdditionalData { get; set; }
+        public List<QuotationFileDto> Images { get; set; } = [];
+        public List<QuotationFileDto> Documents { get; set; } = [];
         public Guid? SupplierProductId { get; set; }
 
         public Guid SupplierId { get; set; }
         public SupplierInformation SupplierInformation { get; set; } = new();
+    }
+
+    public class QuotationFileDto
+    {
+        public Guid FileId { get; set; }
+        public string? FileName { get; set; }
+        public string? FileUrl { get; set; }
+        public DateTime UploadedAt { get; set; }
     }
 
     public class SupplierInformation

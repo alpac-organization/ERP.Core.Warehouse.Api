@@ -5,6 +5,7 @@ using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementReviews.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementReviews.v1.Queries;
 
@@ -13,7 +14,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
     public class GetRequisitionManagementReviewsDetailsHandler(
         IUnitOfWork unitOfWork,
         IErrorManager errorManager,
-        IMapper mapper)
+        IMapper mapper,
+        IPurchaseRequestVisibilityService visibilityService)
         : BaseValidatorHandler<GetRequisitionManagementReviewsDetailsQuery, PurchaseRequestsReviewedManagementDetailsDto>(
             unitOfWork, errorManager)
     {
@@ -28,10 +30,21 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                 return access.ErrorResponse!;
             }
 
+            var profileCompanyId = access.Profile!.CompanyId;
+
+            var visibleRequestIds = visibilityService.Apply(
+                    _unitOfWork.PurchaseRequests.Entities,
+                    access.Role?.RoleType,
+                    request.UserId,
+                    access.Profile?.AreaId,
+                    access.Profile?.CostCenterId,
+                    access.Profile?.BranchId)
+                .Select(pr => pr.Id);
+
             var review = await _unitOfWork.PurchaseRequestsReviewedManagement.Entities
                 .Include(rev => rev.SentByUser)
                     .ThenInclude(pur => pur.Profiles
-                        .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                        .Where(profile => profile.CompanyId == profileCompanyId)
                         .Take(1))
                     .ThenInclude(profile => profile.WorkArea)
                 .Include(rev => rev.PurchaseRequest)
@@ -57,7 +70,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                 .Include(rev => rev.PurchaseRequest)
                     .ThenInclude(pr => pr.RegistrationUser)
                         .ThenInclude(pur => pur.Profiles
-                            .Where(profile => profile.CompanyId == access.Profile.CompanyId)
+                            .Where(profile => profile.CompanyId == profileCompanyId)
                             .Take(1))
                         .ThenInclude(profile => profile.WorkArea)
                 .Include(rev => rev.PurchaseRequest)
@@ -71,7 +84,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                 .AsSplitQuery()
                 .AsNoTracking()
                 .Where(review => review.Id == request.RequisitionManagementReviewsId)
+                .Where(review => visibleRequestIds.Contains(review.PurchaseRequestId))
                 .FirstOrDefaultAsync(cancellationToken);
+
+            if (review is null)
+            {
+                return _errorManager.ThrowNotFound<PurchaseRequestsReviewedManagementDetailsDto>(
+                    "No se encontro la revision de gerencia",
+                    "ERP:NOT_FOUND");
+            }
 
             return mapper.Map<PurchaseRequestsReviewedManagementDetailsDto>(review);
         }

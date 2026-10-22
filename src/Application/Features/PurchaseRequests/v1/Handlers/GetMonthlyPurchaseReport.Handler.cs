@@ -4,7 +4,7 @@ using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
-using ERP.Core.Warehouse.Api.Application.Commons.Services;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 
@@ -35,7 +35,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             var visibleRequests = _visibilityService.Apply(
                 _unitOfWork.PurchaseRequests.Entities
                     .Where(pr => pr.IsActive && pr.DeletedAt == null)
-                    .Where(pr => pr.Branch.CompanyId == request.CompanyId),
+                    .Where(pr => pr.Branch.CompanyId == request.CompanyId)
+                    .Where(pr => pr.RequestType == PurchaseRequestType.Monthly)
+                    .Where(pr => pr.RequestStatus == PurchaseRequestStatus.Approved
+                              || pr.RequestStatus == PurchaseRequestStatus.Finished)
+                    .Where(pr => pr.CreatedAt >= firstDayOfMonth && pr.CreatedAt < firstDayOfNextMonth),
                 access.Role?.RoleType,
                 request.UserId,
                 access.Profile?.AreaId,
@@ -57,17 +61,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     .ThenInclude(q => q.Supplier)
                 .Where(pri => pri.DeletedAt == null)
                 .Where(pri => visibleRequestIds.Contains(pri.PurchaseRequestId))
-                .Where(pri => pri.PurchaseRequest.IsActive && pri.PurchaseRequest.DeletedAt == null)
-                .Where(pri => pri.PurchaseRequest.Branch.CompanyId == request.CompanyId)
-                .Where(pri => pri.PurchaseRequest.RequestType == PurchaseRequestType.Monthly)
-                .Where(pri => pri.PurchaseRequest.PurchaseOrders.Any(po =>
-                    po.IsActive && po.DeletedAt == null))
-                .Where(pri => pri.PurchaseRequest.CreatedAt >= firstDayOfMonth &&
-                              pri.PurchaseRequest.CreatedAt < firstDayOfNextMonth)
-                .Where(pri => pri.Quotations.Any(q =>
-                    q.IsActive &&
-                    q.DeletedAt == null &&
-                    q.IsAcceptedForPurchase))
                 .AsNoTracking()
                 .AsSplitQuery();
 

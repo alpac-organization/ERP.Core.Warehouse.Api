@@ -10,7 +10,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
-using ERP.Core.Warehouse.Api.Application.Commons.Services;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Queries;
 
@@ -91,7 +91,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
         #region Filtros de busqueda
         private static IQueryable<PurchaseRequest> ApplyRequestFilters(IQueryable<PurchaseRequest> query, GetPurchaseRequestsQuery request, AccessValidationResult<PagedResponse<PurchaseRequestDto>> access)
         {
-            if (request.AreaId.HasValue && access.Role?.RoleType == RoleType.Administrator)
+            if (request.AreaId.HasValue)
             {
                 query = query
                     .Where(pr => pr.AreaId == request.AreaId);

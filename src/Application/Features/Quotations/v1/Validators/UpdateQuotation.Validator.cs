@@ -36,15 +36,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Validators
                 .When(x => x.PaymentMethodType.HasValue)
                 .WithMessage("El método de pago no es válido.");
 
-            RuleFor(x => x.PriceUnit)
-                .GreaterThan(0)
-                .When(x => x.PriceUnit.HasValue)
-                .WithMessage("El precio unitario debe ser mayor a cero.");
-
             RuleFor(x => x.PreferentialPrice)
-                .GreaterThan(0)
-                .When(x => x.PreferentialPrice.HasValue)
-                .WithMessage("El precio preferencial debe ser mayor a cero.");
+                .Null()
+                .WithMessage("La cotización no admite precio preferencial.");
 
             RuleFor(x => x.Currency)
                 .IsInEnum()

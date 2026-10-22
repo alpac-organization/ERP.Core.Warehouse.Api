@@ -1,10 +1,10 @@
 using ERP.Core.Database.Domain.Enums;
 
-namespace ERP.Core.Warehouse.Api.Application.Commons.Services
+namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services
 {
     public static class TimePeriodNormalizer
     {
-       public static decimal? ToDays(decimal? value, TimeType? timeType)
+        public static decimal? ToDays(decimal? value, TimeType? timeType)
         {
             if (!value.HasValue || value.Value <= 0 || !timeType.HasValue)
             {

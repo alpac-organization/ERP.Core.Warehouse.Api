@@ -7,7 +7,7 @@ using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
-using ERP.Core.Warehouse.Api.Application.Commons.Services;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
@@ -18,7 +18,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
         ILogger<UpdateQuotationHandler> logger,
         IPurchaseTaxService purchaseTaxService,
         ISupplierProductLinkService supplierProductLinkService,
-        IQuotationAttachmentService quotationAttachmentService)
+        IQuotationAttachmentService quotationAttachmentService,
+        IPurchaseRequestVisibilityService visibilityService)
         : BaseValidatorHandler<UpdateQuotationCommand, bool>(unitOfWork, errorManager)
     {
         public override async Task<bool> Handle(UpdateQuotationCommand request, CancellationToken cancellationToken)
@@ -44,6 +45,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                     .ThenInclude(sp => sp!.TierPrices)
                 .Include(quo => quo.Supplier)
                     .ThenInclude(s => s.SupplierPaymentMethods.Where(spm => spm.IsActive && spm.DeletedAt == null))
+                .Include(quo => quo.Supplier)
+                    .ThenInclude(s => s.SupplierDetails)
                 .AsSplitQuery()
                 .Where(quo => quo.IsActive)
                 .Where(quo => quo.Id == request.QuotationId)
@@ -54,6 +57,23 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                 return _errorManager.ThrowNotFound<bool>("La cotización no existe.", "ERP:QUOTATION_NOT_FOUND");
             }
 
+            var isVisible = await visibilityService.Apply(
+                    _unitOfWork.PurchaseRequests.Entities
+                        .Where(pr => pr.Id == quotation.PurchaseRequestItem.PurchaseRequestId),
+                    access.Role?.RoleType,
+                    request.UserId,
+                    access.Profile?.AreaId,
+                    access.Profile?.CostCenterId,
+                    access.Profile?.BranchId)
+                .AnyAsync(cancellationToken);
+
+            if (!isVisible)
+            {
+                return _errorManager.ThrowNotFound<bool>(
+                    "La solicitud de compra no fue encontrada",
+                    "ERP:PURCHASE_REQUEST_NOT_FOUND");
+            }
+
             var quoteDate = quotation.QuoteDate == default
                 ? DateOnly.FromDateTime(DateTime.UtcNow)
                 : quotation.QuoteDate;
@@ -61,6 +81,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
             if (request.SupplierId.HasValue && request.SupplierId.Value != quotation.SupplierId)
             {
                 var supplier = await _unitOfWork.Suppliers.Entities
+                    .Include(s => s.SupplierDetails)
                     .Include(s => s.SupplierPaymentMethods.Where(spm => spm.IsActive && spm.DeletedAt == null))
                     .Include(s => s.SupplierProducts.Where(sp => sp.IsActive && sp.DeletedAt == null))
                         .ThenInclude(sp => sp.TierPrices)
@@ -74,39 +95,26 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                 }
 
                 var productId = quotation.PurchaseRequestItem.ProductId;
-                var productWithLinks = await _unitOfWork.Products.Entities
-                    .Include(p => p.SupplierProducts)
-                        .ThenInclude(sp => sp.TierPrices)
-                    .IgnoreQueryFilters()
-                    .FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
-
-                var supplierProduct = productWithLinks?.SupplierProducts
-                    .FirstOrDefault(sp => sp.SupplierId == supplier.Id);
-
-                if (supplierProduct is not null &&
-                    (!supplierProduct.IsActive || supplierProduct.DeletedAt is not null))
-                {
-                    supplierProduct.IsActive = true;
-                    supplierProduct.DeletedAt = null;
-                    supplierProduct.UnitPrice = request.PriceUnit ?? supplierProduct.UnitPrice;
-                    supplierProduct.Currency = request.Currency ?? supplierProduct.Currency;
-                    supplierProduct.LastPriceUpdate = DateTime.UtcNow;
-                }
+                var supplierProduct = supplierProductLinkService.FindActiveLink(supplier, productId);
 
                 if (supplierProduct is null)
                 {
+                    if (await supplierProductLinkService.InactiveLinkExistsAsync(
+                            _unitOfWork.Products.Entities.SelectMany(product => product.SupplierProducts),
+                            productId,
+                            supplier.Id,
+                            cancellationToken))
+                    {
+                        return _errorManager.ThrowBadRequest<bool>(
+                            "El vínculo proveedor–producto existe pero está inactivo.",
+                            "ERP:SUPPLIER_PRODUCT_INACTIVE");
+                    }
+
                     if (!request.CreateSupplierProductIfMissing)
                     {
                         return _errorManager.ThrowBadRequest<bool>(
                             "El proveedor no está vinculado al producto.",
                             "ERP:SUPPLIER_PRODUCT_NOT_FOUND");
-                    }
-
-                    if (request.PriceUnit is null or <= 0)
-                    {
-                        return _errorManager.ThrowBadRequest<bool>(
-                            "Debe indicar el precio unitario para vincular el proveedor al producto.",
-                            "ERP:PRICE_UNIT_REQUIRED");
                     }
 
                     var item = quotation.PurchaseRequestItem;
@@ -125,10 +133,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                         productId: productId,
                         supplierId: supplier.Id,
                         unitMeasureId: unitMeasureId,
-                        unitPrice: request.PriceUnit.Value,
-                        currency: request.Currency ?? Currency.NIO,
-                        preferentialPrice: request.PreferentialPrice,
-                        validFrom: quoteDate);
+                        unitPrice: 0m,
+                        currency: request.Currency ?? Currency.NIO);
 
                     supplier.SupplierProducts.Add(supplierProduct);
                 }
@@ -197,13 +203,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                     quotation.SupplierProduct,
                     quantity,
                     quoteDate,
-                    request.PriceUnit,
                     purchaseTaxService);
 
                 if (priceUnit is null or <= 0)
                 {
                     return _errorManager.ThrowBadRequest<bool>(
-                        "Debe indicar el precio unitario porque el vínculo no tiene precio vigente.",
+                        "El vínculo proveedor–producto no tiene un precio vigente.",
                         "ERP:PRICE_UNIT_REQUIRED");
                 }
 
@@ -214,6 +219,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                     subtotal,
                     quotation.PurchaseRequestItem?.Product?.IsTaxExempt ?? false,
                     rates);
+
+                var details = quotation.Supplier?.SupplierDetails;
+                var retention = purchaseTaxService.CalculateRetentions(
+                    subtotal,
+                    quotation.SupplierProduct.Currency,
+                    details?.SupplierType,
+                    details?.IsTaxExempt ?? false,
+                    details?.ApplyIrRetention ?? false,
+                    details?.ApplyMunicipalRetention ?? false,
+                    rates);
+                quotation.Ir = retention.IrAmount;
+                quotation.Imi = retention.ImiAmount;
             }
 
             if (request.Attachments is not null)

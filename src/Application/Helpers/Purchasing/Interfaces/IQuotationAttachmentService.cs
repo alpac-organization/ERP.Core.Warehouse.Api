@@ -1,6 +1,6 @@
 using ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands;
 
-namespace ERP.Core.Warehouse.Api.Application.Commons.Services
+namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces
 {
     public interface IQuotationAttachmentService
     {

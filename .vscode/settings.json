@@ -1,0 +1,17 @@
+{
+  "actionButtons": {
+    "defaultColor": "#ff9d00",
+    "loadNpmCommands": false,
+    "reloadButton": null,
+    "commands": [
+      {
+        "name": "$(sync) Update ERP Packages",
+        "tooltip": "Actualizar paquetes ERP.Core a última versión desde GitHub Packages",
+        "color": "#ff9d00",
+        "useVsCodeApi": true,
+        "command": "workbench.action.tasks.runTask",
+        "args": ["Update ERP Core Packages (Auto)"]
+      }
+    ]
+  }
+}

@@ -41,8 +41,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands
 
         public TimeType? WarrantyPeriodTimeType { get; set; }
 
-        public decimal? PriceUnit { get; set; }
-
         public decimal? PreferentialPrice { get; set; }
 
         public Currency? Currency { get; set; }

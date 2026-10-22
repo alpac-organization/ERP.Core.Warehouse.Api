@@ -6,6 +6,8 @@ using ERP.Core.Infrastructure.Services;
 
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Infrastructure;
+using ERP.Core.Database.Infrastructure.Persistence.Repositories.Inventory;
+using ERP.Core.Database.Application.Commons.Interfaces.Repositories.Inventory;
 
 using ERP.Core.Warehouse.Api.Infrastructure.Services;
 using ERP.Core.Warehouse.Api.Infrastructure.Schedules;
