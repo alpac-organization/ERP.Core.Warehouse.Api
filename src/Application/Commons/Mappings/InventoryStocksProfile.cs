@@ -18,6 +18,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 
             CreateMap<Product, ProductInformation>()
                 .ForMember(dest => dest.ProductId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.ProductCode, opt => opt.MapFrom(src => src.Code))
                 .ForMember(dest => dest.CategoryInformation, opt => opt.MapFrom(src => src.Category));
 
             CreateMap<CategoryProducts, CategoryInformation>()
