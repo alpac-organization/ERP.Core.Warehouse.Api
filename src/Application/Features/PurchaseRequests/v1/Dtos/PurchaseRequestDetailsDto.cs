@@ -16,6 +16,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
 
         public string? AdditionalData { get; set; }
 
+        // numero de veces que la cotizacion ha sido retornada devuelta por re-cotizacion.
+        public int RequotationCount { get; set; }
+
+        //historial de retornos .
+        public List<PurchaseRequestReturnEntryDto> ReturnHistory { get; set; } = [];
+
         public bool IsManagementApproved { get; set; }
         public bool IsAccountingApproved { get; set; }
         public bool IsPurchaseOrderGenerated { get; set; }
