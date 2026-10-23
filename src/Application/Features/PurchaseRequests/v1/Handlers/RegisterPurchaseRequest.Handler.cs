@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,7 +13,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Services;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
-using ERP.Core.Warehouse.Api.Application.Commons.Options;
+// using ERP.Core.Warehouse.Api.Application.Commons.Options;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
@@ -27,8 +26,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
         ICodeGenerator _codeGenerator,
         IS3StorageService _s3StorageService,
         ILogger<RegisterPurchaseRequestHandler> _logger,
-        ISimpleNotificationServices _simpleNotificationServices,
-        IOptions<PurchaseRequestOptions> _options,
+        // ISimpleNotificationServices _simpleNotificationServices,
+        // IOptions<PurchaseRequestOptions> _options,
         IPurchasePeriodService _purchasePeriodService
     ) : BaseValidatorHandler<RegisterPurchaseRequestCommand, bool>(_unitOfWork, _errorManager)
     {
@@ -90,25 +89,25 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 }
             }
 
-            var notificationConfig = _options.Value;
-            string userName = access.User?.Fullname ?? "Un usuario";
-            string descriptionCopy = (notificationConfig.Description ?? "{{Name}} registró una nueva solicitud de compra {{Type}}.")
-                .Replace("{{Name}}", userName);
+            // var notificationConfig = _options.Value;
+            // string userName = access.User?.Fullname ?? "Un usuario";
+            // string descriptionCopy = (notificationConfig.Description ?? "{{Name}} registró una nueva solicitud de compra {{Type}}.")
+            //     .Replace("{{Name}}", userName);
 
-            var targetProfiles = await _unitOfWork.Profiles.Entities
-                .Include(p => p.UserModuleRole)
-                    .ThenInclude(umr => umr.Role)
-                .Where(p => p.IsActive)
-                .Where(p => p.UserId != request.UserId)
-                .Where(p => p.CompanyId == request.CompanyId)
-                .Where(p => p.UserModuleRole.Any(
-                        umr => umr.ModuleCode == request.ModuleCode && (
-                            umr.Role.RoleType == RoleType.Administrator ||
-                            umr.Role.RoleType == RoleType.Manager
-                        )
-                    )
-                )
-                .ToListAsync(cancellationToken);
+            // var targetProfiles = await _unitOfWork.Profiles.Entities
+            //     .Include(p => p.UserModuleRole)
+            //         .ThenInclude(umr => umr.Role)
+            //     .Where(p => p.IsActive)
+            //     .Where(p => p.UserId != request.UserId)
+            //     .Where(p => p.CompanyId == request.CompanyId)
+            //     .Where(p => p.UserModuleRole.Any(
+            //             umr => umr.ModuleCode == request.ModuleCode && (
+            //                 umr.Role.RoleType == RoleType.Administrator ||
+            //                 umr.Role.RoleType == RoleType.Manager
+            //             )
+            //         )
+            //     )
+            //     .ToListAsync(cancellationToken);
 
             await UploadItemImagesAsync(request, cancellationToken);
 
@@ -181,17 +180,17 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                         return;
                     }
 
-                    foreach (var profile in targetProfiles)
-                    {
-                        await _unitOfWork.Notifications.CreateNotification(new()
-                        {
-                            Title = notificationConfig.Title,
-                            Description = descriptionCopy,
-                            PathRedirect = "/purchasing",
-                            AdditionalData = JsonSerializer.Serialize("{}"),
-                            UserId = profile.UserId,
-                        });
-                    }
+                    // foreach (var profile in targetProfiles)
+                    // {
+                    //     await _unitOfWork.Notifications.CreateNotification(new()
+                    //     {
+                    //         Title = notificationConfig.Title,
+                    //         Description = descriptionCopy,
+                    //         PathRedirect = "/purchasing",
+                    //         AdditionalData = JsonSerializer.Serialize("{}"),
+                    //         UserId = profile.UserId,
+                    //     });
+                    // }
 
                     await _unitOfWork.SaveChangesAsync(token);
                 }, cancellationToken);
@@ -208,32 +207,32 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return resolveError.Value;
             }
 
-            var targetProfileIds = targetProfiles.Select(p => p.Id).ToList();
-            var devices = await _unitOfWork.Devices.Entities
-                .Where(device => device.IsActive)
-                .Where(device => targetProfileIds.Contains(device.UserProfileId))
-                .ToListAsync(cancellationToken);
+            // var targetProfileIds = targetProfiles.Select(p => p.Id).ToList();
+            // var devices = await _unitOfWork.Devices.Entities
+            //     .Where(device => device.IsActive)
+            //     .Where(device => targetProfileIds.Contains(device.UserProfileId))
+            //     .ToListAsync(cancellationToken);
 
-            foreach (var device in devices)
-            {
-                var result = await _simpleNotificationServices.SendPushNotificationAsync(device?.EndpointArn ?? "", new()
-                {
-                    Title = notificationConfig?.Title ?? "",
-                    Body = descriptionCopy ?? "",
-                    WebPushConfig = new()
-                    {
-                        Badge = access?.Profile?.Company?.ImageUrl ?? "",
-                        Icon = access?.Profile?.Company?.ImageUrl ?? ""
-                    },
-                    AndroidConfig = new()
-                    {
-                        Badge = access?.Profile?.Company?.ImageUrl ?? "",
-                        Icon = access?.Profile?.Company?.ImageUrl ?? ""
-                    }
-                });
+            // foreach (var device in devices)
+            // {
+            //     var result = await _simpleNotificationServices.SendPushNotificationAsync(device?.EndpointArn ?? "", new()
+            //     {
+            //         Title = notificationConfig?.Title ?? "",
+            //         Body = descriptionCopy ?? "",
+            //         WebPushConfig = new()
+            //         {
+            //             Badge = access?.Profile?.Company?.ImageUrl ?? "",
+            //             Icon = access?.Profile?.Company?.ImageUrl ?? ""
+            //         },
+            //         AndroidConfig = new()
+            //         {
+            //             Badge = access?.Profile?.Company?.ImageUrl ?? "",
+            //             Icon = access?.Profile?.Company?.ImageUrl ?? ""
+            //         }
+            //     });
 
-                _logger.LogInformation("Push notification result for device {EndpointArn}: {@Result}", device?.EndpointArn, result);
-            }
+            //     _logger.LogInformation("Push notification result for device {EndpointArn}: {@Result}", device?.EndpointArn, result);
+            // }
 
             _logger.LogInformation("Se registro exitosamente la solicitud de compra");
 
