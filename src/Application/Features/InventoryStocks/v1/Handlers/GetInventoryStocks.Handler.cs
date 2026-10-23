@@ -38,6 +38,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                 .AsNoTracking()
                 .AsSplitQuery();
 
+            var counts = await productStocksQuery
+                .GroupBy(_ => 1)
+                .Select(group => new
+                {
+                    TotalRecords = group.Count(),
+                    InMinimum = group.Count(inventory => inventory.AvailableQuantity <= inventory.MinimumStock)
+                })
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (request.CategoryId.HasValue)
             {
@@ -62,15 +70,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                 .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .ToListAsync(cancellationToken);
-
-            var counts = await productStocksQuery
-                .GroupBy(_ => 1)
-                .Select(group => new
-                {
-                    TotalRecords = group.Count(),
-                    InMinimum = group.Count(inventory => inventory.AvailableQuantity <= inventory.MinimumStock)
-                })
-                .FirstOrDefaultAsync(cancellationToken);
 
             var productStocksMapped = _mapper.Map<List<InventoryStockDto>>(productStocks);
 
