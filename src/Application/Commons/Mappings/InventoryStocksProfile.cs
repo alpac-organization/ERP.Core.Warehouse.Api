@@ -13,8 +13,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             CreateMap<ProductStock, InventoryStockDto>()
                 .ForMember(dest => dest.ProductStockId, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.ProductInformation, opt => opt.MapFrom(src => src.Product))
-                .ForMember(dest => dest.ProductInformation, opt => opt.MapFrom(src => src.Product))
-                .ForMember(dest => dest.CostCenterInformation, opt => opt.MapFrom(src => src.CostCenter));
+                .ForMember(dest => dest.CostCenterInformation, opt => opt.MapFrom(src => src.CostCenter))
+                .ForMember(dest => dest.UnitMeasureInformation, opt => opt.MapFrom(src => src.UnitMeasure));
 
             CreateMap<Product, ProductInformation>()
                 .ForMember(dest => dest.ProductId, opt => opt.MapFrom(src => src.Id))
@@ -23,6 +23,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 
             CreateMap<CategoryProducts, CategoryInformation>()
                 .ForMember(dest => dest.CategoryId, opt => opt.MapFrom(src => src.Id));
+        
+            CreateMap<UnitMeasure, UnitMeasureInformation>();
         }
     }
 }

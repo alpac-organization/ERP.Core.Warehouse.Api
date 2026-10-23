@@ -30,7 +30,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                     .ThenInclude(product => product.CostCenter)
 
                 .Include(inventory => inventory.CostCenter)
-
+                .Include(inventory => inventory.UnitMeasure)
+                
                 .Where(inventory => inventory.Product.BranchId == access.Profile.BranchId)
                 .Where(inventory => inventory.CostCenterId == access.Profile.CostCenterId)
                 .Where(inventory => inventory.Product.CostCenter.WorkAreaId == access.Profile.AreaId)
