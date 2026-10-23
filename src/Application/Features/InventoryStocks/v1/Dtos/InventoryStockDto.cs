@@ -17,6 +17,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Dtos
     public class ProductInformation
     {
         public Guid ProductId { get; set; }
+        public string? ProductCode { get; set; }
         public string? ProductName { get; set; }
         public string? Description { get; set; }
         public ProductUsageType ProductUsageType { get; set; }
