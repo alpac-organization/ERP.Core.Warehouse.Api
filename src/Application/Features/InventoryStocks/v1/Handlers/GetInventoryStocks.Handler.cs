@@ -38,6 +38,25 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                 .AsNoTracking()
                 .AsSplitQuery();
 
+
+            if (request.CategoryId.HasValue)
+            {
+                productStocksQuery = productStocksQuery
+                    .Where(inventory => inventory.Product.CategoryId == request.CategoryId);
+            }
+
+            if (!string.IsNullOrEmpty(request.ProductCode))
+            {
+                productStocksQuery = productStocksQuery
+                    .Where(inventory => inventory.Product.Code == request.ProductCode);
+            }
+            
+            if (!string.IsNullOrEmpty(request.ProductName))
+            {
+                productStocksQuery = productStocksQuery
+                    .Where(inventory => EF.Functions.Like(inventory.Product.ProductName, $"%{request.ProductName}%"));
+            }
+
             var productStocks = await productStocksQuery
                 .OrderBy(product => product.CreatedAt)
                 .Skip((request.PageNumber - 1) * request.PageSize)

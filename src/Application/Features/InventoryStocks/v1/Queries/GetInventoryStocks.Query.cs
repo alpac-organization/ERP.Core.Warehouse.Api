@@ -15,6 +15,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Queries
 
     public class GetInventoryStocksQuery : BaseRequest, IRequest<PagedResponseStock<InventoryStockDto>>
     {
+        public Guid? CategoryId { get; set; }
+        public string? ProductCode { get; set; }
+        public string? ProductName { get; set; }
+
         public int PageSize { get; set; }
         public int PageNumber { get; set; }
     }

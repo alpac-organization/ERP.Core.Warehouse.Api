@@ -23,7 +23,6 @@ namespace ERP.Core.Warehouse.Api.Controllers.Inventory
         public async Task<CreatedResult> RegisterProductToInventory([FromRoute] Guid company_id, [FromRoute] string module_code)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
-
            
            return Created();
         }
@@ -34,6 +33,9 @@ namespace ERP.Core.Warehouse.Api.Controllers.Inventory
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<PagedResponseStock<InventoryStockDto>> GetInventoryStockAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
+            [FromQuery] string? product_code = null,
+            [FromQuery] string? product_name = null,
+            [FromQuery] Guid? category_id = null,
             [FromQuery] int page_size = 10,
             [FromQuery] int page_number = 1
         )
@@ -44,6 +46,9 @@ namespace ERP.Core.Warehouse.Api.Controllers.Inventory
             {
                 CompanyId = company_id,
                 ModuleCode = module_code,
+                CategoryId = category_id,
+                ProductCode = product_code,
+                ProductName = product_name,
                 UserId = Guid.Parse(userIdStr ?? ""),
                 PageSize = page_size,
                 PageNumber = page_number
