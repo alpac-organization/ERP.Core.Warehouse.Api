@@ -2,12 +2,12 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Queries;
-using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handlers
 {
@@ -50,7 +50,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                 productStocksQuery = productStocksQuery
                     .Where(inventory => inventory.Product.Code == request.ProductCode);
             }
-            
+
             if (!string.IsNullOrEmpty(request.ProductName))
             {
                 productStocksQuery = productStocksQuery
