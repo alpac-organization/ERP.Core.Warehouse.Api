@@ -9,9 +9,9 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
+using ERP.Core.Testing.Seeding;
 using ERP.Core.Database.Infrastructure.Persistence.Context;
 using ERP.Core.Warehouse.Api.Test.Common.Utils;
-using ERP.Core.Testing.Seeding;
 
 namespace ERP.Core.Warehouse.Api.Test
 {

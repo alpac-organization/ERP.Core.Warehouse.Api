@@ -1,4 +1,5 @@
 using FluentValidation;
+using ERP.Core.Application.Commons.Bases;
 using ERP.Core.Warehouse.Api.Application.Commons.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.Warehouses.v1.Commands;
 

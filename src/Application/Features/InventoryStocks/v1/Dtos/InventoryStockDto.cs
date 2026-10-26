@@ -9,9 +9,19 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Dtos
         public int? MaximumStock { get; set; }
         public int AvailableQuantity { get; set; }
         public Guid ProductStockId { get; set; }
+        public ProductStockStatus Status { get; set; }
+        public decimal WeightedAverageCost { get; set; }
 
         public ProductInformation? ProductInformation { get; set; }
         public CostCenterInformation? CostCenterInformation { get; set;  }
+        public UnitMeasureInformation? UnitMeasureInformation { get; set; }
+    }
+
+    public class UnitMeasureInformation
+    {
+        public string Name { get; set; } = default!;
+        public string Symbol { get; set; } = default!;
+        public UnitMeasureType Type { get; set; }
     }
 
     public class ProductInformation
