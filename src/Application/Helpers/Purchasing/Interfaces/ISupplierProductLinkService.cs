@@ -14,7 +14,12 @@ namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces
         // Indica si existe un vínculo inactivo.
         Task<bool> InactiveLinkExistsAsync(IQueryable<SupplierProduct> supplierProducts, Guid productId, Guid supplierId, CancellationToken cancellationToken);
 
-        // Resuelve el precio unitario de cotización desde el vínculo: tier vigente o unit_price.
-        decimal? ResolveQuotationUnitPrice(SupplierProduct supplierProduct, int quantity, DateOnly quoteDate, IPurchaseTaxService purchaseTaxService);
+        decimal? ResolveQuotationUnitPrice(
+            SupplierProduct supplierProduct,
+            int quantity,
+            DateOnly quoteDate,
+            IPurchaseTaxService purchaseTaxService,
+            decimal? requestPriceUnit = null,
+            Currency? requestCurrency = null);
     }
 }

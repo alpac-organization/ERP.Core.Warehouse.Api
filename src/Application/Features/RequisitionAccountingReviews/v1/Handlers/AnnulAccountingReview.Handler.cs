@@ -6,6 +6,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Handlers
 {
@@ -72,9 +73,16 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
             accountingReview.DeletedAt = now;
 
             purchaseRequest.RequestStatus = isQuotationOnly ? PurchaseRequestStatus.Approved : PurchaseRequestStatus.Rejected;
-            // purchaseRequest.AnnulmentReason = request.Reason;
             purchaseRequest.AnnulledByUserId = access.User.Id;
             purchaseRequest.DeletedAt = isQuotationOnly ? null : now;
+
+            PurchaseRequestReturnHistory.Record(
+                purchaseRequest,
+                request.Reason,
+                request.Scope,
+                PurchaseRequestReturnHistory.AccountingSource,
+                access.User,
+                now);
 
             await AnnulItemsAndQuotationsAsync(purchaseRequest, now);
 
