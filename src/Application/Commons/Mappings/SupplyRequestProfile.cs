@@ -5,12 +5,12 @@ using ERP.Core.Database.Domain.Entities.Inventory;
 
 using ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Dtos;
 
-using Commands = ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Commands;
-using DbUserProfile = ERP.Core.Database.Domain.Entities.Auth.UserProfile;
 using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Database.Domain.Entities.Operations;
 
+using DbUserProfile = ERP.Core.Database.Domain.Entities.Auth.UserProfile;
+using Commands = ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Commands;
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 
 public class SupplyRequestsProfile : Profile
@@ -21,11 +21,15 @@ public class SupplyRequestsProfile : Profile
             .ForMember(dest => dest.SupplyRequestId, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.SupplyRequestCode, opt => opt.MapFrom(src => src.Code))
             .ForMember(dest => dest.RequestedByUserName, opt => opt.MapFrom(src => src.User.Fullname))
-            .ForMember(dest => dest.ItemsCount, opt => opt.MapFrom(src => src.SupplyRequestItems.Count));
+            .ForMember(dest => dest.ItemsCount, opt => opt.MapFrom(src => src.SupplyRequestItems.Count))
+            .ForMember(dest => dest.ReasonUse, opt => opt.MapFrom(src =>
+                            src.SupplyRequestItems.Select(i => i.ReasonUse).FirstOrDefault()));
 
         CreateMap<SupplyRequest, GetSupplyRequestDetailDto>()
             .ForMember(dest => dest.SupplyRequestId, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.SupplyRequestCode, opt => opt.MapFrom(src => src.Code))
+            .ForMember(dest => dest.ReasonUse, opt => opt.MapFrom(src =>
+                            src.SupplyRequestItems.Select(i => i.ReasonUse).FirstOrDefault()))
             .ForMember(dest => dest.WorkAreaInformation, opt => opt.MapFrom(src => src.WorkArea))
             .ForMember(dest => dest.RequestedByUserName, opt => opt.MapFrom(src => src.User.Fullname))
             .ForMember(dest => dest.CostCenterInformation, opt => opt.MapFrom(src => src.CostCenter))
@@ -84,12 +88,12 @@ public static class SupplyRequestMapper
             WarehouseId = warehouseId,
             OperationalOrderId = request.OperationalOrderId,
             RequestedByUserId = userProfile.UserId,
-            SupplyRequestItems = [.. request.Items.Select(item => item.ToSupplyRequestItemEntity(id))]
+            SupplyRequestItems = [.. request.Items.Select(item => item.ToSupplyRequestItemEntity(id, request.ReasonUse))]
         };
     }
 
     public static SupplyRequestItem ToSupplyRequestItemEntity(
-        this Commands.RegisterSupplyRequestItem command, Guid supplyRequestId)
+        this Commands.RegisterSupplyRequestItem command, Guid supplyRequestId, ReasonUse reasonUse)
     {
         return new()
         {
@@ -97,7 +101,7 @@ public static class SupplyRequestMapper
             IsActive = true,
             ProductStockId = command.ProductStockId,
             Amount = command.Amount,
-            ReasonUse = ReasonUse.Operation,
+            ReasonUse = reasonUse,
             SupplyRequestId = supplyRequestId
         };
     }

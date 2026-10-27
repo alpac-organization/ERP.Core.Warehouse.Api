@@ -1,7 +1,6 @@
 using FluentValidation;
 using ERP.Core.Application.Commons.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Commands;
-using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Validators;
 
@@ -14,6 +13,9 @@ public class RegisterSupplyRequestsValidator : BaseRequestValidator<RegisterSupp
 
         RuleFor(x => x.OperationalOrderId)
             .NotEmpty().WithMessage("Debe especificar una Orden Operativa");
+
+        RuleFor(x => x.ReasonUse)
+            .IsInEnum().WithMessage("El motivo de uso especifico no es válido.");
 
         RuleFor(x => x.Items)
             .NotEmpty().WithMessage("La solicitud debe tener al menos un insumo.");

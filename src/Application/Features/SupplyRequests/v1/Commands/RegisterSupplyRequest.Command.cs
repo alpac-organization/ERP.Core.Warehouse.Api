@@ -1,5 +1,6 @@
 using MediatR;
 using ERP.Core.Domain.Entities.Bases;
+using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Commands;
 
@@ -8,6 +9,7 @@ public class RegisterSupplyRequestsCommad : BaseRequest, IRequest<Unit>
     public string Justification { get; set; } = null!;
     public Guid OperationalOrderId { get; set; }
     public List<RegisterSupplyRequestItem> Items { get; set; } = [];
+    public ReasonUse ReasonUse { get; set; }
 }
 
 public class RegisterSupplyRequestItem

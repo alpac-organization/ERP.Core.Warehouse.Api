@@ -20,12 +20,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Handlers
 public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, ICodeGenerator codeGenerator, ILogger<RegisterSupplyRequestsHandler> logger)
     : BaseValidatorHandler<RegisterSupplyRequestsCommad, Unit>(unitOfWork, errorManager)
 {
-    private static readonly OutflowStatus[] BlockingStatuses = [
-       OutflowStatus.PendingReview,
-        OutflowStatus.PendingDispatch,
-        OutflowStatus.Approved
-   ];
-
     public override async Task<Unit> Handle(RegisterSupplyRequestsCommad request, CancellationToken ct)
     {
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, ct);
@@ -38,9 +32,6 @@ public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager
 
 
         if (!orderExists) return _errorManager.ThrowBadRequest<Unit>("La Orden Operativa no existe.", "ERP:OPERATIVE_ORDER_NOT_FOUND");
-
-        var activeRequestError = await ValidateActiveSupplyRequestAsync(request.OperationalOrderId, ct);
-        if (activeRequestError is not null) return activeRequestError.Value;
 
         var stockError = await ValidateRequestedStockAsync(request, access.Profile.BranchId, ct);
 
@@ -83,37 +74,6 @@ public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager
         }
 
         return Unit.Value;
-    }
-
-    public async Task<Unit?> ValidateActiveSupplyRequestAsync(Guid operationalOrderId, CancellationToken ct)
-    {
-        var existing = await _unitOfWork.SupplyRequests.Entities
-            .AsNoTracking()
-            .Where(sr => sr.OperationalOrderId == operationalOrderId
-                    && sr.DeletedAt == null
-                    && BlockingStatuses.Contains(sr.OutflowStatus))
-            .Select(sr => new
-            {
-                sr.Code,
-                sr.OutflowStatus
-            })
-            .FirstOrDefaultAsync(ct);
-
-            if (existing is null) return null;
-
-            var statusText = existing.OutflowStatus switch
-            {
-                OutflowStatus.PendingReview     => "Pendiente de revisión",
-                OutflowStatus.PendingDispatch   => "Pendiente de despacho",
-                OutflowStatus.Approved          => "Aprovada",
-                _                               => existing.OutflowStatus.ToString()
-            };
-
-            return _errorManager.ThrowBadRequest<Unit>(
-                $"Ya existe una solicitud ({existing.Code}) en estado '{statusText}' para esta Orden Operativa. "
-                + $"No se puede crear una nueva hasta que sea anulada o cancelada.",
-                "ERP:SUPPLY_REQUEST_ALREADY_EXISTS_FOR_OPERATIONAL_ORDER"
-            );
     }
 
     private async Task<Unit?> ValidateRequestedStockAsync(RegisterSupplyRequestsCommad request, Guid branchId, CancellationToken ct)
