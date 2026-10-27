@@ -9,6 +9,7 @@ using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Queries;
+using ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Commands;
 
 
 namespace ERP.Core.Warehouse.Api.Controllers.supplyRequest;
@@ -24,17 +25,17 @@ public class SupplyRequestsController(IMediator mediator) : ApiControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<PagedResponse<GetSupplyRequestDto>> GetSupplyRequestsAsync(
-        [FromRoute] Guid    company_id,
-        [FromRoute] string  module_code,
-        [FromQuery] string?  code,
-        [FromQuery] Guid?    work_area_id,
-        [FromQuery] Guid?    cost_center_id,
-        [FromQuery] Guid?    branch_id,
-        [FromQuery] Guid?    warehouse_id,
-        [FromQuery] Guid?    operational_order_id,
-        [FromQuery] Guid?    requested_by_user_id,
-        [FromQuery] int     page_number = 1,
-        [FromQuery] int     page_size = 10
+        [FromRoute] Guid        company_id,
+        [FromRoute] string      module_code,
+        [FromQuery] string?     code,
+        [FromQuery] Guid?       work_area_id,
+        [FromQuery] Guid?       cost_center_id,
+        [FromQuery] Guid?       branch_id,
+        [FromQuery] Guid?       warehouse_id,
+        [FromQuery] Guid?       operational_order_id,
+        [FromQuery] Guid?       requested_by_user_id,
+        [FromQuery] int         page_number = 1,
+        [FromQuery] int         page_size = 10
     )
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
@@ -54,5 +55,25 @@ public class SupplyRequestsController(IMediator mediator) : ApiControllerBase
             PageNumber          = page_number,
             PageSize            = page_size
         });
+    }
+
+    [HttpPost("companies/{company_id}/modules/{module_code}/supply-requests")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult> RegisterSupplyRequest(
+        [FromRoute] Guid                            company_id,
+        [FromRoute] string                          module_code,
+        [FromBody] RegisterSupplyRequestsCommad     command)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        command.CompanyId   = company_id;
+        command.ModuleCode  = module_code;
+        command.UserId      = Guid.Parse(userIdStr ?? "");
+
+        await mediator.Send(command);
+
+        return Created();
     }
 }

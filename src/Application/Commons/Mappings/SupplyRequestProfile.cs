@@ -1,7 +1,10 @@
 using AutoMapper;
-using ERP.Core.Database.Domain.Entities.Inventory;
+
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Database.Domain.Entities.Inventory;
+
 using ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Dtos;
+
 using Commands = ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Commands;
 using DbUserProfile = ERP.Core.Database.Domain.Entities.Auth.UserProfile;
 

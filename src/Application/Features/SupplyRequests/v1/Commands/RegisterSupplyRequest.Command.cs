@@ -1,6 +1,5 @@
 using MediatR;
 using ERP.Core.Domain.Entities.Bases;
-using ERP.Core.Database.Domain.Entities.Auth;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Commands;
 
