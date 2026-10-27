@@ -53,7 +53,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
             var existingProductIds = request.PurchaseRequests
                 .SelectMany(pr => pr.PurchaseRequestItems)
-                .Where(item => item.NewProduct is null && item.ProductId.HasValue)
+                .Where(item => item.ProductId.HasValue)
                 .Select(item => item.ProductId!.Value)
                 .Distinct()
                 .ToList();
@@ -154,10 +154,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                         {
                             var (productId, unitMeasureId, productError) = await ResolveProductAsync(
                                 productItem,
-                                request.CompanyId,
                                 productsById,
-                                validAdditionalSuppliers,
-                                token);
+                                validAdditionalSuppliers);
 
                             if (productError is not null)
                             {
@@ -279,146 +277,60 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
         private async Task<(Guid ProductId, Guid UnitMeasureId, bool? ErrorResponse)> ResolveProductAsync(
             Commands.PurchaseRequestItem item,
-            Guid companyId,
             Dictionary<Guid, Product> productsById,
-            HashSet<Guid>? validAdditionalSuppliers,
-            CancellationToken cancellationToken)
+            HashSet<Guid>? validAdditionalSuppliers)
         {
-            if (item.NewProduct is null)
-            {
-                var existingProductId = item.ProductId!.Value;
+            var existingProductId = item.ProductId!.Value;
 
-                if (!productsById.TryGetValue(existingProductId, out var product))
-                {
-                    return (Guid.Empty, Guid.Empty, _errorManager.ThrowNotFound<bool>(
-                        "El producto seleccionado no existe", "ERP:PRODUCT_NOT_FOUND"));
-                }
-
-                if (item.AdditionalSupplierIds is { Count: > 0 })
-                {
-                    var linkTimestamp = DateTime.UtcNow;
-                    var linked = false;
-
-                    foreach (var supplierId in item.AdditionalSupplierIds.Distinct())
-                    {
-                        if (validAdditionalSuppliers is null || !validAdditionalSuppliers.Contains(supplierId))
-                        {
-                            return (Guid.Empty, Guid.Empty, _errorManager.ThrowNotFound<bool>(
-                                "Uno o más proveedores adicionales no existen o están inactivos",
-                                "ERP:SUPPLIER_NOT_FOUND"));
-                        }
-
-                        var alreadyLinked = product.SupplierProducts
-                            .Any(sp => sp.SupplierId == supplierId && sp.DeletedAt == null);
-
-                        if (alreadyLinked)
-                        {
-                            continue;
-                        }
-
-                        product.SupplierProducts.Add(new SupplierProduct
-                        {
-                            Id = Guid.NewGuid(),
-                            IsActive = true,
-                            ProductId = product.Id,
-                            SupplierId = supplierId,
-                            UnitPrice = 0m,
-                            LastPriceUpdate = linkTimestamp
-                        });
-                        linked = true;
-                    }
-
-                    if (linked)
-                    {
-                        await _unitOfWork.Products.UpdateAsync(product);
-                    }
-                }
-
-                var unitMeasureId = item.UnitMeasureId ?? product.UnitMeasureId;
-
-                return (existingProductId, unitMeasureId, null);
-            }
-
-            var payload = item.NewProduct;
-
-            var categoryExists = await _unitOfWork.CategoryProducts.Entities
-                .AnyAsync(c => c.Id == payload.CategoryId && c.DeletedAt == null, cancellationToken);
-
-            if (!categoryExists)
+            if (!productsById.TryGetValue(existingProductId, out var product))
             {
                 return (Guid.Empty, Guid.Empty, _errorManager.ThrowNotFound<bool>(
-                    "La categoría del producto no existe", "ERP:CATEGORY_NOT_FOUND"));
+                    "El producto seleccionado no existe", "ERP:PRODUCT_NOT_FOUND"));
             }
 
-            var unitExists = await _unitOfWork.UnitsMeasurement.Entities
-                .AnyAsync(u => u.Id == payload.UnitMeasureId && u.DeletedAt == null, cancellationToken);
-
-            if (!unitExists)
+            if (item.AdditionalSupplierIds is { Count: > 0 })
             {
-                return (Guid.Empty, Guid.Empty, _errorManager.ThrowNotFound<bool>(
-                    "La unidad de medida del producto no existe", "ERP:UNIT_MEASURE_NOT_FOUND"));
-            }
+                var linkTimestamp = DateTime.UtcNow;
+                var linked = false;
 
-            if (payload.Suppliers.Count > 0)
-            {
-                var supplierIds = payload.Suppliers.Select(s => s.SupplierId).Distinct().ToList();
-                var existingSupplierCount = await _unitOfWork.Suppliers.Entities
-                    .CountAsync(s => supplierIds.Contains(s.Id) && s.DeletedAt == null, cancellationToken);
-
-                if (existingSupplierCount != supplierIds.Count)
+                foreach (var supplierId in item.AdditionalSupplierIds.Distinct())
                 {
-                    return (Guid.Empty, Guid.Empty, _errorManager.ThrowNotFound<bool>(
-                        "Uno o más proveedores seleccionados no existen", "ERP:SUPPLIER_NOT_FOUND"));
+                    if (validAdditionalSuppliers is null || !validAdditionalSuppliers.Contains(supplierId))
+                    {
+                        return (Guid.Empty, Guid.Empty, _errorManager.ThrowNotFound<bool>(
+                            "Uno o más proveedores adicionales no existen o están inactivos",
+                            "ERP:SUPPLIER_NOT_FOUND"));
+                    }
+
+                    var alreadyLinked = product.SupplierProducts
+                        .Any(sp => sp.SupplierId == supplierId && sp.DeletedAt == null);
+
+                    if (alreadyLinked)
+                    {
+                        continue;
+                    }
+
+                    product.SupplierProducts.Add(new SupplierProduct
+                    {
+                        Id = Guid.NewGuid(),
+                        IsActive = true,
+                        ProductId = product.Id,
+                        SupplierId = supplierId,
+                        UnitPrice = 0m,
+                        LastPriceUpdate = linkTimestamp
+                    });
+                    linked = true;
+                }
+
+                if (linked)
+                {
+                    await _unitOfWork.Products.UpdateAsync(product);
                 }
             }
 
-            var (codeSucceeded, productCode) = await _codeGenerator.GenerateUniqueProductCode(
-                companyId,
-                payload.CategoryId,
-                cancellationToken);
+            var unitMeasureId = item.UnitMeasureId ?? product.UnitMeasureId;
 
-            if (!codeSucceeded || string.IsNullOrWhiteSpace(productCode))
-            {
-                return (Guid.Empty, Guid.Empty, _errorManager.ThrowBadRequest<bool>(
-                    "Ocurrió un error al generar el código del producto", "ERP:ERROR_PRODUCT_CODE_GENERATOR"));
-            }
-
-            var now = DateTime.UtcNow;
-            var productId = Guid.NewGuid();
-
-            var productEntity = new Product
-            {
-                Id = productId,
-                Code = productCode,
-                ProductName = payload.ProductName.Trim(),
-                Description = payload.Description,
-                CategoryId = payload.CategoryId,
-                UnitMeasureId = payload.UnitMeasureId,
-                ProductUsageType = payload.ProductUsageType,
-                IsTaxExempt = payload.IsTaxExempt,
-                SupplierProducts = payload.Suppliers
-                    .GroupBy(s => s.SupplierId)
-                    .Select(g =>
-                    {
-                        var link = g.First();
-                        return new SupplierProduct
-                        {
-                            Id = Guid.NewGuid(),
-                            IsActive = true,
-                            ProductId = productId,
-                            SupplierId = link.SupplierId,
-                            UnitPrice = link.UnitPrice ?? 0m,
-                            LastPriceUpdate = now
-                        };
-                    })
-                    .ToList()
-            };
-
-            await _unitOfWork.Products.InsertProduct(productEntity);
-
-            var itemUnitMeasureId = item.UnitMeasureId ?? payload.UnitMeasureId;
-
-            return (productId, itemUnitMeasureId, null);
+            return (existingProductId, unitMeasureId, null);
         }
     }
 }
