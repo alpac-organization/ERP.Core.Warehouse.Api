@@ -57,6 +57,27 @@ public class SupplyRequestsController(IMediator mediator) : ApiControllerBase
         });
     }
 
+    [HttpGet("companies/{company_id}/modules/{module_code}/supply-requests/{supply_request_id}/detail")]
+    [ProducesResponseType(typeof(GetSupplyRequestDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<GetSupplyRequestDetailDto> GetSupplyRequestsDetailAsync(
+        [FromRoute] Guid        company_id,
+        [FromRoute] string      module_code,
+        [FromRoute] Guid        supply_request_id
+    )
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        return await mediator.Send(new GetSupplyRequestsDetailQuery()
+        {
+            CompanyId           = company_id,
+            ModuleCode          = module_code,
+            UserId              = Guid.Parse(userIdStr ?? ""),
+            SupplyRequestId     = supply_request_id
+        });
+    }
+
     [HttpPost("companies/{company_id}/modules/{module_code}/supply-requests")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
