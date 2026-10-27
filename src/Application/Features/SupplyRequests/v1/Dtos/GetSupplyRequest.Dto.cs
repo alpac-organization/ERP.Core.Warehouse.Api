@@ -14,4 +14,6 @@ public class GetSupplyRequestDto
     public Guid WarehouseId { get; set; }
     public Guid OperationalOrderId { get; set; }
     public Guid RequestedByUserId { get; set; }
+
+    public int ItemsCount { get; set; }
 }

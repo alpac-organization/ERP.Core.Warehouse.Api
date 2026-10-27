@@ -31,6 +31,7 @@ public class GetSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager erro
         var totalRecords = await supplyRequestsQuery.CountAsync(ct);
 
         var supplyRequests = await supplyRequestsQuery
+            .Include(sr => sr.SupplyRequestItems)
             .OrderByDescending(sr => sr.CreatedAt)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)

@@ -1,6 +1,7 @@
 using FluentValidation;
 using ERP.Core.Application.Commons.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Commands;
+using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Validators;
 
@@ -15,11 +16,16 @@ public class RegisterSupplyRequestsValidator : BaseRequestValidator<RegisterSupp
             .NotEmpty().WithMessage("Debe especificar una Orden Operativa");
 
         RuleFor(x => x.Items)
-            .NotEmpty().WithMessage("La solicitud debe tener al menos un insumo.")
-            .Must(items => items.Select(i => i.ProductStockId).Distinct().Count() == items.Count)
-            .When(x => x.Items.Count > 0);
+            .NotEmpty().WithMessage("La solicitud debe tener al menos un insumo.");
 
-        RuleForEach(x => x.Items).SetValidator(new RegisterSupplyRequestItemValidator());
+        RuleFor(x => x.Items)
+            .Must(items => items.Select(i => i.ProductStockId).Distinct().Count() == items.Count)
+            .When(x => x.Items is { Count: > 0 })
+            .WithMessage("Hay insumos repetidos en la solicitud.");
+
+        RuleForEach(x => x.Items)
+            .SetValidator(new RegisterSupplyRequestItemValidator())
+            .When(x => x.Items is { Count: > 0 });
     }
 }
 
@@ -28,7 +34,7 @@ public class RegisterSupplyRequestItemValidator : AbstractValidator<RegisterSupp
     public RegisterSupplyRequestItemValidator()
     {
         RuleFor(x => x.ProductStockId)
-            .NotEmpty().WithMessage("El id del producto es");
+            .NotEmpty().WithMessage("El id del insumo es obligatorio.");
 
         RuleFor(x => x.Amount)
             .GreaterThan(0).WithMessage("La cantidad debe ser mayor que cero.");

@@ -14,7 +14,9 @@ public class SupplyRequestsProfile : Profile
 {
     public SupplyRequestsProfile()
     {
-        CreateMap<SupplyRequest, GetSupplyRequestDto>();
+        CreateMap<SupplyRequest, GetSupplyRequestDto>()
+            .ForMember(dest => dest.SupplyRequestId, opt => opt.MapFrom(src => src.Id))
+            .ForMember(dest => dest.ItemsCount, opt => opt.MapFrom(src => src.SupplyRequestItems.Count));
     }
 }
 
@@ -28,17 +30,17 @@ public static class SupplyRequestMapper
         var id = Guid.NewGuid();
         return new()
         {
-            Id                  = id,
-            Code                = code,
-            Justification       = request.Justification,
-            OutflowStatus       = OutflowStatus.PendingReview,
-            WorkAreaId          = userProfile.AreaId,
-            CostCenterId        = userProfile.CostCenterId,
-            BranchId            = userProfile.BranchId,
-            WarehouseId         = warehouseId,
-            OperationalOrderId  = request.OperationalOrderId,
-            RequestedByUserId   = userProfile.UserId,
-            SupplyRequestItems  = [.. request.Items.Select(item => item.ToSupplyRequestItemEntity(id))]
+            Id = id,
+            Code = code,
+            Justification = request.Justification,
+            OutflowStatus = OutflowStatus.PendingReview,
+            WorkAreaId = userProfile.AreaId,
+            CostCenterId = userProfile.CostCenterId,
+            BranchId = userProfile.BranchId,
+            WarehouseId = warehouseId,
+            OperationalOrderId = request.OperationalOrderId,
+            RequestedByUserId = userProfile.UserId,
+            SupplyRequestItems = [.. request.Items.Select(item => item.ToSupplyRequestItemEntity(id))]
         };
     }
 
@@ -47,12 +49,12 @@ public static class SupplyRequestMapper
     {
         return new()
         {
-            Id                  = Guid.NewGuid(),
-            IsActive            = true,
-            ProductStockId      = command.ProductStockId,
-            Amount              = command.Amount,
-            ReasonUse           = ReasonUse.Operation,
-            SupplyRequestId     = supplyRequestId
+            Id = Guid.NewGuid(),
+            IsActive = true,
+            ProductStockId = command.ProductStockId,
+            Amount = command.Amount,
+            ReasonUse = ReasonUse.Operation,
+            SupplyRequestId = supplyRequestId
         };
     }
 }

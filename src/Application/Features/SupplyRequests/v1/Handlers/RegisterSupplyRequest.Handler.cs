@@ -1,7 +1,11 @@
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
+
+using ERP.Core.Domain.Entities.Errors;
+using ERP.Core.Domain.Entities.Exceptions;
 
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
@@ -10,15 +14,18 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Commands;
-using ERP.Core.Domain.Entities.Exceptions;
-using ERP.Core.Domain.Entities.Errors;
-using Microsoft.Extensions.Logging;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Handlers;
 
 public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, ICodeGenerator codeGenerator, ILogger<RegisterSupplyRequestsHandler> logger)
     : BaseValidatorHandler<RegisterSupplyRequestsCommad, Unit>(unitOfWork, errorManager)
 {
+    private static readonly OutflowStatus[] BlockingStatuses = [
+       OutflowStatus.PendingReview,
+        OutflowStatus.PendingDispatch,
+        OutflowStatus.Approved
+   ];
+
     public override async Task<Unit> Handle(RegisterSupplyRequestsCommad request, CancellationToken ct)
     {
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, ct);
@@ -32,13 +39,12 @@ public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager
 
         if (!orderExists) return _errorManager.ThrowBadRequest<Unit>("La Orden Operativa no existe.", "ERP:OPERATIVE_ORDER_NOT_FOUND");
 
-        var stockIds = request.Items.Select(i => i.ProductStockId).ToList();
+        var activeRequestError = await ValidateActiveSupplyRequestAsync(request.OperationalOrderId, ct);
+        if (activeRequestError is not null) return activeRequestError.Value;
 
-        var existingStocks = await _unitOfWork.ProductStocks.Entities
-            .AsNoTracking()
-            .CountAsync(ps => stockIds.Contains(ps.Id) && ps.DeletedAt == null, ct);
+        var stockError = await ValidateRequestedStockAsync(request, access.Profile.BranchId, ct);
 
-        if (existingStocks != stockIds.Count) return _errorManager.ThrowBadRequest<Unit>("Uno o más insumos no existen.", "ERP:PRODUCT_STOCK_NOT_FOUND");
+        if (stockError is not null) return stockError.Value;
 
         var warehouseId = await _unitOfWork.AssignmentOperationals.Entities
             .AsNoTracking()
@@ -77,5 +83,83 @@ public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager
         }
 
         return Unit.Value;
+    }
+
+    public async Task<Unit?> ValidateActiveSupplyRequestAsync(Guid operationalOrderId, CancellationToken ct)
+    {
+        var existing = await _unitOfWork.SupplyRequests.Entities
+            .AsNoTracking()
+            .Where(sr => sr.OperationalOrderId == operationalOrderId
+                    && sr.DeletedAt == null
+                    && BlockingStatuses.Contains(sr.OutflowStatus))
+            .Select(sr => new
+            {
+                sr.Code,
+                sr.OutflowStatus
+            })
+            .FirstOrDefaultAsync(ct);
+
+            if (existing is null) return null;
+
+            var statusText = existing.OutflowStatus switch
+            {
+                OutflowStatus.PendingReview     => "Pendiente de revisión",
+                OutflowStatus.PendingDispatch   => "Pendiente de despacho",
+                OutflowStatus.Approved          => "Aprovada",
+                _                               => existing.OutflowStatus.ToString()
+            };
+
+            return _errorManager.ThrowBadRequest<Unit>(
+                $"Ya existe una solicitud ({existing.Code}) en estado '{statusText}' para esta Orden Operativa. "
+                + $"No se puede crear una nueva hasta que sea anulada o cancelada.",
+                "ERP:SUPPLY_REQUEST_ALREADY_EXISTS_FOR_OPERATIONAL_ORDER"
+            );
+    }
+
+    private async Task<Unit?> ValidateRequestedStockAsync(RegisterSupplyRequestsCommad request, Guid branchId, CancellationToken ct)
+    {
+        var requested = request.Items
+            .GroupBy(r => r.ProductStockId)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Amount));
+
+        var stockIds = requested.Keys.ToList();
+
+        var stocks = await _unitOfWork.ProductStocks.Entities
+            .AsNoTracking()
+            .Where(ps => stockIds.Contains(ps.Id) && ps.DeletedAt == null)
+            .Select(ps => new
+            {
+                ps.Id,
+                ps.IsActive,
+                ps.AvailableQuantity,
+                ps.Product.BranchId,
+                Name = ps.Product.ProductName ?? ps.Product.Code,
+                Unit = ps.UnitMeasure.Symbol
+            })
+            .ToListAsync(ct);
+
+        var validStocks = stocks.Where(s => s.BranchId == branchId).ToList();
+
+        if (validStocks.Count != stockIds.Count)
+            return _errorManager.ThrowBadRequest<Unit>("Uno o más insumos no existen.", "ERP:PRODUCT_STOCK_NOT_FOUND");
+
+        var inactive = validStocks
+            .Where(s => !s.IsActive)
+            .Select(s => s.Name)
+            .ToList();
+
+        if (inactive.Count > 0) return _errorManager.ThrowBadRequest<Unit>("Los siguientes insumos están inactivos.", "ERP:PRODUCT_STOCK_INACTIVE");
+
+        var insufficient = stocks
+            .Where(s => requested[s.Id] > s.AvailableQuantity)
+            .Select(s => $"{s.Name} (solicitado: {requested[s.Id]} {s.Unit}, disponible: {s.AvailableQuantity} {s.Unit}")
+            .ToList();
+
+        if (insufficient.Count > 0)
+            return _errorManager.ThrowBadRequest<Unit>(
+                $"La cantidad solicitada supera el stock disponible: {string.Join("; ", insufficient)}.",
+                "ERP:INSUFFICIENT_STOCK");
+
+        return null;
     }
 }
