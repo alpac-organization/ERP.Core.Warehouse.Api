@@ -45,5 +45,5 @@ public class ItemDetail
     public Guid SupplyRequestItemId { get; set; }
     public Guid ProductStockId { get; set; }
     public string ProductStockName { get; set; } = null!;
-    public int Amount { get; set; }
+    public decimal Amount { get; set; }
 }

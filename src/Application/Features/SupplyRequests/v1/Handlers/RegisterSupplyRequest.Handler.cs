@@ -25,6 +25,13 @@ public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, ct);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
+        var auth = await _unitOfWork.InventoryAreasPermissions.Entities
+            .AsNoTracking()
+            .Where(a => a.WorkAreaId == access.Profile.AreaId && a.IsActive)
+            .FirstOrDefaultAsync(ct);
+
+        if (auth is null) return _errorManager.ThrowBadRequest<Unit>("No tienes permiso para esta acción", "ERP:USER_NOT_AUTOIZED");
+
         // Validar que la PO exista
         var orderExists = await _unitOfWork.OperationalOrders.Entities
             .AsNoTracking()
@@ -32,6 +39,9 @@ public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager
 
 
         if (!orderExists) return _errorManager.ThrowBadRequest<Unit>("La Orden Operativa no existe.", "ERP:OPERATIVE_ORDER_NOT_FOUND");
+
+
+        logger.LogInformation("📝Creando solicitud de inventario.");
 
         var stockError = await ValidateRequestedStockAsync(request, access.Profile.BranchId, ct);
 

@@ -15,5 +15,5 @@ public class RegisterSupplyRequestsCommad : BaseRequest, IRequest<Unit>
 public class RegisterSupplyRequestItem
 {
     public Guid ProductStockId { get; set; }
-    public int Amount { get; set; }
+    public decimal Amount { get; set; }
 }
