@@ -16,7 +16,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Dtos
         public CostCenterInformation? CostCenterInformation { get; set;  }
         public UnitMeasureInformation? UnitMeasureInformation { get; set; }
     }
-
+    
     public class UnitMeasureInformation
     {
         public string Name { get; set; } = default!;

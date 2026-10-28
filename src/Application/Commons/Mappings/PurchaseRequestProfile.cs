@@ -1,3 +1,4 @@
+
 using System.Text.Json;
 using AutoMapper;
 using ERP.Core.Database.Domain.Enums;
@@ -7,7 +8,6 @@ using Commands = ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
-
     public class PurchaseRequestProfile : Profile
     {
         private static readonly JsonSerializerOptions JsonOptions = new()
