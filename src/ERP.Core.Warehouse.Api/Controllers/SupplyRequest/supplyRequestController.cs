@@ -20,7 +20,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.supplyRequest;
 [Tags("Solicitudes Operacionales de Inventario")]
 public class SupplyRequestsController(IMediator mediator) : ApiControllerBase
 {
-    [HttpGet("companies/{company_id}/modules/{module_code}/supply-requests")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/inventory/supply-requests")]
     [ProducesResponseType(typeof(PagedResponse<GetSupplyRequestDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
@@ -57,7 +57,7 @@ public class SupplyRequestsController(IMediator mediator) : ApiControllerBase
         });
     }
 
-    [HttpGet("companies/{company_id}/modules/{module_code}/supply-requests/{supply_request_id}/detail")]
+    [HttpGet("companies/{company_id}/modules/{module_code}/inventory/supply-requests/{supply_request_id}/detail")]
     [ProducesResponseType(typeof(GetSupplyRequestDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
@@ -78,7 +78,7 @@ public class SupplyRequestsController(IMediator mediator) : ApiControllerBase
         });
     }
 
-    [HttpPost("companies/{company_id}/modules/{module_code}/supply-requests")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/inventory/supply-requests")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
