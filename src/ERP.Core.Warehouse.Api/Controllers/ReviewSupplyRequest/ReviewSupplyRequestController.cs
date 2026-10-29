@@ -36,4 +36,25 @@ public class SupplyRequestsController(IMediator mediator) : ApiControllerBase
         return NoContent();
     }
 
+    [HttpPost("companies/{company_id}/modules/{module_code}/inventory/supply-requests/{supply_request_id}/decline")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<NoContentResult> DeclineSupplyRequestAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid supply_request_id,
+        [FromBody] DeclineSupplyRequestCommand command)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        command.CompanyId = company_id;
+        command.ModuleCode = module_code;
+        command.UserId = Guid.Parse(userIdStr ?? "");
+        command.SupplyRequestId = supply_request_id;
+
+        await mediator.Send(command);
+
+        return NoContent();
+    }
 }
