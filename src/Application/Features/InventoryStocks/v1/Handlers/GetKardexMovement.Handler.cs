@@ -35,6 +35,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                 kardexQuery = kardexQuery
                     .Where(kardex => kardex.Product.CategoryId == request.CategoryId);
             }
+            
+            if (!string.IsNullOrEmpty(request.ProductCode))
+            {
+                kardexQuery = kardexQuery
+                    .Where(kardex => kardex.Product.Code == request.ProductCode);
+            }
 
             if (request.KardexType.HasValue)
             {
