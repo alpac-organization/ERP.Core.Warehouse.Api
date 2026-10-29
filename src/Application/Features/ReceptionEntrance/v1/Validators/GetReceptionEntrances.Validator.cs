@@ -8,6 +8,8 @@ public class GetReceptionEntrancesValidator : BaseRequestValidator<GetReceptionE
 {
     public GetReceptionEntrancesValidator()
     {
-        
+        RuleFor(x => x.Date)
+            .Must(date => !date.HasValue || date.Value <= DateOnly.FromDateTime(DateTime.UtcNow))
+            .WithMessage("La fecha a filtrar no~ puede ser futura.");
     }
 }

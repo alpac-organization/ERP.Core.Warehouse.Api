@@ -12,7 +12,7 @@ public class RegisterSectionPositionsCoordinatesValidator : BaseRequestValidator
             .NotEmpty().WithMessage("El id del almacén es requerido.")
             .NotEqual(Guid.Empty).WithMessage("El id del almacén no es válido.");
 
-        RuleFor(x => x.SectionId)w
+        RuleFor(x => x.SectionId)
             .NotEmpty().WithMessage("El id de la sección es requerido.")
             .NotEqual(Guid.Empty).WithMessage("El id de la sección no es válido.");
 
