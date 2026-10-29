@@ -4,6 +4,7 @@ using ERP.Core.Warehouse.Api.Application;
 using System.Text.Json.Serialization;
 using ERP.Core.Infrastructure.Middlewares;
 using ERP.Core.Warehouse.Api.Infrastructure;
+using ERP.Core.Warehouse.Api.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -59,7 +60,7 @@ var app = builder.Build();
 //Casos de uso, (Middlewares, Cors..., etc)
 app.UseRouting();
 
-app.UseMiddleware<ERP.Core.Warehouse.Api.Middlewares.RequestLoggingMiddleware>();
+app.UseMiddleware<RequestLoggingMiddleware>();
 
 app.UseCors("ViteLocalPolicy");
 
