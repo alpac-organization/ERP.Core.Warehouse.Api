@@ -3,6 +3,7 @@ using AutoMapper;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services;
 using Commands = ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
@@ -20,6 +21,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             CreateMap<PurchaseRequest, PurchaseRequestDto>()
                 .ForMember(dest => dest.PurchaseRequestId,opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.AnnulmentReason, opt => opt.MapFrom(src => src.AnnulmentComments))
                 .ForPath(dest => dest.AnnulledByUserInformation, opt => opt.MapFrom(src => src.AnnulledByUser));
                 
             CreateMap<PurchaseRequest, PurchaseRequestDetailsDto>()
@@ -33,6 +35,11 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(dest => dest.ReasonRejectionDescription, opt => opt.MapFrom(src =>
                     src.ReasonRejection != null ? src.ReasonRejection.Description : null))
                 .ForMember(dest => dest.RejectionComments, opt => opt.MapFrom(src => src.RejectionComments))
+                .ForMember(dest => dest.AnnulmentReason, opt => opt.MapFrom(src => src.AnnulmentComments))
+                .ForMember(dest => dest.RequotationCount, opt => opt.MapFrom(src =>
+                    PurchaseRequestReturnHistory.CountRequotations(src.AdditionalData)))
+                .ForMember(dest => dest.ReturnHistory, opt => opt.MapFrom(src =>
+                    PurchaseRequestReturnHistory.ReadReturnHistory(src.AdditionalData)))
                 .ForMember(dest => dest.IsManagementApproved, opt => opt.MapFrom(src => src.ManagementReview != null && src.ManagementReview.Status == ManagementReviewStatus.Approved))
                 .ForMember(dest => dest.IsAccountingApproved, opt => opt.MapFrom(src => src.AccountingReview != null && src.AccountingReview.Status == AccountingReviewStatus.Approved))
                 .ForMember(dest => dest.IsPurchaseOrderGenerated, opt => opt.MapFrom(src => src.PurchaseOrders != null && src.PurchaseOrders.Any()))

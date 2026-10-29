@@ -36,26 +36,5 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Comman
         public string? Description { get; set; }
         public string? Justification { get; set; }
         public string? AdditionalData { get; set; }
-
-        public NewProductPayload? NewProduct { get; set; }
-    }
-
-    public class NewProductPayload
-    {
-        public string ProductName { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public Guid CategoryId { get; set; }
-        public Guid UnitMeasureId { get; set; }
-        public ProductUsageType ProductUsageType { get; set; }
-        public bool IsTaxExempt { get; set; }
-
-        public List<NewProductSupplierLink> Suppliers { get; set; } = [];
-    }
-
-    public class NewProductSupplierLink
-    {
-        public Guid SupplierId { get; set; }
-
-        public decimal? UnitPrice { get; set; }
     }
 }

@@ -2,18 +2,22 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 
-using ERP.Core.Database.Domain.Enums;
-
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 {
-    public class GetPurchaseOrdersHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) : BaseValidatorHandler<GetPurchaseOrdersQuery, PagedResponse<PurchaseOrderDto>>(_unitOfWork, _errorManager)
+    public class GetPurchaseOrdersHandler(
+        IUnitOfWork _unitOfWork,
+        IErrorManager _errorManager,
+        IMapper _mapper,
+        IPurchaseRequestVisibilityService _visibilityService)
+        : BaseValidatorHandler<GetPurchaseOrdersQuery, PagedResponse<PurchaseOrderDto>>(_unitOfWork, _errorManager)
     {
         public override async Task<PagedResponse<PurchaseOrderDto>> Handle(GetPurchaseOrdersQuery request, CancellationToken cancellationToken)
         {
@@ -23,6 +27,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             {
                 return access.ErrorResponse!;
             }
+
+            var visibleRequestIds = _visibilityService.Apply(
+                    _unitOfWork.PurchaseRequests.Entities,
+                    access.Role?.RoleType,
+                    request.UserId,
+                    access.Profile?.AreaId,
+                    access.Profile?.CostCenterId,
+                    access.Profile?.BranchId)
+                .Select(pr => pr.Id);
 
             var purchaseOrdersQuery = _unitOfWork.PurchaseOrders.Entities
                 .Where(purs => purs.IsActive)
@@ -41,23 +54,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                     .ThenInclude(pr => pr.UserRevision)
 
                 .Where(purs => purs.PurchaseRequest.Branch.CompanyId == request.CompanyId)
+                .Where(purs => visibleRequestIds.Contains(purs.PurchaseRequestId))
                 .AsNoTracking();
-
-
-            if (access.Role?.RoleType != RoleType.Administrator && access.Role?.RoleType != RoleType.Supervisor)
-            {
-                if (access.Role?.RoleType == RoleType.Operator)
-                {
-                    purchaseOrdersQuery = purchaseOrdersQuery
-                        .Where(purs => purs.SentByUserId == request.UserId);
-                }
-
-                // if (access.Role?.RoleType == RoleType.Manager)
-                // {
-                //     purchaseOrdersQuery = purchaseOrdersQuery
-                //         .Where(purs => purs.PurchaseRequest.AreaId == access.User.AreaId);
-                // }
-            }
 
             if (request.AreaId.HasValue)
             {

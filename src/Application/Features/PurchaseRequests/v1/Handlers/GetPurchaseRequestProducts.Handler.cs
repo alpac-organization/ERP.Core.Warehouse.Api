@@ -6,12 +6,17 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
-    public class GetPurchaseRequestProductsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper)
+    public class GetPurchaseRequestProductsHandler(
+        IUnitOfWork _unitOfWork,
+        IErrorManager _errorManager,
+        IMapper _mapper,
+        IPurchaseRequestVisibilityService _visibilityService)
         : BaseValidatorHandler<GetPurchaseRequestsProductsQuery, PagedResponse<PurchaseRequestItemDto>>(_unitOfWork, _errorManager)
     {
         public override async Task<PagedResponse<PurchaseRequestItemDto>> Handle(GetPurchaseRequestsProductsQuery request, CancellationToken cancellationToken)
@@ -21,6 +26,22 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             if (!access.IsSuccess)
             {
                 return access.ErrorResponse!;
+            }
+
+            var isVisible = await _visibilityService.Apply(
+                    _unitOfWork.PurchaseRequests.Entities.Where(pr => pr.Id == request.PurchaseRequestId),
+                    access.Role?.RoleType,
+                    request.UserId,
+                    access.Profile?.AreaId,
+                    access.Profile?.CostCenterId,
+                    access.Profile?.BranchId)
+                .AnyAsync(cancellationToken);
+
+            if (!isVisible)
+            {
+                return _errorManager.ThrowNotFound<PagedResponse<PurchaseRequestItemDto>>(
+                    "No se encontro la solicitud de compra",
+                    "ERP:NOT_FOUND");
             }
 
             var purchaseRequestItemsQuery = _unitOfWork.PurchaseRequestItems.Entities

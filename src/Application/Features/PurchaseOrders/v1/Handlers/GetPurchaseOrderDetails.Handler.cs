@@ -5,12 +5,18 @@ using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 {
-    public class GetPurchaseOrderDetailsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper) : BaseValidatorHandler<GetPurchaseOrderDetailsQuery, PurchaseOrderDetailsDto>(_unitOfWork, _errorManager)
+    public class GetPurchaseOrderDetailsHandler(
+        IUnitOfWork _unitOfWork,
+        IErrorManager _errorManager,
+        IMapper _mapper,
+        IPurchaseRequestVisibilityService _visibilityService)
+        : BaseValidatorHandler<GetPurchaseOrderDetailsQuery, PurchaseOrderDetailsDto>(_unitOfWork, _errorManager)
     {
         public override async Task<PurchaseOrderDetailsDto> Handle(GetPurchaseOrderDetailsQuery request, CancellationToken cancellationToken)
         {
@@ -20,6 +26,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             {
                 return access.ErrorResponse!;
             }
+
+            var visibleRequestIds = _visibilityService.Apply(
+                    _unitOfWork.PurchaseRequests.Entities,
+                    access.Role?.RoleType,
+                    request.UserId,
+                    access.Profile?.AreaId,
+                    access.Profile?.CostCenterId,
+                    access.Profile?.BranchId)
+                .Select(pr => pr.Id);
 
             var purchaseOrder = await _unitOfWork.PurchaseOrders.Entities
                 .Include(purs => purs.SentByUser)
@@ -61,6 +76,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Where(purs => purs.Id == request.PurchaseOrderId)
+                .Where(purs => visibleRequestIds.Contains(purs.PurchaseRequestId))
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (purchaseOrder is null)

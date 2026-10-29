@@ -53,15 +53,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Validators
                 .MaximumLength(200)
                 .WithMessage("La marca del producto no puede exceder los 200 caracteres.");
 
+            RuleFor(x => x.PreferentialPrice)
+                .Null()
+                .WithMessage("La cotización no admite precio preferencial.");
+
             RuleFor(x => x.PriceUnit)
                 .GreaterThan(0)
                 .When(x => x.PriceUnit.HasValue)
                 .WithMessage("El precio unitario debe ser mayor a cero.");
-
-            RuleFor(x => x.PreferentialPrice)
-                .GreaterThan(0)
-                .When(x => x.PreferentialPrice.HasValue)
-                .WithMessage("El precio preferencial debe ser mayor a cero.");
 
             RuleFor(x => x.Currency)
                 .IsInEnum()

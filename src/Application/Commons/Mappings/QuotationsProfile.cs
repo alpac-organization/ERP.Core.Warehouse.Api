@@ -1,6 +1,7 @@
 using AutoMapper;
 using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 
 using Commands = ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands;
@@ -14,7 +15,13 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             CreateMap<Quotation, QuotationInformationDto>()
                 .ForMember(dest => dest.QuotationId, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.IsBestOption, opt => opt.MapFrom(src => EvaluateBestOption(src)))
-                .ForPath(dest => dest.SupplierInformation, opt => opt.MapFrom(src => src.Supplier));
+                .ForPath(dest => dest.SupplierInformation, opt => opt.MapFrom(src => src.Supplier))
+                .AfterMap((src, dest) =>
+                {
+                    var attachments = QuotationAttachmentReader.Read(src.AdditionalData);
+                    dest.Images = attachments.Images;
+                    dest.Documents = attachments.Documents;
+                });
         }
 
         private static bool EvaluateBestOption(Quotation quotation)
@@ -31,6 +38,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             decimal priceUnit,
             decimal priceTotal,
             decimal ivaAmount,
+            decimal irAmount,
+            decimal imiAmount,
             Guid? supplierProductId,
             string? additionalData)
         {
@@ -57,6 +66,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 PriceUnit = priceUnit,
                 PriceTotal = priceTotal,
                 Iva = ivaAmount,
+                Ir = irAmount,
+                Imi = imiAmount,
                 SupplierProductId = supplierProductId,
                 AdditionalData = additionalData
             };
