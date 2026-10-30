@@ -3,8 +3,8 @@ using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Operations;
 using ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Dtos;
 
-using Command = ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands.CreateReceptionEntranceCommand;
 using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Dtos;
+using Command = ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Commands.CreateReceptionEntranceCommand;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {

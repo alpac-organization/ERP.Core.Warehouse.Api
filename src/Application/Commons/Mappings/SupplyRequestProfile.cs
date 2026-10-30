@@ -38,29 +38,29 @@ public class SupplyRequestsProfile : Profile
             .ForMember(dest => dest.OperationalOrderInformation, opt => opt.MapFrom(src => src.OperationalOrder))
             .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.SupplyRequestItems));
 
-        CreateMap<WorkArea, WorkAreaInformation>()
-            .ForMember(dest => dest.WorkAreaId, opt => opt.MapFrom(src => src.Id))
-            .ForMember(dest => dest.WorkAreaName, opt => opt.MapFrom(src => src.WorkAreaName));
+        // CreateMap<WorkArea, WorkAreaInformation>()
+        //     .ForMember(dest => dest.WorkAreaId, opt => opt.MapFrom(src => src.Id))
+        //     .ForMember(dest => dest.WorkAreaName, opt => opt.MapFrom(src => src.WorkAreaName));
 
-        CreateMap<CostCenter, CostCenterInformation>()
-            .ForMember(dest => dest.CostCenterId, opt => opt.MapFrom(src => src.Id))
-            .ForMember(dest => dest.CostCenterName, opt => opt.MapFrom(src => src.CostCenterName));
+        // CreateMap<CostCenter, CostCenterInformation>()
+        //     .ForMember(dest => dest.CostCenterId, opt => opt.MapFrom(src => src.Id))
+        //     .ForMember(dest => dest.CostCenterName, opt => opt.MapFrom(src => src.CostCenterName));
 
-        CreateMap<Branch, BranchInformation>()
-            .ForMember(dest => dest.BranchId, opt => opt.MapFrom(src => src.Id))
-            .ForMember(dest => dest.BranchCode, opt => opt.MapFrom(src => src.BranchCode));
+        // CreateMap<Branch, BranchInformation>()
+        //     .ForMember(dest => dest.BranchId, opt => opt.MapFrom(src => src.Id))
+        //     .ForMember(dest => dest.BranchCode, opt => opt.MapFrom(src => src.BranchCode));
 
-        CreateMap<Warehouses, WarehouseInformation>()
-            .ForMember(dest => dest.WarehouseId, opt => opt.MapFrom(src => src.Id))
-            .ForMember(dest => dest.WarehouseCode, opt => opt.MapFrom(src => src.Code));
+        // CreateMap<Warehouses, WarehouseInformation>()
+        //     .ForMember(dest => dest.WarehouseId, opt => opt.MapFrom(src => src.Id))
+        //     .ForMember(dest => dest.WarehouseCode, opt => opt.MapFrom(src => src.Code));
 
-        CreateMap<Warehouses, WarehouseInformation>()
-            .ForMember(dest => dest.WarehouseId, opt => opt.MapFrom(src => src.Id))
-            .ForMember(dest => dest.WarehouseCode, opt => opt.MapFrom(src => src.Code));
+        // CreateMap<Warehouses, WarehouseInformation>()
+        //     .ForMember(dest => dest.WarehouseId, opt => opt.MapFrom(src => src.Id))
+        //     .ForMember(dest => dest.WarehouseCode, opt => opt.MapFrom(src => src.Code));
 
-        CreateMap<OperationalOrder, OperationalOrderInformation>()
-            .ForMember(dest => dest.OperationalOrderId, opt => opt.MapFrom(src => src.Id))
-            .ForMember(dest => dest.OperationalOrderCode, opt => opt.MapFrom(src => src.PoCode));
+        // CreateMap<OperationalOrder, OperationalOrderInformation>()
+        //     .ForMember(dest => dest.OperationalOrderId, opt => opt.MapFrom(src => src.Id))
+        //     .ForMember(dest => dest.OperationalOrderCode, opt => opt.MapFrom(src => src.PoCode));
 
         CreateMap<SupplyRequestItem, ItemDetail>()
             .ForMember(dest => dest.SupplyRequestItemId, opt => opt.MapFrom(src => src.Id))

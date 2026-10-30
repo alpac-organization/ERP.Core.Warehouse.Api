@@ -1,6 +1,7 @@
 using ERP.Core.Database.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.Customers.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Dtos
 {
@@ -18,7 +19,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Dtos
 
         //Información de recepción de alpac.
         public CustomerDto? CustomerInformation { get; set; }
-        public CostCenterInformation? CostCenterInformation { get; set; }
+        public Database.Domain.Entities.Bases.CostCenterInformation? CostCenterInformation { get; set; }
         public ReceptionEntranceDetailsDto? ReceptionEntranceInformation { get; set; }
     }
 
