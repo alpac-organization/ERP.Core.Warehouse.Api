@@ -5,6 +5,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Dtos
     public class OperationalOrderDto
     {
         public Guid OperationOrderId { get; set; }
+        public string? ReceptionCode { get; set; }
         public string? PoCode { get; set; }
         public string? DocumentNumber { get; set; }
         public DocumentType DocumentType { get; set; }

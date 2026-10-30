@@ -25,6 +25,27 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Validators
                 .WithMessage("La bodega destino es obligatoria, designe a la bodega que va esta mercaderia")
                 .When(x => x.DestinationType == DestinationType.Warehouse);
 
+            RuleFor(x => x.HasOutsourcedCrew)
+                .NotNull()
+                .WithMessage("Debe indicar si la asignación cuenta con personal externo (cuadrilla).");
+
+            RuleFor(x => x.HasOutsourcedMachinery)
+                .NotNull()
+                .WithMessage("Debe indicar si la asignación cuenta con maquinaria externa.");
+
+            RuleFor(x => x.OutsourcedCrewCount)
+                .NotNull()
+                .WithMessage("Debe indicar la cantidad de personal externo cuando has_outsourced_crew es true.")
+                .GreaterThan(0)
+                .WithMessage("La cantidad de personal externo debe ser mayor que cero.")
+                .When(x => x.HasOutsourcedCrew == true);
+
+            RuleFor(x => x.OutsourcedMachinerySupplier)
+                .NotNull()
+                .NotEmpty()
+                .WithMessage("Debe indicar el proveedor de maquinaria externa cuando has_outsourced_machinery es true.")
+                .When(x => x.HasOutsourcedMachinery == true);
+
             When(x => x.AssignedMachineries.Count > 0, () =>
             {
                 RuleForEach(x => x.AssignedMachineries)

@@ -15,6 +15,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Commands
 
         public bool HasAssignedMachinery { get; set; } = false;
         public bool HasAssignedCollaborators { get; set; } = false;
+        public bool? HasOutsourcedCrew { get; set; }
+        public bool? HasOutsourcedMachinery { get; set; }
+
+        public int? OutsourcedCrewCount { get; set; }
+        public string? OutsourcedMachinerySupplier { get; set; }
+
 
         public List<AssignedMachinery> AssignedMachineries { get; set; } = [];
         public List<AssignedCollaborator> AssignedCollaborators { get; set; } = [];

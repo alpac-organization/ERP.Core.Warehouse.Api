@@ -47,13 +47,22 @@ public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager
 
         if (stockError is not null) return stockError.Value;
 
-        var warehouseId = await _unitOfWork.AssignmentOperationals.Entities
+        var assignment = await _unitOfWork.AssignmentOperationals.Entities
             .AsNoTracking()
-            .Where(a => a.OperationalOrderId == request.OperationalOrderId
-                    && a.IsActive && a.DeletedAt == null)
-            .Select(a => a.WarehouseId!.Value)
-            .FirstAsync(ct);
+            .FirstOrDefaultAsync(
+                a => a.OperationalOrderId == request.OperationalOrderId
+                    && a.IsActive && a.DeletedAt == null,
+                ct
+            );
 
+        if (assignment is null || assignment.WarehouseId is null)
+        {
+            return _errorManager.ThrowBadRequest<Unit>(
+                "La asignación no tiene un almacén válido para esta orden operativa.",
+                "ERP:ASSIGNMENT_WAREHOUSE_NOT_FOUND"
+            );
+        }
+        
         var branchCode = await _unitOfWork.Branches.Entities
             .AsNoTracking()
             .Where(bc => bc.Id == access.Profile.BranchId && bc.IsActive)
@@ -71,7 +80,7 @@ public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager
                 if (!isSuccess || string.IsNullOrWhiteSpace(code))
                     throw new CoreException(new ErrorResponse(500, "ERP:INTERNAL_ERROR", "No se pudo generar el código para la solicitud."));
 
-                var entity = request.ToSupplyRequestEntity(access.Profile, code, warehouseId);
+                var entity = request.ToSupplyRequestEntity(access.Profile, code, assignment.WarehouseId.Value);
 
                 await _unitOfWork.SupplyRequests.RegisterSupplyRequest(entity);
                 await _unitOfWork.SaveChangesAsync(token);

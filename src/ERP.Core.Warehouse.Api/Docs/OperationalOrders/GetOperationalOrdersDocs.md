@@ -49,7 +49,7 @@ Endpoint para listar con paginación las órdenes operacionales (PO) registradas
 ## Flujo del Handler (`GetOperationalOrdersHandler`)
 
 1. `ValidateAccessAsync(user_id, company_id, module_code)`: valida usuario, perfil de compañía y acceso al módulo. Si falla devuelve `400`.
-2. Arma el query base: `OperationalOrders` con `Include(Customer)`, `Include(CostCenter)`, `AsSplitQuery()` y `AsNoTracking()`.
+2. Arma el query base: `OperationalOrders` con `Include(Customer)`, `Include(CostCenter)`, `Include(Reception)`, `AsSplitQuery()` y `AsNoTracking()`.
 3. Si viene `status`, filtra por `Status == request.Status` (igualdad exacta).
 4. Si viene `customer_cif`, filtra por `Customer.Cif == request.CustomerCif` (igualdad exacta).
 5. Si viene `code`, filtra por `PoCode == request.PoCode` (igualdad exacta).
@@ -88,11 +88,13 @@ Devuelve un `PagedResponse<OperationalOrderDto>`. El JSON se serializa con `Snak
   "data": [
     {
       "operation_order_id": "56487c1b-9f4d-4b2a-8e1c-1234567890ab",
+      "reception_code": "REC-00045",
       "po_code": "ALP-MGA-OP-15",
       "document_number": "DUCA-000123",
       "document_type": "DUCA",
       "status": "PendingDocument",
-      "is_alerted": false
+      "is_alerted": false,
+      "is_consolidated": false
     }
   ],
   "page_number": 1,
@@ -104,11 +106,13 @@ Devuelve un `PagedResponse<OperationalOrderDto>`. El JSON se serializa con `Snak
 | Campo                     | Tipo                            | Descripción |
 |---------------------------|---------------------------------|-------------|
 | `operation_order_id`      | `guid`                          | Id de la orden operacional. Es el valor que consumen el detalle y el PATCH de información. |
+| `reception_code`          | `string`                        | Código de la recepción asociada. `null` si la orden no tiene recepción. |
 | `po_code`                 | `string`                        | Código de la PO. |
 | `document_number`         | `string`                        | Número de DUCA o de declaración aduanera asociado. |
 | `document_type`           | `enum (DocumentType)`           | Tipo de documento de la orden. |
 | `status`                  | `enum (OperationalOrderStatus)` | Estado de la orden. |
 | `is_alerted`              | `bool`                          | Si la orden tiene una alerta activa. |
+| `is_consolidated`         | `bool`                          | Si la orden está consolidada (se marca cuando la recepción trae más de un número de DUCA). |
 
 ### Notas
 
@@ -120,6 +124,7 @@ Devuelve un `PagedResponse<OperationalOrderDto>`. El JSON se serializa con `Snak
 | Filtro de `customer_cif` | Exacto sobre `Customer.Cif`. |
 | Filtro de `document_type` | **Sin efecto.** Ver nota arriba. |
 | Cliente / centro de costos | El handler sigue haciendo `Include(Customer)` (necesario para el filtro `customer_cif`) e `Include(CostCenter)`, pero **ninguno de los dos se expone en la respuesta**: el `OperationalOrderDto` ya no tiene `customer_information` ni `cost_center_information`. |
+| Recepción | El handler también hace `Include(Reception)` para poder exponer `reception_code`; el resto de la recepción no se incluye en el listado. |
 | `total` | Cuenta **después** de aplicar los filtros de `status`, `customer_cif` y `code`. |
 
 ### ❌ 400 Bad Request

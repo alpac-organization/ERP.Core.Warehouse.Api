@@ -232,4 +232,56 @@ public class WarehouseSectionsController(IMediator _mediator) : ApiControllerBas
 
         return Ok();
     }
+
+    [Tags("Posiciones")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{section_id}/positions")]
+    [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<OkResult> RegisterSectionPositionsAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid warehouse_id,
+        [FromRoute] Guid section_id,
+        [FromBody] RegisterSectionPositionsCommand payload,
+        CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        payload.CompanyId = company_id;
+        payload.ModuleCode = module_code;
+        payload.UserId = Guid.Parse(userIdStr ?? "");
+        payload.WarehouseId = warehouse_id;
+        payload.SectionId = section_id;
+
+        await _mediator.Send(payload, cancellationToken);
+
+        return Ok();
+    }
+
+    [Tags("Coordenadas de Posiciones")]
+    [HttpPost("companies/{company_id}/modules/{module_code}/warehouses/{warehouse_id}/sections/{section_id}/positions/coordinates")]
+    [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<OkResult> RegisterSectionPositionsCoordinatesAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid warehouse_id,
+        [FromRoute] Guid section_id,
+        [FromBody] RegisterSectionPositionsCoordinatesCommand payload,
+        CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        payload.CompanyId = company_id;
+        payload.ModuleCode = module_code;
+        payload.UserId = Guid.Parse(userIdStr ?? "");
+        payload.WarehouseId = warehouse_id;
+        payload.SectionId = section_id;
+
+        await _mediator.Send(payload, cancellationToken);
+
+        return Ok();
+    }
 }

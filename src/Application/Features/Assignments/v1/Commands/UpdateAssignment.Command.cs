@@ -17,6 +17,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Commands
         public string? Observations { get; set; }
         public string? Merchandise { get; set; }
         public string? MerchandiseDescription { get; set; }
+        public int? OutsourcedCrewCount { get; set; }
+        public string? OutsourcedMachinerySupplier { get; set; }
+
 
         public Guid? WarehouseId { get; set; }
         public DestinationType? DestinationType { get; set; }

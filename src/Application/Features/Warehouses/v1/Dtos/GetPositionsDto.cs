@@ -25,6 +25,9 @@ public class PositionItemDto
     public string Code { get; set; } = string.Empty;
     public int Level { get; set; }
     public RackStatus Status { get; set; }
+    public decimal Width { get; set; }
+    public decimal Length { get; set; }
+    public decimal AreaM2 { get; set; }
     public PositionCoordinatesDto? Coordinates { get; set; }
 }
 

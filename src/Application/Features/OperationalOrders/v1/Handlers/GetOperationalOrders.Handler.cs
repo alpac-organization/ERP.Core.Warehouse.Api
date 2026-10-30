@@ -25,6 +25,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
             var operationalOrdersQuery = _unitOfWork.OperationalOrders.Entities
                 .Include(po => po.Customer)
                 .Include(po => po.CostCenter)
+                .Include(po => po.Reception)
                 .AsSplitQuery()
                 .AsNoTracking();
 
@@ -49,7 +50,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
             var totalRecords = await operationalOrdersQuery.CountAsync(cancellationToken);
 
             var operationalOrders = await operationalOrdersQuery
-                .OrderByDescending(purs => purs.CreatedAt)
+                .OrderByDescending(purs => purs.Reception != null ? purs.Reception.ReceptionCode : null)
+                    .ThenByDescending(purs => purs.CreatedAt)
                 .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .ToListAsync(cancellationToken);

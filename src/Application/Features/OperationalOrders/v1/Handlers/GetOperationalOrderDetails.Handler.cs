@@ -31,6 +31,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
                 .Include(po => po.Customer)
                 .Include(po => po.Reception)
                     .ThenInclude(reception => reception.ReceptionTransport)
+                .Include(po => po.Reception)
+                    .ThenInclude(reception => reception.CustomsBranches)
                 .Include(po => po.CostCenter)
                 .Where(po => po.Id == request.OperationalOrderId);
 
