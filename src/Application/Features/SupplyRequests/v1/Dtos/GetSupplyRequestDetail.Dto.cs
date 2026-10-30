@@ -14,35 +14,6 @@ public class GetSupplyRequestDetailDto : GetSupplyRequestDto
 
 }
 
-// public class WorkAreaInformation
-// {
-//     public Guid WorkAreaId { get; set; }
-//     public string WorkAreaName { get; set; } = null!;
-// }
-
-// public class CostCenterInformation
-// {
-//     public Guid CostCenterId { get; set; }
-//     public string CostCenterName { get; set; } = null!;
-// }
-
-// public class BranchInformation
-// {
-//     public Guid BranchId { get; set; }
-//     public string BranchCode { get; set; } = null!;
-// }
-
-// public class WarehouseInformation
-// {
-//     public Guid WarehouseId { get; set; }
-//     public string WarehouseCode { get; set; } = null!;
-// }
-
-// public class OperationalOrderInformation
-// {
-//     public Guid OperationalOrderId { get; set; }
-//     public string OperationalOrderCode { get; set; } = null!;
-// }
 public class ItemDetail
 {
     public Guid SupplyRequestItemId { get; set; }
