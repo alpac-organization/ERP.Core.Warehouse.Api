@@ -1,10 +1,12 @@
 using MediatR;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
 
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Operations;
+using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
@@ -31,6 +33,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
             #region Cargar la orden operacional
 
             var operationalOrder = await _unitOfWork.OperationalOrders.Entities
+                .Include(po => po.Reception)
                 .Where(po => po.Id == request.OperationalOrderId)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -78,9 +81,53 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Handl
             operationalOrder.PackagesCount = request.PackageAmount ?? operationalOrder.PackagesCount;
             operationalOrder.ShippingCompany = request.ShippingCompany ?? operationalOrder.ShippingCompany;
             operationalOrder.Sender = request.Sender ?? operationalOrder.Sender;
+            operationalOrder.Description = request.Description ?? operationalOrder.Description;
             operationalOrder.HasConsignees = request.HasConsignees ?? operationalOrder.HasConsignees;
             operationalOrder.IsInTransit = request.IsInTransit ?? operationalOrder.IsInTransit;
             operationalOrder.IsAlerted = request.IsAlerted ?? operationalOrder.IsAlerted;
+
+            if (!string.IsNullOrWhiteSpace(request.DocumentNumber))
+            {
+                operationalOrder.DocumentNumber = request.DocumentNumber.Trim();
+
+                if (operationalOrder.Reception is not null)
+                {
+                    var snakeOptions = new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+                    };
+
+                    var additional = string.IsNullOrWhiteSpace(operationalOrder.Reception.AdditionalData)
+                        ? new AdditionalReceptionEntranceData()
+                        : (JsonSerializer.Deserialize<AdditionalReceptionEntranceData>(
+                            operationalOrder.Reception.AdditionalData, snakeOptions)
+                            ?? new AdditionalReceptionEntranceData());
+
+                    var documentEntry = additional.DocumentNumbers
+                        .FirstOrDefault(d => d.OperationalOrderId == operationalOrder.Id);
+
+                    if (documentEntry is not null)
+                    {
+                        documentEntry.DocumentNumbers = request.DocumentNumber.Trim();
+                        documentEntry.DocumentType = operationalOrder.DocumentType;
+                    }
+                    else
+                    {
+                        additional.DocumentNumbers.Add(new DocumentInformation
+                        {
+                            DocumentId = Guid.NewGuid(),
+                            OperationalOrderId = operationalOrder.Id,
+                            DocumentType = operationalOrder.DocumentType,
+                            DocumentNumbers = request.DocumentNumber.Trim()
+                        });
+                    }
+
+                    operationalOrder.Reception.AdditionalData =
+                        JsonSerializer.Serialize(additional, snakeOptions);
+
+                    await _unitOfWork.ReceptionEntrance.UpdateAsync(operationalOrder.Reception);
+                }
+            }
 
             #endregion
 

@@ -9,6 +9,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.OperationalOrders.v1.Comma
 
         //Información de recepción...
         public Guid? CustomerId { get; set; }
+        public string? Description { get; set; }
+        public string? DocumentNumber { get; set; }
         public decimal? PackageAmount { get; set; }
         public decimal? MerchandiseWeight { get; set; }
         public string? ShippingCompany { get; set; }
