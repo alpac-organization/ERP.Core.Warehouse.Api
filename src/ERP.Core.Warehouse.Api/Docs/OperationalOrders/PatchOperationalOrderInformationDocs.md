@@ -46,6 +46,8 @@ Endpoint para registrar y actualizar la información de recepción de una orden 
   "merchandise_weight": 1250.50,
   "shipping_company": "Transportes del Pacífico",
   "sender": "EXPORTADORA XYZ",
+  "description": "Descripción actualizada de la orden",
+  "document_number": "DUCA-2026-000123",
   "is_alerted": false,
   "has_consignees": false,
   "is_in_transit": true,
@@ -69,6 +71,8 @@ Endpoint para registrar y actualizar la información de recepción de una orden 
 | `merchandise_weight` | `decimal?`              | No        | `null`  | Peso de la mercadería. Se escribe en `OperationalOrder.Weight`. |
 | `shipping_company`   | `string?`               | No        | `null`  | Transportista. Se escribe en `OperationalOrder.ShippingCompany`. |
 | `sender`             | `string?`               | No        | `null`  | Remitente. Se escribe en `OperationalOrder.Sender`. |
+| `description`        | `string?`               | No        | `null`  | Descripción. Se escribe en `OperationalOrder.Description`. |
+| `document_number`    | `string?`               | No        | `null`  | Número de documento. Se escribe en `OperationalOrder.DocumentNumber` y sincroniza el `additional_data` de la recepción vinculada por `OperationalOrderId`. |
 | `is_alerted`         | `bool?`                 | No        | `null`  | Alerta activa de la orden. Se escribe en `OperationalOrder.IsAlerted`. |
 | `has_consignees`     | `bool?`                 | No        | `null`  | Si la orden tiene consignatarios. Se escribe en `OperationalOrder.HasConsignees`. |
 | `is_in_transit`      | `bool?`                 | No        | `null`  | Si la mercadería está en tránsito. Se escribe en `OperationalOrder.IsInTransit`. |

@@ -119,7 +119,7 @@ Devuelve un `PagedResponse<OperationalOrderDto>`. El JSON se serializa con `Snak
 | Campo / regla | Descripción |
 |---|---|
 | `operation_order_id` | **Typo en el código fuente.** La propiedad C# se llama `OperationOrderId` (sin la "al"), pero el nombre en el contrato JSON es `operation_order_id`. Se documenta tal cual viaja para no romper integraciones. |
-| Orden | Por `created_at` descendente: las más recientes primero. |
+| Orden | Por código de recepción y luego por `created_at` descendente. |
 | Filtro de `code` | Exacto, **no parcial**. `ALP-MGA-OP-15` no coincide con `ALP-MGA-OP-150`. |
 | Filtro de `customer_cif` | Exacto sobre `Customer.Cif`. |
 | Filtro de `document_type` | **Sin efecto.** Ver nota arriba. |

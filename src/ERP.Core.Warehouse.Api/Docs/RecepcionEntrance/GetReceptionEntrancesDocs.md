@@ -37,27 +37,32 @@ Endpoint para listar con paginación las recepciones registradas, con filtros op
 
 | Parámetro              | Tipo                  | Requerido | Default | Descripción |
 |------------------------|-----------------------|:---------:|---------|-------------|
-| `only_day`             | `bool`                | No        | `true`  | **No se aplica.** El parámetro se recibe y se asigna al query, pero el handler nunca lo usa. |
+| `only_day`             | `bool`                | No        | `true`  | Si no se envía fecha: `true` usa el día actual; `false` permite no filtrar por fecha cuando no hay otros filtros. |
+| `date`                 | `date/date-time`      | No        | `null`  | Fecha exacta a filtrar. Alias aceptados: `filter_date`, `entry_date`, `reception_date`, `created_at`. |
 | `plate_number`         | `string`              | No        | `null`  | Coincidencia parcial (`Contains`) sobre `ReceptionTransport.VehiclePlateNumber`. |
-| `contaniner_number`    | `string`              | No        | `null`  | Coincidencia **exacta** sobre `ContainerNumber`. |
-| `document_number`      | `string`              | No        | `null`  | **No se aplica.** El parámetro se recibe y se asigna al query, pero el handler nunca lo usa como filtro. |
+| `contaniner_number`    | `string`              | No        | `null`  | Coincidencia parcial (`Contains`) sobre `ContainerNumber`. Alias bien escrito: `container_number`. |
+| `document_number`      | `string`              | No        | `null`  | Coincidencia parcial (`Contains`) sobre `OperationalOrders.DocumentNumber`. |
+| `reception_code`       | `string`              | No        | `null`  | Coincidencia parcial (`Contains`) sobre `ReceptionCode`. Alias: `code`. |
 | `document_type`        | `enum (DocumentType)` | No        | `null`  | Filtra si **alguna** orden operacional de la recepción tiene ese tipo de documento. |
 | `page_number`          | `int`                 | No        | `1`     | Número de página. |
 | `page_size`            | `int`                 | No        | `10`    | Registros por página. |
 
-> ⚠️ **El nombre del parámetro de contenedor está mal escrito en el código fuente.** Se llama `contaniner_number` (con la "i" antes de la "n"), no `container_number`. Hay que enviarlo exactamente así.
+> ⚠️ **Compatibilidad:** se sigue aceptando el typo `contaniner_number`; también se acepta `container_number`. Los filtros de texto son por coincidencia parcial, no por igualdad exacta.
 
 ---
 
 ## Flujo del Handler (`GetReceptionEntrancesHandler`)
 
 1. `ValidateAccessAsync(user_id, company_id, module_code)`: valida usuario, perfil de compañía y acceso al módulo. Si falla devuelve `400`.
-2. Arma el query base: `ReceptionEntrance WHERE IsActive` con `Include(ReceptionTransport)`, `Include(OperationalOrders)` y `AsNoTracking()`.
-3. Si viene `document_type`, filtra por `OperationalOrders.Any(po => po.DocumentType == document_type)`.
-4. Si viene `plate_number`, filtra por `ReceptionTransport.VehiclePlateNumber.Contains(plate_number)`.
-5. Si viene `contaniner_number`, filtra por `ContainerNumber == contaniner_number` (igualdad exacta).
-6. Cuenta el total, pagina con `Skip`/`Take` y ordena por `CreatedAt` descendente.
-7. Mapea con `ReceptionEntranceProfile` a `ReceptionEntranceDto` y devuelve el `PagedResponse`.
+2. Arma el query base: `ReceptionEntrance WHERE IsActive == true && DeletedAt == null` con `Include(ReceptionTransport)`, `Include(OperationalOrders)` y `AsNoTracking()`. Si es búsqueda por texto/DUCA (hay `plate_number`, `container_number`/`contaniner_number`, `reception_code`/`code`, `document_number` o `document_type`), **no** se filtra por estado (`IsActive`/`DeletedAt`).
+3. Si no es búsqueda o se envió fecha, filtra por fecha exacta del parámetro `date` (o día actual por defecto).
+4. Si viene `document_type`, filtra por `OperationalOrders.Any(po => po.DocumentType == document_type)`.
+5. Si viene `plate_number`, filtra por `ReceptionTransport.VehiclePlateNumber.Contains(plate_number)`.
+6. Si viene `container_number`/`contaniner_number`, filtra por `ContainerNumber.Contains(...)`.
+7. Si viene `reception_code`/`code`, filtra por `ReceptionCode.Contains(...)`.
+8. Si viene `document_number`, filtra por `OperationalOrders.Any(po => po.DocumentNumber.Contains(...))`.
+9. Cuenta el total, pagina con `Skip`/`Take` y ordena por `CreatedAt` descendente.
+10. Mapea con `ReceptionEntranceProfile` a `ReceptionEntranceDto` y devuelve el listado junto con `Stats`.
 
 > **Contexto de la request:** `company_id` y `module_code` llegan por la ruta, `user_id` se lee de `HttpContext.Items["UserId"]`, y el resto de parámetros los asigna el action.
 
@@ -67,14 +72,12 @@ Endpoint para listar con paginación las recepciones registradas, con filtros op
 
 > **`document_type` se resuelve a través de las órdenes operacionales.** La recepción no guarda el tipo de documento en una columna propia: el DTO lo deriva de `OperationalOrders.FirstOrDefault().DocumentType` en el mapper. Si la recepción no tiene ninguna orden operacional, el valor es `default`, es decir, el primer miembro declarado del enum.
 
-### ⚠️ Parámetros muertos
+### ⚠️ Comportamiento de filtros
 
-`only_day` y `document_number` se exponen en el contrato, viajan en el query y **no producen ningún efecto en el resultado**. En particular:
-
-- `only_day=true` (el default) **no** limita el listado al día actual: se devuelven recepciones de cualquier fecha.
-- `document_number` **no** filtra por número de DUCA ni de declaración aduanera, aunque el nombre lo sugiera.
-
-Enviar cualquiera de los dos con un valor distinto del default no cambia nada. No los uses para construir filtros en el cliente esperando que el servidor los aplique.
+- `date` limita por fecha exacta. Si se envía fecha, las métricas de stats usan esa misma fecha.
+- `only_day` se mantiene por compatibilidad, pero el default es día actual.
+- Los filtros de texto (`plate_number`, `container_number`/`contaniner_number`, `reception_code`/`code`, `document_number`) y `document_type` **no** se acotan por fecha y devuelven coincidencias globales.
+- Las recepciones inactivas o eliminadas se excluyen del listado normal, excepto en modo búsqueda.
 
 ### ⚠️ Trampas de paginación
 
@@ -109,7 +112,14 @@ Devuelve un `PagedResponse<ReceptionEntranceDto>`. El JSON se serializa con `Sna
   ],
   "page_number": 1,
   "page_size": 10,
-  "total": 1
+  "total": 1,
+  "stats": {
+    "total_entries": 0,
+    "totals_in_plant": 3,
+    "total_dispatched": 0,
+    "containers_on_site": 7,
+    "containers_dispatched": 0
+  }
 }
 ```
 

@@ -139,7 +139,9 @@ Devuelve un `OperationalOrderDetailsDto`. El JSON se serializa con `SnakeCaseLow
 | `cost_center_information`         | `object (CostCenterInformation)` | Centro de costos asociado. `null` si la orden no tiene centro de costos. |
 | `reception_entrance_information`  | `object (ReceptionEntranceDetailsDto)` | Recepción asociada. **`null` si la orden aún no ha sido recepcionada.** |
 
-> `reception_entrance_information` es el mismo `ReceptionEntranceDetailsDto` que devuelve el detalle de recepción, y por lo tanto tiene la misma forma y los mismos campos. Consulta su [documentación](../RecepcionEntrance/GetReceptionEntranceDetailsDocs.md).
+> `reception_entrance_information` es el mismo `ReceptionEntranceDetailsDto` que devuelve el detalle de recepción, y por lo tanto tiene la misma forma y los mismos campos. Consulta su [documentación](../RecepcionEntrance/GetReceptionEntranceDetailsDocs.md). La información de aduana (`custom_branches_information`) ahora se carga correctamente desde la recepción.
+
+> `supply_information` se resuelve a partir de las solicitudes de inventario asociadas a la orden operacional; si hay varias, se toma la más reciente.
 
 ### Notas
 
