@@ -12,8 +12,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos
         public string CountryOfOrigin { get; set; } = null!;
         public string SealNumber { get; set; } = null!;
         public DocumentType DocumentType { get; set; }
-        public TimeOnly? VehicleExitTime { get; set; }
-        public TimeOnly? ContainerExitTime { get; set; }
+        public DateOnly? VehicleExitDate { get; set; }
+        public DateOnly? ContainerExitDate { get; set; }
 
         public class Stats
         {

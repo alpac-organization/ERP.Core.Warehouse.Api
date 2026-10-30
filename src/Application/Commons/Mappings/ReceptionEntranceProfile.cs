@@ -15,8 +15,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             CreateMap<ReceptionEntrance, ReceptionEntranceDto>()
                 .ForMember(dest => dest.ReceptionEntranceId, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.VehiclePlateNumber, opt => opt.MapFrom(src => src.ReceptionTransport.VehiclePlateNumber))
-                .ForMember(dest => dest.VehicleExitTime, opt => opt.MapFrom(src => src.ReceptionTransport.VehicleExitTime))
-                .ForMember(dest => dest.ContainerExitTime, opt => opt.MapFrom(src => src.ReceptionTransport.ContainerExitTime))
+                .ForMember(dest => dest.VehicleExitDate, opt => opt.MapFrom(src => src.ReceptionTransport.VehicleExitDate))
+                .ForMember(dest => dest.ContainerExitDate, opt => opt.MapFrom(src => src.ReceptionTransport.ContainerExitDate))
                 .ForMember(dest => dest.DocumentType, opt => opt.MapFrom(src => src.OperationalOrders.FirstOrDefault() != null ? src.OperationalOrders.FirstOrDefault()!.DocumentType : default));
 
             CreateMap<ReceptionEntrance, ReceptionEntranceDetailsDto>()
