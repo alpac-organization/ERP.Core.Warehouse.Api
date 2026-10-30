@@ -56,7 +56,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
             var query = _unitOfWork.ReceptionEntrance.Entities
                 .Include(reception => reception.ReceptionTransport)
                 .Include(reception => reception.OperationalOrders)
-                .AsNoTracking();
+                .AsNoTracking()
+                .Where(reception => reception.IsActive && reception.DeletedAt == null);
 
             return includeAllStates
                 ? query
@@ -144,7 +145,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Handl
 
             var baseQuery = _unitOfWork.ReceptionEntrance.Entities
                 .Include(r => r.ReceptionTransport)
-                .AsNoTracking();
+                .AsNoTracking()
+                .Where(reception => reception.IsActive && reception.DeletedAt == null);
 
             if (!isSearch)
             {

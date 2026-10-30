@@ -20,5 +20,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos
         public string VehiclePlateNumber { get; set; } = null!;
         public string VehicleChassisNumber { get; set; } = null!;
         public TransportUnit TransportUnit { get; set; }
+        public DateOnly? VehicleExitDate { get; set; }
+        public TimeOnly? VehicleExitTime { get; set; }
+        public DateOnly? ContainerExitDate { get; set; }
+        public TimeOnly? ContainerExitTime { get; set; }
     }
 }
