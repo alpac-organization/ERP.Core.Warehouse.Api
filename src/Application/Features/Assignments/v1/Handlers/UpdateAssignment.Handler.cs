@@ -50,6 +50,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
             assignment.Observations = request?.Observations ?? assignment.Observations;
             assignment.MerchandiseDescription = request?.MerchandiseDescription ?? assignment.MerchandiseDescription;
 
+            if (request?.OutsourcedCrewCount is > 0)
+            {
+                assignment.OutsourcedCrewCount = request?.OutsourcedCrewCount;
+                assignment.HasOutsourcedCrew = true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request?.OutsourcedMachinerySupplier))
+            {
+                assignment.OutsourcedMachinerySupplier = request?.OutsourcedMachinerySupplier;
+                assignment.HasOutsourcedMachinery = true;
+            }
+
             if (
                 string.IsNullOrEmpty(assignment.Merchandise) && 
                 string.IsNullOrEmpty(assignment.MerchandiseDescription)

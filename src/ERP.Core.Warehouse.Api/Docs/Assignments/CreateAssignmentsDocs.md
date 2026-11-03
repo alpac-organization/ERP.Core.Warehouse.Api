@@ -10,7 +10,8 @@ Endpoint para crear una nueva asignación operativa vinculada a una orden operat
 |-------|-------|
 | **Método** | `POST` |
 | **Endpoint** | `/api/v1/companies/{company_id}/modules/{module_code}/operational-orders/{operational_order_id}/assignments` |
-| **Descripción** | Crea una asignación operativa con mercancía, tipo de destino, observaciones, y opcionalmente maquinaria y colaboradores asignados. `user_id`, `company_id`, `module_code` y `operational_order_id` se toman del token y la ruta (no se envían en el body). |
+| **Descripción** | Crea una asignación operativa con mercancía, tipo de destino, observaciones, personal/maquinaria externa y opcionalmente maquinaria y colaboradores propios asignados. `user_id`, `company_id`, `module_code` y `operational_order_id` se toman del token y la ruta (no se envían en el body). |
+| **Serialización** | El JSON usa `SnakeCaseLower`; los enums viajan como **string** (`JsonStringEnumConverter`). |
 
 ---
 
@@ -37,47 +38,61 @@ Endpoint para crear una nueva asignación operativa vinculada a una orden operat
 
 | Parámetro | Tipo | Requerido | Descripción |
 |-----------|------|-----------|-------------|
-| `warehouseId` | `guid` | No | Identificador del almacén destino (si `destinationType` es `Warehouse`). |
-| `observations` | `string` | No | Observaciones adicionales. |
+| `warehouse_id` | `guid` | Condicional | Identificador del almacén destino. **Requerido** si `destination_type` es `Warehouse`. |
+| `observations` | `string` | Sí | Comentario para el bodeguero. No puede ser vacío. |
 | `merchandise` | `string` | No | Nombre de la mercancía. |
-| `merchandiseDescription` | `string` | No | Descripción de la mercancía. |
-| `destinationType` | `enum (DestinationType)` | No | Tipo de destino: `None` (0), `Warehouse` (1), `CustomYard` (2), `CustomSheld` (3). |
-| `hasAssignedMachinery` | `bool` | No | Indica si se envía maquinaria asignada (default: `false`). |
-| `hasAssignedCollaborators` | `bool` | No | Indica si se envían colaboradores asignados (default: `false`). |
-| `assignedMachineries` | `array[AssignedMachinery]` | No | Lista de maquinaria asignada. |
-| `assignedMachineries[].concept` | `string` | No | Concepto/descripción de la maquinaria. |
-| `assignedMachineries[].machineryId` | `guid` | Sí* | Identificador de la maquinaria. Requerido si `hasAssignedMachinery` es `true`. |
-| `assignedCollaborators` | `array[AssignedCollaborator]` | No | Lista de colaboradores asignados. |
-| `assignedCollaborators[].collaboratorId` | `guid` | Sí* | Identificador del colaborador. Requerido si `hasAssignedCollaborators` es `true`. |
-| `assignedCollaborators[].role` | `enum (AssignmentCollaboratorsRoles)` | Sí* | Rol del colaborador. Requerido si `hasAssignedCollaborators` es `true`. |
+| `merchandise_description` | `string` | No | Descripción de la mercancía. |
+| `destination_type` | `enum (DestinationType)` | Sí | Tipo de destino: `None` (0), `Warehouse` (1), `CustomYard` (2), `CustomSheld` (3). |
+| `has_assigned_machinery` | `bool` | No | Indica si se envía maquinaria propia asignada (default: `false`). |
+| `has_assigned_collaborators` | `bool` | No | Indica si se envían colaboradores propios asignados (default: `false`). |
+| `has_outsourced_crew` | `bool` | **Sí** | Indica si la asignación cuenta con personal externo (cuadrilla). |
+| `has_outsourced_machinery` | `bool` | **Sí** | Indica si la asignación cuenta con maquinaria externa. |
+| `outsourced_crew_count` | `int` | Condicional | Cantidad de personal externo. **Requerido y debe ser mayor que `0`** si `has_outsourced_crew` es `true`. |
+| `outsourced_machinery_supplier` | `string` | Condicional | Proveedor de maquinaria externa. **Requerido y no vacío** si `has_outsourced_machinery` es `true`. |
+| `assigned_machineries` | `array[AssignedMachinery]` | No | Lista de maquinaria propia asignada. |
+| `assigned_machineries[].concept` | `string` | No | Concepto/descripción de la maquinaria. |
+| `assigned_machineries[].machinery_id` | `guid` | Sí* | Identificador de la maquinaria. Requerido si el array no está vacío. |
+| `assigned_collaborators` | `array[AssignedCollaborator]` | No | Lista de colaboradores propios asignados. |
+| `assigned_collaborators[].collaborator_id` | `guid` | Sí* | Identificador del colaborador. Requerido si el array no está vacío. |
+| `assigned_collaborators[].role` | `enum (AssignmentCollaboratorsRoles)` | Sí* | Rol del colaborador: `WarehouseAssistant`, `ForkliftOperator`. Requerido si el array no está vacío. |
 
-\* Requerido dentro del array si el flag correspondiente es `true`.
+\* Requerido dentro del array si el array no está vacío.
+
+> **Reglas de los campos externos:**
+> - `has_outsourced_crew` y `has_outsourced_machinery` son **obligatorios** (no se puede omitir ninguno).
+> - Si `has_outsourced_crew = true` → `outsourced_crew_count` es obligatorio y debe ser `> 0`.
+> - Si `has_outsourced_machinery = true` → `outsourced_machinery_supplier` es obligatorio y no vacío.
+> - Si el flag es `false`, `outsourced_crew_count` / `outsourced_machinery_supplier` no se validan.
 
 ### Ejemplo de Request
 
 ```json
 {
-  "warehouseId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "warehouse_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
   "observations": "Asignación para descarga de contenedor",
   "merchandise": "Contenedor 40ft",
-  "merchandiseDescription": "Contenedor con mercancía paletizada",
-  "destinationType": 1,
-  "hasAssignedMachinery": true,
-  "hasAssignedCollaborators": true,
-  "assignedMachineries": [
+  "merchandise_description": "Contenedor con mercancía paletizada",
+  "destination_type": "Warehouse",
+  "has_assigned_machinery": true,
+  "has_assigned_collaborators": true,
+  "has_outsourced_crew": true,
+  "has_outsourced_machinery": true,
+  "outsourced_crew_count": 4,
+  "outsourced_machinery_supplier": "Maquinarias del Norte S.A.",
+  "assigned_machineries": [
     {
       "concept": "Montacargas para descarga",
-      "machineryId": "3fa85f64-5717-4562-b3fc-2c963f66afa7"
+      "machinery_id": "3fa85f64-5717-4562-b3fc-2c963f66afa7"
     }
   ],
-  "assignedCollaborators": [
+  "assigned_collaborators": [
     {
-      "collaboratorId": "3fa85f64-5717-4562-b3fc-2c963f66afa8",
-      "role": 1
+      "collaborator_id": "3fa85f64-5717-4562-b3fc-2c963f66afa8",
+      "role": "WarehouseAssistant"
     },
     {
-      "collaboratorId": "3fa85f64-5717-4562-b3fc-2c963f66afa9",
-      "role": 2
+      "collaborator_id": "3fa85f64-5717-4562-b3fc-2c963f66afa9",
+      "role": "ForkliftOperator"
     }
   ]
 }
@@ -94,6 +109,20 @@ Asignación creada correctamente. Retorna `CreatedResult` sin cuerpo (o `true` s
 ### 400 Bad Request
 
 Validaciones de entrada, orden operativa no encontrada, maquinaria/colaborador no existen, sin permiso, etc. (`ErrorResponse`).
+
+Mensajes de validación de los campos externos (`CreateAssignmentValidator`):
+
+| Mensaje |
+|---------|
+| `El ID de la orden operativa es requerido` |
+| `El lugar de destino de la mercaderia es obligatorio` |
+| `Indique un comentario para el bodegero` |
+| `La bodega destino es obligatoria, designe a la bodega que va esta mercaderia` |
+| `Debe indicar si la asignación cuenta con personal externo (cuadrilla).` |
+| `Debe indicar si la asignación cuenta con maquinaria externa.` |
+| `Debe indicar la cantidad de personal externo cuando has_outsourced_crew es true.` |
+| `La cantidad de personal externo debe ser mayor que cero.` |
+| `Debe indicar el proveedor de maquinaria externa cuando has_outsourced_machinery es true.` |
 
 ### 500 Internal Server Error
 

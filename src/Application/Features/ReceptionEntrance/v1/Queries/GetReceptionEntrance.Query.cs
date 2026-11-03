@@ -6,12 +6,14 @@ using ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.ReceptionEntrance.v1.Queries
 {
-    public class GetReceptionEntrancesQuery : BaseRequest, IRequest<PagedResponse<ReceptionEntranceDto>>
+    public class GetReceptionEntrancesQuery : BaseRequest, IRequest<ReceptionEntranceListResponseDto>
     {
         public bool OnlyDay { get; set; } = true;
+        public DateOnly? Date { get; set; }
         public string? PlateNumber { get; set; }
         public string? DocumentNumber { get; set; }
         public string? ContainerNumber { get; set; }
+        public string? ReceptionCode { get; set; }
         public DocumentType? DocumentType { get; set; }
 
         ///Adminstración.

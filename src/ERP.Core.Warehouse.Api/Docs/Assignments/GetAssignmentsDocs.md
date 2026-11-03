@@ -46,45 +46,61 @@ Endpoint para obtener la lista paginada de asignaciones operativas de una orden 
 
 ### 200 OK
 
-Lista paginada de asignaciones operativas.
+Lista paginada de asignaciones operativas. El JSON se serializa con `SnakeCaseLower`; los enums viajan como **string** (`JsonStringEnumConverter`).
 
 ```json
 {
-  "items": [
+  "data": [
     {
-      "assignmentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-      "operationalOrderId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-      "isAlerted": false,
-      "destinationType": 1,
-      "status": 1,
+      "assignment_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "operational_order_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "reception_code": "REC-2026-0001",
+      "po_code": "PO-2026-0001",
+      "is_alerted": false,
+      "destination_type": "Warehouse",
+      "status": "Pending",
       "merchandise": "Mercancía A",
-      "merchandiseDescription": "Descripción de la mercancía",
-      "hasMachineryAssigned": true,
-      "hasCollaboratorsAssigned": false,
-      "createdAt": "2025-01-15T10:30:00Z"
+      "merchandise_description": "Descripción de la mercancía",
+      "has_machinery_assigned": true,
+      "has_collaborators_assigned": false,
+      "has_outsourced_crew": true,
+      "has_outsourced_machinery": false,
+      "created_at": "2025-01-15T10:30:00Z"
     }
   ],
-  "pageNumber": 1,
-  "pageSize": 10,
-  "totalPages": 5,
-  "totalRecords": 50
+  "page_number": 1,
+  "page_size": 10,
+  "total": 50
 }
 ```
+
+**Wrapper (`PagedResponse<AssignmentOperationalDto>`):**
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `data` | `array[AssignmentOperationalDto]` | Listado de asignaciones de la página. |
+| `page_number` | `int` | Número de página devuelto. |
+| `page_size` | `int` | Tamaño de página usado. |
+| `total` | `int` | Total de registros que cumplen los filtros. |
 
 **Campos de `AssignmentOperationalDto`:**
 
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
-| `assignmentId` | `guid` | Identificador único de la asignación. |
-| `operationalOrderId` | `guid` | Identificador de la orden operativa padre. |
-| `isAlerted` | `bool` | Indica si la asignación tiene alerta. |
-| `destinationType` | `enum (DestinationType)` | Tipo de destino: `None` (0), `Warehouse` (1), `CustomYard` (2), `CustomSheld` (3). |
+| `assignment_id` | `guid` | Identificador único de la asignación. |
+| `operational_order_id` | `guid` | Identificador de la orden operativa padre. |
+| `reception_code` | `string` | Código de la recepción asociada a la orden operativa. Puede ser `null`. |
+| `po_code` | `string` | Código de la orden de compra (`PoCode`) de la orden operativa. Puede ser `null`. |
+| `is_alerted` | `bool` | Indica si la orden operativa tiene alerta. |
+| `destination_type` | `enum (DestinationType)` | Tipo de destino: `None` (0), `Warehouse` (1), `CustomYard` (2), `CustomSheld` (3). |
 | `status` | `enum (AssignmentOperationalStatus)` | Estado: `None` (0), `Pending` (1), `InProgress` (2), `OnHold` (3), `Downloaded` (4). |
 | `merchandise` | `string` | Nombre de la mercancía. |
-| `merchandiseDescription` | `string` | Descripción de la mercancía. |
-| `hasMachineryAssigned` | `bool` | Indica si tiene maquinaria asignada. |
-| `hasCollaboratorsAssigned` | `bool` | Indica si tiene colaboradores asignados. |
-| `createdAt` | `datetime` | Fecha de creación (UTC). |
+| `merchandise_description` | `string` | Descripción de la mercancía. |
+| `has_machinery_assigned` | `bool` | Indica si tiene maquinaria propia asignada. |
+| `has_collaborators_assigned` | `bool` | Indica si tiene colaboradores propios asignados. |
+| `has_outsourced_crew` | `bool` | Indica si cuenta con personal externo (cuadrilla). |
+| `has_outsourced_machinery` | `bool` | Indica si cuenta con maquinaria externa. |
+| `created_at` | `datetime` | Fecha de creación (UTC). |
 
 ### 400 Bad Request
 

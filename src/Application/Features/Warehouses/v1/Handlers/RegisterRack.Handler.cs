@@ -154,6 +154,9 @@ public class RegisterRacksBulkHandler(
 
         CalculateRackResult? lastCalc = null;
 
+        var positionWidth = request.Width;
+        var positionLength = request.MaxPulleys > 0 ? request.Length / request.MaxPulleys : 0m;
+
         for (int i = 0; i < request.Quantity; i++)
         {
             var code = codes[i];
@@ -178,7 +181,9 @@ public class RegisterRacksBulkHandler(
                     posCode,
                     request.RowNumber,
                     col,
-                    request.LevelNumber);
+                    request.LevelNumber,
+                    positionWidth,
+                    positionLength);
 
                 await _unitOfWork.RackPositions.RegisterRackPosition(position);
             }

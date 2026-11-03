@@ -27,11 +27,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Handlers
             {
                 return _errorManager.ThrowUnauthorized<PagedResponse<AssignmentOperationalDto>>("No tienes acceso a realizar esta acción", "ERP:INVALID_ACCESS");
             }
-            
+
             var assignmentsQuery = _unitOfWork.AssignmentOperationals.Entities
                 .Where(ao => ao.IsActive)
                 .Include(ao => ao.Warehouse)
                 .Include(ao => ao.OperationalOrder)
+                    .ThenInclude(po => po.Reception)
                 .AsSplitQuery()
                 .AsNoTracking();
 

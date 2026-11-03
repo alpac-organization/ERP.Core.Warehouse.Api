@@ -61,18 +61,25 @@ public class RegisterLotsHandler(IUnitOfWork unitOfWork, IErrorManager errorMana
             var lot = item.ToLotsEntity(request.SectionId, codes[i]);
             var lotCoordinates = item.ToLotCoordinateEntity(lot.Id);
 
+            var rows = lot.NominalRows!.Value;
+            var columns = lot.NominalColumns!.Value;
+            var positionWidth = (item.Width ?? 0m) / columns;
+            var positionLength = (item.Length ?? 0m) / rows;
+
             await _unitOfWork.Lots.RegisterLot(lot);
             await _unitOfWork.LotCoordinates.RegisterLotCoordinate(lotCoordinates);
 
-            for (int row = 1; row <= lot.NominalRows!.Value; row++)
+            for (int row = 1; row <= rows; row++)
             {
-                for (int column = 1; column <= lot.NominalColumns!.Value; column++)
+                for (int column = 1; column <= columns; column++)
                 {
                     var position = LotMapper.ToLotsPositionEntity(
                         lot.Id,
                         codeGenerator.GeneratePositionCode(lot.Code, row, column),
                         row,
-                        column);
+                        column,
+                        positionWidth,
+                        positionLength);
                     await _unitOfWork.LotsPositions.RegisterLotPosition(position);
                 }
             }

@@ -55,7 +55,7 @@ public class RackProfile : Profile
         };
     }
 
-    public static RackPositions ToRackPositionEntity(Guid rackId, string positionCode, int row, int column, int level)
+    public static RackPositions ToRackPositionEntity(Guid rackId, string positionCode, int row, int column, int level, decimal width, decimal length)
     {
         return new RackPositions
         {
@@ -66,7 +66,10 @@ public class RackProfile : Profile
             Column = column,
             Level = level,
             Status = RackStatus.Available,
-            AllowsStocking = true
+            AllowsStocking = true,
+            Width = width,
+            Length = length,
+            AreaM2 = width * length
         };
     }
 

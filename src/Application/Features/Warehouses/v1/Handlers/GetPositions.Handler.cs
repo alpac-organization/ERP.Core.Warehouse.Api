@@ -41,6 +41,10 @@ public class GetPositionsHandler(IUnitOfWork unitOfWork, IErrorManager errorMana
                     position.DeletedAt == null &&
                     (!request.Status.HasValue || position.Status == request.Status.Value)))
                     .ThenInclude(position => position.RacksPositionsCoordinates)
+            .Include(s => s.Positions.Where(position =>
+                position.DeletedAt == null &&
+                (!request.Status.HasValue || position.Status == request.Status.Value)))
+                .ThenInclude(position => position.SectionPositionsCoordinates)
             .FirstOrDefaultAsync(ct);
 
         if (section is null)
@@ -48,7 +52,7 @@ public class GetPositionsHandler(IUnitOfWork unitOfWork, IErrorManager errorMana
             return _errorManager.ThrowBadRequest<GetPositionsDto>("La sección indicada no existe o no está activa.", "ERP:SECTION_NOT_FOUND");
         }
 
-        if (section.SectionStorageType is not (SectionStorageType.Lots or SectionStorageType.Racks))
+        if (section.SectionStorageType is not (SectionStorageType.Lots or SectionStorageType.Racks or SectionStorageType.Pallets))
         {
             return _errorManager.ThrowBadRequest<GetPositionsDto>("La sección aún esta siendo codificada.", "ERP:POSITIONS_NOT_SUPPORTED");
         }

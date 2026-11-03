@@ -16,7 +16,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             CreateMap<AssignmentOperational, AssignmentOperationalDto>()
                 .ForMember(dest => dest.AssignmentId, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.IsAlerted, opt => opt.MapFrom(src => src.OperationalOrder.IsAlerted))
-                .ForMember(dest => dest.PoCode, opt => opt.MapFrom(src => src.OperationalOrder.PoCode));
+                .ForMember(dest => dest.PoCode, opt => opt.MapFrom(src => src.OperationalOrder.PoCode))
+                .ForMember(dest => dest.ReceptionCode, opt => opt.MapFrom(src => src.OperationalOrder.Reception.ReceptionCode));
 
             CreateMap<AssignmentOperational, AssignmentOperationalDetailsDto>()
                 .ForPath(dest => dest.WarehouseInformation, opt => opt.MapFrom(src => src.Warehouse))
@@ -40,7 +41,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForPath(dest => dest.MachineryInformation.MachineryType, opt => opt.MapFrom(src => src.Machinery.Type))
                 .ForPath(dest => dest.MachineryInformation.MachineryCode, opt => opt.MapFrom(src => src.Machinery.Code))
                 .ForPath(dest => dest.MachineryInformation.MachineryBrand, opt => opt.MapFrom(src => src.Machinery.Brand));
-                
+
             // get de asignamiento de colaboradores
             CreateMap<AssignmentCollaborators, GetAssignmentCollaboratorsDto>()
                 .ForMember(dest => dest.AssignmentCollaboratorId, opt => opt.MapFrom(src => src.Id))
@@ -74,6 +75,10 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 DestinationType = command.DestinationType ?? DestinationType.Warehouse,
                 MerchandiseDescription = command.MerchandiseDescription,
                 OperationalOrderId = command.OperationalOrderId,
+                HasOutsourcedCrew = command.HasOutsourcedCrew ?? false,
+                HasOutsourcedMachinery = command.HasOutsourcedMachinery ?? false,
+                OutsourcedCrewCount = command.OutsourcedCrewCount,
+                OutsourcedMachinerySupplier = command.OutsourcedMachinerySupplier
             };
         }
         #endregion
@@ -92,7 +97,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         }
 
         public static AssignmentCollaborators ToAssignmentCollaboratorsEntity(this Commands.AssignedCollaborator command, Guid assignmentOperationalId, Guid createdByUserId)
-        {   
+        {
             return new()
             {
                 Id = Guid.NewGuid(),

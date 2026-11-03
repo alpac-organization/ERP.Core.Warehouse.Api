@@ -72,7 +72,7 @@ public static class LotMapper
         };
     }
 
-    public static LotsPositions ToLotsPositionEntity(Guid lotId, string positionCode, int row, int column)
+    public static LotsPositions ToLotsPositionEntity(Guid lotId, string positionCode, int row, int column, decimal width, decimal length)
     {
         return new LotsPositions
         {
@@ -80,7 +80,12 @@ public static class LotMapper
             PositionCode = positionCode,
             Row = row,
             Column = column,
-            Level = 1
+            Level = 1,
+            Status = RackStatus.Available,
+            AllowsStocking = true,
+            Width = width,
+            Length = length,
+            AreaM2 = width * length
         };
     }
 
