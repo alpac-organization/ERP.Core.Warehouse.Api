@@ -16,7 +16,9 @@ public class SupplyRequestsProfile : Profile
         CreateMap<SupplyRequest, GetSupplyRequestDto>()
             .ForMember(dest => dest.SupplyRequestId, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.SupplyRequestCode, opt => opt.MapFrom(src => src.Code))
+            .ForMember(dest => dest.PoCode, opt => opt.MapFrom(src => src.OperationalOrder.PoCode))
             .ForMember(dest => dest.RequestedByUserName, opt => opt.MapFrom(src => src.User.Fullname))
+            .ForMember(dest => dest.WorkAreaName, opt => opt.MapFrom(src => src.WorkArea.WorkAreaName))
             .ForMember(dest => dest.ItemsCount, opt => opt.MapFrom(src => src.SupplyRequestItems.Count))
             .ForMember(dest => dest.ReasonUse, opt => opt.MapFrom(src =>
                             src.SupplyRequestItems.Select(i => i.ReasonUse).FirstOrDefault()));
