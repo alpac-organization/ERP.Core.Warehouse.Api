@@ -24,7 +24,6 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForPath(dest => dest.PurchaseRequest.InformationFromRequestingArea, opt => opt.MapFrom(src => src.PurchaseRequest.WorkArea))
                 
                 .ForPath(dest => dest.SentByUserInformation, opt => opt.MapFrom(src => src.SentByUser));
-
         }
     }
 
