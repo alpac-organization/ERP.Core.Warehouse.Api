@@ -37,10 +37,10 @@ namespace ERP.Core.Warehouse.Api.Controllers.Inventory
             {
                 CompanyId = company_id,
                 ModuleCode = module_code,
+                UserId = Guid.Parse(userIdStr ?? ""),
+
                 CategoryId = category_id,
                 ProductCode = product_code,
-                UserId = Guid.Parse(userIdStr ?? ""),
-                
                 KardexType = kardex_type,
                 KardexMovementType = movement_type,
                 PageSize = page_size,
