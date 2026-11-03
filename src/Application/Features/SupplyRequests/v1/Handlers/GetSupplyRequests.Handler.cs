@@ -2,13 +2,14 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
+
+using ERP.Core.Database.Domain.Entities.Inventory;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Queries;
-using ERP.Core.Database.Domain.Entities.Inventory;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Handlers;
 
@@ -33,6 +34,8 @@ public class GetSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager erro
         var supplyRequests = await supplyRequestsQuery
             .Include(sr => sr.User)
             .Include(sr => sr.SupplyRequestItems)
+            .Include(sr => sr.OperationalOrder)
+            .Include(sr => sr.WorkArea)
             .OrderByDescending(sr => sr.CreatedAt)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
@@ -53,21 +56,15 @@ public class GetSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager erro
     private static IQueryable<SupplyRequest> ApplyRequestFilters(IQueryable<SupplyRequest> query,
         GetSupplyRequestsQuery request)
     {
-        if (!string.IsNullOrEmpty(request.Code)) query = query.Where(sr => sr.Code == request.Code);
+        if (!string.IsNullOrEmpty(request.Code)) query = query.Where(sr => sr.Code != null && sr.Code.Contains(request.Code));
 
-        if (request.OutflowStatus.HasValue) query = query.Where(sr => sr.OutflowStatus == request.OutflowStatus);
+        if (request.Status.HasValue) query = query.Where(sr => sr.OutflowStatus == request.Status);
 
-        if (request.WorkAreaId.HasValue) query = query.Where(sr => sr.WorkAreaId == request.WorkAreaId);
+        if (request.BranchId.HasValue) query = query.Where(sr => sr.BranchId == request.BranchId);
 
-        if (request.CostCenterId.HasValue) query = query.Where(sr => sr.CostCenterId == request.CostCenterId);
+        if (request.ReasonUse.HasValue) query = query.Where(sr => sr.SupplyRequestItems.Any(i => i.ReasonUse == request.ReasonUse));
 
-        // if (request.BranchId.HasValue) query = query.Where(sr => sr.BranchId == request.BranchId);
-
-        if (request.WarehouseId.HasValue) query = query.Where(sr => sr.WarehouseId == request.WarehouseId);
-
-        if (request.OperationalOrderId.HasValue) query = query.Where(sr => sr.OperationalOrderId == request.OperationalOrderId);
-
-        if (request.RequestedByUserId.HasValue) query = query.Where(sr => sr.RequestedByUserId == request.RequestedByUserId);
+        if (!string.IsNullOrEmpty(request.PoCode)) query = query.Where(sr => sr.OperationalOrder.PoCode != null && sr.OperationalOrder.PoCode.Contains(request.PoCode));
 
         return query;
     }

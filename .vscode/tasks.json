@@ -3,14 +3,14 @@
   "tasks": [
     {
       "label": "Update ERP Core Packages (Auto)",
-      "type": "shell",
+      "type": "process",
       "command": "powershell",
       "args": [
         "-ExecutionPolicy",
         "Bypass",
         "-NoProfile",
         "-File",
-        "${workspaceFolder}/scripts/UpdatePackages.v2.ps1"
+        "${workspaceFolder}\\scripts\\UpdatePackages.v2.ps1"
       ],
       "options": {
         "cwd": "${workspaceFolder}"

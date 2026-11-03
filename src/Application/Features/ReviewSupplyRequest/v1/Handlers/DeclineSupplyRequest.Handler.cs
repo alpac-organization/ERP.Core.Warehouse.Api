@@ -46,6 +46,7 @@ public class DeclineSupplyRequestHandler(
         try
         {
             supplyRequest.OutflowStatus = OutflowStatus.Annuled;
+            supplyRequest.AnnulledByUserChiefId = access.Profile.UserId;
             await _unitOfWork.SupplyRequests.UpdateAsync(supplyRequest);
             await _unitOfWork.SaveChangesAsync(ct);
         }

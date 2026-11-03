@@ -10,7 +10,7 @@ Endpoint para aprobar una solicitud de insumos en la etapa de revisión por supe
 |-------|-------|
 | **Método** | `POST` |
 | **Endpoint** | `/api/v1/companies/{company_id}/modules/{module_code}/inventory/supply-requests/{supply_request_id}/approve` |
-| **Descripción** | Aprueba la solicitud, cambia su estado a `Approved` y genera/registrar la salida de inventario asociada. Requiere autenticación con token. |
+| **Descripción** | Aprueba la solicitud, cambia su estado a `Approved`, genera/registrar la salida de inventario asociada y registra el usuario aprobador (`ApprovedByUserChiefId`) para auditoría. Requiere autenticación con token. |
 
 ---
 

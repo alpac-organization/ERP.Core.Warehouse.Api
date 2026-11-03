@@ -77,6 +77,7 @@ public class ApproveSupplyRequestHandler(
         try
         {
             supplyRequest.OutflowStatus = OutflowStatus.Approved;
+            supplyRequest.ApprovedByUserChiefId = access.Profile.UserId;
             await _unitOfWork.SupplyRequests.UpdateAsync(supplyRequest);
 
             var inventoryOutput = request.ToInventoryOutputEntity(supplyRequest, generatedCode);
