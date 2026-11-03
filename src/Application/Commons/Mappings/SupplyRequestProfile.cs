@@ -33,6 +33,8 @@ public class SupplyRequestsProfile : Profile
             .ForMember(dest => dest.CostCenterInformation, opt => opt.MapFrom(src => src.CostCenter))
             .ForMember(dest => dest.BranchInformation, opt => opt.MapFrom(src => src.Branch))
             .ForMember(dest => dest.WarehouseInformation, opt => opt.MapFrom(src => src.Warehouse))
+            .ForMember(dest => dest.ApprovedByUserChiefName, opt => opt.Ignore())
+            .ForMember(dest => dest.AnnulledByUserChiefName, opt => opt.Ignore())
             .ForMember(dest => dest.OperationalOrderInformation, opt => opt.MapFrom(src => src.OperationalOrder))
             .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.SupplyRequestItems));
 

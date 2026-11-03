@@ -11,7 +11,8 @@ public class GetSupplyRequestDetailDto : GetSupplyRequestDto
     public WarehouseInformation WarehouseInformation { get; set; } = default!;
     public OperationalOrderInformation OperationalOrderInformation { get; set; } = default!;
     public List<ItemDetail> Items { get; set; } = [];
-
+    public string? ApprovedByUserChiefName { get; set; }
+    public string? AnnulledByUserChiefName { get; set; }
 }
 
 public class ItemDetail

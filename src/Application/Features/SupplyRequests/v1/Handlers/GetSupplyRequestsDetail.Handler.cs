@@ -36,7 +36,22 @@ public class GetSupplyRequestsDetailHandler(IUnitOfWork unitOfWork, IErrorManage
             "La solicitud de suministro no existe",
             "ERP:SUPPLY_REQUEST_NOT_FOUND");
 
+        var approvedByUserChief = supplyRequestsDetail.ApprovedByUserChiefId.HasValue
+            ? await _unitOfWork.Users.Entities
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == supplyRequestsDetail.ApprovedByUserChiefId.Value, ct)
+            : null;
+
+        var annulledByUserChief = supplyRequestsDetail.AnnulledByUserChiefId.HasValue
+            ? await _unitOfWork.Users.Entities
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == supplyRequestsDetail.AnnulledByUserChiefId.Value, ct)
+            : null;
+
         var supplyRequestsMapped = mapper.Map<GetSupplyRequestDetailDto>(supplyRequestsDetail);
+
+        supplyRequestsMapped.ApprovedByUserChiefName = approvedByUserChief?.Fullname;
+        supplyRequestsMapped.AnnulledByUserChiefName = annulledByUserChief?.Fullname;
 
         return supplyRequestsMapped;
 
