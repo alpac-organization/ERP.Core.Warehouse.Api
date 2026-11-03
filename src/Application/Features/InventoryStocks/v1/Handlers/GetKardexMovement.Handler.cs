@@ -25,6 +25,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
             var kardexQuery = _unitOfWork.Kardex.Entities
                 .Include(kproduct => kproduct.WorkArea)
                 .Include(kproduct => kproduct.Product)
+                    .ThenInclude(product => product.Category)
                 .Where(kproduct => kproduct.WorkAreaId == access.Profile.AreaId)
                 .Where(kproduct => kproduct.CostCenterId == access.Profile.CostCenterId)
                 .AsSplitQuery()
