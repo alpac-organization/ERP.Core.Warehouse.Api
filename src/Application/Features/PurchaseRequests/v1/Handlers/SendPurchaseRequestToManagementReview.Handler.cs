@@ -7,6 +7,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
@@ -94,6 +95,20 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     {
                         return _errorManager.ThrowBadRequest<bool>("Todos los productos solicitados deben tener una única cotización aceptada para compra", "ERP:ITEM_WITHOUT_ACCEPTED_QUOTATION");
                     }
+                }
+
+                var hasMixedPaymentMethods = items
+                    .SelectMany(item => item.Quotations)
+                    .Where(quotation => quotation.IsActive && quotation.DeletedAt == null)
+                    .GroupBy(quotation => quotation.SupplierId)
+                    .Any(group => !SupplierPaymentMethodConsistency.IsConsistent(
+                        group.Select(quotation => quotation.PaymentMethodType)));
+
+                if (hasMixedPaymentMethods)
+                {
+                    return _errorManager.ThrowBadRequest<bool>(
+                        SupplierPaymentMethodConsistency.ErrorMessage,
+                        SupplierPaymentMethodConsistency.ErrorCode);
                 }
 
                 if (purchaseRequest.ManagementReview is not null)

@@ -9,6 +9,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Services;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
@@ -105,7 +106,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                             foreach (var supplierGroup in quotationsBySupplier)
                             {
                                 var supplierQuotations = supplierGroup.ToList();
-                                var paymentMethod = supplierQuotations[0].PaymentMethodType;
+                                if (!SupplierPaymentMethodConsistency.TryGetSingle(
+                                        supplierQuotations.Select(quotation => quotation.PaymentMethodType),
+                                        out var paymentMethod))
+                                {
+                                    throw new PurchaseCodeGenerationException(
+                                        SupplierPaymentMethodConsistency.ErrorCode,
+                                        SupplierPaymentMethodConsistency.ErrorMessage);
+                                }
                                 string? paymentRequestCode = null;
 
                                 if (request.GeneratePaymentRequest)
@@ -127,15 +135,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                                 }
 
                                 var (codeSucceeded, poCode) = await codeGenerator.GenerateUniquePurchaseOrderCode(
-                                    branchId, token);
+                                    purchaseRequestId, token);
+
+                                if (!codeSucceeded || string.IsNullOrWhiteSpace(poCode))
+                                {
+                                    throw new PurchaseCodeGenerationException(
+                                        "ERP:ERROR_PURCHASE_ORDER_CODE_GENERATOR",
+                                        "Ocurrió un error al generar el código de la orden de compra");
+                                }
 
                                 var purchaseOrder = reviewToUpdate.ToPurchaseOrderEntity(reviewerUserId);
                                 purchaseOrder.SupplierId = supplierGroup.Key;
-
-                                if (codeSucceeded && !string.IsNullOrWhiteSpace(poCode))
-                                {
-                                    purchaseOrder.Code = poCode;
-                                }
+                                purchaseOrder.Code = poCode;
 
                                 if (request.GeneratePaymentRequest && !string.IsNullOrWhiteSpace(paymentRequestCode))
                                 {
