@@ -10,7 +10,7 @@ Endpoint para rechazar una solicitud de insumos en la etapa de revisión por sup
 |-------|-------|
 | **Método** | `POST` |
 | **Endpoint** | `/api/v1/companies/{company_id}/modules/{module_code}/inventory/supply-requests/{supply_request_id}/decline` |
-| **Descripción** | Rechaza la solicitud y cambia su estado a `Annuled`. Requiere autenticación con token. |
+| **Descripción** | Rechaza la solicitud, cambia su estado a `Annuled` y registra el usuario que la anuló (`AnnulledByUserChiefId`) para auditoría. Requiere autenticación con token. |
 
 ---
 

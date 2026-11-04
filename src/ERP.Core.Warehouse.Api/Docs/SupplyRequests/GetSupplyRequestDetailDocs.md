@@ -9,7 +9,7 @@ Endpoint para obtener el detalle completo de una solicitud operativa de inventar
 | Campo | Valor |
 |-------|-------|
 | **Método** | `GET` |
-| **Endpoint** | `/api/v1/companies/{company_id}/modules/{module_code}/supply-requests/{supply_request_id}/detail` |
+| **Endpoint** | `/api/v1/companies/{company_id}/modules/{module_code}/inventory/supply-requests/{supply_request_id}/detail` |
 | **Descripción** | Retorna el detalle completo de la solicitud operativa de inventario incluyendo información del área de trabajo, centro de costos, sucursal, almacén, orden operativa e ítems solicitados. Requiere autenticación con token. |
 
 ---
@@ -42,11 +42,15 @@ Detalle completo de la solicitud operativa de inventario.
 {
   "supply_request_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
   "supply_request_code": "SI-00001",
+  "po_code": "PO-00001",
   "reason_use": "Maintenance",
   "justification": "Repuesto necesario para mantenimiento",
   "outflow_status": "Pending",
   "requested_by_user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa7",
   "requested_by_user_name": "Juan Pérez",
+  "work_area_name": "Mantenimiento",
+  "approved_by_user_chief_name": "Carlos López",
+  "annulled_by_user_chief_name": null,
   "items_count": 3,
   "work_area_information": {
     "work_area_id": "3fa85f64-5717-4562-b3fc-2c963f66afa8",
@@ -85,11 +89,15 @@ Detalle completo de la solicitud operativa de inventario.
 |-------|------|-------------|
 | `supply_request_id` | `guid` | Identificador único de la solicitud de inventario. |
 | `supply_request_code` | `string` | Código de la solicitud de inventario. |
+| `po_code` | `string` | Código de la orden operativa asociada. |
 | `reason_use` | `enum (ReasonUse)` | Motivo de uso de la solicitud. |
 | `justification` | `string \| null` | Justificación de la solicitud. |
 | `outflow_status` | `enum (OutflowStatus)` | Estado de la solicitud de salida. |
 | `requested_by_user_id` | `guid` | Identificador del usuario solicitante. |
 | `requested_by_user_name` | `string` | Nombre del usuario solicitante. |
+| `work_area_name` | `string` | Nombre del área de trabajo. |
+| `approved_by_user_chief_name` | `string \| null` | Nombre del jefe que aprobó la solicitud (auditoría). |
+| `annulled_by_user_chief_name` | `string \| null` | Nombre del jefe que anuló la solicitud (auditoría). |
 | `items_count` | `int` | Cantidad de ítems en la solicitud. |
 | `work_area_information` | `WorkAreaInformation` | Información del área de trabajo. |
 | `cost_center_information` | `CostCenterInformation` | Información del centro de costos. |
