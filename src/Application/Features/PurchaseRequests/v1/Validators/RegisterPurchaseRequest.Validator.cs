@@ -35,16 +35,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
     {
         public RegisterPurchaseRequestValidator()
         {
-            RuleFor(x => x.BranchId)
-                .NotEmpty().WithMessage("El id de la sucursal no puede estar vacío.")
-                .NotEqual(Guid.Empty)
-                .WithMessage("El id de la sucursal es requerido.");
-
-            RuleFor(x => x.CostCenterId)
-                .NotEmpty().WithMessage("El centro de costo es requerido")
-                .NotEqual(Guid.Empty)
-                .WithMessage("El centro de costo es requerido");
-
             RuleFor(x => x.RequestType)
                 .IsInEnum()
                 .WithMessage("El tipo de solicitud no es válido.");
@@ -63,11 +53,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
                     && Enum.IsDefined(priority.Value))
                 .When(x => x.RequestType == PurchaseRequestType.Requisition)
                 .WithMessage("Debe especificar un nivel de prioridad válido cuando el tipo de solicitud es Requisición.");
-
-            RuleFor(x => x.PriorityLevel)
-                .Must(priority => !priority.HasValue || priority.Value == PriorityLevel.None)
-                .When(x => x.RequestType != PurchaseRequestType.Requisition)
-                .WithMessage("El nivel de prioridad solo puede especificarse cuando el tipo de solicitud es Requisición.");
 
             RuleFor(x => x.PurchaseRequestItems)
                 .NotEmpty()
@@ -89,13 +74,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
 
             RuleFor(x => x.UnitMeasureId)
                 .NotEqual(Guid.Empty)
-                .When(x => x.UnitMeasureId.HasValue)
                 .WithMessage("La unidad de medida no es válida.");
-
-            RuleForEach(x => x.AdditionalSupplierIds)
-                .NotEqual(Guid.Empty)
-                .When(x => x.AdditionalSupplierIds is { Count: > 0 })
-                .WithMessage("Uno o más proveedores adicionales no son válidos.");
 
             RuleFor(x => x.Quantity)
                 .GreaterThan(0)
