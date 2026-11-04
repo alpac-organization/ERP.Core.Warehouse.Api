@@ -35,6 +35,12 @@ Endpoint para obtener la lista paginada de solicitudes operativas de inventario.
 | `page_number` | `int` | No | `1` | Número de página. |
 | `page_size` | `int` | No | `10` | Tamaño de página (máx. recomendado 100). |
 
+> **Restricción por rol:** este endpoint solo puede ser consumido por los roles `Administrator` y `Supervisor`. Otros roles reciben `400` con `ERP:INVALID_ACCESS`.
+>
+> **Regla temporal:** se retornan todas las solicitudes con estado `PendingReview` (sin límite de fecha); los demás estados solo si fueron creadas en los últimos 7 días.
+>
+> **Ordenamiento:** por `created_at` descendente (más reciente primero).
+
 ---
 
 ## Headers
@@ -64,6 +70,8 @@ Lista paginada de solicitudes operativas de inventario.
       "requested_by_user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa7",
       "requested_by_user_name": "Juan Pérez",
       "work_area_name": "Mantenimiento",
+      "warehouse_code": "BOD-001",
+      "created_at": "2026-10-27 08:00:00",
       "items_count": 3
     }
   ],
@@ -87,11 +95,13 @@ Lista paginada de solicitudes operativas de inventario.
 | `requested_by_user_id` | `guid` | Identificador del usuario solicitante. |
 | `requested_by_user_name` | `string` | Nombre del usuario solicitante. |
 | `work_area_name` | `string` | Nombre del área de trabajo. |
+| `warehouse_code` | `string` | Código de la bodega destino. |
+| `created_at` | `datetime` | Fecha de creación de la solicitud. |
 | `items_count` | `int` | Cantidad de ítems en la solicitud. |
 
 ### 400 Bad Request
 
-Error de validación (parámetros inválidos, paginación incorrecta, etc.).
+Error de validación o acceso (parámetros inválidos, paginación incorrecta, rol no autorizado, etc.).
 
 ```json
 {

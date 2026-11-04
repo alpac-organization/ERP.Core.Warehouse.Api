@@ -13,6 +13,8 @@ public class GetSupplyRequestDto
     public Guid RequestedByUserId { get; set; }
     public string RequestedByUserName { get; set; } = null!;
     public string WorkAreaName { get; set; } = null!;
+    public string WarehouseCode { get; set; } = null!;
+    public DateTime CreatedAt { get; set; }
 
     public int ItemsCount { get; set; }
 }
