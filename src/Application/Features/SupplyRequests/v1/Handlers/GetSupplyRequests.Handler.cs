@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
 
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Inventory;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
@@ -22,7 +23,13 @@ public class GetSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager erro
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, ct);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
+        if (access.Role?.RoleType is not (RoleType.Administrator or RoleType.Supervisor))
+            return _errorManager.ThrowUnauthorized<PagedResponse<GetSupplyRequestDto>>(
+                "No tienes acceso a realizar esta acción", "ERP:INVALID_ACCESS");
+
         var branchId = access.Profile.BranchId;
+
+        var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
 
         var supplyRequestsQuery = _unitOfWork.SupplyRequests.Entities
             .ApplyBaseSupplyRequestFilter(branchId, request.Code, request.Status)
@@ -37,6 +44,7 @@ public class GetSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager erro
             .Include(sr => sr.SupplyRequestItems)
             .Include(sr => sr.OperationalOrder)
             .Include(sr => sr.WorkArea)
+            .Include(sr => sr.Warehouse)
             .OrderByDescending(sr => sr.CreatedAt)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)

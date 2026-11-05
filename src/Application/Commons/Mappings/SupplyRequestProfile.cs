@@ -20,6 +20,7 @@ public class SupplyRequestsProfile : Profile
             .ForMember(dest => dest.RequestedByUserName, opt => opt.MapFrom(src => src.User.Fullname))
             .ForMember(dest => dest.WorkAreaName, opt => opt.MapFrom(src => src.WorkArea.WorkAreaName))
             .ForMember(dest => dest.ItemsCount, opt => opt.MapFrom(src => src.SupplyRequestItems.Count))
+            .ForMember(dest => dest.WarehouseCode, opt => opt.MapFrom(src => src.Warehouse.Code))
             .ForMember(dest => dest.ReasonUse, opt => opt.MapFrom(src =>
                             src.SupplyRequestItems.Select(i => i.ReasonUse).FirstOrDefault()));
 
