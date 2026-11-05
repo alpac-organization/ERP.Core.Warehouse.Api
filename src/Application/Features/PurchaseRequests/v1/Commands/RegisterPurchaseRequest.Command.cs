@@ -33,3 +33,4 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Comman
         public string? AdditionalData { get; set; }
     }
 }
+    

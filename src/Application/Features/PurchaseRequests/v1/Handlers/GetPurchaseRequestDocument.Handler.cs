@@ -12,22 +12,16 @@ using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
-using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
-using ERP.Core.Warehouse.Api.Domain.Entities.ObjectValues;
 using ERP.Core.Warehouse.Api.Domain.Enums;
+using ERP.Core.Warehouse.Api.Domain.Entities.ObjectValues;
 using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
-    public class GetPurchaseRequestDocumentHandler(
-        IUnitOfWork _unitOfWork,
-        IErrorManager _errorManager,
-        IMapper _mapper,
-        IPdfGeneratorServices _pdfGeneratorServices,
-        IS3StorageService _s3StorageService,
-        IPurchaseRequestVisibilityService _visibilityService)
+    public class GetPurchaseRequestDocumentHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper, IPdfGeneratorServices _pdfGeneratorServices, IS3StorageService _s3StorageService, IPurchaseRequestVisibilityService _visibilityService
+    )
         : BaseValidatorHandler<GetPurchaseRequestDocumentQuery, PurchaseRequestDocumentDto>(_unitOfWork, _errorManager)
     {
         public override async Task<PurchaseRequestDocumentDto> Handle(GetPurchaseRequestDocumentQuery request, CancellationToken cancellationToken)

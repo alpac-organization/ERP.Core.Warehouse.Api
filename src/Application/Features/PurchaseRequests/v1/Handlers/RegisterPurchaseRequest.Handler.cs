@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Utils;
 using ERP.Core.Application.Commons.Interfaces;
@@ -33,11 +32,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             {
                 return _errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:INVALID_ACCESS");
             }
-
-            //#region Valorar la validación de las requisiciones... (si es uso operativo: validamos que sea producto operativos)
             
-            //#endregion
-
             _logger.LogInformation("Iniciando proceso para registro de solicitud de compras");
 
             foreach (var purchaseRequest in request.PurchaseRequests)
@@ -60,6 +55,24 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     throw new InvalidOperationException("Ocurrio un error la generar la solucitud de comprar");
                 }
 
+                var itemProducts = purchaseRequest.PurchaseRequestItems
+                    .Select(item => item.ProductId);
+
+
+                #region  Evaluación de los productos
+                
+                // if (purchaseRequest.Destination == DestinationRequest.ServiceOrder)
+                // {
+                    
+                // }
+                // else
+                // {
+                    
+                // }
+
+                #endregion
+
+
                 var purchaseRequestEntity = PurchaseRequestMapper.ToPurchaseRequestEntity(purchaseRequest, code, access.Profile);
                 await _unitOfWork.PurchaseRequests.RegisterPurchaseRequest(purchaseRequestEntity);
 
@@ -78,6 +91,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             
             _logger.LogInformation("Se registro exitosamente la solicitud de compra");
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return true;
+        }
+        
+        //Validar los productos si es para una operación o administrativo...
+        private async Task<bool> ValidateProductsByDestinationType()
+        {
 
             return true;
         }
