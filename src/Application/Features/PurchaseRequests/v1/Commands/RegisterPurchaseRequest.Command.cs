@@ -12,10 +12,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Comman
     public class RegisterPurchaseRequest
     {
         public Guid? AreaId { get; set; }
-        public Guid BranchId { get; set; }
-        public Guid CostCenterId { get; set; }
         public string? Observations { get; set; }
-
         public PriorityLevel? PriorityLevel { get; set; }
         public DestinationRequest Destination { get; set; }
         public PurchaseRequestType RequestType { get; set; }
@@ -28,13 +25,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Comman
         public int Quantity { get; set; }
         public int? QuantityUnit { get; set; }
 
-        public Guid? ProductId { get; set; }
-        public Guid? UnitMeasureId { get; set; }
-
-        public List<Guid>? AdditionalSupplierIds { get; set; }
+        public Guid ProductId { get; set; }
+        public Guid UnitMeasureId { get; set; }
 
         public string? Description { get; set; }
         public string? Justification { get; set; }
         public string? AdditionalData { get; set; }
     }
 }
+    
