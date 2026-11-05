@@ -13,6 +13,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Services;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using ERP.Core.Warehouse.Api.Application.Helpers.Inventory;
 using ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Handlers;
@@ -25,12 +26,8 @@ public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, ct);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        var auth = await _unitOfWork.InventoryAreasPermissions.Entities
-            .AsNoTracking()
-            .Where(a => a.WorkAreaId == access.Profile.AreaId && a.IsActive)
-            .FirstOrDefaultAsync(ct);
-
-        if (auth is null) return _errorManager.ThrowBadRequest<Unit>("No tienes permiso para esta acción", "ERP:USER_NOT_AUTOIZED");
+        var areaError = await SupplyRequestSharedHelper.ValidateInventoryAreaAsync(_unitOfWork, _errorManager, access.Profile.AreaId, ct);
+        if (areaError is not null) return areaError.Value;
 
         // Validar que la PO exista
         var orderExists = await _unitOfWork.OperationalOrders.Entities
@@ -63,19 +60,14 @@ public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager
             );
         }
         
-        var branchCode = await _unitOfWork.Branches.Entities
-            .AsNoTracking()
-            .Where(bc => bc.Id == access.Profile.BranchId && bc.IsActive)
-            .Select(bc => bc.BranchCode)
-            .FirstAsync(ct);
-
-        if (string.IsNullOrWhiteSpace(branchCode)) return _errorManager.ThrowBadRequest<Unit>("No se encontró el código  de sucursal.", "ERP:BRANCH_CODE_NOT_FOUND");
+        var (branchCode, branchCodeError) = await SupplyRequestSharedHelper.GetBranchCodeAsync(_unitOfWork, _errorManager, access.Profile.BranchId, ct);
+        if (branchCodeError is not null) return branchCodeError.Value;
 
         try
         {
             await _unitOfWork.ExecuteWithUniqueCodeRetryAsync(async token =>
             {
-                var (isSuccess, code) = await codeGenerator.GenerateCodeToSupplyRequests(branchCode, ReasonUse.Operation, token);
+                var (isSuccess, code) = await codeGenerator.GenerateCodeToSupplyRequests(branchCode!, ReasonUse.Operation, token);
 
                 if (!isSuccess || string.IsNullOrWhiteSpace(code))
                     throw new CoreException(new ErrorResponse(500, "ERP:INTERNAL_ERROR", "No se pudo generar el código para la solicitud."));

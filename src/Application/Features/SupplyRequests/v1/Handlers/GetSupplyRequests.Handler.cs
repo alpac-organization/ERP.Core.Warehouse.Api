@@ -8,6 +8,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
+using ERP.Core.Warehouse.Api.Application.Helpers.Inventory;
 using ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Queries;
 
@@ -24,7 +25,7 @@ public class GetSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager erro
         var branchId = access.Profile.BranchId;
 
         var supplyRequestsQuery = _unitOfWork.SupplyRequests.Entities
-            .Where(sr => sr.BranchId == branchId && sr.DeletedAt == null)
+            .ApplyBaseSupplyRequestFilter(branchId, request.Code, request.Status)
             .AsNoTracking();
 
         supplyRequestsQuery = ApplyRequestFilters(supplyRequestsQuery, request);
@@ -56,12 +57,6 @@ public class GetSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager erro
     private static IQueryable<SupplyRequest> ApplyRequestFilters(IQueryable<SupplyRequest> query,
         GetSupplyRequestsQuery request)
     {
-        if (!string.IsNullOrEmpty(request.Code)) query = query.Where(sr => sr.Code != null && sr.Code.Contains(request.Code));
-
-        if (request.Status.HasValue) query = query.Where(sr => sr.OutflowStatus == request.Status);
-
-        if (request.BranchId.HasValue) query = query.Where(sr => sr.BranchId == request.BranchId);
-
         if (request.ReasonUse.HasValue) query = query.Where(sr => sr.SupplyRequestItems.Any(i => i.ReasonUse == request.ReasonUse));
 
         if (!string.IsNullOrEmpty(request.PoCode)) query = query.Where(sr => sr.OperationalOrder.PoCode != null && sr.OperationalOrder.PoCode.Contains(request.PoCode));

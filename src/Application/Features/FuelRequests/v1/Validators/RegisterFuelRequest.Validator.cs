@@ -1,0 +1,23 @@
+using FluentValidation;
+using ERP.Core.Application.Commons.Bases;
+using ERP.Core.Warehouse.Api.Application.Features.FuelRequests.v1.Commands;
+
+namespace ERP.Core.Warehouse.Api.Application.Features.FuelRequests.v1.Validators;
+
+public class RegisterFuelRequestsValidator : BaseRequestValidator<RegisterFuelRequestsCommand>
+{
+    public RegisterFuelRequestsValidator()
+    {
+        RuleFor(x => x.Justification)
+            .NotEmpty().WithMessage("La justificación es obligatoria");
+
+        RuleFor(x => x.MachineryId)
+            .NotEmpty().WithMessage("Debe especificar la maquinaria/vehículo");
+
+        RuleFor(x => x.ProductStockId)
+            .NotEmpty().WithMessage("Debe especificar el stock de combustible");
+
+        RuleFor(x => x.RequestedQuantity)
+            .GreaterThan(0).WithMessage("La cantidad solicitada debe ser mayor que cero");
+    }
+}
