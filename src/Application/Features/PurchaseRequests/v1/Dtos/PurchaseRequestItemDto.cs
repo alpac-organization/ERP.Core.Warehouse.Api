@@ -68,6 +68,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
 
     public class UnitMeasureInformation
     {
+        public Guid UnitMeasureId { get; set; }
         public string? Code { get; set; }
         public string? Name { get; set; }
         public string? Symbol { get; set; }
