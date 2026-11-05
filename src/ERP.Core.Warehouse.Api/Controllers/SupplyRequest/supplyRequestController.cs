@@ -10,6 +10,7 @@ using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Commands;
+using ERP.Core.Database.Domain.Enums;
 
 
 namespace ERP.Core.Warehouse.Api.Controllers.supplyRequest;
@@ -25,17 +26,15 @@ public class SupplyRequestsController(IMediator mediator) : ApiControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<PagedResponse<GetSupplyRequestDto>> GetSupplyRequestsAsync(
-        [FromRoute] Guid        company_id,
-        [FromRoute] string      module_code,
-        [FromQuery] string?     code,
-        [FromQuery] Guid?       work_area_id,
-        [FromQuery] Guid?       cost_center_id,
-        [FromQuery] Guid?       branch_id,
-        [FromQuery] Guid?       warehouse_id,
-        [FromQuery] Guid?       operational_order_id,
-        [FromQuery] Guid?       requested_by_user_id,
-        [FromQuery] int         page_number = 1,
-        [FromQuery] int         page_size = 10
+        [FromRoute] Guid            company_id,
+        [FromRoute] string          module_code,
+        [FromQuery] string?         code,
+        [FromQuery] Guid?           branch_id,
+        [FromQuery] string?         po_code,
+        [FromQuery] ReasonUse?      reason_use,
+        [FromQuery] OutflowStatus?  status,
+        [FromQuery] int             page_number = 1,
+        [FromQuery] int             page_size = 10
     )
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
@@ -46,12 +45,10 @@ public class SupplyRequestsController(IMediator mediator) : ApiControllerBase
             ModuleCode          = module_code,
             UserId              = Guid.Parse(userIdStr ?? ""),
             Code                = code,
-            WorkAreaId          = work_area_id,
-            CostCenterId        = cost_center_id,
             BranchId            = branch_id,
-            WarehouseId         = warehouse_id,
-            OperationalOrderId  = operational_order_id,
-            RequestedByUserId   = requested_by_user_id,
+            ReasonUse           = reason_use,
+            Status              = status,   
+            PoCode              = po_code,
             PageNumber          = page_number,
             PageSize            = page_size
         });

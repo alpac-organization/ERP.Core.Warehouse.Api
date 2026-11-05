@@ -9,7 +9,7 @@ Endpoint para registrar una nueva solicitud operativa de inventario.
 | Campo | Valor |
 |-------|-------|
 | **Método** | `POST` |
-| **Endpoint** | `/api/v1/companies/{company_id}/modules/{module_code}/supply-requests` |
+| **Endpoint** | `/api/v1/companies/{company_id}/modules/{module_code}/inventory/supply-requests` |
 | **Descripción** | Registra una nueva solicitud operativa de inventario con sus ítems. Los valores `company_id`, `module_code` y `user_id` se toman de la ruta y del token respectivamente. Requiere autenticación con token. |
 
 ---
@@ -41,7 +41,7 @@ Endpoint para registrar una nueva solicitud operativa de inventario.
 | `reason_use` | `enum (ReasonUse)` | Sí | Motivo de uso de la solicitud. |
 | `items` | `array[RegisterSupplyRequestItem]` | Sí | Listado de ítems a solicitar. |
 | `items[].product_stock_id` | `guid` | Sí | Identificador del producto en stock a solicitar. |
-| `items[].amount` | `int` | Sí | Cantidad a solicitar. |
+| `items[].amount` | `decimal` | Sí | Cantidad a solicitar. |
 
 ### Ejemplo de Request
 
