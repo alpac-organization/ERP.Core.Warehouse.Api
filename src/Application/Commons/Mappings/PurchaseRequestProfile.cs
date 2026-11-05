@@ -1,22 +1,20 @@
 
-using System.Text.Json;
 using AutoMapper;
+using System.Text.Json;
+
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Application.Commons.Utils;
 using ERP.Core.Database.Domain.Entities.Shopping;
-using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services;
+using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
+
+using UserProfileEntity = ERP.Core.Database.Domain.Entities.Auth.UserProfile;
 using Commands = ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
     public class PurchaseRequestProfile : Profile
     {
-        private static readonly JsonSerializerOptions JsonOptions = new()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-            PropertyNameCaseInsensitive = true
-        };
-
         public PurchaseRequestProfile()
         {
             CreateMap<PurchaseRequest, PurchaseRequestDto>()
@@ -57,9 +55,10 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         private static string? ExtractReasonRejection(string? additionalDataJson)
         {
             if (string.IsNullOrWhiteSpace(additionalDataJson)) return null;
+
             try
             {
-                var history = JsonSerializer.Deserialize<List<PurchaseRequestAdditionalData>>(additionalDataJson, JsonOptions);
+                var history = JsonSerializer.Deserialize<List<PurchaseRequestAdditionalData>>(additionalDataJson, JsonManager.SnakeCaseOptions);
                 var rejectionEntry = history?.LastOrDefault(h => h.Description == "Rechazo de solicitud");
                 return rejectionEntry?.NewField;
             }
@@ -72,50 +71,46 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 
     public static class PurchaseRequestMapper
     {
-        public static PurchaseRequest ToPurchaseRequestEntity(
-            this Commands.RegisterPurchaseRequest command,
-            string codeGenerated,
-            Guid areaId,
-            Guid userId,
-            DateOnly requestDate)
+        public static PurchaseRequest ToPurchaseRequestEntity(this Commands.RegisterPurchaseRequest command, string codeGenerated, UserProfileEntity profile)
         {
             return new()
             {
-                AreaId              = areaId,
                 Code                = codeGenerated,
-                BranchId            = command.BranchId,
-                CostCenterId        = command.CostCenterId,
-                UserRevisionId      = null,
-                RegisteredByUserId  = userId,
-                
+                AreaId              = profile.AreaId,
+                RegisteredByUserId  = profile.UserId,
+                BranchId            = profile.BranchId,
+                CostCenterId        = profile.CostCenterId,
                 RequestType         = command.RequestType,
                 Destination         = command.Destination,
                 PriorityLevel       = command.PriorityLevel ?? PriorityLevel.None,
-                
                 Concept             = command.Observations,
+
                 RequestStatus       = PurchaseRequestStatus.Pending,
-                Id                  = Guid.NewGuid(),
                 
+                Id                  = Guid.NewGuid(),
+                RequestDate         = DateOnly.FromDateTime(DateTime.Now),
+
                 IsActive            = true,
-                RequestDate         = requestDate,
+                UserRevisionId      = null,
                 RevisionDate        = null
             };
         }
 
-        public static PurchaseRequestItem ToPurchaseRequestItemEntity(this Commands.PurchaseRequestItem command, Guid purchaseRequestId, Guid productId, Guid unitMeasureId)
+        public static PurchaseRequestItem ToPurchaseRequestItemEntity(this Commands.PurchaseRequestItem command, Guid purchaseRequestId)
         {
             return new()
             {
                 HasQuotation      = false,
                 Id                = Guid.NewGuid(),
                 PurchaseRequestId = purchaseRequestId,
+
                 Quantity          = command.Quantity,
                 QuantityUnit      = command.QuantityUnit,
-                ProductId         = productId,
-                UnitMeasureId     = unitMeasureId,
                 Justification     = command.Justification,
                 Description       = command.Description,
-                AdditionalData    = command.AdditionalData
+                AdditionalData    = command.AdditionalData,
+                ProductId         = command.ProductId,
+                UnitMeasureId     = command.UnitMeasureId,
             };
         }
 

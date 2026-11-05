@@ -8,7 +8,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
     {
         public UnitMeasuresProfile()
         {
-            CreateMap<UnitMeasure, UnitMeasureInformation>();
+            CreateMap<UnitMeasure, UnitMeasureInformation>()
+                .ForMember(dest => dest.UnitMeasureId, opt => opt.MapFrom(src => src.Id));
         }
     }
 }

@@ -12,11 +12,7 @@ using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
 {
-    public class GetPurchaseRequestProductsHandler(
-        IUnitOfWork _unitOfWork,
-        IErrorManager _errorManager,
-        IMapper _mapper,
-        IPurchaseRequestVisibilityService _visibilityService)
+    public class GetPurchaseRequestProductsHandler(IUnitOfWork _unitOfWork, IErrorManager _errorManager, IMapper _mapper, IPurchaseRequestVisibilityService _visibilityService)
         : BaseValidatorHandler<GetPurchaseRequestsProductsQuery, PagedResponse<PurchaseRequestItemDto>>(_unitOfWork, _errorManager)
     {
         public override async Task<PagedResponse<PurchaseRequestItemDto>> Handle(GetPurchaseRequestsProductsQuery request, CancellationToken cancellationToken)
