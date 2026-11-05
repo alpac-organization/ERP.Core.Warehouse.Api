@@ -10,7 +10,10 @@ public class DeclineSupplyRequestValidator : BaseRequestValidator<DeclineSupplyR
     {
         RuleFor(x => x.SupplyRequestId)
             .NotEqual(Guid.Empty)
-            .WithMessage("El identificador de la solicitud de insumos no es válido.");
+            .WithMessage("El identificador de la solicitud no es válido.");
+
+        RuleFor(x => x.Code)
+            .NotEmpty().WithMessage("El código de la solicitud es obligatorio.");
 
         RuleFor(x => x.Observations)
             .MaximumLength(1000)
