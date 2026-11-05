@@ -19,5 +19,15 @@ public class RegisterFuelRequestsValidator : BaseRequestValidator<RegisterFuelRe
 
         RuleFor(x => x.RequestedQuantity)
             .GreaterThan(0).WithMessage("La cantidad solicitada debe ser mayor que cero");
+
+        RuleFor(x => x.Mileage)
+            .GreaterThanOrEqualTo(0)
+            .When(x => x.Mileage.HasValue)
+            .WithMessage("El kilometraje no puede ser negativo.");
+
+        RuleFor(x => x.EngineHours)
+            .GreaterThanOrEqualTo(0)
+            .When(x => x.EngineHours.HasValue)
+            .WithMessage("Las horas motor no pueden ser negativas.");
     }
 }

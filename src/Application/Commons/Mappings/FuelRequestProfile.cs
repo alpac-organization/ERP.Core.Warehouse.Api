@@ -26,12 +26,11 @@ public class FuelRequestsProfile : Profile
             .ForMember(dest => dest.RequestedByUserName, opt => opt.MapFrom(src => src.User.Fullname))
             .ForMember(dest => dest.WorkAreaInformation, opt => opt.MapFrom(src => src.WorkArea))
             .ForMember(dest => dest.CostCenterInformation, opt => opt.MapFrom(src => src.CostCenter))
+            .ForMember(dest => dest.MachineryInformation, opt => opt.MapFrom(src => src.Machinery))
+            .ForMember(dest => dest.ProductStockName, opt => opt.MapFrom(src => src.ProductStock.Product.ProductName))
             .ForMember(dest => dest.BranchInformation, opt => opt.MapFrom(src => src.Branch))
             .ForMember(dest => dest.ApprovedByUserChiefName, opt => opt.Ignore())
-            .ForMember(dest => dest.AnnulledByUserChiefName, opt => opt.Ignore())
-            .ForPath(dest => dest.MachineryInformation.MachineryType, opt => opt.MapFrom(src => src.Machinery.Type))
-            .ForPath(dest => dest.MachineryInformation.MachineryCode, opt => opt.MapFrom(src => src.Machinery.Code))
-            .ForPath(dest => dest.MachineryInformation.MachineryBrand, opt => opt.MapFrom(src => src.Machinery.Brand));
+            .ForMember(dest => dest.AnnulledByUserChiefName, opt => opt.Ignore());
     }
 }
 
@@ -56,7 +55,9 @@ public static class FuelRequestMapper
             ProductStockId = request.ProductStockId,
             UnitMeasureId = unitMeasureId,
             RequestedQuantity = request.RequestedQuantity,
-            RequestedByUserId = userProfile.UserId
+            RequestedByUserId = userProfile.UserId,
+            Mileage = request.Mileage,
+            EngineHours = request.EngineHours
         };
     }
 }
