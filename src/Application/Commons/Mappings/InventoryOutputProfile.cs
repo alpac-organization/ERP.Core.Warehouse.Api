@@ -32,5 +32,22 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 ReasonsInventoryRemovalId = request.ReasonInventoryRemovalId
             };
         }
+
+        public static InventoryOutputs ToInventoryOutputEntity(this Commands.ApproveSupplyRequestCommand request,
+            FuelRequest fuelRequest, string code)
+        {
+            return new InventoryOutputs
+            {
+                Id = Guid.NewGuid(),
+                Code = code,
+                Observations = request.Observations,
+                Status = InventoryOutputsStatus.OutputPending,
+                BranchId = fuelRequest.BranchId,
+                WorkAreaId = fuelRequest.WorkAreaId,
+                CostCenterId = fuelRequest.CostCenterId,
+                FuelRequestId = fuelRequest.Id,
+                ReasonsInventoryRemovalId = request.ReasonInventoryRemovalId
+            };
+        }
     }
 }
