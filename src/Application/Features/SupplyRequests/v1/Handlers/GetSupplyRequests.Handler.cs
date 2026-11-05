@@ -29,8 +29,6 @@ public class GetSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager erro
 
         var branchId = access.Profile.BranchId;
 
-        var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
-
         var supplyRequestsQuery = _unitOfWork.SupplyRequests.Entities
             .ApplyBaseSupplyRequestFilter(branchId, request.Code, request.Status)
             .AsNoTracking();

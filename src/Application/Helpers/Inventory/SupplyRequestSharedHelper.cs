@@ -41,7 +41,11 @@ public static class SupplyRequestSharedHelper
     public static IQueryable<T> ApplyBaseSupplyRequestFilter<T>(this IQueryable<T> query, Guid branchId, string? code,
         OutflowStatus? status) where T : BaseSupplyRequest
     {
-        query = query.Where(request => request.BranchId == branchId && request.DeletedAt == null);
+        query = query.Where(request =>
+            request.BranchId == branchId
+            && request.DeletedAt == null
+            && (request.OutflowStatus == OutflowStatus.PendingReview
+                || request.CreatedAt >= DateTime.UtcNow.AddDays(-7)));
 
         if (!string.IsNullOrEmpty(code))
             query = query.Where(request => request.Code != null && request.Code.Contains(code));
