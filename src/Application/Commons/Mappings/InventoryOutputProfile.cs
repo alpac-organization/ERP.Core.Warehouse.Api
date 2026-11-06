@@ -3,6 +3,7 @@ using AutoMapper;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Inventory;
 
+using ERP.Core.Warehouse.Api.Application.Features.InventoryOutputs.v1.Dtos;
 using Commands = ERP.Core.Warehouse.Api.Application.Features.ReviewSupplyRequest.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
@@ -11,6 +12,22 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
     {
         public InventoryOutputProfile()
         {
+            CreateMap<InventoryOutputs, GetInventoryOutputDto>()
+                .ForMember(dest => dest.InventoryOutputId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.OutputCode, opt => opt.MapFrom(src => src.Code))
+                .ForMember(dest => dest.RequestCode, opt => opt.MapFrom(src =>
+                    src.SupplyRequest != null ? src.SupplyRequest.Code : src.FuelRequest != null ? src.FuelRequest.Code : null))
+                .ForMember(dest => dest.RequestType, opt => opt.MapFrom(src =>
+                    src.SupplyRequestId.HasValue ? "Supply" : src.FuelRequestId.HasValue ? "Fuel" : null))
+                .ForMember(dest => dest.ReasonsInventoryRemovalDescription, opt => opt.MapFrom(src => src.ReasonsInventoryRemoval.Description))
+                .ForMember(dest => dest.WorkAreaName, opt => opt.MapFrom(src => src.WorkArea.WorkAreaName))
+                .ForMember(dest => dest.CostCenterName, opt => opt.MapFrom(src => src.CostCenter.CostCenterName))
+                .ForMember(dest => dest.RequestDate, opt => opt.MapFrom(src =>
+                    src.SupplyRequest != null && src.FuelRequest == null
+                        ? (DateTime?)src.SupplyRequest.CreatedAt
+                        : src.FuelRequest != null
+                            ? (DateTime?)src.FuelRequest.CreatedAt
+                            : null));
         }
     }
 
