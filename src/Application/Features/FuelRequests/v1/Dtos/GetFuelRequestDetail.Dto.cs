@@ -11,6 +11,7 @@ public class GetFuelRequestDetailDto : GetFuelRequestDto
     public string? ApprovedByUserChiefName { get; set; }
     public string? AnnulledByUserChiefName { get; set; }
     public Guid ProductStockId { get; set; }
+    public string Justification { get; set; } = null!;
     public string ProductStockName { get; set; } = null!;
     public decimal RequestedQuantity { get; set; }
     public decimal? Mileage { get; set; }
