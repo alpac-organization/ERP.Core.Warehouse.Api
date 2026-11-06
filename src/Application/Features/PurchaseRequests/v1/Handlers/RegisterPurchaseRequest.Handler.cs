@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Utils;
 using ERP.Core.Application.Commons.Interfaces;
@@ -58,20 +59,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 var itemProducts = purchaseRequest.PurchaseRequestItems
                     .Select(item => item.ProductId);
 
-
                 #region  Evaluación de los productos
-                
-                // if (purchaseRequest.Destination == DestinationRequest.ServiceOrder)
-                // {
-                    
-                // }
-                // else
-                // {
-                    
-                // }
+
+                await ValidateProductsByDestinationType(itemProducts, purchaseRequest.Destination, cancellationToken);
 
                 #endregion
-
 
                 var purchaseRequestEntity = PurchaseRequestMapper.ToPurchaseRequestEntity(purchaseRequest, code, access.Profile);
                 await _unitOfWork.PurchaseRequests.RegisterPurchaseRequest(purchaseRequestEntity);
@@ -96,10 +88,30 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
         }
         
         //Validar los productos si es para una operación o administrativo...
-        private async Task<bool> ValidateProductsByDestinationType()
+        private async Task<bool> ValidateProductsByDestinationType(IEnumerable<Guid> productIds, DestinationRequest destination, CancellationToken cancellationToken)
         {
+            var products = await _unitOfWork.Products.Entities
+                .Where(product =>
+                    productIds.Contains(product.Id) &&
+                    product.IsActive
+                )
+                .Select(product => new
+                {
+                    product.Id,
+                    product.ProductUsageType
+                })
+                .ToListAsync(cancellationToken);
 
-            return true;
+            if (products.Count != productIds.Distinct().Count())
+            {
+                return false;
+            }
+
+            var expectedUsageType = destination == DestinationRequest.ServiceOrder
+                ? ProductUsageType.Operational
+                : ProductUsageType.Administrative;
+
+            return products.All(product => product.ProductUsageType == expectedUsageType);
         }
 
         private async Task UploadItemImagesAsync(Commands.PurchaseRequestItem productItem, CancellationToken cancellationToken)
