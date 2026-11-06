@@ -83,7 +83,7 @@ public class GetInventoryOutputsDetailHandler(IUnitOfWork unitOfWork, IErrorMana
         {
             detail.InventoryStockInformations =
             [
-                mapper.Map<ERP.Core.Database.Domain.Entities.Bases.InventoryStockInformation>(output.FuelRequest.ProductStock)
+                mapper.Map<InventoryStockInformation>(output.FuelRequest.ProductStock)
             ];
         }
         else if (output.SupplyRequest?.SupplyRequestItems.Any(item => item.ProductStock != null) == true)
@@ -91,7 +91,7 @@ public class GetInventoryOutputsDetailHandler(IUnitOfWork unitOfWork, IErrorMana
             detail.InventoryStockInformations = [.. output.SupplyRequest.SupplyRequestItems
                 .Where(item => item.ProductStock != null)
                 .GroupBy(item => item.ProductStockId)
-                .Select(group => mapper.Map<ERP.Core.Database.Domain.Entities.Bases.InventoryStockInformation>(group.First().ProductStock!))];
+                .Select(group => mapper.Map<InventoryStockInformation>(group.First().ProductStock!))];
         }
 
         if (output.DispatchedByUserId.HasValue)
