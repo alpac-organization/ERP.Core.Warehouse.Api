@@ -6,6 +6,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services;
 using ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
@@ -74,6 +75,22 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
             if (quotation.IsAcceptedForPurchase)
             {
                 return true;
+            }
+
+            var purchaseRequestId = quotation.PurchaseRequestItem.PurchaseRequestId;
+            var supplierPaymentMethods = await _unitOfWork.Quotations.Entities
+                .AsNoTracking()
+                .Where(existing => existing.IsActive && existing.DeletedAt == null)
+                .Where(existing => existing.SupplierId == quotation.SupplierId)
+                .Where(existing => existing.PurchaseRequestItem.PurchaseRequestId == purchaseRequestId)
+                .Select(existing => existing.PaymentMethodType)
+                .ToListAsync(cancellationToken);
+
+            if (!SupplierPaymentMethodConsistency.IsConsistent(supplierPaymentMethods))
+            {
+                return _errorManager.ThrowBadRequest<bool>(
+                    SupplierPaymentMethodConsistency.ErrorMessage,
+                    SupplierPaymentMethodConsistency.ErrorCode);
             }
 
             //Solo una cotización puede estar aceptada para compra por producto solicitado
