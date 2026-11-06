@@ -1,15 +1,14 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
-using ERP.Core.Infrastructure.Attributes;
-
-using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Domain.Entities.Errors;
+using ERP.Core.Infrastructure.Attributes;
 
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryOutputs.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryOutputs.v1.Queries;
+using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Controllers.InventoryOutputs;
 
@@ -51,6 +50,27 @@ public class InventoryOutputsController(IMediator mediator) : ApiControllerBase
             ReasonInventoryRemovalId    = reason_inventory_removal_id,
             PageNumber                  = page_number,
             PageSize                    = page_size
+        });
+    }
+
+    [HttpGet("companies/{company_id}/modules/{module_code}/inventory/inventory-outputs/{inventory_output_id}/detail")]
+    [ProducesResponseType(typeof(GetInventoryOutputDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<GetInventoryOutputDetailDto> GetInventoryOutputDetailAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid inventory_output_id
+    )
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        return await mediator.Send(new GetInventoryOutputsDetailQuery()
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = Guid.Parse(userIdStr ?? ""),
+            InventoryOutputId = inventory_output_id
         });
     }
 }

@@ -1,4 +1,5 @@
 using AutoMapper;
+using ERP.Core.Database.Domain.Entities.Bases;
 using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Entities.Inventory;
 using ERP.Core.Database.Domain.Entities.Warehouse;
@@ -23,8 +24,12 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 
             CreateMap<CategoryProducts, CategoryInformation>()
                 .ForMember(dest => dest.CategoryId, opt => opt.MapFrom(src => src.Id));
-        
+
             CreateMap<UnitMeasure, UnitMeasureInformation>();
+
+            CreateMap<ProductStock, InventoryStockInformation>()
+                .ForMember(dest => dest.InventoryStockId, opt => opt.MapFrom(src => src.Id));
+
         }
     }
 }

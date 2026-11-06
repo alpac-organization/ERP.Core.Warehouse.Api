@@ -1,9 +1,12 @@
 using AutoMapper;
 
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Database.Domain.Entities.Bases;
 using ERP.Core.Database.Domain.Entities.Inventory;
 
 using ERP.Core.Warehouse.Api.Application.Features.InventoryOutputs.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Features.FuelRequests.v1.Dtos;
 using Commands = ERP.Core.Warehouse.Api.Application.Features.ReviewSupplyRequest.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
@@ -28,6 +31,11 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                         : src.FuelRequest != null
                             ? (DateTime?)src.FuelRequest.CreatedAt
                             : null));
+
+            CreateMap<InventoryOutputs, GetInventoryOutputDetailDto>()
+                .ForMember(dest => dest.SupplyRequestDetail, opt => opt.MapFrom(src => src.SupplyRequest))
+                .ForMember(dest => dest.FuelRequestDetail, opt => opt.MapFrom(src => src.FuelRequest))
+                .ForMember(dest => dest.InventoryStockInformations, opt => opt.Ignore());
         }
     }
 
