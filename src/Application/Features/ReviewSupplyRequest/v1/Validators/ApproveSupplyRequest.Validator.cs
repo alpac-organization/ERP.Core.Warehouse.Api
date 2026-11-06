@@ -12,6 +12,9 @@ public class ApproveSupplyRequestValidator : BaseRequestValidator<ApproveSupplyR
             .NotEqual(Guid.Empty)
             .WithMessage("El identificador de la solicitud de insumos no es válido.");
 
+        RuleFor(x => x.Code)
+            .NotEmpty().WithMessage("El código de la solicitud es obligatorio.");
+
         RuleFor(x => x.ReasonInventoryRemovalId)
             .NotEqual(Guid.Empty)
             .WithMessage("El motivo de salida de inventario es obligatorio.");
