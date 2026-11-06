@@ -74,6 +74,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
 
             RuleFor(x => x.UnitMeasureId)
                 .NotEqual(Guid.Empty)
+                .When(x => x.UnitMeasureId.HasValue)
                 .WithMessage("La unidad de medida no es válida.");
 
             RuleFor(x => x.Quantity)

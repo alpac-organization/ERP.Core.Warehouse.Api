@@ -96,7 +96,10 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             };
         }
 
-        public static PurchaseRequestItem ToPurchaseRequestItemEntity(this Commands.PurchaseRequestItem command, Guid purchaseRequestId)
+        public static PurchaseRequestItem ToPurchaseRequestItemEntity(
+            this Commands.PurchaseRequestItem command,
+            Guid purchaseRequestId,
+            Guid unitMeasureId)
         {
             return new()
             {
@@ -110,7 +113,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 Description       = command.Description,
                 AdditionalData    = command.AdditionalData,
                 ProductId         = command.ProductId,
-                UnitMeasureId     = command.UnitMeasureId,
+                UnitMeasureId     = unitMeasureId,
             };
         }
 

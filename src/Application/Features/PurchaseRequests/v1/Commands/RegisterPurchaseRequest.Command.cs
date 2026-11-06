@@ -26,7 +26,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Comman
         public int? QuantityUnit { get; set; }
 
         public Guid ProductId { get; set; }
-        public Guid UnitMeasureId { get; set; }
+        public Guid? UnitMeasureId { get; set; }
 
         public string? Description { get; set; }
         public string? Justification { get; set; }

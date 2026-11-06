@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Utils;
 using ERP.Core.Application.Commons.Interfaces;
@@ -32,8 +33,21 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             {
                 return _errorManager.ThrowBadRequest<bool>("No tienes permiso para realizar esta acción", "ERP:INVALID_ACCESS");
             }
-            
+
             _logger.LogInformation("Iniciando proceso para registro de solicitud de compras");
+
+            var productIds = request.PurchaseRequests
+                .SelectMany(purchaseRequest => purchaseRequest.PurchaseRequestItems)
+                .Select(item => item.ProductId)
+                .Distinct()
+                .ToList();
+
+            // aqui Carga  los productos para resolver unidad de medida 
+            var productsById = await _unitOfWork.Products.Entities
+                .AsNoTracking()
+                .Where(product => productIds.Contains(product.Id) && product.DeletedAt == null)
+                .Select(product => new { product.Id, product.UnitMeasureId })
+                .ToDictionaryAsync(product => product.Id, cancellationToken);
 
             foreach (var purchaseRequest in request.PurchaseRequests)
             {
@@ -45,7 +59,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 }
 
                 var (isSucceded, code) = await _codeGenerator.GenerateUniqueCodeToPurchaseRequest(
-                    purchaseRequest.RequestType, 
+                    purchaseRequest.RequestType,
                     access.Profile.BranchId,
                     cancellationToken
                 );
@@ -55,12 +69,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     throw new InvalidOperationException("Ocurrio un error la generar la solucitud de comprar");
                 }
 
-                var itemProducts = purchaseRequest.PurchaseRequestItems
-                    .Select(item => item.ProductId);
-
-
                 #region  Evaluación de los productos
-                
+
                 // if (purchaseRequest.Destination == DestinationRequest.ServiceOrder)
                 // {
                     
@@ -72,33 +82,52 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
                 #endregion
 
-
                 var purchaseRequestEntity = PurchaseRequestMapper.ToPurchaseRequestEntity(purchaseRequest, code, access.Profile);
                 await _unitOfWork.PurchaseRequests.RegisterPurchaseRequest(purchaseRequestEntity);
 
                 foreach (var productItem in purchaseRequest.PurchaseRequestItems)
                 {
+                    if (!productsById.TryGetValue(productItem.ProductId, out var product))
+                    {
+                        return _errorManager.ThrowNotFound<bool>(
+                            "El producto seleccionado no existe",
+                            "ERP:PRODUCT_NOT_FOUND");
+                    }
+
+                    // Si se omite unit_measure_id, se usa la unidad del producto.
+                    var unitMeasureId = productItem.UnitMeasureId is { } selectedUnitMeasureId
+                        && selectedUnitMeasureId != Guid.Empty
+                            ? selectedUnitMeasureId
+                            : product.UnitMeasureId;
+
+                    // Sin unidad enviada ni en el producto, no se puede registrar el ítem.
+                    if (unitMeasureId == Guid.Empty)
+                    {
+                        return _errorManager.ThrowBadRequest<bool>(
+                            "El producto no tiene unidad de medida y no se envió una.",
+                            "ERP:UNIT_MEASURE_REQUIRED");
+                    }
+
                     await UploadItemImagesAsync(productItem, cancellationToken);
 
                     var purchaseRequestItemEntity = PurchaseRequestMapper.ToPurchaseRequestItemEntity(
                         productItem,
-                        purchaseRequestEntity.Id
-                    );
+                        purchaseRequestEntity.Id,
+                        unitMeasureId);
 
                     await _unitOfWork.PurchaseRequestItems.RegisterPurchaseRequestItem(purchaseRequestItemEntity);
                 }
             }
-            
+
             _logger.LogInformation("Se registro exitosamente la solicitud de compra");
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return true;
         }
-        
+
         //Validar los productos si es para una operación o administrativo...
         private async Task<bool> ValidateProductsByDestinationType()
         {
-
             return true;
         }
 
