@@ -12,6 +12,7 @@ public class GetInventoryOutputsQuery : BaseRequest, IRequest<PagedResponse<GetI
 {
     public string? OutputCode { get; set; }
     public InventoryOutputsStatus? Status { get; set; }
+    public string? RequestType { get; set; }
     public string? SupplyRequestCode { get; set; }
     public string? FuelRequestCode { get; set; }
     public Guid? ReasonInventoryRemovalId { get; set; }

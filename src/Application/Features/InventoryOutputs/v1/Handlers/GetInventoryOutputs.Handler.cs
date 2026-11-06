@@ -66,6 +66,14 @@ public class GetInventoryOutputsHandler(IUnitOfWork unitOfWork, IErrorManager er
         if (!string.IsNullOrEmpty(request.OutputCode))
             query = query.Where(output => output.Code != null && output.Code.Contains(request.OutputCode));
 
+        if (!string.IsNullOrEmpty(request.RequestType) &&
+            request.RequestType.Equals("Supply", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(output => output.SupplyRequestId.HasValue);
+
+        if (!string.IsNullOrEmpty(request.RequestType) &&
+            request.RequestType.Equals("Fuel", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(output => output.FuelRequestId.HasValue);
+
         if (request.Status.HasValue)
             query = query.Where(output => output.Status == request.Status.Value);
 
