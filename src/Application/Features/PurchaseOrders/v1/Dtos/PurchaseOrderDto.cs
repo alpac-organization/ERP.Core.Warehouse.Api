@@ -13,8 +13,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos
 
         public string? PurchaseOrderCode { get; set; }
 
-        public string? PaymentRequestCode { get; set; }
-
         public Guid? SupplierId { get; set; }
 
         public string? SupplierName { get; set; }
@@ -24,6 +22,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos
 
     public class PurchaseOrderDto : PurchaseOrderHeaderDto
     {
+        public string? PaymentRequestCode { get; set; }
+
         public PurchaseRequestSummaryDto PurchaseRequest { get; set; } = new();
     }
 }
