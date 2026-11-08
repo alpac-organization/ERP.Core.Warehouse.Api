@@ -19,6 +19,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos
 
         public UserInformation SentByUserInformation { get; set; } = new();
 
+        public UserInformation? ApprovedByUserInformation { get; set; }
+
         public CompanyInformation CompanyInformation { get; set; } = new();
 
         public List<PurchaseOrderReportItemDto> Items { get; set; } = [];

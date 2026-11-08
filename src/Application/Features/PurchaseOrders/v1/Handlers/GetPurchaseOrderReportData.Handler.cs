@@ -3,6 +3,7 @@ using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Database.Domain.Entities.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
@@ -41,6 +42,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             var purchaseOrder = await _unitOfWork.PurchaseOrders.Entities
                 .Include(po => po.Supplier)
+                .Include(po => po.ReviewedByUser)
                 .Include(po => po.PaymentRequest)
                 .Include(po => po.PurchaseOrderItems)
                     .ThenInclude(item => item.Product)
@@ -116,6 +118,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 Title = title,
                 Concept = header.Concept ?? purchaseOrder.PurchaseRequest.Concept,
                 SentByUserInformation = header.SentByUserInformation,
+                ApprovedByUserInformation = purchaseOrder.ReviewedByUser is null
+                    ? null
+                    : mapper.Map<UserInformation>(purchaseOrder.ReviewedByUser),
                 CompanyInformation = header.CompanyInformation,
                 Items = items,
                 DocumentInfo = new TransferRequestDocumentInfo
