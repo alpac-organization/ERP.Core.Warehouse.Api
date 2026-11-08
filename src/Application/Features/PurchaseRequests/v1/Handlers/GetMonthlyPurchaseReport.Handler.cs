@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
@@ -13,10 +14,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
     public class GetMonthlyPurchaseReportHandler(
         IUnitOfWork _unitOfWork,
         IErrorManager _errorManager,
-        IPurchaseRequestVisibilityService _visibilityService)
-        : BaseValidatorHandler<GetMonthlyPurchaseReportQuery, List<MonthlyPurchaseReportItemDto>>(_unitOfWork, _errorManager)
+        IPurchaseRequestVisibilityService _visibilityService,
+        IPurchaseTaxService _purchaseTaxService)
+        : BaseValidatorHandler<GetMonthlyPurchaseReportQuery, MonthlyPurchaseReportDto>(_unitOfWork, _errorManager)
     {
-        public override async Task<List<MonthlyPurchaseReportItemDto>> Handle(GetMonthlyPurchaseReportQuery request, CancellationToken cancellationToken)
+        public override async Task<MonthlyPurchaseReportDto> Handle(GetMonthlyPurchaseReportQuery request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode!, cancellationToken);
 
@@ -37,8 +39,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     .Where(pr => pr.IsActive && pr.DeletedAt == null)
                     .Where(pr => pr.Branch.CompanyId == request.CompanyId)
                     .Where(pr => pr.RequestType == PurchaseRequestType.Monthly)
-                    .Where(pr => pr.RequestStatus == PurchaseRequestStatus.Approved
-                              || pr.RequestStatus == PurchaseRequestStatus.Finished)
+                    .Where(pr => pr.RequestStatus == PurchaseRequestStatus.Finished)
                     .Where(pr => pr.CreatedAt >= firstDayOfMonth && pr.CreatedAt < firstDayOfNextMonth),
                 access.Role?.RoleType,
                 request.UserId,
@@ -59,32 +60,67 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     q.DeletedAt == null &&
                     q.IsAcceptedForPurchase))
                     .ThenInclude(q => q.Supplier)
+                .Include(pri => pri.Quotations.Where(q =>
+                    q.IsActive &&
+                    q.DeletedAt == null &&
+                    q.IsAcceptedForPurchase))
+                    .ThenInclude(q => q.SupplierProduct)
                 .Where(pri => pri.DeletedAt == null)
                 .Where(pri => visibleRequestIds.Contains(pri.PurchaseRequestId))
                 .AsNoTracking()
                 .AsSplitQuery();
 
             var purchaseRequestItems = await query.ToListAsync(cancellationToken);
+            var rates = await _purchaseTaxService.GetActiveRatesAsync(cancellationToken);
+            var exchangeRate = _purchaseTaxService.ResolveExchangeRate(rates);
 
-            return purchaseRequestItems.Select(item =>
+            var items = purchaseRequestItems
+                .Select(item => BuildItem(item, request.Month, request.Year, reportKey))
+                .ToList();
+
+            return new MonthlyPurchaseReportDto
             {
-                var acceptedQuotation = item.Quotations.FirstOrDefault();
+                Items = items,
+                GrandTotal = items.Sum(item => ToNio(item.TotalPrice, item.Currency, exchangeRate))
+            };
+        }
 
-                return new MonthlyPurchaseReportItemDto
-                {
-                    Month = request.Month,
-                    Year = request.Year,
-                    Key = reportKey,
-                    RequestType = item.PurchaseRequest.RequestType,
-                    BranchName = item.PurchaseRequest.Branch?.BranchName,
-                    AreaName = item.PurchaseRequest.WorkArea?.WorkAreaName ?? item.PurchaseRequest.WorkArea?.Description,
-                    SupplierName = acceptedQuotation?.Supplier?.SuppliersLegalName,
-                    Description = item.Product?.ProductName ?? item.Description,
-                    Quantity = item.Quantity,
-                    UnitPrice = acceptedQuotation?.PriceUnit ?? 0m,
-                    TotalPrice = acceptedQuotation?.PriceTotal ?? 0m
-                };
-            }).ToList();
+        private static MonthlyPurchaseReportItemDto BuildItem(
+            PurchaseRequestItem item,
+            int month,
+            int year,
+            string reportKey)
+        {
+            var acceptedQuotation = item.Quotations.FirstOrDefault();
+            var currency = acceptedQuotation?.SupplierProduct?.Currency;
+            var unitPrice = acceptedQuotation?.PriceUnit ?? 0m;
+            var lineTotal = item.Quantity * unitPrice;
+
+            return new MonthlyPurchaseReportItemDto
+            {
+                Month = month,
+                Year = year,
+                Key = reportKey,
+                RequestType = item.PurchaseRequest.RequestType,
+                BranchName = item.PurchaseRequest.Branch?.BranchName,
+                AreaName = item.PurchaseRequest.WorkArea?.WorkAreaName ?? item.PurchaseRequest.WorkArea?.Description,
+                SupplierName = acceptedQuotation?.Supplier?.SuppliersLegalName,
+                Description = item.Product?.ProductName ?? item.Description,
+                Quantity = item.Quantity,
+                Currency = currency,
+                UnitPrice = unitPrice,
+                TotalPrice = lineTotal
+            };
+        }
+
+        private static decimal ToNio(decimal amount, Currency? currency, decimal exchangeRate)
+        {
+            if (currency != Currency.USD)
+            {
+                return amount;
+            }
+
+            return amount * exchangeRate;
         }
     }
 }

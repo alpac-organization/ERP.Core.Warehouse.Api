@@ -2,7 +2,13 @@ using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
 {
-    // este es el DTO para el reporte mensual de compras.
+    public class MonthlyPurchaseReportDto
+    {
+        public List<MonthlyPurchaseReportItemDto> Items { get; set; } = [];
+
+        public decimal GrandTotal { get; set; }
+    }
+
     public class MonthlyPurchaseReportItemDto
     {
         public int Month { get; set; }
@@ -22,6 +28,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public string? Description { get; set; }
 
         public int Quantity { get; set; }
+
+        public Currency? Currency { get; set; }
 
         public decimal UnitPrice { get; set; }
 

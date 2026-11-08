@@ -12,6 +12,8 @@ namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces
 
         decimal CalculateIva(decimal subtotal, bool isTaxExempt, PurchaseTaxRates rates);
 
+        decimal ResolveExchangeRate(PurchaseTaxRates rates);
+
         PurchaseRetentionResult CalculateRetentions(
             decimal subtotal,
             Currency currency,

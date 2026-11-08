@@ -33,6 +33,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos
 
         public string? Department { get; set; }
 
+        public Currency Currency { get; set; }
+
         public decimal ServiceAmount { get; set; }
 
         public decimal Iva { get; set; }

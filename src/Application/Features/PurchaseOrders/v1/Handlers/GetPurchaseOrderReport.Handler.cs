@@ -48,6 +48,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 .Include(order => order.PurchaseOrderItems)
                     .ThenInclude(item => item.Product)
                 .Include(order => order.PurchaseRequest)
+                    .ThenInclude(purchaseRequest => purchaseRequest.PurchaseRequestItems)
+                        .ThenInclude(item => item.UnitMeasure)
+                .Include(order => order.PurchaseRequest)
                     .ThenInclude(purchaseRequest => purchaseRequest.Branch)
                         .ThenInclude(branch => branch.Company)
                 .Include(order => order.PurchaseRequest)
@@ -61,6 +64,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                             quotation.DeletedAt == null &&
                             quotation.IsAcceptedForPurchase))
                             .ThenInclude(quotation => quotation.Supplier)
+                .Include(order => order.PurchaseRequest)
+                    .ThenInclude(purchaseRequest => purchaseRequest.PurchaseRequestItems)
+                        .ThenInclude(item => item.Quotations.Where(quotation =>
+                            quotation.IsActive &&
+                            quotation.DeletedAt == null &&
+                            quotation.IsAcceptedForPurchase))
+                            .ThenInclude(quotation => quotation.SupplierProduct)
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Where(order => order.Id == request.PurchaseOrderId)
@@ -84,6 +94,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             var header = mapper.Map<PurchaseOrderTemplateDto>(purchaseOrder);
             var supplierQuotations = PurchaseOrderReportLines.AcceptedQuotations(purchaseOrder);
+            if (!PurchaseOrderReportLines.TryResolveCurrency(supplierQuotations, out var currency))
+            {
+                return _errorManager.ThrowBadRequest<PurchaseOrderReportDto>(
+                    "La orden de compra tiene líneas en monedas distintas.",
+                    "ERP:INCONSISTENT_PURCHASE_ORDER_CURRENCY");
+            }
+
             var items = PurchaseOrderReportLines.BuildItems(purchaseOrder, supplierQuotations);
             var serviceAmount = items.Sum(item => item.PriceTotal);
             var ivaAmount = items.Sum(item => item.Iva);
@@ -109,6 +126,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                     Supplier = purchaseOrder.Supplier?.SuppliersLegalName
                         ?? supplierQuotations.FirstOrDefault()?.Supplier?.SuppliersLegalName,
                     Customer = purchaseOrder.PurchaseRequest.Branch.Company?.CompanieName,
+                    Currency = currency,
                     ServiceAmount = serviceAmount,
                     Iva = ivaAmount,
                     IncomeTax = supplierQuotations.Sum(quotation => quotation.Ir),
