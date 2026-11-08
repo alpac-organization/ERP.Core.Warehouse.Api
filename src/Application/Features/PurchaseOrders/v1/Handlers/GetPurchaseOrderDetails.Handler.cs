@@ -2,13 +2,14 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
-using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Queries;
+using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 {
@@ -40,7 +41,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 .Select(pr => pr.Id);
 
             var purchaseOrder = await _unitOfWork.PurchaseOrders.Entities
-                .Include(order => order.PaymentRequest)
                 .Include(order => order.Supplier)
                 .Include(order => order.SentByUser)
                     .ThenInclude(user => user.Profiles
@@ -52,57 +52,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                         .Where(profile => profile.CompanyId == profileCompanyId)
                         .Take(1))
                     .ThenInclude(profile => profile.WorkArea)
-                .Include(order => order.PurchaseRequest)
-                    .ThenInclude(pr => pr.Branch)
-                .Include(order => order.PurchaseRequest)
-                    .ThenInclude(pr => pr.CostCenter)
-                .Include(order => order.PurchaseRequest)
-                    .ThenInclude(pr => pr.WorkArea)
-                .Include(order => order.PurchaseRequest)
-                    .ThenInclude(pr => pr.AccountingReview)
-                .Include(order => order.PurchaseRequest)
-                    .ThenInclude(pr => pr.ManagementReview)
-                .Include(order => order.PurchaseRequest)
-                    .ThenInclude(pr => pr.RegistrationUser)
-                        .ThenInclude(user => user.Profiles
-                            .Where(profile => profile.CompanyId == profileCompanyId)
-                            .Take(1))
-                        .ThenInclude(profile => profile.WorkArea)
-                .Include(order => order.PurchaseRequest)
-                    .ThenInclude(pr => pr.UserRevision)
-                        .ThenInclude(user => user!.Profiles
-                            .Where(profile => profile.CompanyId == profileCompanyId)
-                            .Take(1))
-                        .ThenInclude(profile => profile.WorkArea)
-                .Include(order => order.PurchaseRequest)
-                    .ThenInclude(pr => pr.AnnulledByUser)
-                        .ThenInclude(user => user!.Profiles
-                            .Where(profile => profile.CompanyId == profileCompanyId)
-                            .Take(1))
-                        .ThenInclude(profile => profile.WorkArea)
-                .Include(order => order.PurchaseRequest)
-                    .ThenInclude(pr => pr.ReasonRejection)
+                .Include(order => order.PurchaseOrderItems)
+                    .ThenInclude(item => item.Product)
                 .Include(order => order.PurchaseRequest)
                     .ThenInclude(pr => pr.PurchaseRequestItems)
-                        .ThenInclude(item => item.Product)
-                            .ThenInclude(product => product.Category)
-                .Include(order => order.PurchaseRequest)
-                    .ThenInclude(pr => pr.PurchaseRequestItems)
-                        .ThenInclude(item => item.Product)
-                            .ThenInclude(product => product.SupplierProducts.Where(sp => sp.IsActive && sp.DeletedAt == null))
-                                .ThenInclude(sp => sp.Supplier)
-                .Include(order => order.PurchaseRequest)
-                    .ThenInclude(pr => pr.PurchaseRequestItems)
-                        .ThenInclude(item => item.Product)
-                            .ThenInclude(product => product.SupplierProducts.Where(sp => sp.IsActive && sp.DeletedAt == null))
-                                .ThenInclude(sp => sp.TierPrices.Where(tier => tier.DeletedAt == null))
-                .Include(order => order.PurchaseRequest)
-                    .ThenInclude(pr => pr.PurchaseRequestItems)
-                        .ThenInclude(item => item.UnitMeasure)
-                .Include(order => order.PurchaseRequest)
-                    .ThenInclude(pr => pr.PurchaseRequestItems)
-                        .ThenInclude(item => item.Quotations.Where(q => q.IsActive && q.DeletedAt == null))
-                            .ThenInclude(q => q.Supplier)
+                        .ThenInclude(item => item.Quotations.Where(quotation =>
+                            quotation.IsActive &&
+                            quotation.DeletedAt == null &&
+                            quotation.IsAcceptedForPurchase))
+                            .ThenInclude(quotation => quotation.Supplier)
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Where(order => order.Id == request.PurchaseOrderId)
@@ -115,9 +73,55 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             }
 
             var mapped = _mapper.Map<PurchaseOrderDetailsDto>(purchaseOrder);
-            mapped.PurchaseRequest.IsPurchaseOrderGenerated = true;
-            QuotationRecommendations.Apply(mapped.PurchaseRequest.PurchaseRequestItems);
+            mapped.Items = BuildItems(purchaseOrder);
             return mapped;
+        }
+
+        private List<PurchaseOrderDetailItemDto> BuildItems(PurchaseOrder purchaseOrder)
+        {
+            var acceptedQuotations = purchaseOrder.PurchaseRequest.PurchaseRequestItems
+                .SelectMany(item => item.Quotations)
+                .Where(quotation => quotation.SupplierId == purchaseOrder.SupplierId)
+                .GroupBy(quotation => quotation.PurchaseRequestItemId)
+                .ToDictionary(group => group.Key, group => group.First());
+
+            return purchaseOrder.PurchaseOrderItems
+                .Select(orderItem => new PurchaseOrderDetailItemDto
+                {
+                    PurchaseOrderItemId = orderItem.Id,
+                    PurchaseRequestItemId = orderItem.PurchaseRequestItemId,
+                    ProductId = orderItem.ProductId,
+                    ProductName = orderItem.Product?.ProductName,
+                    ProductCode = orderItem.Product?.Code,
+                    Quantity = orderItem.Quantity,
+                    UnitPrice = orderItem.UnitPrice,
+                    Quotation = ResolveQuotation(orderItem, acceptedQuotations)
+                })
+                .ToList();
+        }
+
+        private PurchaseOrderDetailQuotationDto? ResolveQuotation(
+            PurchaseOrderItem orderItem,
+            IReadOnlyDictionary<Guid, Quotation> acceptedQuotations)
+        {
+            if (!orderItem.PurchaseRequestItemId.HasValue
+                || !acceptedQuotations.TryGetValue(orderItem.PurchaseRequestItemId.Value, out var quotation))
+            {
+                return null;
+            }
+
+            return new PurchaseOrderDetailQuotationDto
+            {
+                QuotationId = quotation.Id,
+                IsAcceptedForPurchase = quotation.IsAcceptedForPurchase,
+                PriceUnit = quotation.PriceUnit,
+                PriceTotal = quotation.PriceTotal,
+                PaymentMethodType = quotation.PaymentMethodType,
+                SupplierId = quotation.SupplierId,
+                SupplierInformation = quotation.Supplier is null
+                    ? new SupplierInformation()
+                    : _mapper.Map<SupplierInformation>(quotation.Supplier)
+            };
         }
     }
 }

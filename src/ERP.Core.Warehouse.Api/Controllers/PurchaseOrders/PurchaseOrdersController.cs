@@ -104,10 +104,10 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseOrders
 
         [Tags("Reportes")]
         [HttpGet("companies/{company_id}/modules/{module_code}/reports/transfer-request/{purchase_order_id}")]
-        [ProducesResponseType(typeof(PurchaseOrderTemplateDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(TransferRequestReportDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<PurchaseOrderTemplateDto> GetTransferRequestReportAsync(
+        public async Task<TransferRequestReportDto> GetTransferRequestReportAsync(
             [FromRoute] Guid company_id,
             [FromRoute] string module_code,
             [FromRoute] Guid purchase_order_id)
@@ -126,23 +126,22 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseOrders
 
         [Tags("Reportes")]
         [HttpGet("companies/{company_id}/modules/{module_code}/reports/purchase-order/{purchase_order_id}")]
-        [ProducesResponseType(typeof(PurchaseOrderTemplateDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PurchaseOrderReportDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<PurchaseOrderTemplateDto> GetPurchaseOrderReportAsync(
+        public async Task<PurchaseOrderReportDto> GetPurchaseOrderReportAsync(
             [FromRoute] Guid company_id,
             [FromRoute] string module_code,
             [FromRoute] Guid purchase_order_id)
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
-            return await _mediator.Send(new GetPurchaseOrderReportDataQuery
+            return await _mediator.Send(new GetPurchaseOrderReportQuery
             {
                 CompanyId       = company_id,
                 ModuleCode      = module_code,
                 UserId          = Guid.Parse(userIdStr ?? ""),
-                PurchaseOrderId = purchase_order_id,
-                PaymentMethod   = null
+                PurchaseOrderId = purchase_order_id
             });
         }
     }

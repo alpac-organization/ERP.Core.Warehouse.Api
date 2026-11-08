@@ -15,7 +15,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Validato
 
             RuleFor(x => x.PaymentMethod)
                 .IsInEnum()
-                .When(x => x.PaymentMethod.HasValue)
                 .WithMessage("El método de pago no es válido.");
         }
     }
