@@ -12,6 +12,8 @@ namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services
     {
         public const decimal RetentionThresholdNio = 1000m;
 
+        public const decimal DefaultExchangeRate = 36.6243m;
+
         private static readonly TaxType[] PurchasingTaxTypes =
         [
             TaxType.ExchangeRate,
@@ -78,6 +80,11 @@ namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services
             return subtotal * rates.Iva.Value;
         }
 
+        public decimal ResolveExchangeRate(PurchaseTaxRates rates)
+        {
+            return rates.ExchangeRate is > 0 ? rates.ExchangeRate.Value : DefaultExchangeRate;
+        }
+
         public PurchaseRetentionResult CalculateRetentions(
             decimal subtotal,
             Currency currency,
@@ -87,7 +94,7 @@ namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services
             bool applyMunicipalRetention,
             PurchaseTaxRates rates)
         {
-            var exchangeRate = rates.ExchangeRate is > 0 ? rates.ExchangeRate.Value : 36.6243m;
+            var exchangeRate = ResolveExchangeRate(rates);
             var subtotalNio = currency == Currency.USD
                 ? subtotal * exchangeRate
                 : subtotal;

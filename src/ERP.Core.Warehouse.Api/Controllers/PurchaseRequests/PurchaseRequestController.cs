@@ -84,10 +84,10 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
 
         [Tags("Solicitudes de compras")] 
         [HttpGet("companies/{company_id}/modules/{module_code}/purchase-requests/monthly-report")]
-        [ProducesResponseType(typeof(List<MonthlyPurchaseReportItemDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(MonthlyPurchaseReportDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<List<MonthlyPurchaseReportItemDto>> GetMonthlyPurchaseReportAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
+        public async Task<MonthlyPurchaseReportDto> GetMonthlyPurchaseReportAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
             [FromQuery] int? year = null,
             [FromQuery] int? month = null
         )

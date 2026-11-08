@@ -1,4 +1,5 @@
 using ERP.Core.Database.Domain.Entities.Bases;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Domain.Enums;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 
@@ -30,6 +31,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos
         public string? Customer { get; set; }
 
         public string? Department { get; set; }
+
+        public Currency Currency { get; set; }
 
         public decimal ServiceAmount { get; set; }
 
