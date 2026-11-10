@@ -10,6 +10,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Models;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services;
 using ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
@@ -76,6 +77,17 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 
             var rates = await purchaseTaxService.GetActiveRatesAsync(cancellationToken);
             var quoteDate = DateOnly.FromDateTime(DateTime.UtcNow);
+            var supplierPaymentMethods = await _unitOfWork.Quotations.Entities
+                .AsNoTracking()
+                .Where(quotation => quotation.IsActive && quotation.DeletedAt == null)
+                .Where(quotation => purchaseRequestIds.Contains(quotation.PurchaseRequestItem.PurchaseRequestId))
+                .Select(quotation => new
+                {
+                    quotation.PurchaseRequestItem.PurchaseRequestId,
+                    quotation.SupplierId,
+                    quotation.PaymentMethodType
+                })
+                .ToListAsync(cancellationToken);
 
             foreach (var quotation in request.QuotationItems)
             {
@@ -119,7 +131,26 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                     return _errorManager.ThrowBadRequest<bool>(paymentMethod.error, "ERP:PAYMENT_METHOD_REQUIRED");
                 }
 
+                var knownPaymentMethods = supplierPaymentMethods
+                    .Where(existing => existing.PurchaseRequestId == item.PurchaseRequestId
+                        && existing.SupplierId == supplier.Id)
+                    .Select(existing => existing.PaymentMethodType)
+                    .Append(paymentMethod.method);
+
+                if (!SupplierPaymentMethodConsistency.IsConsistent(knownPaymentMethods))
+                {
+                    return _errorManager.ThrowBadRequest<bool>(
+                        SupplierPaymentMethodConsistency.ErrorMessage,
+                        SupplierPaymentMethodConsistency.ErrorCode);
+                }
+
                 quotation.PaymentMethodType = paymentMethod.method;
+                supplierPaymentMethods.Add(new
+                {
+                    item.PurchaseRequestId,
+                    SupplierId = supplier.Id,
+                    PaymentMethodType = paymentMethod.method
+                });
 
                 var priceUnit = supplierProductLinkService.ResolveQuotationUnitPrice(
                     supplierProduct,

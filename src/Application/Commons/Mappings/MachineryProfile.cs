@@ -1,5 +1,6 @@
 using AutoMapper;
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Database.Domain.Entities.Bases;
 using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Warehouse.Api.Application.Features.Machineries.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.Machineries.v1.Commands;
@@ -13,6 +14,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             CreateMap<Machinery, MachineryDto>()
                 .ForMember(dest => dest.MachineryId,opt => opt.MapFrom(src => src.Id));
 
+            CreateMap<Machinery, MachineryInformation>()
+                .ForMember(dest => dest.MachineryId, opt => opt.MapFrom(src => src.Id));
         }
         public static Machinery ToMachineryEntity(MachineryCommand request, Guid branch)
         {

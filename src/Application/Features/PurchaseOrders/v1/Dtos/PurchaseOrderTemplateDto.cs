@@ -39,6 +39,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos
 
         public int Quantity { get; set; }
 
+        public string? UnitMeasure { get; set; }
+
         public decimal UnitPrice { get; set; }
 
         public decimal PriceTotal { get; set; }

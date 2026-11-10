@@ -6,5 +6,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.ReviewSupplyRequest.v1.Com
 public class DeclineSupplyRequestCommand : BaseRequest, IRequest<Unit>
 {
     public Guid SupplyRequestId { get; set; }
+    public string Code { get; set; } = null!;
     public string? Observations { get; set; }
 }

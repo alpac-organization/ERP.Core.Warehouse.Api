@@ -10,5 +10,6 @@ public class ApproveSupplyRequestCommand : BaseRequest, IRequest<Unit>
     public Guid WorkAreaId { get; set; }
     public Guid CostCenterId { get; set; }
     public Guid SupplyRequestId { get; set; }
+    public string Code { get; set; } = null!;
     public Guid ReasonInventoryRemovalId { get; set; }
 }

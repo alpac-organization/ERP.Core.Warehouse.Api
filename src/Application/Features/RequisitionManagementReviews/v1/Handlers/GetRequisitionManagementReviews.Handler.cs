@@ -1,4 +1,5 @@
 using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
@@ -40,41 +41,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                 .Select(pr => pr.Id);
 
             var reviewsQuery = _unitOfWork.PurchaseRequestsReviewedManagement.Entities
+                .AsNoTracking()
                 .Where(rev => rev.DeletedAt == null)
-                .Include(rev => rev.SentByUser)
-                    .ThenInclude(pur => pur.Profiles
-                        .Where(profile => profile.CompanyId == profileCompanyId)
-                        .Take(1)
-                    )
-                    .ThenInclude(profile => profile.WorkArea)
-
-                .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(rev => rev.WorkArea)
-
-                .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(rev => rev.PurchaseRequestItems)
-
-                .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(rev => rev.CostCenter)
-
-                .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(rev => rev.UserRevision)
-                        .ThenInclude(pur => pur.Profiles
-                            .Where(profile => profile.CompanyId == profileCompanyId)
-                            .Take(1)
-                        )
-                        .ThenInclude(profile => profile.WorkArea)
-
-                .Include(rev => rev.PurchaseRequest)
-                    .ThenInclude(rev => rev.RegistrationUser)
-                        .ThenInclude(pur => pur.Profiles
-                            .Where(profile => profile.CompanyId == profileCompanyId)
-                            .Take(1)
-                        )
-                        .ThenInclude(profile => profile.WorkArea)
                 .Where(rev => rev.PurchaseRequest.Branch.Company.Id == request.CompanyId)
-                .Where(rev => visibleRequestIds.Contains(rev.PurchaseRequestId))
-                .AsNoTracking();
+                .Where(rev => visibleRequestIds.Contains(rev.PurchaseRequestId));
 
             if (request.BranchId.HasValue)
             {
@@ -97,13 +67,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
 
             var totalRecords = await reviewsQuery.CountAsync(cancellationToken);
 
-            var reviews = await reviewsQuery
+            var reviewsMapped = await reviewsQuery
                 .OrderByDescending(rev => rev.CreatedAt)
                 .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
+                .ProjectTo<PurchaseRequestsReviewedManagementDto>(
+                    _mapper.ConfigurationProvider,
+                    new { profileCompanyId })
                 .ToListAsync(cancellationToken);
-
-            var reviewsMapped = _mapper.Map<List<PurchaseRequestsReviewedManagementDto>>(reviews);
 
             return new PagedResponse<PurchaseRequestsReviewedManagementDto>(
                 reviewsMapped,

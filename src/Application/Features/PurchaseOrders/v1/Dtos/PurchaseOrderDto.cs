@@ -3,14 +3,27 @@ using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos
 {
-    public class PurchaseOrderDto
+    public class PurchaseOrderHeaderDto
     {
         public string? Comments { get; set; }
+
         public DateOnly SentToReviewAt { get; set; }
-        
+
         public Guid PurchaseOrderId { get; set; }
 
+        public string? PurchaseOrderCode { get; set; }
+
+        public Guid? SupplierId { get; set; }
+
+        public string? SupplierName { get; set; }
+
         public UserInformation SentByUserInformation { get; set; } = new();
-        public PurchaseRequestDetailsDto PurchaseRequest { get; set; } = new();
+    }
+
+    public class PurchaseOrderDto : PurchaseOrderHeaderDto
+    {
+        public string? PaymentRequestCode { get; set; }
+
+        public PurchaseRequestSummaryDto PurchaseRequest { get; set; } = new();
     }
 }

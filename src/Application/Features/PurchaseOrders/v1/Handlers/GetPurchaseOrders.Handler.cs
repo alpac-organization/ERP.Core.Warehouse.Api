@@ -1,4 +1,5 @@
 using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 
@@ -28,6 +29,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 return access.ErrorResponse!;
             }
 
+            var profileCompanyId = access.Profile!.CompanyId;
+
             var visibleRequestIds = _visibilityService.Apply(
                     _unitOfWork.PurchaseRequests.Entities,
                     access.Role?.RoleType,
@@ -38,46 +41,33 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 .Select(pr => pr.Id);
 
             var purchaseOrdersQuery = _unitOfWork.PurchaseOrders.Entities
-                .Where(purs => purs.IsActive)
-                .Include(purs => purs.SentByUser)
-
-                .Include(purs => purs.PurchaseRequest)
-                    .ThenInclude(pr => pr.Branch)
-
-                .Include(purs => purs.PurchaseRequest)
-                    .ThenInclude(pr => pr.WorkArea)
-
-                .Include(purs => purs.PurchaseRequest)
-                    .ThenInclude(pr => pr.RegistrationUser)
-
-                .Include(purs => purs.PurchaseRequest)
-                    .ThenInclude(pr => pr.UserRevision)
-
-                .Where(purs => purs.PurchaseRequest.Branch.CompanyId == request.CompanyId)
-                .Where(purs => visibleRequestIds.Contains(purs.PurchaseRequestId))
-                .AsNoTracking();
+                .AsNoTracking()
+                .Where(order => order.IsActive)
+                .Where(order => order.PurchaseRequest.Branch.CompanyId == request.CompanyId)
+                .Where(order => visibleRequestIds.Contains(order.PurchaseRequestId));
 
             if (request.AreaId.HasValue)
             {
                 purchaseOrdersQuery = purchaseOrdersQuery
-                    .Where(purs => purs.PurchaseRequest.AreaId == request.AreaId);
+                    .Where(order => order.PurchaseRequest.AreaId == request.AreaId);
             }
 
             if (request.BranchId.HasValue)
             {
                 purchaseOrdersQuery = purchaseOrdersQuery
-                    .Where(purs => purs.PurchaseRequest.BranchId == request.BranchId);
+                    .Where(order => order.PurchaseRequest.BranchId == request.BranchId);
             }
 
             var totalRecords = await purchaseOrdersQuery.CountAsync(cancellationToken);
 
-            var purchaseOrders = await purchaseOrdersQuery
-                .OrderByDescending(purs => purs.SentToReviewAt)
+            var purchaseOrdersMapped = await purchaseOrdersQuery
+                .OrderByDescending(order => order.SentToReviewAt)
                 .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
+                .ProjectTo<PurchaseOrderDto>(
+                    _mapper.ConfigurationProvider,
+                    new { profileCompanyId })
                 .ToListAsync(cancellationToken);
-
-            var purchaseOrdersMapped = _mapper.Map<List<PurchaseOrderDto>>(purchaseOrders);
 
             return new PagedResponse<PurchaseOrderDto>(
                 purchaseOrdersMapped,
