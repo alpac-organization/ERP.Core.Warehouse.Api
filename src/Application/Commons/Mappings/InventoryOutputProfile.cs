@@ -1,6 +1,7 @@
 using AutoMapper;
 
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Database.Domain.Entities.Auth;
 using ERP.Core.Database.Domain.Entities.Bases;
 using ERP.Core.Database.Domain.Entities.Inventory;
 
@@ -72,6 +73,17 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 CostCenterId = fuelRequest.CostCenterId,
                 FuelRequestId = fuelRequest.Id,
                 ReasonsInventoryRemovalId = request.ReasonInventoryRemovalId
+            };
+        }
+
+        public static InventoryOutputsItem ToInventoryOutputItemEntity(Guid inventoryOutputId, Guid productStockId, decimal dispatchedQuantity)
+        {
+            return new InventoryOutputsItem
+            {
+                Id = Guid.NewGuid(),
+                InventoryOutputId = inventoryOutputId,
+                ProductStockId = productStockId,
+                DispatchedQuantity = dispatchedQuantity
             };
         }
     }
