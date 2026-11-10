@@ -93,7 +93,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             var products = await _unitOfWork.Products.Entities
                 .Where(product =>
                     productIds.Contains(product.Id) &&
-                    product.IsActive
+                    product.ProductStatus == ProductStatus.Active
                 )
                 .Select(product => new
                 {
