@@ -120,4 +120,26 @@ public class InventoryOutputsController(IMediator mediator) : ApiControllerBase
         await mediator.Send(payload);
         return NoContent();
     }
+
+    [HttpPost("companies/{company_id}/modules/{module_code}/inventory/inventory-outputs/{inventory_output_id}/reject-dispatch")]
+    [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<NoContentResult> RejectInventoryOutputAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid inventory_output_id,
+        [FromBody] RejectInventoryOutputCommand payload)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        payload.CompanyId = company_id;
+        payload.ModuleCode = module_code;
+        payload.InventoryOutputId = inventory_output_id;
+        payload.UserId = Guid.Parse(userIdStr ?? "");
+
+        await mediator.Send(payload);
+        return NoContent();
+    }
 }
