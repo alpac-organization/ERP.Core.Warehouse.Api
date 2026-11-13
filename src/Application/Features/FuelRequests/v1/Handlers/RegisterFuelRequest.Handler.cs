@@ -11,13 +11,22 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Services;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
-using ERP.Core.Warehouse.Api.Application.Helpers.Inventory;
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
+using ERP.Core.Warehouse.Api.Application.Helpers.Inventory;
 using ERP.Core.Warehouse.Api.Application.Features.FuelRequests.v1.Commands;
+
+using ERP.Core.Application.Commons.Interfaces.AWS;
+using ERP.Core.Notification.Application.Commons.Interfaces;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.FuelRequests.v1.Handlers;
 
-public class RegisterFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, ICodeGenerator codeGenerator, ILogger<RegisterFuelRequestsHandler> logger)
+public class RegisterFuelRequestsHandler(
+    IUnitOfWork unitOfWork,
+    IErrorManager errorManager,
+    ICodeGenerator codeGenerator,
+    IEmailNotificationService emailService,
+    ISimpleNotificationServices pushService,
+    ILogger<RegisterFuelRequestsHandler> logger)
     : BaseValidatorHandler<RegisterFuelRequestsCommand, Unit>(unitOfWork, errorManager)
 {
     public override async Task<Unit> Handle(RegisterFuelRequestsCommand request, CancellationToken ct)
@@ -48,6 +57,36 @@ public class RegisterFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager e
         var (branchCode, branchCodeError) = await SupplyRequestSharedHelper.GetBranchCodeAsync(_unitOfWork, _errorManager, access.Profile.BranchId, ct);
         if (branchCodeError is not null) return branchCodeError.Value;
 
+        // Comparación de sucursal por código
+        var isCorinto = branchCode!.Contains("ALP-CTO", StringComparison.OrdinalIgnoreCase);
+
+        if (isCorinto)
+        {
+            if (!request.CustomerId.HasValue || request.CustomerId.Value == Guid.Empty)
+                return _errorManager.ThrowBadRequest<Unit>("Debe asignar un cliente.", "ERP:CUSTOMER_REQUIRED");
+
+            var customer = await _unitOfWork.Customers.Entities
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == request.CustomerId.Value && c.IsActive, ct);
+
+            if (customer is null)
+                return _errorManager.ThrowBadRequest<Unit>("El cliente no existe o está inactivo.", "ERP:CUSTOMER_NOT_FOUND");
+        }
+        else
+        {
+            // Managua: se mantiene como está (sin cliente)
+            request.CustomerId = null;
+        }
+
+        // Reserva de stock: se resta del disponible
+        var stockEntity = await _unitOfWork.ProductStocks.Entities
+            .FirstOrDefaultAsync(ps => ps.Id == request.ProductStockId && ps.DeletedAt == null, ct);
+
+        if (stockEntity is null)
+            return _errorManager.ThrowBadRequest<Unit>("El stock de combustible no existe.", "ERP:PRODUCT_STOCK_NOT_FOUND");
+
+        stockEntity.AvailableQuantity -= request.RequestedQuantity;
+
         try
         {
             await _unitOfWork.ExecuteWithUniqueCodeRetryAsync(async token =>
@@ -60,7 +99,13 @@ public class RegisterFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager e
                 var entity = request.ToFuelRequestEntity(access.Profile, code, productStock.UnitMeasureId);
 
                 await _unitOfWork.FuelRequests.RegisterFuelRequest(entity);
+                await _unitOfWork.ProductStocks.UpdateAsync(stockEntity);
                 await _unitOfWork.SaveChangesAsync(token);
+
+                logger.LogInformation("✅Solicitud {Code} registrada con éxito.", code);
+
+                await SendEmailNotificationAsync(code, token);
+                await SendPushNotificationAsync(code, token);
             }, ct);
         }
         catch (DbUpdateException ex)
@@ -70,6 +115,18 @@ public class RegisterFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager e
         }
 
         return Unit.Value;
+    }
+
+    private Task SendEmailNotificationAsync(string code, CancellationToken ct)
+    {
+        // TODO: definir destinatarios
+        return Task.CompletedTask;
+    }
+
+    private Task SendPushNotificationAsync(string code, CancellationToken ct)
+    {
+        // TODO: definir destinatarios/endpoints
+        return Task.CompletedTask;
     }
 
     private async Task<Unit?> ValidateMachineryAsync(Guid machineryId, Guid branchId, CancellationToken ct)

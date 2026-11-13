@@ -29,5 +29,10 @@ public class RegisterFuelRequestsValidator : BaseRequestValidator<RegisterFuelRe
             .GreaterThanOrEqualTo(0)
             .When(x => x.EngineHours.HasValue)
             .WithMessage("Las horas motor no pueden ser negativas.");
+
+        RuleFor(x => x.CustomerId)
+            .NotEmpty()
+            .When(x => x.CustomerId.HasValue)
+            .WithMessage("El cliente no es valido.");
     }
 }

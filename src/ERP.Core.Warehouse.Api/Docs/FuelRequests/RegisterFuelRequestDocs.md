@@ -42,6 +42,7 @@ Endpoint para registrar una nueva solicitud de combustible.
 | `requested_quantity` | `decimal` | Sí | Cantidad de combustible solicitada. |
 | `mileage` | `decimal` | No | Kilometraje del vehículo (opcional). |
 | `engine_hours` | `decimal` | No | Horas motor de la maquinaria (opcional). |
+| `customer_id` | `guid` | No* | Cliente (requerido solo cuando la sucursal es Corinto). |
 
 ### Ejemplo de Request
 

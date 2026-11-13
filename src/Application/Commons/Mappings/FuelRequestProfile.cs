@@ -55,7 +55,9 @@ public static class FuelRequestMapper
             ProductStockId = request.ProductStockId,
             UnitMeasureId = unitMeasureId,
             RequestedQuantity = request.RequestedQuantity,
+            RequestedQuantityLitters = request.RequestedQuantity * 3.78541m,
             RequestedByUserId = userProfile.UserId,
+            CustomerId = request.CustomerId,
             Mileage = request.Mileage,
             EngineHours = request.EngineHours
         };
