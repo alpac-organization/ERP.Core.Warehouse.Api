@@ -25,6 +25,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.Inventory
             [FromQuery] string? product_code = null,
             [FromQuery] string? product_name = null,
             [FromQuery] Guid? category_id = null,
+            [FromQuery] bool? is_fuel = null,
             [FromQuery] int page_size = 10,
             [FromQuery] int page_number = 1
         )
@@ -36,6 +37,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.Inventory
                 CompanyId = company_id,
                 ModuleCode = module_code,
                 CategoryId = category_id,
+                IsFuel = is_fuel,
                 ProductCode = product_code,
                 ProductName = product_name,
                 UserId = Guid.Parse(userIdStr ?? ""),
