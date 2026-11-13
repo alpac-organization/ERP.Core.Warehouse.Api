@@ -66,6 +66,8 @@ public class GetInventoryOutputsDetailHandler(IUnitOfWork unitOfWork, IErrorMana
                         .ThenInclude(product => product.UnitMeasure)
             .Include(o => o.FuelRequest)
                 .ThenInclude(f => f.UnitMeasure)
+            .Include(o => o.FuelRequest)
+                .ThenInclude(f => f.Customer)
             .Include(o => o.ReasonsInventoryRemoval)
             .Include(o => o.InventoryOutputsItems)
                 .ThenInclude(item => item.ProductStock)
