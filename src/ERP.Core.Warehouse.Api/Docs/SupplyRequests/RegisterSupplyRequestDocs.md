@@ -89,3 +89,12 @@ Error de validación (parámetros inválidos, validaciones de negocio, etc.).
 ### 500 Internal Server Error
 
 Error no controlado del servidor.
+
+---
+
+## Cambios recientes
+
+- Validación por centro de costo del solicitante: los ítems deben pertenecer al mismo `CostCenterId` del usuario.
+- Al reservar stock se actualiza `ProductStock.Status` (`Empty`/`LowBalance`/`Stable`) según el mínimo.
+- Se generan cuerpos de notificación de stock bajo (email/push) sin envío hasta existir lista de destinatarios.
+- El código de solicitud refleja `ReasonUse` (`OR` para Operation, `AR` para Sale).

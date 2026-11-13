@@ -98,3 +98,10 @@ Error no controlado del servidor.
 | Notificación | Se envía un correo a los usuarios solicitantes y aprobadores (jefe) de la solicitud asociada (supply o fuel), si tienen email configurado. |
 | Auditoría | Se registra `DispatchedJustification`, `DispatchedAt` y `DispatchedByUserId`. |
 | Roles permitidos | `Administrator` y `Supervisor`. |
+
+---
+
+## Cambios recientes
+
+- Al rechazar, se revierte la reserva de stock (Supply y Fuel).
+- Se recalcula `ProductStock.Status` (`Empty`/`LowBalance`/`Stable`) según el stock disponible tras la reversión.

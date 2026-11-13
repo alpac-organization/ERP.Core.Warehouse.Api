@@ -35,43 +35,7 @@ Endpoint para iniciar el despacho de una salida de inventario que se encuentra e
 
 ## Body
 
-### Despacho completo (default)
-
-```json
-{
-  "is_all_dispached": true
-}
-```
-
-### Despacho parcial
-
-```json
-{
-  "is_all_dispached": false,
-  "dispatched_justification": "Despacho parcial por falta de stock",
-  "items": [
-    {
-      "product_stock_id": "2be8dc6a-8dac-48c7-9b66-5ce7a27dd710",
-      "dispatched_quantity": 50
-    }
-  ]
-}
-```
-
-**Campos del body (`StartInventoryOutputCommand`):**
-
-| Campo | Tipo | Requerido | Default | Descripción |
-|-------|------|-----------|---------|-------------|
-| `is_all_dispached` | `bool` | No | `true` | Si es `true`, despacha la totalidad de las cantidades solicitadas. Si es `false`, se deben indicar las cantidades en `items` y la justificación. |
-| `dispatched_justification` | `string \| null` | Condicional | - | Justificación del despacho. Requerida cuando `is_all_dispached` es `false`. Si no se envía en despacho completo, se asigna `"Despacho completo"`; en parcial, `"Despacho parcial"`. |
-| `items` | `array (StartInventoryOutputItem)` | Condicional | `[]` | Cantidades a despachar por stock de producto. Requerido y no vacío cuando `is_all_dispached` es `false`. |
-
-**Campos de `StartInventoryOutputItem`:**
-
-| Campo | Tipo | Requerido | Descripción |
-|-------|------|-----------|-------------|
-| `product_stock_id` | `guid` | Sí | Identificador del stock de producto a despachar. Debe pertenecer a la salida. |
-| `dispatched_quantity` | `decimal` | Sí | Cantidad a despachar. Debe ser mayor a cero y no superar la cantidad solicitada. |
+Este endpoint **no requiere body**. La justificación se asigna automáticamente como `"Despacho completo"`.
 
 ---
 
