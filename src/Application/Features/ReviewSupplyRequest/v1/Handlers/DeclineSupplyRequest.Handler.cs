@@ -1,6 +1,6 @@
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
 
@@ -60,6 +60,13 @@ public class DeclineSupplyRequestHandler(
 
         logger.LogInformation("📝 Rechazando solicitud de combustible.");
 
+        // Revertir la reserva de stock (galones) y actualizar estado
+        var revertedByStock = new Dictionary<Guid, decimal>
+        {
+            [fuelRequest.ProductStockId] = fuelRequest.RequestedQuantity
+        };
+        await StockReservationHelper.RevertStockAsync(_unitOfWork, revertedByStock, ct);
+
         try
         {
             fuelRequest.OutflowStatus = OutflowStatus.Annuled;
@@ -81,6 +88,7 @@ public class DeclineSupplyRequestHandler(
         DeclineSupplyRequestCommand request, AccessValidationResult<Unit> access, CancellationToken ct)
     {
         var supplyRequest = await _unitOfWork.SupplyRequests.Entities
+            .Include(sr => sr.SupplyRequestItems)
             .FirstOrDefaultAsync(sr => sr.Id == request.SupplyRequestId && sr.DeletedAt == null, ct);
 
         if (supplyRequest is null)
@@ -95,6 +103,13 @@ public class DeclineSupplyRequestHandler(
                 "La solicitud no está en pendiente de revisión.", "ERP:REQUEST_NOT_PENDING_REVIEW");
 
         logger.LogInformation("📝 Rechazando solicitud de insumos.");
+
+        // Revertir la reserva de stock (por cada ítem) y actualizar estado
+        var revertedByStock = supplyRequest.SupplyRequestItems
+            .GroupBy(i => i.ProductStockId)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Amount));
+
+        await StockReservationHelper.RevertStockAsync(_unitOfWork, revertedByStock, ct);
 
         try
         {

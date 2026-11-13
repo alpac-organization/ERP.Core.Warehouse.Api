@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using ERP.Core.Infrastructure.Middlewares;
 using ERP.Core.Warehouse.Api.Infrastructure;
 using ERP.Core.Warehouse.Api.Middlewares;
+using ERP.Core.Notification.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +20,7 @@ builder.Configuration.AddEnvironmentVariables();
 builder.Services.AddApplicationServices();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddInfrastructureServices(builder.Configuration);
+builder.Services.AddNotificationServices(builder.Configuration);
 
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen(options =>

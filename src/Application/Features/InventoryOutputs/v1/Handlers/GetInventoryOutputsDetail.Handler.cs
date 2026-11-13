@@ -66,11 +66,11 @@ public class GetInventoryOutputsDetailHandler(IUnitOfWork unitOfWork, IErrorMana
                         .ThenInclude(product => product.UnitMeasure)
             .Include(o => o.FuelRequest)
                 .ThenInclude(f => f.UnitMeasure)
+            .Include(o => o.FuelRequest)
+                .ThenInclude(f => f.Customer)
+            .Include(o => o.FuelRequest)
+                .ThenInclude(f => f.Customer)
             .Include(o => o.ReasonsInventoryRemoval)
-            .Include(o => o.InventoryOutputsItems)
-                .ThenInclude(item => item.ProductStock)
-                    .ThenInclude(stock => stock.Product)
-                        .ThenInclude(product => product.UnitMeasure)
             .FirstOrDefaultAsync(o => o.Id == request.InventoryOutputId && o.DeletedAt == null, ct);
 
         if (output is null)

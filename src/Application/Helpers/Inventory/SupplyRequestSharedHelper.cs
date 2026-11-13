@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Database.Domain.Entities.Bases;
+using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 namespace ERP.Core.Warehouse.Api.Application.Helpers.Inventory;
@@ -54,5 +55,16 @@ public static class SupplyRequestSharedHelper
             query = query.Where(request => request.OutflowStatus == status.Value);
 
         return query;
+    }
+
+    public static IQueryable<T> ApplyRequestAccessFilter<T, TResponse>(this IQueryable<T> query, AccessValidationResult<TResponse> access)
+        where T : BaseSupplyRequest
+    {
+        if (access.Role?.RoleType == RoleType.Operator)
+        {
+            return query.Where(request => request.RequestedByUserId == access.Profile.UserId);
+        }
+
+        return query.Where(request => request.WorkAreaId == access.Profile.AreaId);
     }
 }

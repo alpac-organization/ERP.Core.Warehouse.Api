@@ -27,6 +27,7 @@ public class GetFuelRequestsDetailHandler(IUnitOfWork unitOfWork, IErrorManager 
             .Include(fr => fr.ProductStock)
                 .ThenInclude(ps => ps.Product)
             .Include(fr => fr.UnitMeasure)
+            .Include(fr => fr.Customer)
             .Where(fr => fr.Id == request.FuelRequestId && fr.DeletedAt == null)
             .FirstOrDefaultAsync(ct);
 
