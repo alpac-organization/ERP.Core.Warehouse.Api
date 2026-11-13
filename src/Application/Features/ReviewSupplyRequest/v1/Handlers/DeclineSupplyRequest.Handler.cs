@@ -60,6 +60,16 @@ public class DeclineSupplyRequestHandler(
 
         logger.LogInformation("📝 Rechazando solicitud de combustible.");
 
+        // Revertir la reserva de stock (galones)
+        var stock = await _unitOfWork.ProductStocks.Entities
+            .FirstOrDefaultAsync(ps => ps.Id == fuelRequest.ProductStockId && ps.DeletedAt == null, ct);
+
+        if (stock is not null)
+        {
+            stock.AvailableQuantity += fuelRequest.RequestedQuantity;
+            await _unitOfWork.ProductStocks.UpdateAsync(stock);
+        }
+
         try
         {
             fuelRequest.OutflowStatus = OutflowStatus.Annuled;
