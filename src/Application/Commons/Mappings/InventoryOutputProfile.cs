@@ -72,26 +72,12 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             };
         }
 
-        public static InventoryOutputsItem ToInventoryOutputItemEntity(Guid inventoryOutputId, Guid productStockId, decimal dispatchedQuantity)
-        {
-            return new InventoryOutputsItem
-            {
-                Id = Guid.NewGuid(),
-                InventoryOutputId = inventoryOutputId,
-                ProductStockId = productStockId,
-                DispatchedQuantity = dispatchedQuantity
-            };
-        }
-
         public static Kardex ToKardexEntity(
-            InventoryOutputsItem item, ProductStock stock, InventoryOutputs output,
-            Guid userId, DateTime now)
+            ProductStock stock, decimal dispatched, InventoryOutputs output,
+            Guid userId, DateTime now, decimal previousUnits, decimal previousCost)
         {
-            var previousUnits = stock.AvailableQuantity + item.DispatchedQuantity;
-            var previousCost = stock.WeightedAverageCost;
             var previousKardex = previousUnits * previousCost;
 
-            var dispatched = item.DispatchedQuantity;
             var unitCost = previousCost;
             var totalOutput = dispatched * unitCost;
 

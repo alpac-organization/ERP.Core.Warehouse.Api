@@ -23,7 +23,7 @@ public class GetFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager errorM
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, ct);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        if (access.Role?.RoleType is not (RoleType.Administrator or RoleType.Supervisor))
+        if (access.Role?.RoleType is not (RoleType.Administrator or RoleType.Supervisor or RoleType.Operator))
             return _errorManager.ThrowUnauthorized<PagedResponse<GetFuelRequestDto>>(
                 "No tienes acceso a realizar esta acción", "ERP:INVALID_ACCESS");
 
@@ -34,6 +34,7 @@ public class GetFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager errorM
             .AsNoTracking();
 
         fuelRequestsQuery = ApplyRequestFilters(fuelRequestsQuery, request);
+        fuelRequestsQuery = fuelRequestsQuery.ApplyRequestAccessFilter(access);
 
         var totalRecords = await fuelRequestsQuery.CountAsync(ct);
 

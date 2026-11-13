@@ -23,15 +23,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryOutputs.v1.Handle
             if (error is not null) return error ?? Unit.Value;
 
             var requestedByStock = BuildRequestedQuantities(output!);
-            var (toDispatch, validationError) = BuildDispatchQuantities(request, requestedByStock);
-            if (validationError is not null) return validationError ?? Unit.Value;
+            var toDispatch = requestedByStock;
 
-            await RegisterDispatchItemsAsync(output!.Id, toDispatch!, ct);
-
-            output.Status = InventoryOutputsStatus.InProgress;
-            output.DispatchedJustification = request.DispatchedJustification
-                ?? (request.IsAllDispached ? "Despacho completo" : "Despacho parcial");
-            output.IsAllDispached = request.IsAllDispached;
+            output!.Status = InventoryOutputsStatus.InProgress;
+            output.DispatchedJustification = "Despacho completo";
 
             await _unitOfWork.InventoryOutputs.UpdateAsync(output);
             await _unitOfWork.SaveChangesAsync(ct);
@@ -52,7 +47,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryOutputs.v1.Handle
                 .Include(o => o.SupplyRequest)
                     .ThenInclude(s => s.SupplyRequestItems)
                 .Include(o => o.FuelRequest)
-                .Include(o => o.InventoryOutputsItems)
                 .FirstOrDefaultAsync(o => o.Id == request.InventoryOutputId && o.DeletedAt == null, ct);
 
             if (output is null)
@@ -96,49 +90,5 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryOutputs.v1.Handle
             return requestedByStock;
         }
 
-        private (Dictionary<Guid, decimal>? toDispatch, Unit? error) BuildDispatchQuantities(
-            StartInventoryOutputCommand request,
-            Dictionary<Guid, decimal> requestedByStock)
-        {
-            var toDispatch = new Dictionary<Guid, decimal>();
-
-            if (request.IsAllDispached)
-            {
-                foreach (var kv in requestedByStock)
-                    toDispatch[kv.Key] = kv.Value;
-                return (toDispatch, null);
-            }
-
-            foreach (var item in request.Items)
-            {
-                if (!requestedByStock.ContainsKey(item.ProductStockId))
-                    return (null, _errorManager.ThrowBadRequest<Unit>("El ítem no pertenece a la salida.", "ERP:INVALID_OUTPUT_ITEM"));
-
-                if (item.DispatchedQuantity > requestedByStock[item.ProductStockId])
-                    return (null, _errorManager.ThrowBadRequest<Unit>("La cantidad a despachar supera la solicitada.", "ERP:INVALID_DISPATCH_QUANTITY"));
-
-                toDispatch[item.ProductStockId] = item.DispatchedQuantity;
-            }
-
-            return (toDispatch, null);
-        }
-
-        private async Task RegisterDispatchItemsAsync(Guid outputId, Dictionary<Guid, decimal> toDispatch, CancellationToken ct)
-        {
-            var existingItems = await _unitOfWork.InventoryOutputsItems.Entities
-                .Where(i => i.InventoryOutputId == outputId)
-                .ToListAsync(ct);
-
-            if (existingItems.Count > 0)
-                await _unitOfWork.InventoryOutputsItems.RemoveRangeAsync(existingItems);
-
-            foreach (var (stockId, qty) in toDispatch)
-            {
-                if (qty <= 0) continue;
-
-                var outputItem = InventoryOutputMapper.ToInventoryOutputItemEntity(outputId, stockId, qty);
-                await _unitOfWork.InventoryOutputsItems.RegisterInventoryOutputItem(outputItem);
-            }
-        }
     }
 }

@@ -83,15 +83,17 @@ public class InventoryOutputsController(IMediator mediator) : ApiControllerBase
     public async Task<NoContentResult> StartInventoryOutputAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
-        [FromRoute] Guid inventory_output_id,
-        [FromBody] StartInventoryOutputCommand payload)
+        [FromRoute] Guid inventory_output_id)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
 
-        payload.CompanyId = company_id;
-        payload.ModuleCode = module_code;
-        payload.InventoryOutputId = inventory_output_id;
-        payload.UserId = Guid.Parse(userIdStr ?? "");
+        var payload = new StartInventoryOutputCommand()
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            InventoryOutputId = inventory_output_id,
+            UserId = Guid.Parse(userIdStr ?? "")
+        };
 
         await mediator.Send(payload);
         return NoContent();

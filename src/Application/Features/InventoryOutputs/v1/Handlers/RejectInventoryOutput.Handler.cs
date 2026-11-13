@@ -12,6 +12,7 @@ using ERP.Core.Notification.Domain.Entities;
 using ERP.Core.Notification.Application.Commons.Interfaces;
 
 using ERP.Core.Warehouse.Api.Application.Features.InventoryOutputs.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Helpers.Inventory;
 
 using OutputEntity = ERP.Core.Database.Domain.Entities.Inventory.InventoryOutputs;
 
@@ -31,7 +32,26 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryOutputs.v1.Handle
                 ? "Rechazado"
                 : request.DispatchedJustification.Trim();
 
-            RejectOutput(output!, justification, request.UserId, now);
+            var revertedByStock = new Dictionary<Guid, decimal>();
+
+            if (output!.SupplyRequest is not null)
+            {
+                foreach (var group in output.SupplyRequest.SupplyRequestItems
+                    .GroupBy(i => i.ProductStockId))
+                {
+                    revertedByStock[group.Key] = group.Sum(i => i.Amount);
+                }
+            }
+
+            if (output.FuelRequest is not null)
+            {
+                revertedByStock[output.FuelRequest.ProductStockId] =
+                    output.FuelRequest.RequestedQuantity;
+            }
+
+            await StockReservationHelper.RevertStockAsync(_unitOfWork, revertedByStock, ct);
+
+            RejectOutput(output, justification, request.UserId, now);
 
             var emails = await GetRecipientEmailsAsync(output!, ct);
 
@@ -54,6 +74,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryOutputs.v1.Handle
 
             var output = await _unitOfWork.InventoryOutputs.Entities
                 .Include(o => o.SupplyRequest)
+                    .ThenInclude(s => s.SupplyRequestItems)
                 .Include(o => o.FuelRequest)
                 .FirstOrDefaultAsync(o => o.Id == request.InventoryOutputId && o.DeletedAt == null, ct);
 
