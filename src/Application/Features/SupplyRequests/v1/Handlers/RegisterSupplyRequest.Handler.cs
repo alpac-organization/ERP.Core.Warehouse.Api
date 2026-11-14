@@ -22,15 +22,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Handlers
 
 public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, ICodeGenerator codeGenerator,
     IEmailNotificationService emailService, ISimpleNotificationServices pushService, ILogger<RegisterSupplyRequestsHandler> logger)
-    : BaseValidatorHandler<RegisterSupplyRequestsCommad, Unit>(unitOfWork, errorManager)
+    : BaseValidatorHandler<RegisterSupplyRequestsCommad, string>(unitOfWork, errorManager)
 {
-    public override async Task<Unit> Handle(RegisterSupplyRequestsCommad request, CancellationToken ct)
+    public override async Task<string> Handle(RegisterSupplyRequestsCommad request, CancellationToken ct)
     {
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, ct);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
         var areaError = await SupplyRequestSharedHelper.ValidateInventoryAreaAsync(_unitOfWork, _errorManager, access.Profile.AreaId, ct);
-        if (areaError is not null) return areaError.Value;
+        if (areaError is not null) return areaError;
 
         // Validar que la PO exista
         var orderExists = await _unitOfWork.OperationalOrders.Entities
@@ -38,14 +38,14 @@ public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager
             .AnyAsync(op => op.Id == request.OperationalOrderId && op.DeletedAt == null, ct);
 
 
-        if (!orderExists) return _errorManager.ThrowBadRequest<Unit>("La Orden Operativa no existe.", "ERP:OPERATIVE_ORDER_NOT_FOUND");
+        if (!orderExists) return _errorManager.ThrowBadRequest<string>("La Orden Operativa no existe.", "ERP:OPERATIVE_ORDER_NOT_FOUND");
 
 
         logger.LogInformation("📝Creando solicitud de inventario.");
 
         var stockError = await ValidateRequestedStockAsync(request, access.Profile.BranchId, access.Profile.CostCenterId, ct);
 
-        if (stockError is not null) return stockError.Value;
+        if (stockError is not null) return stockError;
 
         var assignment = await _unitOfWork.AssignmentOperationals.Entities
             .AsNoTracking()
@@ -57,14 +57,14 @@ public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager
 
         if (assignment is null || assignment.WarehouseId is null)
         {
-            return _errorManager.ThrowBadRequest<Unit>(
+            return _errorManager.ThrowBadRequest<string>(
                 "La asignación no tiene un almacén válido para esta orden operativa.",
                 "ERP:ASSIGNMENT_WAREHOUSE_NOT_FOUND"
             );
         }
 
         var (branchCode, branchCodeError) = await SupplyRequestSharedHelper.GetBranchCodeAsync(_unitOfWork, _errorManager, access.Profile.BranchId, ct);
-        if (branchCodeError is not null) return branchCodeError.Value;
+        if (branchCodeError is not null) return branchCodeError;
 
         string? generatedCode = null;
         var lowStockItems = new List<(string Name, string Code, decimal Available, decimal Minimum)>();
@@ -105,13 +105,13 @@ public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager
         catch (DbUpdateException ex)
         {
             logger.LogError(ex, "Error de persistencia al registrar la solicitud de insumos.");
-            return _errorManager.ThrowBadRequest<Unit>("No se pudo registrar la solicitud de insumos.", "ERP:SUPPLY_REQUEST_PERSISTENCE_ERROR");
+            return _errorManager.ThrowBadRequest<string>("No se pudo registrar la solicitud de insumos.", "ERP:SUPPLY_REQUEST_PERSISTENCE_ERROR");
         }
 
-        return Unit.Value;
+        return generatedCode ?? string.Empty;
     }
 
-    private async Task<Unit?> ValidateRequestedStockAsync(RegisterSupplyRequestsCommad request, Guid branchId, Guid costCenterId, CancellationToken ct)
+    private async Task<string?> ValidateRequestedStockAsync(RegisterSupplyRequestsCommad request, Guid branchId, Guid costCenterId, CancellationToken ct)
     {
         var requested = request.Items
             .GroupBy(r => r.ProductStockId)
@@ -137,19 +137,19 @@ public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager
         var validByBranch = stocks.Where(s => s.BranchId == branchId).ToList();
 
         if (validByBranch.Count != stockIds.Count)
-            return _errorManager.ThrowBadRequest<Unit>("Uno o más insumos no existen.", "ERP:PRODUCT_STOCK_NOT_FOUND");
+            return _errorManager.ThrowBadRequest<string>("Uno o más insumos no existen.", "ERP:PRODUCT_STOCK_NOT_FOUND");
 
         var validStocks = validByBranch.Where(s => s.CostCenterId == costCenterId).ToList();
 
         if (validStocks.Count != stockIds.Count)
-            return _errorManager.ThrowBadRequest<Unit>("Uno o más insumos no pertenecen a su centro de costo.", "ERP:PRODUCT_STOCK_COST_CENTER_MISMATCH");
+            return _errorManager.ThrowBadRequest<string>("Uno o más insumos no pertenecen a su centro de costo.", "ERP:PRODUCT_STOCK_COST_CENTER_MISMATCH");
 
         var inactive = validStocks
             .Where(s => !s.IsActive)
             .Select(s => s.Name)
             .ToList();
 
-        if (inactive.Count > 0) return _errorManager.ThrowBadRequest<Unit>("Los siguientes insumos están inactivos.", "ERP:PRODUCT_STOCK_INACTIVE");
+        if (inactive.Count > 0) return _errorManager.ThrowBadRequest<string>("Los siguientes insumos están inactivos.", "ERP:PRODUCT_STOCK_INACTIVE");
 
         var empty = validStocks
             .Where(s => s.AvailableQuantity <= 0)
@@ -157,7 +157,7 @@ public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager
             .ToList();
 
         if (empty.Count > 0)
-            return _errorManager.ThrowBadRequest<Unit>(
+            return _errorManager.ThrowBadRequest<string>(
                 $"Los siguientes insumos no tienen stock disponible: {string.Join(", ", empty)}.",
                 "ERP:PRODUCT_STOCK_EMPTY");
 
@@ -167,7 +167,7 @@ public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager
             .ToList();
 
         if (insufficient.Count > 0)
-            return _errorManager.ThrowBadRequest<Unit>(
+            return _errorManager.ThrowBadRequest<string>(
                 $"La cantidad solicitada supera el stock disponible: {string.Join("; ", insufficient)}.",
                 "ERP:INSUFFICIENT_STOCK");
 

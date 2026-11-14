@@ -26,7 +26,7 @@ public class DeclineSupplyRequestHandler(
             _unitOfWork, _errorManager, access.Profile.AreaId, ct);
 
         if (areaError is not null)
-            return areaError.Value;
+            return _errorManager.ThrowBadRequest<Unit>("No tienes permiso para esta acción", "ERP:USER_NOT_AUTOIZED");
 
         if (access.Role?.RoleType is not (RoleType.Supervisor or RoleType.Administrator))
             return _errorManager.ThrowBadRequest<Unit>(
