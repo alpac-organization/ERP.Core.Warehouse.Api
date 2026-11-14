@@ -4,7 +4,7 @@ using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Commands;
 
-public class RegisterSupplyRequestsCommad : BaseRequest, IRequest<Unit>
+public class RegisterSupplyRequestsCommad : BaseRequest, IRequest<string>
 {
     public string Justification { get; set; } = null!;
     public Guid OperationalOrderId { get; set; }

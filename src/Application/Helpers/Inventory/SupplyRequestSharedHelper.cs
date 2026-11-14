@@ -11,19 +11,19 @@ namespace ERP.Core.Warehouse.Api.Application.Helpers.Inventory;
 
 public static class SupplyRequestSharedHelper
 {
-    public static async Task<Unit?> ValidateInventoryAreaAsync(IUnitOfWork unitOfWork, IErrorManager errorManager, Guid workAreaId, CancellationToken ct)
+    public static async Task<string?> ValidateInventoryAreaAsync(IUnitOfWork unitOfWork, IErrorManager errorManager, Guid workAreaId, CancellationToken ct)
     {
         var allowedArea = await unitOfWork.InventoryAreasPermissions.Entities
             .AsNoTracking()
             .FirstOrDefaultAsync(area => area.WorkAreaId == workAreaId && area.IsActive, ct);
 
         if (allowedArea is null)
-            return errorManager.ThrowBadRequest<Unit>("No tienes permiso para esta acción", "ERP:USER_NOT_AUTOIZED");
+            return errorManager.ThrowBadRequest<string>("No tienes permiso para esta acción", "ERP:USER_NOT_AUTOIZED");
 
         return null;
     }
 
-    public static async Task<(string? BranchCode, Unit? Error)> GetBranchCodeAsync(IUnitOfWork unitOfWork, IErrorManager errorManager,
+    public static async Task<(string? BranchCode, string? Error)> GetBranchCodeAsync(IUnitOfWork unitOfWork, IErrorManager errorManager,
         Guid branchId, CancellationToken ct)
     {
         var branchCode = await unitOfWork.Branches.Entities
@@ -33,7 +33,7 @@ public static class SupplyRequestSharedHelper
             .FirstOrDefaultAsync(ct);
 
         if (string.IsNullOrWhiteSpace(branchCode))
-            return (null, errorManager.ThrowBadRequest<Unit>(
+            return (null, errorManager.ThrowBadRequest<string>(
                 "No se encontró el código de sucursal.", "ERP:BRANCH_CODE_NOT_FOUND"));
 
         return (branchCode, null);

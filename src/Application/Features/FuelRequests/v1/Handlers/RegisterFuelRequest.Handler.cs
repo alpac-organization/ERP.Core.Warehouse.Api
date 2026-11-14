@@ -23,21 +23,21 @@ namespace ERP.Core.Warehouse.Api.Application.Features.FuelRequests.v1.Handlers;
 
 public class RegisterFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, ICodeGenerator codeGenerator,
     IEmailNotificationService emailService, ISimpleNotificationServices pushService, ILogger<RegisterFuelRequestsHandler> logger)
-    : BaseValidatorHandler<RegisterFuelRequestsCommand, Unit>(unitOfWork, errorManager)
+    : BaseValidatorHandler<RegisterFuelRequestsCommand, string>(unitOfWork, errorManager)
 {
-    public override async Task<Unit> Handle(RegisterFuelRequestsCommand request, CancellationToken ct)
+    public override async Task<string> Handle(RegisterFuelRequestsCommand request, CancellationToken ct)
     {
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, ct);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
         var areaError = await SupplyRequestSharedHelper.ValidateInventoryAreaAsync(_unitOfWork, _errorManager, access.Profile.AreaId, ct);
-        if (areaError is not null) return areaError.Value;
+        if (areaError is not null) return areaError;
 
         var machineryError = await ValidateMachineryAsync(request.MachineryId, access.Profile.BranchId, ct);
-        if (machineryError is not null) return machineryError.Value;
+        if (machineryError is not null) return machineryError;
 
         var stockError = await ValidateFuelStockAsync(request.ProductStockId, request.RequestedQuantity, access.Profile.BranchId, access.Profile.CostCenterId, ct);
-        if (stockError is not null) return stockError.Value;
+        if (stockError is not null) return stockError;
 
         var productStock = await _unitOfWork.ProductStocks.Entities
             .AsNoTracking()
@@ -51,7 +51,7 @@ public class RegisterFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager e
         logger.LogInformation("📝Creando solicitud de combustible.");
 
         var (branchCode, branchCodeError) = await SupplyRequestSharedHelper.GetBranchCodeAsync(_unitOfWork, _errorManager, access.Profile.BranchId, ct);
-        if (branchCodeError is not null) return branchCodeError.Value;
+        if (branchCodeError is not null) return branchCodeError;
 
         // Comparación de sucursal por código
         var isCorinto = branchCode!.Contains("ALP-CTO", StringComparison.OrdinalIgnoreCase);
@@ -59,14 +59,14 @@ public class RegisterFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager e
         if (isCorinto)
         {
             if (!request.CustomerId.HasValue || request.CustomerId.Value == Guid.Empty)
-                return _errorManager.ThrowBadRequest<Unit>("Debe asignar un cliente.", "ERP:CUSTOMER_REQUIRED");
+                return _errorManager.ThrowBadRequest<string>("Debe asignar un cliente.", "ERP:CUSTOMER_REQUIRED");
 
             var customer = await _unitOfWork.Customers.Entities
                 .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Id == request.CustomerId.Value && c.IsActive, ct);
 
             if (customer is null)
-                return _errorManager.ThrowBadRequest<Unit>("El cliente no existe o está inactivo.", "ERP:CUSTOMER_NOT_FOUND");
+                return _errorManager.ThrowBadRequest<string>("El cliente no existe o está inactivo.", "ERP:CUSTOMER_NOT_FOUND");
         }
         else
         {
@@ -76,6 +76,8 @@ public class RegisterFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager e
 
         var lowStockItems = new List<(string Name, string Code, decimal Available, decimal Minimum)>();
 
+        string? generatedCode = null;
+
         try
         {
             await _unitOfWork.ExecuteWithUniqueCodeRetryAsync(async token =>
@@ -84,6 +86,8 @@ public class RegisterFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager e
 
                 if (!isSuccess || string.IsNullOrWhiteSpace(code))
                     throw new CoreException(new ErrorResponse(500, "ERP:INTERNAL_ERROR", "No se pudo generar el código para la solicitud."));
+
+                generatedCode = code;
 
                 var entity = request.ToFuelRequestEntity(access.Profile, code, productStock.UnitMeasureId);
 
@@ -107,10 +111,10 @@ public class RegisterFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager e
         catch (DbUpdateException ex)
         {
             logger.LogError(ex, "Error de persistencia al registrar la solicitud de combustible.");
-            return _errorManager.ThrowBadRequest<Unit>("No se pudo registrar la solicitud de combustible.", "ERP:FUEL_REQUEST_PERSISTENCE_ERROR");
+            return _errorManager.ThrowBadRequest<string>("No se pudo registrar la solicitud de combustible.", "ERP:FUEL_REQUEST_PERSISTENCE_ERROR");
         }
 
-        return Unit.Value;
+        return generatedCode ?? string.Empty;
     }
 
     private Task SendEmailNotificationAsync(string code, List<(string Name, string Code, decimal Available, decimal Minimum)> lowStockItems, CancellationToken ct)
@@ -133,22 +137,22 @@ public class RegisterFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager e
         return Task.CompletedTask;
     }
 
-    private async Task<Unit?> ValidateMachineryAsync(Guid machineryId, Guid branchId, CancellationToken ct)
+    private async Task<string?> ValidateMachineryAsync(Guid machineryId, Guid branchId, CancellationToken ct)
     {
         var machinery = await _unitOfWork.Machineries.Entities
             .AsNoTracking()
             .FirstOrDefaultAsync(m => m.Id == machineryId && m.DeletedAt == null, ct);
 
-        if (machinery is null) return _errorManager.ThrowBadRequest<Unit>("La maquinaria no existe.", "ERP:MACHINERY_NOT_FOUND");
+        if (machinery is null) return _errorManager.ThrowBadRequest<string>("La maquinaria no existe.", "ERP:MACHINERY_NOT_FOUND");
 
-        if (!machinery.IsActive) return _errorManager.ThrowBadRequest<Unit>("La maquinaria está inactiva.", "ERP:MACHINERY_INACTIVE");
+        if (!machinery.IsActive) return _errorManager.ThrowBadRequest<string>("La maquinaria está inactiva.", "ERP:MACHINERY_INACTIVE");
 
-        if (machinery.BranchId != branchId) return _errorManager.ThrowBadRequest<Unit>("La maquinaria no pertenece a la sucursal del usuario.", "ERP:MACHINERY_BRANCH_MISMATCH");
+        if (machinery.BranchId != branchId) return _errorManager.ThrowBadRequest<string>("La maquinaria no pertenece a la sucursal del usuario.", "ERP:MACHINERY_BRANCH_MISMATCH");
 
         return null;
     }
 
-    private async Task<Unit?> ValidateFuelStockAsync(Guid productStockId, decimal requestedQuantity, Guid branchId, Guid costCenterId, CancellationToken ct)
+    private async Task<string?> ValidateFuelStockAsync(Guid productStockId, decimal requestedQuantity, Guid branchId, Guid costCenterId, CancellationToken ct)
     {
         var stock = await _unitOfWork.ProductStocks.Entities
             .AsNoTracking()
@@ -165,18 +169,18 @@ public class RegisterFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager e
             })
             .FirstOrDefaultAsync(ct);
 
-        if (stock is null) return _errorManager.ThrowBadRequest<Unit>("El stock de combustible no existe.", "ERP:PRODUCT_STOCK_NOT_FOUND");
+        if (stock is null) return _errorManager.ThrowBadRequest<string>("El stock de combustible no existe.", "ERP:PRODUCT_STOCK_NOT_FOUND");
 
-        if (stock.BranchId != branchId) return _errorManager.ThrowBadRequest<Unit>("El stock de combustible no pertenece a la sucursal del usuario.", "ERP:PRODUCT_STOCK_BRANCH_MISMATCH");
+        if (stock.BranchId != branchId) return _errorManager.ThrowBadRequest<string>("El stock de combustible no pertenece a la sucursal del usuario.", "ERP:PRODUCT_STOCK_BRANCH_MISMATCH");
 
-        if (stock.CostCenterId != costCenterId) return _errorManager.ThrowBadRequest<Unit>("El stock de combustible no pertenece a su centro de costo.", "ERP:PRODUCT_STOCK_COST_CENTER_MISMATCH");
+        if (stock.CostCenterId != costCenterId) return _errorManager.ThrowBadRequest<string>("El stock de combustible no pertenece a su centro de costo.", "ERP:PRODUCT_STOCK_COST_CENTER_MISMATCH");
 
-        if (!stock.IsActive) return _errorManager.ThrowBadRequest<Unit>("El stock de combustible está inactivo.", "ERP:PRODUCT_STOCK_INACTIVE");
+        if (!stock.IsActive) return _errorManager.ThrowBadRequest<string>("El stock de combustible está inactivo.", "ERP:PRODUCT_STOCK_INACTIVE");
 
         if (stock.AvailableQuantity <= 0)
-            return _errorManager.ThrowBadRequest<Unit>("El stock de combustible no tiene stock disponible.", "ERP:PRODUCT_STOCK_EMPTY");
+            return _errorManager.ThrowBadRequest<string>("El stock de combustible no tiene stock disponible.", "ERP:PRODUCT_STOCK_EMPTY");
 
-        if (requestedQuantity > stock.AvailableQuantity) return _errorManager.ThrowBadRequest<Unit>(
+        if (requestedQuantity > stock.AvailableQuantity) return _errorManager.ThrowBadRequest<string>(
             $"La cantidad solicitada supera el stock disponible: {stock.Name} (solicitado: {requestedQuantity} {stock.Unit}, disponible: {stock.AvailableQuantity} {stock.Unit}).",
             "ERP:INSUFFICIENT_STOCK");
 
