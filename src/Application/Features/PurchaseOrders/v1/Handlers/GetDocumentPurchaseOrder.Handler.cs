@@ -22,7 +22,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
         IMapper mapper,
         IPdfGeneratorServices pdfGeneratorServices,
         IS3StorageService s3StorageService,
-        IPurchaseRequestVisibilityService visibilityService)
+        IPurchaseRequestVisibilityService visibilityService,
+        IPurchaseTaxService purchaseTaxService)
         : BaseValidatorHandler<GetDocumentPurchaseOrderQuery, PurchaseOrderDocumentDto>(unitOfWork, errorManager)
     {
         public override async Task<PurchaseOrderDocumentDto> Handle(
@@ -46,9 +47,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 .Select(pr => pr.Id);
 
             var purchaseOrder = await _unitOfWork.PurchaseOrders.Entities
+                .Include(purs => purs.Supplier)
+                    .ThenInclude(supplier => supplier!.SupplierDetails)
                 .Include(purs => purs.SentByUser)
                 .Include(purs => purs.ReviewedByUser)
                 .Include(purs => purs.PaymentRequest)
+                .Include(purs => purs.PurchaseOrderItems)
+                    .ThenInclude(item => item.Product)
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.Branch)
                         .ThenInclude(branch => branch.Company)
@@ -69,6 +74,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                     .ThenInclude(pr => pr.PurchaseRequestItems)
                         .ThenInclude(item => item.Quotations)
                             .ThenInclude(quotation => quotation.Supplier)
+                .Include(purs => purs.PurchaseRequest)
+                    .ThenInclude(pr => pr.PurchaseRequestItems)
+                        .ThenInclude(item => item.Quotations)
+                            .ThenInclude(quotation => quotation.SupplierProduct)
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Where(purs => purs.Id == request.PurchaseOrderId)
@@ -85,23 +94,26 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             var template = mapper.Map<PurchaseOrderTemplateDto>(purchaseOrder);
             var culture = new CultureInfo("es-NI");
 
-            var quotations = purchaseOrder.PurchaseRequest.PurchaseRequestItems
-                .SelectMany(item => item.Quotations)
-                .Where(quotation => quotation.IsActive && quotation.IsAcceptedForPurchase)
-                .ToList();
-
-            if (quotations.Count == 0)
-            {
-                quotations = purchaseOrder.PurchaseRequest.PurchaseRequestItems
-                    .SelectMany(item => item.Quotations)
-                    .Where(quotation => quotation.IsActive)
-                    .ToList();
-            }
-
-            var serviceAmount = quotations.Sum(quotation => quotation.PriceTotal);
-            var vatAmount = quotations.Sum(quotation => quotation.Iva);
-            var incomeTax = quotations.Sum(quotation => quotation.Ir);
-            var municipalTax = quotations.Sum(quotation => quotation.Imi);
+            var quotations = PurchaseOrderReportLines.AcceptedQuotations(purchaseOrder);
+            var rates = await purchaseTaxService.GetActiveRatesAsync(cancellationToken);
+            var currency = PurchaseOrderReportLines.ResolveDocumentCurrency(quotations);
+            var items = PurchaseOrderReportLines.BuildItems(
+                purchaseOrder,
+                quotations,
+                currency,
+                purchaseTaxService.ResolveExchangeRate(rates),
+                rates,
+                purchaseTaxService);
+            var serviceAmount = items.Sum(item => item.PriceTotal);
+            var vatAmount = items.Sum(item => item.Iva);
+            var retention = PurchaseOrderReportLines.CalculateSupplierRetention(
+                serviceAmount,
+                currency,
+                purchaseOrder.Supplier,
+                rates,
+                purchaseTaxService);
+            var incomeTax = retention.IrAmount;
+            var municipalTax = retention.ImiAmount;
 
             var isPaymentRequest = request.PaymentMethod.HasValue;
             var title = isPaymentRequest
@@ -118,20 +130,24 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 Title = title,
                 RequestCode = requestCode,
                 Date = DateTime.Now.ToString("dd/MM/yyyy", culture),
-                QuoteCount = quotations.Count
+                QuoteCount = items.Count
             };
+            template.Items = items;
 
             template.PaymentInfo = new PaymentInfo
             {
                 Department = purchaseOrder.PurchaseRequest.WorkArea?.WorkAreaName
                     ?? purchaseOrder.PurchaseRequest.WorkArea?.Description,
-                Payee = quotations.FirstOrDefault()?.Supplier?.SuppliersLegalName,
+                Payee = purchaseOrder.Supplier?.SuppliersLegalName
+                    ?? quotations.FirstOrDefault()?.Supplier?.SuppliersLegalName,
                 Customer = purchaseOrder.PurchaseRequest.Branch.Company?.CompanieName,
                 ServiceAmount = serviceAmount,
                 Vat = vatAmount,
                 IncomeTax = incomeTax,
                 MunicipalTax = municipalTax,
-                NetToPay = serviceAmount + vatAmount - incomeTax - municipalTax
+                NetToPay = isPaymentRequest
+                    ? serviceAmount + vatAmount - incomeTax - municipalTax
+                    : serviceAmount + vatAmount
             };
 
             var pdfBytes = await pdfGeneratorServices.GenerateAsync<PurchaseOrderTemplateDto>(
