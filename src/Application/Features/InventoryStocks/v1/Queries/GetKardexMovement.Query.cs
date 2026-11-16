@@ -13,6 +13,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Queries
         public string? ProductCode { get; set; }
         public KardexType? KardexType { get; set; }
         public KardexMovementType? KardexMovementType { get; set; }
+
+        public DateTime? DateFrom { get; set; }
+        public DateTime? DateTo { get; set; }
         
         public int PageSize { get; set; }
         public int PageNumber { get; set; }

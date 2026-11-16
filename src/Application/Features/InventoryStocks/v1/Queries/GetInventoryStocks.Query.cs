@@ -21,9 +21,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Queries
 
         public string? ProductName { get; set; }
         public string? ProductCode { get; set; }
-        
-        public DateTime? DateFrom { get; set; }
-        public DateTime? DateTo { get; set; }
 
         public int PageSize { get; set; }
         public int PageNumber { get; set; }
