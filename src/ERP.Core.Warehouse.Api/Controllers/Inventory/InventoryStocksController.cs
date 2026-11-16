@@ -26,23 +26,27 @@ namespace ERP.Core.Warehouse.Api.Controllers.Inventory
             [FromQuery] string? product_name = null,
             [FromQuery] Guid? category_id = null,
             [FromQuery] bool? is_fuel = null,
+            [FromQuery] Guid? cost_center_id = null,
             [FromQuery] int page_size = 10,
             [FromQuery] int page_number = 1
         )
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
+            
+            //TODO: Falta agregar el rango de fechas...
 
             return await _mediator.Send(new GetInventoryStocksQuery()
             {
-                CompanyId = company_id,
-                ModuleCode = module_code,
-                CategoryId = category_id,
-                IsFuel = is_fuel,
-                ProductCode = product_code,
-                ProductName = product_name,
-                UserId = Guid.Parse(userIdStr ?? ""),
-                PageSize = page_size,
-                PageNumber = page_number
+                CompanyId    = company_id,
+                ModuleCode   = module_code,
+                CategoryId   = category_id,
+                IsFuel       = is_fuel,
+                ProductCode  = product_code,
+                ProductName  = product_name,
+                CostCenterId = cost_center_id,
+                UserId       = Guid.Parse(userIdStr ?? ""),
+                PageSize     = page_size,
+                PageNumber   = page_number
             });
         }
 

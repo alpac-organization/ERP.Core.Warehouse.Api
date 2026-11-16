@@ -17,8 +17,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Queries
     {
         public Guid? CategoryId { get; set; }
         public bool? IsFuel { get; set; }
-        public string? ProductCode { get; set; }
+        public Guid? CostCenterId { get; set; }
+
         public string? ProductName { get; set; }
+        public string? ProductCode { get; set; }
 
         public int PageSize { get; set; }
         public int PageNumber { get; set; }

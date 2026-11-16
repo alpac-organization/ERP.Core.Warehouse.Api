@@ -1,13 +1,14 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-
 using ERP.Core.Application.Commons.Interfaces;
+
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Queries;
+
 
 namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handlers
 {
@@ -21,19 +22,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
             {
                 return access.ErrorResponse!;
             }
-
+            
             var productStocksQuery = _unitOfWork.ProductStocks.Entities
                 .Include(inventory => inventory.Product)
                     .ThenInclude(product => product.Category)
-                
+
                 .Include(inventory => inventory.Product)
                     .ThenInclude(product => product.CostCenter)
 
                 .Include(inventory => inventory.CostCenter)
                 .Include(inventory => inventory.UnitMeasure)
-                
+
                 .Where(inventory => inventory.Product.BranchId == access.Profile.BranchId)
-                .Where(inventory => inventory.CostCenterId == access.Profile.CostCenterId)
                 .Where(inventory => inventory.Product.CostCenter.WorkAreaId == access.Profile.AreaId)
                 .Where(inventory => inventory.Product.ProductUsageType == ProductUsageType.Operational)
                 .AsNoTracking()
@@ -71,6 +71,17 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
             {
                 productStocksQuery = productStocksQuery
                     .Where(inventory => EF.Functions.Like(inventory.Product.ProductName, $"%{request.ProductName}%"));
+            }
+
+            if ((access.Role?.RoleType == RoleType.Administrator || access.Role?.RoleType == RoleType.Manager) && request.CostCenterId.HasValue)
+            {
+                productStocksQuery = productStocksQuery
+                    .Where(inventory => inventory.CostCenterId == request.CostCenterId);
+            }
+            else
+            {
+                productStocksQuery = productStocksQuery
+                    .Where(inventory => inventory.CostCenterId == access.Profile.CostCenterId);
             }
 
             var productStocks = await productStocksQuery
