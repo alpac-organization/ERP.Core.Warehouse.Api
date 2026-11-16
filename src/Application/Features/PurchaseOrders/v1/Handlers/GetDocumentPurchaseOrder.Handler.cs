@@ -52,6 +52,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 .Include(purs => purs.SentByUser)
                 .Include(purs => purs.ReviewedByUser)
                 .Include(purs => purs.PaymentRequest)
+                .Include(purs => purs.PurchaseOrderItems)
+                    .ThenInclude(item => item.Product)
                 .Include(purs => purs.PurchaseRequest)
                     .ThenInclude(pr => pr.Branch)
                         .ThenInclude(branch => branch.Company)
@@ -93,20 +95,23 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             var culture = new CultureInfo("es-NI");
 
             var quotations = PurchaseOrderReportLines.AcceptedQuotations(purchaseOrder);
-            if (!PurchaseOrderReportLines.TryResolveCurrency(quotations, out _))
-            {
-                return _errorManager.ThrowBadRequest<PurchaseOrderDocumentDto>(
-                    "La orden de compra tiene líneas en monedas distintas.",
-                    "ERP:INCONSISTENT_PURCHASE_ORDER_CURRENCY");
-            }
-
-            var serviceAmount = quotations.Sum(quotation => quotation.PriceTotal);
-            var vatAmount = quotations.Sum(quotation => quotation.Iva);
-            var retention = await PurchaseOrderReportLines.CalculateSupplierRetention(
+            var rates = await purchaseTaxService.GetActiveRatesAsync(cancellationToken);
+            var currency = PurchaseOrderReportLines.ResolveDocumentCurrency(quotations);
+            var items = PurchaseOrderReportLines.BuildItems(
+                purchaseOrder,
                 quotations,
+                currency,
+                purchaseTaxService.ResolveExchangeRate(rates),
+                rates,
+                purchaseTaxService);
+            var serviceAmount = items.Sum(item => item.PriceTotal);
+            var vatAmount = items.Sum(item => item.Iva);
+            var retention = PurchaseOrderReportLines.CalculateSupplierRetention(
+                serviceAmount,
+                currency,
                 purchaseOrder.Supplier,
-                purchaseTaxService,
-                cancellationToken);
+                rates,
+                purchaseTaxService);
             var incomeTax = retention.IrAmount;
             var municipalTax = retention.ImiAmount;
 
@@ -125,8 +130,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 Title = title,
                 RequestCode = requestCode,
                 Date = DateTime.Now.ToString("dd/MM/yyyy", culture),
-                QuoteCount = quotations.Count
+                QuoteCount = items.Count
             };
+            template.Items = items;
 
             template.PaymentInfo = new PaymentInfo
             {

@@ -95,21 +95,23 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             var header = mapper.Map<PurchaseOrderTemplateDto>(purchaseOrder);
             var supplierQuotations = PurchaseOrderReportLines.AcceptedQuotations(purchaseOrder);
-            if (!PurchaseOrderReportLines.TryResolveCurrency(supplierQuotations, out var currency))
-            {
-                return _errorManager.ThrowBadRequest<PurchaseOrderReportDto>(
-                    "La orden de compra tiene líneas en monedas distintas.",
-                    "ERP:INCONSISTENT_PURCHASE_ORDER_CURRENCY");
-            }
-
-            var items = PurchaseOrderReportLines.BuildItems(purchaseOrder, supplierQuotations);
+            var rates = await purchaseTaxService.GetActiveRatesAsync(cancellationToken);
+            var currency = PurchaseOrderReportLines.ResolveDocumentCurrency(supplierQuotations);
+            var items = PurchaseOrderReportLines.BuildItems(
+                purchaseOrder,
+                supplierQuotations,
+                currency,
+                purchaseTaxService.ResolveExchangeRate(rates),
+                rates,
+                purchaseTaxService);
             var serviceAmount = items.Sum(item => item.PriceTotal);
             var ivaAmount = items.Sum(item => item.Iva);
-            var retention = await PurchaseOrderReportLines.CalculateSupplierRetention(
-                supplierQuotations,
+            var retention = PurchaseOrderReportLines.CalculateSupplierRetention(
+                serviceAmount,
+                currency,
                 purchaseOrder.Supplier,
-                purchaseTaxService,
-                cancellationToken);
+                rates,
+                purchaseTaxService);
             var culture = new CultureInfo("es-NI");
             const string title = "Orden de compra";
 
