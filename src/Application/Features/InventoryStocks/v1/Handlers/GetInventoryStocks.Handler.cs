@@ -31,6 +31,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                     .ThenInclude(product => product.CostCenter)
 
                 .Include(inventory => inventory.CostCenter)
+
+                .Include(inventory => inventory.IsActive)
+                
                 .Include(inventory => inventory.UnitMeasure)
 
                 .Where(inventory => inventory.Product.BranchId == access.Profile.BranchId)

@@ -27,6 +27,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
 
             var productStockQuery = _unitOfWork.ProductStocks.Entities
                 .Where(stock => stock.Id == request.InventoryStockId)
+                .Where(stock => stock.IsActive)
                 .Where(stock => stock.Product.BranchId == access.Profile.BranchId);
 
             if (!hasAccess)
