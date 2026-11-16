@@ -9,6 +9,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Queries;
 
+
 namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handlers
 {
     public class GetInventoryStocksHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, IMapper _mapper) : BaseValidatorHandler<GetInventoryStocksQuery, PagedResponseStock<InventoryStockDto>>(unitOfWork, errorManager)
@@ -33,7 +34,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                 .Include(inventory => inventory.UnitMeasure)
 
                 .Where(inventory => inventory.Product.BranchId == access.Profile.BranchId)
-                .Where(inventory => inventory.CostCenterId == access.Profile.CostCenterId)
                 .Where(inventory => inventory.Product.CostCenter.WorkAreaId == access.Profile.AreaId)
                 .Where(inventory => inventory.Product.ProductUsageType == ProductUsageType.Operational)
                 .AsNoTracking()
@@ -64,6 +64,17 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
             {
                 productStocksQuery = productStocksQuery
                     .Where(inventory => EF.Functions.Like(inventory.Product.ProductName, $"%{request.ProductName}%"));
+            }
+
+            if ((access.Role?.RoleType == RoleType.Administrator || access.Role?.RoleType == RoleType.Manager) && request.CostCenterId.HasValue)
+            {
+                productStocksQuery = productStocksQuery
+                    .Where(inventory => inventory.CostCenterId == request.CostCenterId);
+            }
+            else
+            {
+                productStocksQuery = productStocksQuery
+                    .Where(inventory => inventory.CostCenterId == access.Profile.CostCenterId);
             }
 
             var productStocks = await productStocksQuery
