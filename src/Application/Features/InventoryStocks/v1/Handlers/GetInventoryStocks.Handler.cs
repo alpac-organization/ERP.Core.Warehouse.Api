@@ -34,7 +34,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                 .Include(inventory => inventory.UnitMeasure)
 
                 .Where(inventory => inventory.Product.BranchId == access.Profile.BranchId)
-                .Where(inventory => inventory.Product.CostCenter.WorkAreaId == access.Profile.AreaId)
                 .Where(inventory => inventory.Product.ProductUsageType == ProductUsageType.Operational)
                 .AsNoTracking()
                 .AsSplitQuery();
@@ -73,15 +72,23 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                     .Where(inventory => EF.Functions.Like(inventory.Product.ProductName, $"%{request.ProductName}%"));
             }
 
-            if ((access.Role?.RoleType == RoleType.Administrator || access.Role?.RoleType == RoleType.Manager) && request.CostCenterId.HasValue)
+            var hasAccess = 
+                access.Role?.RoleType == RoleType.Manager       ||
+                access.Role?.RoleType == RoleType.Administrator; 
+
+            if (hasAccess && request.CostCenterId.HasValue)
             {
                 productStocksQuery = productStocksQuery
                     .Where(inventory => inventory.CostCenterId == request.CostCenterId);
             }
-            else
+            
+            if(!hasAccess)
             {
                 productStocksQuery = productStocksQuery
                     .Where(inventory => inventory.CostCenterId == access.Profile.CostCenterId);
+
+                productStocksQuery = productStocksQuery
+                    .Where(inventory => inventory.Product.CostCenter.WorkAreaId == access.Profile.AreaId);
             }
 
             var productStocks = await productStocksQuery
