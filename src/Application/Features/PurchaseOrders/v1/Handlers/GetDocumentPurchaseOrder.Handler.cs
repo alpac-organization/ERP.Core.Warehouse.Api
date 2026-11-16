@@ -22,7 +22,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
         IMapper mapper,
         IPdfGeneratorServices pdfGeneratorServices,
         IS3StorageService s3StorageService,
-        IPurchaseRequestVisibilityService visibilityService)
+        IPurchaseRequestVisibilityService visibilityService,
+        IPurchaseTaxService purchaseTaxService)
         : BaseValidatorHandler<GetDocumentPurchaseOrderQuery, PurchaseOrderDocumentDto>(unitOfWork, errorManager)
     {
         public override async Task<PurchaseOrderDocumentDto> Handle(
@@ -46,6 +47,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 .Select(pr => pr.Id);
 
             var purchaseOrder = await _unitOfWork.PurchaseOrders.Entities
+                .Include(purs => purs.Supplier)
+                    .ThenInclude(supplier => supplier!.SupplierDetails)
                 .Include(purs => purs.SentByUser)
                 .Include(purs => purs.ReviewedByUser)
                 .Include(purs => purs.PaymentRequest)
@@ -69,6 +72,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                     .ThenInclude(pr => pr.PurchaseRequestItems)
                         .ThenInclude(item => item.Quotations)
                             .ThenInclude(quotation => quotation.Supplier)
+                .Include(purs => purs.PurchaseRequest)
+                    .ThenInclude(pr => pr.PurchaseRequestItems)
+                        .ThenInclude(item => item.Quotations)
+                            .ThenInclude(quotation => quotation.SupplierProduct)
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Where(purs => purs.Id == request.PurchaseOrderId)
@@ -85,23 +92,23 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             var template = mapper.Map<PurchaseOrderTemplateDto>(purchaseOrder);
             var culture = new CultureInfo("es-NI");
 
-            var quotations = purchaseOrder.PurchaseRequest.PurchaseRequestItems
-                .SelectMany(item => item.Quotations)
-                .Where(quotation => quotation.IsActive && quotation.IsAcceptedForPurchase)
-                .ToList();
-
-            if (quotations.Count == 0)
+            var quotations = PurchaseOrderReportLines.AcceptedQuotations(purchaseOrder);
+            if (!PurchaseOrderReportLines.TryResolveCurrency(quotations, out _))
             {
-                quotations = purchaseOrder.PurchaseRequest.PurchaseRequestItems
-                    .SelectMany(item => item.Quotations)
-                    .Where(quotation => quotation.IsActive)
-                    .ToList();
+                return _errorManager.ThrowBadRequest<PurchaseOrderDocumentDto>(
+                    "La orden de compra tiene líneas en monedas distintas.",
+                    "ERP:INCONSISTENT_PURCHASE_ORDER_CURRENCY");
             }
 
             var serviceAmount = quotations.Sum(quotation => quotation.PriceTotal);
             var vatAmount = quotations.Sum(quotation => quotation.Iva);
-            var incomeTax = quotations.Sum(quotation => quotation.Ir);
-            var municipalTax = quotations.Sum(quotation => quotation.Imi);
+            var retention = await PurchaseOrderReportLines.CalculateSupplierRetention(
+                quotations,
+                purchaseOrder.Supplier,
+                purchaseTaxService,
+                cancellationToken);
+            var incomeTax = retention.IrAmount;
+            var municipalTax = retention.ImiAmount;
 
             var isPaymentRequest = request.PaymentMethod.HasValue;
             var title = isPaymentRequest
@@ -125,13 +132,16 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             {
                 Department = purchaseOrder.PurchaseRequest.WorkArea?.WorkAreaName
                     ?? purchaseOrder.PurchaseRequest.WorkArea?.Description,
-                Payee = quotations.FirstOrDefault()?.Supplier?.SuppliersLegalName,
+                Payee = purchaseOrder.Supplier?.SuppliersLegalName
+                    ?? quotations.FirstOrDefault()?.Supplier?.SuppliersLegalName,
                 Customer = purchaseOrder.PurchaseRequest.Branch.Company?.CompanieName,
                 ServiceAmount = serviceAmount,
                 Vat = vatAmount,
                 IncomeTax = incomeTax,
                 MunicipalTax = municipalTax,
-                NetToPay = serviceAmount + vatAmount - incomeTax - municipalTax
+                NetToPay = isPaymentRequest
+                    ? serviceAmount + vatAmount - incomeTax - municipalTax
+                    : serviceAmount + vatAmount
             };
 
             var pdfBytes = await pdfGeneratorServices.GenerateAsync<PurchaseOrderTemplateDto>(

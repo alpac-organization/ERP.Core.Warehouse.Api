@@ -18,7 +18,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
         IUnitOfWork unitOfWork,
         IErrorManager errorManager,
         IMapper mapper,
-        IPurchaseRequestVisibilityService visibilityService)
+        IPurchaseRequestVisibilityService visibilityService,
+        IPurchaseTaxService purchaseTaxService)
         : BaseValidatorHandler<GetPurchaseOrderReportQuery, PurchaseOrderReportDto>(unitOfWork, errorManager)
     {
         public override async Task<PurchaseOrderReportDto> Handle(
@@ -104,6 +105,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             var items = PurchaseOrderReportLines.BuildItems(purchaseOrder, supplierQuotations);
             var serviceAmount = items.Sum(item => item.PriceTotal);
             var ivaAmount = items.Sum(item => item.Iva);
+            var retention = await PurchaseOrderReportLines.CalculateSupplierRetention(
+                supplierQuotations,
+                purchaseOrder.Supplier,
+                purchaseTaxService,
+                cancellationToken);
             var culture = new CultureInfo("es-NI");
             const string title = "Orden de compra";
 
@@ -129,7 +135,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                     Currency = currency,
                     ServiceAmount = serviceAmount,
                     Iva = ivaAmount,
-                    IncomeTax = supplierQuotations.Sum(quotation => quotation.Ir),
+                    IncomeTax = retention.IrAmount,
                     NetToPay = serviceAmount + ivaAmount
                 }
             };

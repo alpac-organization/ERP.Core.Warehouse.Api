@@ -1,6 +1,8 @@
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Models;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 {
@@ -71,6 +73,31 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             currency = currencies.Count == 0 ? Currency.NIO : currencies[0];
             return true;
+        }
+
+        public static async Task<PurchaseRetentionResult> CalculateSupplierRetention(
+            IReadOnlyList<Quotation> supplierQuotations,
+            Supplier? supplier,
+            IPurchaseTaxService purchaseTaxService,
+            CancellationToken cancellationToken)
+        {
+            if (!TryResolveCurrency(supplierQuotations, out var currency))
+            {
+                throw new InvalidOperationException("La orden de compra tiene líneas en monedas distintas.");
+            }
+
+            var rates = await purchaseTaxService.GetActiveRatesAsync(cancellationToken);
+            var details = supplier?.SupplierDetails;
+            var subtotal = supplierQuotations.Sum(quotation => quotation.PriceTotal);
+
+            return purchaseTaxService.CalculateRetentions(
+                subtotal,
+                currency,
+                details?.SupplierType,
+                details?.IsTaxExempt ?? false,
+                details?.ApplyIrRetention ?? false,
+                details?.ApplyMunicipalRetention ?? false,
+                rates);
         }
     }
 }

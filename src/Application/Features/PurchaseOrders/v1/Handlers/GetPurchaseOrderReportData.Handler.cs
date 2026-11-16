@@ -17,7 +17,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
         IUnitOfWork unitOfWork,
         IErrorManager errorManager,
         IMapper mapper,
-        IPurchaseRequestVisibilityService visibilityService)
+        IPurchaseRequestVisibilityService visibilityService,
+        IPurchaseTaxService purchaseTaxService)
         : BaseValidatorHandler<GetPurchaseOrderReportDataQuery, TransferRequestReportDto>(unitOfWork, errorManager)
     {
         public override async Task<TransferRequestReportDto> Handle(
@@ -42,6 +43,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             var purchaseOrder = await _unitOfWork.PurchaseOrders.Entities
                 .Include(po => po.Supplier)
+                    .ThenInclude(supplier => supplier!.SupplierDetails)
                 .Include(po => po.ReviewedByUser)
                 .Include(po => po.PaymentRequest)
                 .Include(po => po.PurchaseOrderItems)
@@ -105,8 +107,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             var serviceAmount = items.Sum(item => item.PriceTotal);
             var ivaAmount = items.Sum(item => item.Iva);
-            var incomeTax = supplierQuotations.Sum(quotation => quotation.Ir);
-            var municipalTax = supplierQuotations.Sum(quotation => quotation.Imi);
+            var retention = await PurchaseOrderReportLines.CalculateSupplierRetention(
+                supplierQuotations,
+                purchaseOrder.Supplier,
+                purchaseTaxService,
+                cancellationToken);
+            var incomeTax = retention.IrAmount;
+            var municipalTax = retention.ImiAmount;
             var culture = new CultureInfo("es-NI");
             const string title = "Solicitud de pago";
 
