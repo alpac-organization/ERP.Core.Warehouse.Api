@@ -54,6 +54,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                     .Where(inventory => inventory.Product.CategoryId == request.CategoryId);
             }
 
+            if (request.IsFuel.HasValue)
+            {
+                productStocksQuery = productStocksQuery
+                    .Where(inventory => inventory.Product.Category != null
+                                        && inventory.Product.Category.IsFuel == request.IsFuel.Value);
+            }
+
             if (!string.IsNullOrEmpty(request.ProductCode))
             {
                 productStocksQuery = productStocksQuery

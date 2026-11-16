@@ -8,6 +8,7 @@ using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryOutputs.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryOutputs.v1.Queries;
+using ERP.Core.Warehouse.Api.Application.Features.InventoryOutputs.v1.Commands;
 using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Controllers.InventoryOutputs;
@@ -39,17 +40,17 @@ public class InventoryOutputsController(IMediator mediator) : ApiControllerBase
 
         return await mediator.Send(new GetInventoryOutputsQuery()
         {
-            CompanyId                   = company_id,
-            ModuleCode                  = module_code,
-            UserId                      = Guid.Parse(userIdStr ?? ""),
-            OutputCode                  = output_code,
-            Status                      = status,
-            RequestType                 = request_type,
-            SupplyRequestCode           = supply_request_code,
-            FuelRequestCode             = fuel_request_code,
-            ReasonInventoryRemovalId    = reason_inventory_removal_id,
-            PageNumber                  = page_number,
-            PageSize                    = page_size
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = Guid.Parse(userIdStr ?? ""),
+            OutputCode = output_code,
+            Status = status,
+            RequestType = request_type,
+            SupplyRequestCode = supply_request_code,
+            FuelRequestCode = fuel_request_code,
+            ReasonInventoryRemovalId = reason_inventory_removal_id,
+            PageNumber = page_number,
+            PageSize = page_size
         });
     }
 
@@ -72,5 +73,75 @@ public class InventoryOutputsController(IMediator mediator) : ApiControllerBase
             UserId = Guid.Parse(userIdStr ?? ""),
             InventoryOutputId = inventory_output_id
         });
+    }
+
+    [HttpPost("companies/{company_id}/modules/{module_code}/inventory/inventory-outputs/{inventory_output_id}/start-dispatch")]
+    [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<NoContentResult> StartInventoryOutputAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid inventory_output_id)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        var payload = new StartInventoryOutputCommand()
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            InventoryOutputId = inventory_output_id,
+            UserId = Guid.Parse(userIdStr ?? "")
+        };
+
+        await mediator.Send(payload);
+        return NoContent();
+    }
+
+    [HttpPost("companies/{company_id}/modules/{module_code}/inventory/inventory-outputs/{inventory_output_id}/confirm-dispatch")]
+    [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<NoContentResult> ConfirmInventoryOutputAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid inventory_output_id)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        var payload = new ConfirmInventoryOutputCommand()
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            InventoryOutputId = inventory_output_id,
+            UserId = Guid.Parse(userIdStr ?? "")
+        };
+
+        await mediator.Send(payload);
+        return NoContent();
+    }
+
+    [HttpPost("companies/{company_id}/modules/{module_code}/inventory/inventory-outputs/{inventory_output_id}/reject-dispatch")]
+    [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<NoContentResult> RejectInventoryOutputAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid inventory_output_id,
+        [FromBody] RejectInventoryOutputCommand payload)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        payload.CompanyId = company_id;
+        payload.ModuleCode = module_code;
+        payload.InventoryOutputId = inventory_output_id;
+        payload.UserId = Guid.Parse(userIdStr ?? "");
+
+        await mediator.Send(payload);
+        return NoContent();
     }
 }

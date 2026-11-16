@@ -93,3 +93,10 @@ La solicitud no existe.
 
 ### 💥 500 Internal Server Error
 Error no controlado del servidor.
+
+---
+
+## Cambios recientes
+
+- Al rechazar, se revierte la reserva de stock (Supply y Fuel).
+- Se recalcula `ProductStock.Status` (`Empty`/`LowBalance`/`Stable`) según el stock disponible tras la reversión.

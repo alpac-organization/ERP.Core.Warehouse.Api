@@ -79,7 +79,7 @@ public class SupplyRequestsController(IMediator mediator) : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult> RegisterSupplyRequest(
+    public async Task<ActionResult<string>> RegisterSupplyRequest(
         [FromRoute] Guid                            company_id,
         [FromRoute] string                          module_code,
         [FromBody] RegisterSupplyRequestsCommad     command)
@@ -90,8 +90,8 @@ public class SupplyRequestsController(IMediator mediator) : ApiControllerBase
         command.ModuleCode  = module_code;
         command.UserId      = Guid.Parse(userIdStr ?? "");
 
-        await mediator.Send(command);
+        var code = await mediator.Send(command);
 
-        return Created();
+        return Created("", code);
     }
 }

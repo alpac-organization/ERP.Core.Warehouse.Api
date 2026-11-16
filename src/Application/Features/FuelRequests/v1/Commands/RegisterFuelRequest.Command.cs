@@ -3,7 +3,7 @@ using ERP.Core.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.FuelRequests.v1.Commands;
 
-public class RegisterFuelRequestsCommand : BaseRequest, IRequest<Unit>
+public class RegisterFuelRequestsCommand : BaseRequest, IRequest<string>
 {
     public string Justification { get; set; } = null!;
     public Guid MachineryId { get; set; }
@@ -11,4 +11,6 @@ public class RegisterFuelRequestsCommand : BaseRequest, IRequest<Unit>
     public decimal RequestedQuantity { get; set; }
     public decimal? Mileage { get; set; }                           // kilometraje del vehiculo particular
     public decimal? EngineHours { get; set; }
+
+    public Guid? CustomerId { get; set; }                           // Para corinto
 }

@@ -42,6 +42,7 @@ Endpoint para registrar una nueva solicitud de combustible.
 | `requested_quantity` | `decimal` | Sí | Cantidad de combustible solicitada. |
 | `mileage` | `decimal` | No | Kilometraje del vehículo (opcional). |
 | `engine_hours` | `decimal` | No | Horas motor de la maquinaria (opcional). |
+| `customer_id` | `guid` | No* | Cliente (requerido solo cuando la sucursal es Corinto). |
 
 ### Ejemplo de Request
 
@@ -82,3 +83,11 @@ Error de validación o reglas de negocio.
 ### 500 Internal Server Error
 
 Error no controlado del servidor.
+
+---
+
+## Cambios recientes
+
+- Validación por centro de costo del solicitante: el stock debe pertenecer al mismo `CostCenterId` del usuario.
+- Al reservar stock se actualiza `ProductStock.Status` (`Empty`/`LowBalance`/`Stable`) según el mínimo.
+- Se generan cuerpos de notificación de stock bajo (email/push) sin envío hasta existir lista de destinatarios.

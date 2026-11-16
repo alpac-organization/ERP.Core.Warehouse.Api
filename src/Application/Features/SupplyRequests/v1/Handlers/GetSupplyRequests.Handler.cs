@@ -23,7 +23,7 @@ public class GetSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager erro
         var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, ct);
         if (!access.IsSuccess) return access.ErrorResponse!;
 
-        if (access.Role?.RoleType is not (RoleType.Administrator or RoleType.Supervisor))
+        if (access.Role?.RoleType is not (RoleType.Administrator or RoleType.Supervisor or RoleType.Operator))
             return _errorManager.ThrowUnauthorized<PagedResponse<GetSupplyRequestDto>>(
                 "No tienes acceso a realizar esta acción", "ERP:INVALID_ACCESS");
 
@@ -34,6 +34,7 @@ public class GetSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager erro
             .AsNoTracking();
 
         supplyRequestsQuery = ApplyRequestFilters(supplyRequestsQuery, request);
+        supplyRequestsQuery = supplyRequestsQuery.ApplyRequestAccessFilter(access);
 
         var totalRecords = await supplyRequestsQuery.CountAsync(ct);
 

@@ -1,6 +1,8 @@
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Models;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 {
@@ -15,7 +17,28 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 .ToList();
         }
 
-        public static List<PurchaseOrderReportItemDto> BuildItems(PurchaseOrder purchaseOrder, IReadOnlyList<Quotation> supplierQuotations)
+        public static Currency ResolveDocumentCurrency(IReadOnlyList<Quotation> quotations)
+        {
+            var currencies = quotations
+                .Select(LineCurrency)
+                .Distinct()
+                .ToList();
+
+            if (currencies.Count > 1)
+            {
+                return Currency.NIO;
+            }
+
+            return currencies.Count == 0 ? Currency.NIO : currencies[0];
+        }
+
+        public static List<PurchaseOrderReportItemDto> BuildItems(
+            PurchaseOrder purchaseOrder,
+            IReadOnlyList<Quotation> supplierQuotations,
+            Currency documentCurrency,
+            decimal exchangeRate,
+            PurchaseTaxRates rates,
+            IPurchaseTaxService purchaseTaxService)
         {
             var quotationsByRequestItem = supplierQuotations
                 .GroupBy(quotation => quotation.PurchaseRequestItemId)
@@ -37,6 +60,19 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
                     var quantity = orderItem.Quantity;
                     var unitPrice = orderItem.UnitPrice;
+                    var priceTotal = quotation?.PriceTotal ?? quantity * unitPrice;
+                    var iva = quotation?.Iva ?? 0m;
+                    var lineCurrency = quotation is null ? Currency.NIO : LineCurrency(quotation);
+
+                    if (documentCurrency == Currency.NIO && lineCurrency == Currency.USD)
+                    {
+                        unitPrice = RoundMoney(unitPrice * exchangeRate);
+                        priceTotal = RoundMoney(unitPrice * quantity);
+                        var isTaxExempt = orderItem.Product?.IsTaxExempt
+                            ?? requestItem?.Product?.IsTaxExempt
+                            ?? false;
+                        iva = RoundMoney(purchaseTaxService.CalculateIva(priceTotal, isTaxExempt, rates));
+                    }
 
                     return new PurchaseOrderReportItemDto
                     {
@@ -48,29 +84,40 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                         Quantity = quantity,
                         UnitMeasure = requestItem?.UnitMeasure?.Name ?? requestItem?.UnitMeasure?.Symbol,
                         UnitPrice = unitPrice,
-                        PriceTotal = quotation?.PriceTotal ?? quantity * unitPrice,
-                        Iva = quotation?.Iva ?? 0m
+                        PriceTotal = priceTotal,
+                        Iva = iva
                     };
                 })
                 .ToList();
         }
 
-        // aqui Obtiene la moneda única de las cotizaciones.  
-        public static bool TryResolveCurrency(IReadOnlyList<Quotation> quotations, out Currency currency)
+        public static PurchaseRetentionResult CalculateSupplierRetention(
+            decimal subtotal,
+            Currency currency,
+            Supplier? supplier,
+            PurchaseTaxRates rates,
+            IPurchaseTaxService purchaseTaxService)
         {
-            var currencies = quotations
-                .Select(quotation => quotation.SupplierProduct?.Currency ?? Currency.NIO)
-                .Distinct()
-                .ToList();
+            var details = supplier?.SupplierDetails;
 
-            if (currencies.Count > 1)
-            {
-                currency = default;
-                return false;
-            }
+            return purchaseTaxService.CalculateRetentions(
+                subtotal,
+                currency,
+                details?.SupplierType,
+                details?.IsTaxExempt ?? false,
+                details?.ApplyIrRetention ?? false,
+                details?.ApplyMunicipalRetention ?? false,
+                rates);
+        }
 
-            currency = currencies.Count == 0 ? Currency.NIO : currencies[0];
-            return true;
+        private static Currency LineCurrency(Quotation quotation)
+        {
+            return quotation.SupplierProduct?.Currency ?? Currency.NIO;
+        }
+
+        private static decimal RoundMoney(decimal amount)
+        {
+            return Math.Round(amount, 2, MidpointRounding.AwayFromZero);
         }
     }
 }

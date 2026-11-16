@@ -35,7 +35,7 @@ Endpoint para obtener la lista paginada de solicitudes operativas de inventario.
 | `page_number` | `int` | No | `1` | Número de página. |
 | `page_size` | `int` | No | `10` | Tamaño de página (máx. recomendado 100). |
 
-> **Restricción por rol:** este endpoint solo puede ser consumido por los roles `Administrator` y `Supervisor`. Otros roles reciben `400` con `ERP:INVALID_ACCESS`.
+> **Restricción por rol:** este endpoint puede ser consumido por los roles `Administrator`, `Supervisor` y `Operator`. `Administrator` y `Supervisor` ven solicitudes de su branch y área; `Operator` ve solo las solicitudes creadas por él mismo (por branch). Otros roles reciben `400` con `ERP:INVALID_ACCESS`.
 >
 > **Regla temporal:** se retornan todas las solicitudes con estado `PendingReview` (sin límite de fecha); los demás estados solo si fueron creadas en los últimos 7 días.
 >
