@@ -1,4 +1,5 @@
 using ERP.Core.Database.Domain.Entities.Bases;
+using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.FuelRequests.v1.Dtos;
 
@@ -7,7 +8,8 @@ public class GetFuelRequestDetailDto : GetFuelRequestDto
     public WorkAreaInformation WorkAreaInformation { get; set; } = default!;
     public CostCenterInformation CostCenterInformation { get; set; } = default!;
     public BranchInformation BranchInformation { get; set; } = default!;
-    public MachineryInformation MachineryInformation { get; set; } = default!;
+    public WarehouseInformation WarehouseInformation { get; set; } = default!;
+    public EquipmentInformation EquipmentInformation { get; set; } = default!;
     public CustomerInformation CustomerInformation { get; set; } = default!;
     public string? ApprovedByUserChiefName { get; set; }
     public string? AnnulledByUserChiefName { get; set; }

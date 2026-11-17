@@ -16,22 +16,25 @@ public class FuelRequestsProfile : Profile
         CreateMap<FuelRequest, GetFuelRequestDto>()
             .ForMember(dest => dest.FuelRequestId, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.FuelRequestCode, opt => opt.MapFrom(src => src.Code))
-            .ForMember(dest => dest.MachineryCode, opt => opt.MapFrom(src => src.Machinery.Code))
+            .ForMember(dest => dest.EquipmentCode, opt => opt.MapFrom(src => src.Equipment.Code))
+            .ForMember(dest => dest.EquipmentBrand, opt => opt.MapFrom(src => src.Equipment.Brand))
+            .ForMember(dest => dest.EquipmentModel, opt => opt.MapFrom(src => src.Equipment.Model))
             .ForMember(dest => dest.RequestedByUserName, opt => opt.MapFrom(src => src.User.Fullname));
 
         CreateMap<FuelRequest, GetFuelRequestDetailDto>()
             .ForMember(dest => dest.FuelRequestId, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.FuelRequestCode, opt => opt.MapFrom(src => src.Code))
-            .ForMember(dest => dest.MachineryCode, opt => opt.MapFrom(src => src.Machinery.Code))
+            .ForMember(dest => dest.EquipmentCode, opt => opt.MapFrom(src => src.Equipment.Code))
             .ForMember(dest => dest.RequestedByUserName, opt => opt.MapFrom(src => src.User.Fullname))
             .ForMember(dest => dest.WorkAreaInformation, opt => opt.MapFrom(src => src.WorkArea))
             .ForMember(dest => dest.CostCenterInformation, opt => opt.MapFrom(src => src.CostCenter))
-            .ForMember(dest => dest.MachineryInformation, opt => opt.MapFrom(src => src.Machinery))
+            .ForMember(dest => dest.EquipmentInformation, opt => opt.MapFrom(src => src.Equipment))
             .ForMember(dest => dest.CustomerInformation, opt => opt.MapFrom(src => src.Customer))
             .ForMember(dest => dest.ProductStockName, opt => opt.MapFrom(src => src.ProductStock.Product.ProductName))
             .ForMember(dest => dest.UnitMeasureSymbol, opt => opt.MapFrom(src => src.UnitMeasure.Symbol))
             .ForMember(dest => dest.RequestedQuantityLitters, opt => opt.MapFrom(src => src.RequestedQuantityLitters))
             .ForMember(dest => dest.BranchInformation, opt => opt.MapFrom(src => src.Branch))
+            .ForMember(dest => dest.WarehouseInformation, opt => opt.MapFrom(src => src.Warehouse))
             .ForMember(dest => dest.ApprovedByUserChiefName, opt => opt.Ignore())
             .ForMember(dest => dest.AnnulledByUserChiefName, opt => opt.Ignore());
     }
@@ -54,7 +57,9 @@ public static class FuelRequestMapper
             WorkAreaId = userProfile.AreaId,
             CostCenterId = userProfile.CostCenterId,
             BranchId = userProfile.BranchId,
-            MachineryId = request.MachineryId,
+            EquipmentId = request.EquipmentId,
+            MachineryId = null,
+            WarehouseId = request.WarehouseId,
             ProductStockId = request.ProductStockId,
             UnitMeasureId = unitMeasureId,
             RequestedQuantity = request.RequestedQuantity,

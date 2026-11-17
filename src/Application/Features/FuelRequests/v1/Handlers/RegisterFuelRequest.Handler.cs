@@ -33,8 +33,13 @@ public class RegisterFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager e
         var areaError = await SupplyRequestSharedHelper.ValidateInventoryAreaAsync(_unitOfWork, _errorManager, access.Profile.AreaId, ct);
         if (areaError is not null) return areaError;
 
-        var machineryError = await ValidateMachineryAsync(request.MachineryId, access.Profile.BranchId, ct);
-        if (machineryError is not null) return machineryError;
+        var equipmentError = await ValidateEquipmentAsync(request.EquipmentId, access.Profile.BranchId, ct);
+        if (equipmentError is not null) return equipmentError;
+
+        var warehouseExists = await _unitOfWork.Warehouses.Entities
+            .AsNoTracking()
+            .AnyAsync(w => w.Id == request.WarehouseId && w.DeletedAt == null, ct);
+        if (!warehouseExists) return _errorManager.ThrowBadRequest<string>("El almacén no existe.", "ERP:WAREHOUSE_NOT_FOUND");
 
         var stockError = await ValidateFuelStockAsync(request.ProductStockId, request.RequestedQuantity, access.Profile.BranchId, access.Profile.CostCenterId, ct);
         if (stockError is not null) return stockError;
@@ -137,17 +142,17 @@ public class RegisterFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager e
         return Task.CompletedTask;
     }
 
-    private async Task<string?> ValidateMachineryAsync(Guid machineryId, Guid branchId, CancellationToken ct)
+    private async Task<string?> ValidateEquipmentAsync(Guid equipmentId, Guid branchId, CancellationToken ct)
     {
-        var machinery = await _unitOfWork.Machineries.Entities
+        var equipment = await _unitOfWork.Equipments.Entities
             .AsNoTracking()
-            .FirstOrDefaultAsync(m => m.Id == machineryId && m.DeletedAt == null, ct);
+            .FirstOrDefaultAsync(e => e.Id == equipmentId && e.DeletedAt == null, ct);
 
-        if (machinery is null) return _errorManager.ThrowBadRequest<string>("La maquinaria no existe.", "ERP:MACHINERY_NOT_FOUND");
+        if (equipment is null) return _errorManager.ThrowBadRequest<string>("El equipo no existe.", "ERP:EQUIPMENT_NOT_FOUND");
 
-        if (!machinery.IsActive) return _errorManager.ThrowBadRequest<string>("La maquinaria está inactiva.", "ERP:MACHINERY_INACTIVE");
+        if (!equipment.IsActive) return _errorManager.ThrowBadRequest<string>("El equipo está inactivo.", "ERP:EQUIPMENT_INACTIVE");
 
-        if (machinery.BranchId != branchId) return _errorManager.ThrowBadRequest<string>("La maquinaria no pertenece a la sucursal del usuario.", "ERP:MACHINERY_BRANCH_MISMATCH");
+        if (equipment.BranchId != branchId) return _errorManager.ThrowBadRequest<string>("El equipo no pertenece a la sucursal del usuario.", "ERP:EQUIPMENT_BRANCH_MISMATCH");
 
         return null;
     }
