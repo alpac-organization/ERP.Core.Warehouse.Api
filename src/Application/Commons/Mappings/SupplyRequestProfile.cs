@@ -69,6 +69,32 @@ public static class SupplyRequestMapper
         };
     }
 
+    // ============================================================
+    // FLUJO PARALELO TEMPORAL - SE ELIMINARÁ EN EL FUTURO
+    // Mapeo del flujo manual: WarehouseId y campos manuales desde el request.
+    // ============================================================
+    public static SupplyRequest ToSupplyRequestManualEntity(
+        this Commands.RegisterSupplyRequestManualCommand request, DbUserProfile userProfile, string code)
+    {
+        var id = Guid.NewGuid();
+        return new()
+        {
+            Id = id,
+            Code = code,
+            Justification = request.Justification,
+            OutflowStatus = OutflowStatus.PendingReview,
+            WorkAreaId = userProfile.AreaId,
+            CostCenterId = userProfile.CostCenterId,
+            BranchId = userProfile.BranchId,
+            WarehouseId = request.WarehouseId,
+            RequestedByUserId = userProfile.UserId,
+            EquipmentId = request.EquipmentId,
+            CustomerId = request.CustomerId,
+            DucaOrTransportOrder = request.DucaOrTransportOrder,
+            SupplyRequestItems = [.. request.Items.Select(item => item.ToSupplyRequestItemEntity(id, request.ReasonUse))]
+        };
+    }
+
     public static SupplyRequestItem ToSupplyRequestItemEntity(
         this Commands.RegisterSupplyRequestItem command, Guid supplyRequestId, ReasonUse reasonUse)
     {

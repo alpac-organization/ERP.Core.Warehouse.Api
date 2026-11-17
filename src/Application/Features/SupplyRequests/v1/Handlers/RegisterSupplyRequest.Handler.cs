@@ -194,3 +194,117 @@ public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager
         return Task.CompletedTask;
     }
 }
+
+// ============================================================
+// FLUJO PARALELO TEMPORAL - SE ELIMINARÁ EN EL FUTURO
+// Handler del flujo manual: WarehouseId y campos manuales desde el request.
+// ============================================================
+public class RegisterSupplyRequestManualHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, ICodeGenerator codeGenerator,
+    ILogger<RegisterSupplyRequestManualHandler> logger)
+    : BaseValidatorHandler<RegisterSupplyRequestManualCommand, string>(unitOfWork, errorManager)
+{
+    public override async Task<string> Handle(RegisterSupplyRequestManualCommand request, CancellationToken ct)
+    {
+        var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode, ct);
+        if (!access.IsSuccess) return access.ErrorResponse!;
+
+        var areaError = await SupplyRequestSharedHelper.ValidateInventoryAreaAsync(_unitOfWork, _errorManager, access.Profile.AreaId, ct);
+        if (areaError is not null) return areaError;
+
+        logger.LogInformation("📝Creando solicitud de inventario (FLUJO MANUAL).");
+
+        var stockError = await ValidateRequestedStockAsync(request, access.Profile.BranchId, access.Profile.CostCenterId, ct);
+        if (stockError is not null) return stockError;
+
+        // Validar warehouse manual
+        var warehouseExists = await _unitOfWork.Warehouses.Entities
+            .AsNoTracking()
+            .AnyAsync(w => w.Id == request.WarehouseId && w.DeletedAt == null, ct);
+        if (!warehouseExists) return _errorManager.ThrowBadRequest<string>("El almacén no existe.", "ERP:WAREHOUSE_NOT_FOUND");
+
+        var (branchCode, branchCodeError) = await SupplyRequestSharedHelper.GetBranchCodeAsync(_unitOfWork, _errorManager, access.Profile.BranchId, ct);
+        if (branchCodeError is not null) return branchCodeError;
+
+        string? generatedCode = null;
+        try
+        {
+            await _unitOfWork.ExecuteWithUniqueCodeRetryAsync(async token =>
+            {
+                var (isSuccess, code) = await codeGenerator.GenerateCodeToSupplyRequests(branchCode!, request.ReasonUse, token);
+                if (!isSuccess || string.IsNullOrWhiteSpace(code))
+                    throw new CoreException(new ErrorResponse(500, "ERP:INTERNAL_ERROR", "No se pudo generar el código para la solicitud."));
+
+                generatedCode = code;
+
+                var entity = request.ToSupplyRequestManualEntity(access.Profile, code);
+
+                await _unitOfWork.SupplyRequests.RegisterSupplyRequest(entity);
+
+                var reservedByStock = request.Items
+                    .GroupBy(i => i.ProductStockId)
+                    .ToDictionary(g => g.Key, g => g.Sum(i => i.Amount));
+
+                await StockReservationHelper.ReserveStockAsync(_unitOfWork, reservedByStock, token);
+
+                await _unitOfWork.SaveChangesAsync(token);
+
+                logger.LogInformation("✅Solicitud {Code} registrada con éxito (FLUJO MANUAL).", code);
+            }, ct);
+        }
+        catch (DbUpdateException ex)
+        {
+            logger.LogError(ex, "Error de persistencia al registrar la solicitud de insumos (FLUJO MANUAL).");
+            return _errorManager.ThrowBadRequest<string>("No se pudo registrar la solicitud de insumos.", "ERP:SUPPLY_REQUEST_PERSISTENCE_ERROR");
+        }
+
+        return generatedCode ?? string.Empty;
+    }
+
+    private async Task<string?> ValidateRequestedStockAsync(RegisterSupplyRequestManualCommand request, Guid branchId, Guid costCenterId, CancellationToken ct)
+    {
+        var requested = request.Items
+            .GroupBy(r => r.ProductStockId)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Amount));
+
+        var stockIds = requested.Keys.ToList();
+
+        var stocks = await _unitOfWork.ProductStocks.Entities
+            .AsNoTracking()
+            .Where(ps => stockIds.Contains(ps.Id) && ps.DeletedAt == null)
+            .Select(ps => new
+            {
+                ps.Id,
+                ps.IsActive,
+                ps.AvailableQuantity,
+                ps.Product.BranchId,
+                ps.CostCenterId,
+                Name = ps.Product.ProductName ?? ps.Product.Code,
+                Unit = ps.UnitMeasure.Symbol
+            })
+            .ToListAsync(ct);
+
+        var validByBranch = stocks.Where(s => s.BranchId == branchId).ToList();
+        if (validByBranch.Count != stockIds.Count)
+            return _errorManager.ThrowBadRequest<string>("Uno o más insumos no existen.", "ERP:PRODUCT_STOCK_NOT_FOUND");
+
+        var validStocks = validByBranch.Where(s => s.CostCenterId == costCenterId).ToList();
+        if (validStocks.Count != stockIds.Count)
+            return _errorManager.ThrowBadRequest<string>("Uno o más insumos no pertenecen a su centro de costo.", "ERP:PRODUCT_STOCK_COST_CENTER_MISMATCH");
+
+        var inactive = validStocks.Where(s => !s.IsActive).Select(s => s.Name).ToList();
+        if (inactive.Count > 0) return _errorManager.ThrowBadRequest<string>("Los siguientes insumos están inactivos.", "ERP:PRODUCT_STOCK_INACTIVE");
+
+        var empty = validStocks.Where(s => s.AvailableQuantity <= 0).Select(s => s.Name).ToList();
+        if (empty.Count > 0)
+            return _errorManager.ThrowBadRequest<string>($"Los siguientes insumos no tienen stock disponible: {string.Join(", ", empty)}.", "ERP:PRODUCT_STOCK_EMPTY");
+
+        var insufficient = validStocks
+            .Where(s => requested[s.Id] > s.AvailableQuantity)
+            .Select(s => $"{s.Name} (solicitado: {requested[s.Id]} {s.Unit}, disponible: {s.AvailableQuantity} {s.Unit}")
+            .ToList();
+        if (insufficient.Count > 0)
+            return _errorManager.ThrowBadRequest<string>($"La cantidad solicitada supera el stock disponible: {string.Join("; ", insufficient)}.", "ERP:INSUFFICIENT_STOCK");
+
+        return null;
+    }
+}
