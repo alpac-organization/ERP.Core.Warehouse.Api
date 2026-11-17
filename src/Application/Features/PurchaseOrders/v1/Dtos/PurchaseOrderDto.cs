@@ -1,4 +1,5 @@
 using ERP.Core.Database.Domain.Entities.Bases;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos
@@ -6,6 +7,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos
     public class PurchaseOrderHeaderDto
     {
         public string? Comments { get; set; }
+        public PurchaseOrderStatus Status { get;  set; }
 
         public DateOnly SentToReviewAt { get; set; }
 
