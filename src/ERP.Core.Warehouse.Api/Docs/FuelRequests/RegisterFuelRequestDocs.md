@@ -10,7 +10,7 @@ Endpoint para registrar una nueva solicitud de combustible.
 |-------|-------|
 | **Método** | `POST` |
 | **Endpoint** | `/api/v1/companies/{company_id}/modules/{module_code}/inventory/fuel-requests` |
-| **Descripción** | Registra una solicitud de combustible para una maquinaria o vehículo, validando stock disponible, maquinaria y sucursal. Requiere autenticación con token. |
+| **Descripción** | Registra una solicitud de combustible para un equipo o vehículo, validando stock disponible, equipo, almacén y sucursal. Requiere autenticación con token. |
 
 ---
 
@@ -37,7 +37,8 @@ Endpoint para registrar una nueva solicitud de combustible.
 | Parámetro | Tipo | Requerido | Descripción |
 |-----------|------|:---------:|-------------|
 | `justification` | `string` | Sí | Justificación de la solicitud de combustible. |
-| `machinery_id` | `guid` | Sí | Identificador de la maquinaria o vehículo. |
+| `equipment_id` | `guid` | Sí | Identificador del equipo o vehículo. |
+| `warehouse_id` | `guid` | Sí | Identificador del almacén. |
 | `product_stock_id` | `guid` | Sí | Identificador del stock de combustible. |
 | `requested_quantity` | `decimal` | Sí | Cantidad de combustible solicitada. |
 | `mileage` | `decimal` | No | Kilometraje del vehículo (opcional). |
@@ -48,8 +49,9 @@ Endpoint para registrar una nueva solicitud de combustible.
 
 ```json
 {
-  "justification": "Combustible para operación de maquinaria",
-  "machinery_id": "3fa85f64-5717-4562-b3fc-2c963f66afb2",
+  "justification": "Combustible para operación de equipo",
+  "equipment_id": "3fa85f64-5717-4562-b3fc-2c963f66afb2",
+  "warehouse_id": "3fa85f64-5717-4562-b3fc-2c963f66afb4",
   "product_stock_id": "3fa85f64-5717-4562-b3fc-2c963f66afb3",
   "requested_quantity": 25,
   "mileage": 12345.5,

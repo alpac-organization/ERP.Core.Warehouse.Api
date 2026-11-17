@@ -41,7 +41,7 @@ public class GetFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager errorM
         var fuelRequests = await fuelRequestsQuery
             .Include(fr => fr.User)
             .Include(fr => fr.WorkArea)
-            .Include(fr => fr.Machinery)
+            .Include(fr => fr.Equipment)
             .Include(fr => fr.ProductStock)
                 .ThenInclude(ps => ps.Product)
             .Include(fr => fr.UnitMeasure)
@@ -63,7 +63,7 @@ public class GetFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager errorM
     private static IQueryable<FuelRequest> ApplyRequestFilters(IQueryable<FuelRequest> query,
         GetFuelRequestsQuery request)
     {
-        if (request.MachineryId.HasValue) query = query.Where(fr => fr.MachineryId == request.MachineryId);
+        if (request.EquipmentId.HasValue) query = query.Where(fr => fr.EquipmentId == request.EquipmentId);
 
         if (request.ProductStockId.HasValue) query = query.Where(fr => fr.ProductStockId == request.ProductStockId);
 

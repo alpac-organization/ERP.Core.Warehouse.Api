@@ -29,7 +29,7 @@ Endpoint para obtener la lista paginada de solicitudes de combustible.
 |-----------|------|-----------|---------|-------------|
 | `code` | `string` | No | - | Filtrar por código de la solicitud de combustible (contiene). |
 | `branch_id` | `guid` | No | - | Filtrar por identificador de la sucursal. |
-| `machinery_id` | `guid` | No | - | Filtrar por identificador de la maquinaria. |
+| `equipment_id` | `guid` | No | - | Filtrar por identificador del equipo. |
 | `product_stock_id` | `guid` | No | - | Filtrar por identificador del stock de combustible. |
 | `status` | `enum (OutflowStatus)` | No | - | Filtrar por estado de la solicitud. |
 | `page_number` | `int` | No | `1` | Número de página. |
@@ -64,9 +64,9 @@ Lista paginada de solicitudes de combustible.
       "fuel_request_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
       "fuel_request_code": "FR-00001",
       "outflow_status": "PendingReview",
-      "machinery_code": "MACH-001",
-      "machinery_brand": "Caterpillar",
-      "machinery_model": "D6",
+      "equipment_code": "EQ-001",
+      "equipment_brand": "Toyota",
+      "equipment_model": "7FDU35",
       "requested_by_user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa7",
       "requested_by_user_name": "Juan Pérez",
       "created_at": "2026-11-05 08:00:00"
@@ -86,9 +86,9 @@ Lista paginada de solicitudes de combustible.
 | `fuel_request_id` | `guid` | Identificador único de la solicitud de combustible. |
 | `fuel_request_code` | `string` | Código de la solicitud de combustible. |
 | `outflow_status` | `enum (OutflowStatus)` | Estado de la solicitud. |
-| `machinery_code` | `string` | Código de la maquinaria o vehículo. |
-| `machinery_brand` | `string` | Marca de la maquinaria. |
-| `machinery_model` | `string` | Modelo de la maquinaria. |
+| `equipment_code` | `string` | Código del equipo o vehículo. |
+| `equipment_brand` | `string` | Marca del equipo. |
+| `equipment_model` | `string` | Modelo del equipo. |
 | `requested_by_user_id` | `guid` | Identificador del usuario solicitante. |
 | `requested_by_user_name` | `string` | Nombre del usuario solicitante. |
 | `created_at` | `datetime` | Fecha de creación de la solicitud. |
