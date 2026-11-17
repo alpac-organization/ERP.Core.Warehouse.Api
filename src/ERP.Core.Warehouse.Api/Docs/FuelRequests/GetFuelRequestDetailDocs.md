@@ -10,7 +10,7 @@ Endpoint para obtener el detalle completo de una solicitud de combustible.
 |-------|-------|
 | **Método** | `GET` |
 | **Endpoint** | `/api/v1/companies/{company_id}/modules/{module_code}/inventory/fuel-requests/{fuel_request_id}/detail` |
-| **Descripción** | Retorna el detalle completo de la solicitud de combustible incluyendo maquinaria, producto/stock, información de área, centro de costos, sucursal y auditoría. Requiere autenticación con token. |
+| **Descripción** | Retorna el detalle completo de la solicitud de combustible incluyendo equipo, producto/stock, información de área, centro de costos, sucursal, almacén y auditoría. Requiere autenticación con token. |
 
 ---
 
@@ -45,9 +45,9 @@ Detalle completo de la solicitud de combustible.
   "outflow_status": "PendingReview",
   "requested_by_user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa7",
   "requested_by_user_name": "Juan Pérez",
-  "machinery_code": "MACH-001",
-  "machinery_brand": "Caterpillar",
-  "machinery_model": "D6",
+  "equipment_code": "EQ-001",
+  "equipment_brand": "Toyota",
+  "equipment_model": "7FDU35",
   "created_at": "2026-11-05 08:00:00",
   "work_area_information": {
     "work_area_id": "3fa85f64-5717-4562-b3fc-2c963f66afa8",
@@ -61,16 +61,20 @@ Detalle completo de la solicitud de combustible.
     "branch_id": "3fa85f64-5717-4562-b3fc-2c963f66afb0",
     "branch_code": "ALP-MGA"
   },
-  "machinery_information": {
-    "machinery_id": "3fa85f64-5717-4562-b3fc-2c963f66afb1",
-    "code": "MACH-001",
-    "brand": "Caterpillar",
-    "year": "2024",
-    "model": "D6",
+  "equipment_information": {
+    "brand": "Toyota",
+    "code": "EQ-001",
+    "model": "7FDU35",
     "serial_number": "SN-123",
-    "color": "Amarillo",
     "status": "Available",
-    "type": "HeavyEquipment"
+    "type": "Forklift",
+    "gasoline": false,
+    "diesel": true,
+    "electric": false,
+    "lpg": false
+  },
+  "warehouse_information": {
+    "warehouse_id": "3fa85f64-5717-4562-b3fc-2c963f66afb5"
   },
   "product_stock_id": "3fa85f64-5717-4562-b3fc-2c963f66afb2",
   "product_stock_name": "Diesel",
@@ -89,16 +93,17 @@ Detalle completo de la solicitud de combustible.
 | `fuel_request_id` | `guid` | Identificador único de la solicitud de combustible. |
 | `fuel_request_code` | `string` | Código de la solicitud de combustible. |
 | `outflow_status` | `enum (OutflowStatus)` | Estado de la solicitud. |
-| `machinery_code` | `string` | Código de la maquinaria o vehículo. |
-| `machinery_brand` | `string` | Marca de la maquinaria. |
-| `machinery_model` | `string` | Modelo de la maquinaria. |
+| `equipment_code` | `string` | Código del equipo o vehículo. |
+| `equipment_brand` | `string` | Marca del equipo. |
+| `equipment_model` | `string` | Modelo del equipo. |
 | `requested_by_user_id` | `guid` | Identificador del usuario solicitante. |
 | `requested_by_user_name` | `string` | Nombre del usuario solicitante. |
 | `created_at` | `datetime` | Fecha de creación de la solicitud. |
 | `work_area_information` | `WorkAreaInformation` | Información del área de trabajo. |
 | `cost_center_information` | `CostCenterInformation` | Información del centro de costos. |
 | `branch_information` | `BranchInformation` | Información de la sucursal. |
-| `machinery_information` | `MachineryInformation` | Información detallada de la maquinaria. |
+| `equipment_information` | `EquipmentInformation` | Información detallada del equipo. |
+| `warehouse_information` | `WarehouseInformation` | Información del almacén. |
 | `product_stock_id` | `guid` | Identificador del stock de combustible. |
 | `product_stock_name` | `string` | Nombre del producto combustible. |
 | `requested_quantity` | `decimal` | Cantidad de combustible solicitada. |
@@ -117,15 +122,17 @@ Detalle completo de la solicitud de combustible.
 | `CostCenterInformation` | `cost_center_name` | `string` | Nombre del centro de costos. |
 | `BranchInformation` | `branch_id` | `guid` | Identificador de la sucursal. |
 | `BranchInformation` | `branch_code` | `string` | Código de la sucursal. |
-| `MachineryInformation` | `machinery_id` | `guid` | Identificador de la maquinaria. |
-| `MachineryInformation` | `code` | `string` | Código de la maquinaria. |
-| `MachineryInformation` | `brand` | `string` | Marca de la maquinaria. |
-| `MachineryInformation` | `year` | `string` | Año de la maquinaria. |
-| `MachineryInformation` | `model` | `string` | Modelo de la maquinaria. |
-| `MachineryInformation` | `serial_number` | `string` | Número de serie. |
-| `MachineryInformation` | `color` | `string` | Color. |
-| `MachineryInformation` | `status` | `enum (MachineryStatus)` | Estado de la maquinaria. |
-| `MachineryInformation` | `type` | `enum (MachineryType)` | Tipo de maquinaria. |
+| `EquipmentInformation` | `brand` | `string` | Marca del equipo. |
+| `EquipmentInformation` | `code` | `string` | Código del equipo. |
+| `EquipmentInformation` | `model` | `string` | Modelo del equipo. |
+| `EquipmentInformation` | `serial_number` | `string` | Número de serie. |
+| `EquipmentInformation` | `status` | `enum (EquipmentStatus)` | Estado del equipo. |
+| `EquipmentInformation` | `type` | `enum (EquipmentType)` | Tipo de equipo. |
+| `EquipmentInformation` | `gasoline` | `bool` | Combustible gasolina. |
+| `EquipmentInformation` | `diesel` | `bool` | Combustible diésel. |
+| `EquipmentInformation` | `electric` | `bool` | Combustible eléctrico. |
+| `EquipmentInformation` | `lpg` | `bool` | Combustible GLP. |
+| `WarehouseInformation` | `warehouse_id` | `guid` | Identificador del almacén. |
 
 ### 400 Bad Request
 
