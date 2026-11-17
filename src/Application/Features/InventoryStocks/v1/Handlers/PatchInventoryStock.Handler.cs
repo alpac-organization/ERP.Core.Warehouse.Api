@@ -1,7 +1,8 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-
 using ERP.Core.Application.Commons.Interfaces;
+
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
@@ -20,9 +21,22 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                 return access.ErrorResponse!;
             }
 
-            var productStock = await _unitOfWork.ProductStocks.Entities
+            var hasAccess =
+                access.Role?.RoleType == RoleType.Manager ||
+                access.Role?.RoleType == RoleType.Administrator;
+
+            var productStockQuery = _unitOfWork.ProductStocks.Entities
                 .Where(stock => stock.Id == request.InventoryStockId)
-                .FirstOrDefaultAsync(cancellationToken);
+                .Where(stock => stock.IsActive)
+                .Where(stock => stock.Product.BranchId == access.Profile.BranchId);
+
+            if (!hasAccess)
+            {
+                productStockQuery = productStockQuery
+                    .Where(stock => stock.CostCenterId == access.Profile.CostCenterId);
+            }
+
+            var productStock = await productStockQuery.FirstOrDefaultAsync(cancellationToken);
 
             if (productStock is null)
             {
@@ -57,6 +71,20 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                 productStock.MaximumStock = request.MaximumStock.Value;
             }
 
+            if (productStock.AvailableQuantity <= 0)
+            {
+                productStock.Status = ProductStockStatus.Empty;
+            }
+            else if (productStock.AvailableQuantity <= productStock.MinimumStock)
+            {
+                productStock.Status = ProductStockStatus.LowBalance;
+            }
+            else
+            {
+                productStock.Status = ProductStockStatus.Stable;
+            }
+
+            await _unitOfWork.ProductStocks.UpdateAsync(productStock);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return Unit.Value;
