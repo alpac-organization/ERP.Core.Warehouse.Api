@@ -22,22 +22,57 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
             {
                 return access.ErrorResponse!;
             }
-            
+
+            var roleType        = access.Role?.RoleType;
+            var isAdministrator = roleType == RoleType.Administrator;
+            var isManager       = roleType == RoleType.Manager;
+
             var productStocksQuery = _unitOfWork.ProductStocks.Entities
-                .Include(inventory => inventory.Product)
-                    .ThenInclude(product => product.Category)
-
-                .Include(inventory => inventory.Product)
-                    .ThenInclude(product => product.CostCenter)
-
-                .Include(inventory => inventory.CostCenter)
-                .Include(inventory => inventory.UnitMeasure)
-
-                .Where(inventory => inventory.Product.BranchId == access.Profile.BranchId)
-                .Where(inventory => inventory.Product.ProductUsageType == ProductUsageType.Operational)
                 .AsNoTracking()
-                .AsSplitQuery();
+                .Where(inventory => inventory.Product.ProductUsageType == ProductUsageType.Operational)
+                .Where(inventory =>
+                    inventory.Product.ProductStatus == ProductStatus.Active ||
+                    inventory.Product.ProductStatus == ProductStatus.LowProcess
+                );
 
+            // ---------- Filtros por rol (restricciones de seguridad) ----------
+            if (isAdministrator)
+            {
+                // Administrador: sucursal y centro de costos opcionales
+                if (request.BranchId.HasValue)
+                {
+                    productStocksQuery = productStocksQuery
+                        .Where(inventory => inventory.Product.BranchId == request.BranchId.Value);
+                }
+
+                if (request.CostCenterId.HasValue)
+                {
+                    productStocksQuery = productStocksQuery
+                        .Where(inventory => inventory.CostCenterId == request.CostCenterId.Value);
+                }
+            }
+            else if (isManager)
+            {
+                // Manager: sucursal fija del perfil, centro de costos opcional
+                productStocksQuery = productStocksQuery
+                    .Where(inventory => inventory.Product.BranchId == access.Profile.BranchId);
+
+                if (request.CostCenterId.HasValue)
+                {
+                    productStocksQuery = productStocksQuery
+                        .Where(inventory => inventory.CostCenterId == request.CostCenterId.Value);
+                }
+            }
+            else
+            {
+                // Operador / Supervisor: sucursal, centro de costos y área del perfil
+                productStocksQuery = productStocksQuery
+                    .Where(inventory => inventory.Product.BranchId == access.Profile.BranchId)
+                    .Where(inventory => inventory.CostCenterId == access.Profile.CostCenterId)
+                    .Where(inventory => inventory.Product.CostCenter.WorkAreaId == access.Profile.AreaId);
+            }
+
+            // ---------- Conteos (respetan la restricción del rol) ----------
             var counts = await productStocksQuery
                 .GroupBy(_ => 1)
                 .Select(group => new
@@ -47,6 +82,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
+            // ---------- Filtros libres ----------
             if (request.CategoryId.HasValue)
             {
                 productStocksQuery = productStocksQuery
@@ -72,27 +108,16 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                     .Where(inventory => EF.Functions.Like(inventory.Product.ProductName, $"%{request.ProductName}%"));
             }
 
-            var hasAccess = 
-                access.Role?.RoleType == RoleType.Manager       ||
-                access.Role?.RoleType == RoleType.Administrator; 
-
-            if (hasAccess && request.CostCenterId.HasValue)
-            {
-                productStocksQuery = productStocksQuery
-                    .Where(inventory => inventory.CostCenterId == request.CostCenterId);
-            }
-            
-            if(!hasAccess)
-            {
-                productStocksQuery = productStocksQuery
-                    .Where(inventory => inventory.CostCenterId == access.Profile.CostCenterId);
-
-                productStocksQuery = productStocksQuery
-                    .Where(inventory => inventory.Product.CostCenter.WorkAreaId == access.Profile.AreaId);
-            }
-
+            // ---------- Página ----------
             var productStocks = await productStocksQuery
-                .OrderBy(product => product.CreatedAt)
+                .Include(inventory => inventory.Product)
+                    .ThenInclude(product => product.Category)
+                .Include(inventory => inventory.Product)
+                    .ThenInclude(product => product.CostCenter)
+                .Include(inventory => inventory.CostCenter)
+                .Include(inventory => inventory.UnitMeasure)
+                .AsSplitQuery()
+                .OrderBy(inventory => inventory.CreatedAt)
                 .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .ToListAsync(cancellationToken);
