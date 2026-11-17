@@ -38,6 +38,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
 
                 .Where(inventory => inventory.Product.BranchId == access.Profile.BranchId)
                 .Where(inventory => inventory.Product.ProductUsageType == ProductUsageType.Operational)
+                .Where(inventory => 
+                    inventory.Product.ProductStatus == ProductStatus.Active || 
+                    inventory.Product.ProductStatus == ProductStatus.LowProcess
+                )
                 .AsNoTracking()
                 .AsSplitQuery();
 
