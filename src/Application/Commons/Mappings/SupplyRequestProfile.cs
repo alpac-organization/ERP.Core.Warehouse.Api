@@ -37,7 +37,9 @@ public class SupplyRequestsProfile : Profile
             .ForMember(dest => dest.ApprovedByUserChiefName, opt => opt.Ignore())
             .ForMember(dest => dest.AnnulledByUserChiefName, opt => opt.Ignore())
             .ForMember(dest => dest.OperationalOrderInformation, opt => opt.MapFrom(src => src.OperationalOrder))
-            .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.SupplyRequestItems));
+            .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.SupplyRequestItems))
+            .ForMember(dest => dest.EquipmentInformation, opt => opt.MapFrom(src => src.Equipment))
+            .ForMember(dest => dest.CustomerInformation, opt => opt.MapFrom(src => src.Customer));
 
         CreateMap<SupplyRequestItem, ItemDetail>()
             .ForMember(dest => dest.SupplyRequestItemId, opt => opt.MapFrom(src => src.Id))

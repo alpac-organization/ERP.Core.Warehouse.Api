@@ -20,6 +20,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(dest => dest.UpdatedByUserName, opt => opt.MapFrom(src => src.User!.Fullname))
                 .ForMember(dest => dest.EquipmentColor, opt => opt.MapFrom(src => src.Color));
 
+            CreateMap<Equipment, EquipmentInformation>();
+
         }
 
 
