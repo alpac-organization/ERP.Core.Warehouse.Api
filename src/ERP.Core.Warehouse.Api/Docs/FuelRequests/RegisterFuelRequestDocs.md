@@ -38,7 +38,7 @@ Endpoint para registrar una nueva solicitud de combustible.
 |-----------|------|:---------:|-------------|
 | `justification` | `string` | Sí | Justificación de la solicitud de combustible. |
 | `equipment_id` | `guid` | Sí | Identificador del equipo o vehículo. |
-| `warehouse_id` | `guid` | Sí | Identificador del almacén. |
+| `warehouse_id` | `guid` | No | Identificador del almacén. |
 | `product_stock_id` | `guid` | Sí | Identificador del stock de combustible. |
 | `requested_quantity` | `decimal` | Sí | Cantidad de combustible solicitada. |
 | `mileage` | `decimal` | No | Kilometraje del vehículo (opcional). |
