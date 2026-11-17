@@ -15,7 +15,8 @@ public class RegisterFuelRequestsValidator : BaseRequestValidator<RegisterFuelRe
             .NotEmpty().WithMessage("Debe especificar el equipo/vehículo");
 
         RuleFor(x => x.WarehouseId)
-            .NotEmpty().WithMessage("Debe especificar el almacén");
+            .NotEmpty()
+            .When(x => x.WarehouseId.HasValue).WithMessage("El almacén no es válido");
 
         RuleFor(x => x.ProductStockId)
             .NotEmpty().WithMessage("Debe especificar el stock de combustible");

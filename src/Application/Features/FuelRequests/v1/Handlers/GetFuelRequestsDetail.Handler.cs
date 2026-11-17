@@ -36,6 +36,18 @@ public class GetFuelRequestsDetailHandler(IUnitOfWork unitOfWork, IErrorManager 
             "La solicitud de combustible no existe",
             "ERP:FUEL_REQUEST_NOT_FOUND");
 
+        var previousFuelRequest = await _unitOfWork.FuelRequests.Entities
+            .AsNoTracking()
+            .Where(fr => fr.EquipmentId == fuelRequestDetail.EquipmentId
+                      && fr.Id != fuelRequestDetail.Id
+                      && fr.DeletedAt == null
+                      && (fr.CreatedAt < fuelRequestDetail.CreatedAt
+                          || (fr.CreatedAt == fuelRequestDetail.CreatedAt && fr.Id < fuelRequestDetail.Id)))
+            .OrderByDescending(fr => fr.CreatedAt)
+            .ThenByDescending(fr => fr.Id)
+            .Select(fr => new { fr.Mileage, fr.EngineHours })
+            .FirstOrDefaultAsync(ct);
+
         var approvedByUserChief = fuelRequestDetail.ApprovedByUserChiefId.HasValue
             ? await _unitOfWork.Users.Entities
                 .AsNoTracking()
@@ -52,6 +64,9 @@ public class GetFuelRequestsDetailHandler(IUnitOfWork unitOfWork, IErrorManager 
 
         fuelRequestMapped.ApprovedByUserChiefName = approvedByUserChief?.Fullname;
         fuelRequestMapped.AnnulledByUserChiefName = annulledByUserChief?.Fullname;
+
+        fuelRequestMapped.PreviousMileage = previousFuelRequest?.Mileage;
+        fuelRequestMapped.PreviousEngineHours = previousFuelRequest?.EngineHours;
 
         return fuelRequestMapped;
     }

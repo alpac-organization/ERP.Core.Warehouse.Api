@@ -36,7 +36,9 @@ public class FuelRequestsProfile : Profile
             .ForMember(dest => dest.BranchInformation, opt => opt.MapFrom(src => src.Branch))
             .ForMember(dest => dest.WarehouseInformation, opt => opt.MapFrom(src => src.Warehouse))
             .ForMember(dest => dest.ApprovedByUserChiefName, opt => opt.Ignore())
-            .ForMember(dest => dest.AnnulledByUserChiefName, opt => opt.Ignore());
+            .ForMember(dest => dest.AnnulledByUserChiefName, opt => opt.Ignore())
+            .ForMember(dest => dest.PreviousMileage, opt => opt.Ignore())
+            .ForMember(dest => dest.PreviousEngineHours, opt => opt.Ignore());
     }
 }
 

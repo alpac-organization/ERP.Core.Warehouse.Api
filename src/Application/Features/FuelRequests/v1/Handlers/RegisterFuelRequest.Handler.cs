@@ -36,10 +36,11 @@ public class RegisterFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager e
         var equipmentError = await ValidateEquipmentAsync(request.EquipmentId, access.Profile.BranchId, ct);
         if (equipmentError is not null) return equipmentError;
 
-        var warehouseExists = await _unitOfWork.Warehouses.Entities
-            .AsNoTracking()
-            .AnyAsync(w => w.Id == request.WarehouseId && w.DeletedAt == null, ct);
-        if (!warehouseExists) return _errorManager.ThrowBadRequest<string>("El almacén no existe.", "ERP:WAREHOUSE_NOT_FOUND");
+        var warehouseExists = request.WarehouseId.HasValue
+            && await _unitOfWork.Warehouses.Entities
+                .AsNoTracking()
+                .AnyAsync(w => w.Id == request.WarehouseId.Value && w.DeletedAt == null, ct);
+        if (request.WarehouseId.HasValue && !warehouseExists) return _errorManager.ThrowBadRequest<string>("El almacén no existe.", "ERP:WAREHOUSE_NOT_FOUND");
 
         var stockError = await ValidateFuelStockAsync(request.ProductStockId, request.RequestedQuantity, access.Profile.BranchId, access.Profile.CostCenterId, ct);
         if (stockError is not null) return stockError;

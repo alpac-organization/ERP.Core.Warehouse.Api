@@ -23,4 +23,7 @@ public class GetFuelRequestDetailDto : GetFuelRequestDto
     public decimal? Mileage { get; set; }
     public decimal? EngineHours { get; set; }
 
+    public decimal? PreviousMileage { get; set; }
+    public decimal? PreviousEngineHours { get; set; }
+
 }

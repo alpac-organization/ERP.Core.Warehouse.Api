@@ -81,6 +81,8 @@ Detalle completo de la solicitud de combustible.
   "requested_quantity": 25,
   "mileage": 12345.5,
   "engine_hours": 850,
+  "previous_mileage": 12000.0,
+  "previous_engine_hours": 820,
   "approved_by_user_chief_name": null,
   "annulled_by_user_chief_name": null
 }
@@ -109,6 +111,8 @@ Detalle completo de la solicitud de combustible.
 | `requested_quantity` | `decimal` | Cantidad de combustible solicitada. |
 | `mileage` | `decimal \| null` | Kilometraje del vehículo. |
 | `engine_hours` | `decimal \| null` | Horas motor de la maquinaria. |
+| `previous_mileage` | `decimal \| null` | Kilometraje de la solicitud anterior del mismo equipo. |
+| `previous_engine_hours` | `decimal \| null` | Horas motor de la solicitud anterior del mismo equipo. |
 | `approved_by_user_chief_name` | `string \| null` | Nombre del jefe que aprobó la solicitud. |
 | `annulled_by_user_chief_name` | `string \| null` | Nombre del jefe que anuló la solicitud. |
 
