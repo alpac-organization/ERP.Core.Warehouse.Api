@@ -20,6 +20,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
         ICodeGenerator codeGenerator)
         : BaseValidatorHandler<ProcessPurchaseOrderCommand, bool>(unitOfWork, errorManager)
     {
+        private const int MaxCodeGenerationAttempts = 5;
+
         public override async Task<bool> Handle(ProcessPurchaseOrderCommand request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode!, cancellationToken);
@@ -103,6 +105,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                             reviewToUpdate.Status = ManagementReviewStatus.Approved;
                             await _unitOfWork.PurchaseRequestsReviewedManagement.UpdateAsync(reviewToUpdate);
 
+                            var usedPurchaseOrderCodes = await LoadExistingPurchaseOrderCodesAsync(purchaseRequestId, token);
+                            var usedPaymentRequestCodes = request.GeneratePaymentRequest
+                                ? await LoadExistingPaymentRequestCodesAsync(token)
+                                : null;
+
                             foreach (var supplierGroup in quotationsBySupplier)
                             {
                                 var supplierQuotations = supplierGroup.ToList();
@@ -114,35 +121,26 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                                         SupplierPaymentMethodConsistency.ErrorCode,
                                         SupplierPaymentMethodConsistency.ErrorMessage);
                                 }
+
                                 string? paymentRequestCode = null;
 
                                 if (request.GeneratePaymentRequest)
                                 {
-                                    var (paymentCodeSucceeded, generatedPaymentCode) =
-                                        await codeGenerator.GenerateUniquePaymentRequestCodeAsync(
+                                    paymentRequestCode = await ReserveUniqueCodeAsync(
+                                        usedPaymentRequestCodes!,
+                                        () => codeGenerator.GenerateUniquePaymentRequestCodeAsync(
                                             branchId,
                                             paymentMethod,
-                                            token);
-
-                                    if (!paymentCodeSucceeded || string.IsNullOrWhiteSpace(generatedPaymentCode))
-                                    {
-                                        throw new PurchaseCodeGenerationException(
-                                            "ERP:ERROR_PAYMENT_REQUEST_CODE_GENERATOR",
-                                            "Ocurrió un error al generar el código de la solicitud de pago");
-                                    }
-
-                                    paymentRequestCode = generatedPaymentCode;
+                                            token),
+                                        "ERP:ERROR_PAYMENT_REQUEST_CODE_GENERATOR",
+                                        "Ocurrió un error al generar el código de la solicitud de pago");
                                 }
 
-                                var (codeSucceeded, poCode) = await codeGenerator.GenerateUniquePurchaseOrderCode(
-                                    purchaseRequestId, token);
-
-                                if (!codeSucceeded || string.IsNullOrWhiteSpace(poCode))
-                                {
-                                    throw new PurchaseCodeGenerationException(
-                                        "ERP:ERROR_PURCHASE_ORDER_CODE_GENERATOR",
-                                        "Ocurrió un error al generar el código de la orden de compra");
-                                }
+                                var poCode = await ReserveUniqueCodeAsync(
+                                    usedPurchaseOrderCodes,
+                                    () => codeGenerator.GenerateUniquePurchaseOrderCode(purchaseRequestId, token),
+                                    "ERP:ERROR_PURCHASE_ORDER_CODE_GENERATOR",
+                                    "Ocurrió un error al generar el código de la orden de compra");
 
                                 var purchaseOrder = reviewToUpdate.ToPurchaseOrderEntity(reviewerUserId);
                                 purchaseOrder.SupplierId = supplierGroup.Key;
@@ -175,6 +173,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
                                     await _unitOfWork.PurchaseOrderItems.RegisterPurchaseOrderItem(orderItem);
                                 }
+
+                                await _unitOfWork.SaveChangesAsync(token);
                             }
 
                             var purchaseRequest = await _unitOfWork.PurchaseRequests.Entities
@@ -219,6 +219,56 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                     return _errorManager.ThrowBadRequest<bool>(
                         "El nuevo estado de la revisión no es válido", "ERP:INVALID_STATUS_CHANGE");
             }
+        }
+
+        private async Task<HashSet<string>> LoadExistingPurchaseOrderCodesAsync(
+            Guid purchaseRequestId,
+            CancellationToken cancellationToken)
+        {
+            var codes = await _unitOfWork.PurchaseOrders.Entities
+                .AsNoTracking()
+                .Where(order => order.PurchaseRequestId == purchaseRequestId)
+                .Where(order => order.Code != null && order.Code != string.Empty)
+                .Select(order => order.Code!)
+                .ToListAsync(cancellationToken);
+
+            return new HashSet<string>(codes, StringComparer.OrdinalIgnoreCase);
+        }
+
+        private async Task<HashSet<string>> LoadExistingPaymentRequestCodesAsync(CancellationToken cancellationToken)
+        {
+            var codes = await _unitOfWork.PurchaseOrders.Entities
+                .AsNoTracking()
+                .Where(order => order.PaymentRequest != null)
+                .Where(order => order.PaymentRequest!.Code != null && order.PaymentRequest.Code != string.Empty)
+                .Select(order => order.PaymentRequest!.Code!)
+                .ToListAsync(cancellationToken);
+
+            return new HashSet<string>(codes, StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static async Task<string> ReserveUniqueCodeAsync(
+            HashSet<string> usedCodes,
+            Func<Task<(bool IsSuccess, string Code)>> generateCodeAsync,
+            string errorCode,
+            string errorMessage)
+        {
+            for (var attempt = 0; attempt < MaxCodeGenerationAttempts; attempt++)
+            {
+                var (isSuccess, code) = await generateCodeAsync();
+
+                if (!isSuccess || string.IsNullOrWhiteSpace(code))
+                {
+                    throw new PurchaseCodeGenerationException(errorCode, errorMessage);
+                }
+
+                if (usedCodes.Add(code))
+                {
+                    return code;
+                }
+            }
+
+            throw new PurchaseCodeGenerationException(errorCode, errorMessage);
         }
 
         private sealed class PurchaseCodeGenerationException(string errorCode, string message)
