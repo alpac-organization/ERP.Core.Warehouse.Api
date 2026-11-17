@@ -94,4 +94,29 @@ public class SupplyRequestsController(IMediator mediator) : ApiControllerBase
 
         return Created("", code);
     }
+
+    // ============================================================
+    // FLUJO PARALELO TEMPORAL - SE ELIMINARÁ EN EL FUTURO
+    // Endpoint del flujo manual: Equipment, Customer, Duca/Transport y Warehouse manuales.
+    // ============================================================
+    [HttpPost("companies/{company_id}/modules/{module_code}/inventory/supply-requests/manual")]
+    [Tags("Solicitudes de Insumos (Manual - Temporal)")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<string>> RegisterSupplyRequestManual(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromBody] RegisterSupplyRequestManualCommand command)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        command.CompanyId = company_id;
+        command.ModuleCode = module_code;
+        command.UserId = Guid.Parse(userIdStr ?? "");
+
+        var code = await mediator.Send(command);
+
+        return Created("", code);
+    }
 }

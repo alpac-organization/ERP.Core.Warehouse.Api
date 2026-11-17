@@ -11,8 +11,12 @@ public class RegisterFuelRequestsValidator : BaseRequestValidator<RegisterFuelRe
         RuleFor(x => x.Justification)
             .NotEmpty().WithMessage("La justificación es obligatoria");
 
-        RuleFor(x => x.MachineryId)
-            .NotEmpty().WithMessage("Debe especificar la maquinaria/vehículo");
+        RuleFor(x => x.EquipmentId)
+            .NotEmpty().WithMessage("Debe especificar el equipo/vehículo");
+
+        RuleFor(x => x.WarehouseId)
+            .NotEmpty()
+            .When(x => x.WarehouseId.HasValue).WithMessage("El almacén no es válido");
 
         RuleFor(x => x.ProductStockId)
             .NotEmpty().WithMessage("Debe especificar el stock de combustible");

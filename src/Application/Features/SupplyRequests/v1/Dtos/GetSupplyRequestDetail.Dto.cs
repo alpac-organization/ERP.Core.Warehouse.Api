@@ -13,6 +13,11 @@ public class GetSupplyRequestDetailDto : GetSupplyRequestDto
     public List<ItemDetail> Items { get; set; } = [];
     public string? ApprovedByUserChiefName { get; set; }
     public string? AnnulledByUserChiefName { get; set; }
+
+    // Info del flujo manual (Equipment, Customer, Duca/Transport)
+    public EquipmentInformation? EquipmentInformation { get; set; }
+    public CustomerInformation? CustomerInformation { get; set; }
+    public string? DucaOrTransportOrder { get; set; }
 }
 
 public class ItemDetail

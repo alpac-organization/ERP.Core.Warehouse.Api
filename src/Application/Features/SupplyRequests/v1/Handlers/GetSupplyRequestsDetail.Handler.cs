@@ -26,6 +26,8 @@ public class GetSupplyRequestsDetailHandler(IUnitOfWork unitOfWork, IErrorManage
             .Include(sr => sr.Branch)
             .Include(sr => sr.Warehouse)
             .Include(sr => sr.OperationalOrder)
+            .Include(sr => sr.Equipment)
+            .Include(sr => sr.Customer)
             .Include(sr => sr.SupplyRequestItems)
                 .ThenInclude(sri => sri.ProductStock)
                     .ThenInclude(ps => ps.Product)
