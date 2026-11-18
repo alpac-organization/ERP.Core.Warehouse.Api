@@ -8,8 +8,11 @@ using ERP.Core.Database.Domain.Entities.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
+using ERP.Core.Warehouse.Api.Application.Helpers.Inventory;
+using ERP.Core.Warehouse.Api.Application.Features.Assignments.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryOutputs.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryOutputs.v1.Queries;
+using ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Dtos;
 
 using OutputEntity = ERP.Core.Database.Domain.Entities.Inventory.InventoryOutputs;
 
@@ -36,6 +39,10 @@ public class GetInventoryOutputsDetailHandler(IUnitOfWork unitOfWork, IErrorMana
             .Include(o => o.SupplyRequest)
                 .ThenInclude(s => s.User)
             .Include(o => o.SupplyRequest)
+                .ThenInclude(s => s.Customer)
+            .Include(o => o.SupplyRequest)
+                .ThenInclude(s => s.Equipment)
+            .Include(o => o.SupplyRequest)
                 .ThenInclude(s => s.WorkArea)
             .Include(o => o.SupplyRequest)
                 .ThenInclude(s => s.CostCenter)
@@ -59,15 +66,15 @@ public class GetInventoryOutputsDetailHandler(IUnitOfWork unitOfWork, IErrorMana
             .Include(o => o.FuelRequest)
                 .ThenInclude(f => f.Branch)
             .Include(o => o.FuelRequest)
-                .ThenInclude(f => f.Machinery)
+                .ThenInclude(f => f.Equipment)
+            .Include(o => o.FuelRequest)
+                .ThenInclude(f => f.Warehouse)
             .Include(o => o.FuelRequest)
                 .ThenInclude(f => f.ProductStock)
                     .ThenInclude(stock => stock.Product)
                         .ThenInclude(product => product.UnitMeasure)
             .Include(o => o.FuelRequest)
                 .ThenInclude(f => f.UnitMeasure)
-            .Include(o => o.FuelRequest)
-                .ThenInclude(f => f.Customer)
             .Include(o => o.FuelRequest)
                 .ThenInclude(f => f.Customer)
             .Include(o => o.ReasonsInventoryRemoval)
@@ -94,6 +101,15 @@ public class GetInventoryOutputsDetailHandler(IUnitOfWork unitOfWork, IErrorMana
                 .Select(group => mapper.Map<InventoryStockInformation>(group.First().ProductStock!))];
         }
 
+        var kardexMovements = await _unitOfWork.Kardex.Entities
+            .AsNoTracking()
+            .Include(k => k.Product)
+                .ThenInclude(p => p.UnitMeasure)
+            .Where(k => k.InventoryOutputId == output.Id)
+            .ToListAsync(ct);
+
+        detail.KardexMovements = mapper.Map<List<KardexDto>>(kardexMovements);
+
         if (output.DispatchedByUserId.HasValue)
         {
             var dispatchUser = await _unitOfWork.Users.Entities
@@ -119,6 +135,16 @@ public class GetInventoryOutputsDetailHandler(IUnitOfWork unitOfWork, IErrorMana
 
             detail.SupplyRequestDetail.ApprovedByUserChiefName = approvedBy?.Fullname;
             detail.SupplyRequestDetail.AnnulledByUserChiefName = annulledBy?.Fullname;
+
+            detail.SupplyRequestDetail.EquipmentInformation = output.SupplyRequest.Equipment is null
+                ? null
+                : mapper.Map<EquipmentInformation>(output.SupplyRequest.Equipment);
+
+            detail.SupplyRequestDetail.CustomerInformation = output.SupplyRequest.Customer is null
+                ? null
+                : mapper.Map<CustomerInformation>(output.SupplyRequest.Customer);
+
+            detail.SupplyRequestDetail.DucaOrTransportOrder = output.SupplyRequest.DucaOrTransportOrder;
         }
 
         if (detail.FuelRequestDetail is not null && output.FuelRequest != null)
@@ -137,6 +163,29 @@ public class GetInventoryOutputsDetailHandler(IUnitOfWork unitOfWork, IErrorMana
 
             detail.FuelRequestDetail.ApprovedByUserChiefName = approvedBy?.Fullname;
             detail.FuelRequestDetail.AnnulledByUserChiefName = annulledBy?.Fullname;
+
+            detail.FuelRequestDetail.WarehouseInformation = output.FuelRequest.Warehouse is null
+                ? null!
+                : mapper.Map<WarehouseInformation>(output.FuelRequest.Warehouse);
+
+            detail.FuelRequestDetail.EquipmentInformation = output.FuelRequest.Equipment is null
+                ? null!
+                : mapper.Map<EquipmentInformation>(output.FuelRequest.Equipment);
+
+            detail.FuelRequestDetail.CustomerInformation = output.FuelRequest.Customer is null
+                ? null!
+                : mapper.Map<CustomerInformation>(output.FuelRequest.Customer);
+
+            var (previousMileage, previousEngineHours) =
+                await FuelRequestSharedHelper.GetPreviousFuelRequestReadingsAsync(
+                    _unitOfWork,
+                    output.FuelRequest.EquipmentId,
+                    output.FuelRequest.Id,
+                    output.FuelRequest.CreatedAt,
+                    ct);
+
+            detail.FuelRequestDetail.PreviousMileage = previousMileage;
+            detail.FuelRequestDetail.PreviousEngineHours = previousEngineHours;
         }
 
         return detail;

@@ -18,5 +18,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Dtos
         public decimal TotalKardex { get; set; }
 
         public ProductInformation? ProductInformation { get; set; }
+        public UnitMeasureInformation? UnitMeasureInformation { get; set; }
     }
 }

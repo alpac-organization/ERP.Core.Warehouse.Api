@@ -9,8 +9,9 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         public KardexProfile()
         {
             CreateMap<Kardex, KardexDto>()
-                .ForMember(dest => dest.KardexId,opt => opt.MapFrom(src => src.Id))
-                .ForMember(dest => dest.ProductInformation,opt => opt.MapFrom(src => src.Product));
+                .ForMember(dest => dest.KardexId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.ProductInformation, opt => opt.MapFrom(src => src.Product))
+                .ForMember(dest => dest.UnitMeasureInformation, opt => opt.MapFrom(src => src.Product.UnitMeasure));
         }
     }
 }

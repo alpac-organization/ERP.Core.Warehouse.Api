@@ -7,6 +7,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Features.FuelRequests.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.FuelRequests.v1.Queries;
+using ERP.Core.Warehouse.Api.Application.Helpers.Inventory;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.FuelRequests.v1.Handlers;
 
@@ -36,17 +37,8 @@ public class GetFuelRequestsDetailHandler(IUnitOfWork unitOfWork, IErrorManager 
             "La solicitud de combustible no existe",
             "ERP:FUEL_REQUEST_NOT_FOUND");
 
-        var previousFuelRequest = await _unitOfWork.FuelRequests.Entities
-            .AsNoTracking()
-            .Where(fr => fr.EquipmentId == fuelRequestDetail.EquipmentId
-                      && fr.Id != fuelRequestDetail.Id
-                      && fr.DeletedAt == null
-                      && (fr.CreatedAt < fuelRequestDetail.CreatedAt
-                          || (fr.CreatedAt == fuelRequestDetail.CreatedAt && fr.Id < fuelRequestDetail.Id)))
-            .OrderByDescending(fr => fr.CreatedAt)
-            .ThenByDescending(fr => fr.Id)
-            .Select(fr => new { fr.Mileage, fr.EngineHours })
-            .FirstOrDefaultAsync(ct);
+        var (previousMileage, previousEngineHours) = await FuelRequestSharedHelper.GetPreviousFuelRequestReadingsAsync(
+            _unitOfWork, fuelRequestDetail.EquipmentId, fuelRequestDetail.Id, fuelRequestDetail.CreatedAt, ct);
 
         var approvedByUserChief = fuelRequestDetail.ApprovedByUserChiefId.HasValue
             ? await _unitOfWork.Users.Entities
@@ -65,8 +57,8 @@ public class GetFuelRequestsDetailHandler(IUnitOfWork unitOfWork, IErrorManager 
         fuelRequestMapped.ApprovedByUserChiefName = approvedByUserChief?.Fullname;
         fuelRequestMapped.AnnulledByUserChiefName = annulledByUserChief?.Fullname;
 
-        fuelRequestMapped.PreviousMileage = previousFuelRequest?.Mileage;
-        fuelRequestMapped.PreviousEngineHours = previousFuelRequest?.EngineHours;
+        fuelRequestMapped.PreviousMileage = previousMileage;
+        fuelRequestMapped.PreviousEngineHours = previousEngineHours;
 
         return fuelRequestMapped;
     }
