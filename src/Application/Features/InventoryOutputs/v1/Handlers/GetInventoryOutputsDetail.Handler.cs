@@ -104,6 +104,7 @@ public class GetInventoryOutputsDetailHandler(IUnitOfWork unitOfWork, IErrorMana
         var kardexMovements = await _unitOfWork.Kardex.Entities
             .AsNoTracking()
             .Include(k => k.Product)
+                .ThenInclude(p => p.UnitMeasure)
             .Where(k => k.InventoryOutputId == output.Id)
             .ToListAsync(ct);
 
