@@ -19,6 +19,12 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(dest => dest.PurchaseOrderCode, opt => opt.MapFrom(src => src.Code))
                 .ForMember(dest => dest.PaymentRequestCode, opt => opt.MapFrom(src => src.PaymentRequest != null ? src.PaymentRequest.Code : null))
                 .ForMember(dest => dest.SupplierName, opt => opt.MapFrom(src => src.Supplier != null ? src.Supplier.SuppliersLegalName : null))
+                .ForMember(dest => dest.RequiresInventoryEntry, opt => opt.MapFrom(src =>
+                    src.PurchaseRequest != null
+                    && src.PurchaseRequest.RequestType == PurchaseRequestType.Requisition
+                    && src.PurchaseOrderItems.Any()
+                    && src.PurchaseOrderItems.All(item =>
+                        item.Product != null && item.Product.ProductUsageType == ProductUsageType.Operational)))
                 .ForMember(dest => dest.SentByUserInformation, opt => opt.MapFrom(src => new UserInformation
                 {
                     UserId = src.SentByUser.Id,
@@ -58,6 +64,12 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(dest => dest.PurchaseOrderCode, opt => opt.MapFrom(src => src.Code))
                 .ForMember(dest => dest.SupplierId, opt => opt.MapFrom(src => src.SupplierId))
                 .ForMember(dest => dest.SupplierName, opt => opt.MapFrom(src => src.Supplier != null ? src.Supplier.SuppliersLegalName : null))
+                .ForMember(dest => dest.RequiresInventoryEntry, opt => opt.MapFrom(src =>
+                    src.PurchaseRequest != null
+                    && src.PurchaseRequest.RequestType == PurchaseRequestType.Requisition
+                    && src.PurchaseOrderItems.Any()
+                    && src.PurchaseOrderItems.All(item =>
+                        item.Product != null && item.Product.ProductUsageType == ProductUsageType.Operational)))
                 .ForPath(dest => dest.SentByUserInformation, opt => opt.MapFrom(src => src.SentByUser))
                 .ForPath(dest => dest.ReviewerUserInformation, opt => opt.MapFrom(src => src.ReviewedByUser));
 

@@ -19,6 +19,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos
 
         public string? SupplierName { get; set; }
 
+        public bool RequiresInventoryEntry { get; set; }
+
         public UserInformation SentByUserInformation { get; set; } = new();
     }
 

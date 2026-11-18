@@ -10,8 +10,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Querie
     {
         public Guid? BranchId { get; set; }
         public string? EntryCode { get; set; }
-        public EntryStatus? EntryStatus { get; set; }
         public string? PurchaseRequestCode { get; set; }
+        
+        public EntryStatus? EntryStatus { get; set; }
 
         public int PageSize { get; set; }
         public int PageNumber { get; set; }
