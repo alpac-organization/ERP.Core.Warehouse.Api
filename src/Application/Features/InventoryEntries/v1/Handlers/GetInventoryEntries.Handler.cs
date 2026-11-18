@@ -45,6 +45,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                     .Where(inventory => inventory.PurchaseRequest.Code == request.PurchaseRequestCode);   
             }
 
+            if (!string.IsNullOrEmpty(request.EntryCode))
+            {
+                inventoryEntriesQuery = inventoryEntriesQuery
+                    .Where(inventory => inventory.Code == request.EntryCode);   
+            }
+
             var totalRecords = await inventoryEntriesQuery.CountAsync(cancellationToken);
 
             var inventoryEntries = await inventoryEntriesQuery
