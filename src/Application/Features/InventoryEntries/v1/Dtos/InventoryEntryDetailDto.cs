@@ -1,4 +1,3 @@
-using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 
@@ -6,10 +5,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Dtos
 {
     public class InventoryEntryDetailDto : InventoryEntryDto
     {
-        public EntryType EntryType { get; set; }
         public string? Observations { get; set; }
         public string? AdditionalData { get; set; }
-        public DateTime CreatedAt { get; set; }
 
         public WorkAreaInformation? WorkAreaInformation { get; set; }
         public PurchaseRequestDto? PurchaseRequestInformation { get; set; }
