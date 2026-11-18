@@ -21,7 +21,7 @@ using ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Commands;
 namespace ERP.Core.Warehouse.Api.Application.Features.SupplyRequests.v1.Handlers;
 
 public class RegisterSupplyRequestsHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, ICodeGenerator codeGenerator,
-    IEmailNotificationService emailService, ISimpleNotificationServices pushService, ILogger<RegisterSupplyRequestsHandler> logger)
+    ILogger<RegisterSupplyRequestsHandler> logger)
     : BaseValidatorHandler<RegisterSupplyRequestsCommad, string>(unitOfWork, errorManager)
 {
     public override async Task<string> Handle(RegisterSupplyRequestsCommad request, CancellationToken ct)

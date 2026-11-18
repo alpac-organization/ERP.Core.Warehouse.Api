@@ -167,7 +167,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                     })
                     .ToList(),
             };
-
+            
             var inventoryEntry = new InventoryEntry
             {
                 Id = Guid.NewGuid(),
@@ -177,7 +177,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 Observations = request.Comments,
                 BranchId = purchaseOrder.PurchaseRequest.BranchId,
                 WorkAreaId = purchaseOrder.PurchaseRequest.AreaId,
-                PurchaseRequestId = purchaseOrder.PurchaseRequestId,
+                PurchaseOrderId = purchaseOrder.Id,
                 AdditionalData = JsonSerializer.Serialize(additionalData, JsonManager.SnakeCaseOptions),
             };
 

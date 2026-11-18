@@ -13,16 +13,16 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             CreateMap<InventoryEntry, InventoryEntryDto>()
                 .ForMember(dest => dest.InventoryEntryId,   opt => opt.MapFrom(src => src.Id))
-                .ForMember(dest => dest.PurchaseRequestCode,   opt => opt.MapFrom(src => src.PurchaseRequest.Code))
+                .ForMember(dest => dest.PurchaseRequestCode,   opt => opt.MapFrom(src => src.PurchaseOrder.PurchaseRequest.Code))
                 .ForMember(dest => dest.BranchInformation,   opt => opt.MapFrom(src => src.Branch));
 
             CreateMap<InventoryEntry, InventoryEntryDetailDto>()
                 .IncludeBase<InventoryEntry, InventoryEntryDto>()
                 .ForMember(dest => dest.WorkAreaInformation, opt => opt.MapFrom(src => src.WorkArea))
-                .ForMember(dest => dest.PurchaseRequestInformation, opt => opt.MapFrom(src => src.PurchaseRequest))
+                .ForMember(dest => dest.PurchaseRequestInformation, opt => opt.MapFrom(src => src.PurchaseOrder.PurchaseRequest))
                 .ForMember(dest => dest.PurchaseRequestItems, opt => opt.MapFrom(src =>
-                    src.PurchaseRequest != null
-                        ? src.PurchaseRequest.PurchaseRequestItems
+                    src.PurchaseOrder.PurchaseRequest != null
+                        ? src.PurchaseOrder.PurchaseRequest.PurchaseRequestItems
                         : new List<PurchaseRequestItem>()));
 
             CreateMap<PurchaseRequestItem, InventoryEntryPurchaseRequestItemDto>()
