@@ -80,6 +80,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 IsActive          = true,
                 Comments          = review.Comments,
                 SentToReviewAt    = review.SentToReviewAt,
+                Status            = PurchaseOrderStatus.Pending,
                 SentByUserId      = review.SentByUserId,
                 ReviewedByUserId  = reviewedByUserId,
                 PurchaseRequestId = review.PurchaseRequestId
