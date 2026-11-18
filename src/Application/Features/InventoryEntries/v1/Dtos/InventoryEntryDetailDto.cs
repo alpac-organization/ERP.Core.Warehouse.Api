@@ -14,6 +14,32 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Dtos
         public WorkAreaInformation? WorkAreaInformation { get; set; }
         public PurchaseRequestDto? PurchaseRequestInformation { get; set; }
         public List<InventoryEntryPurchaseRequestItemDto> PurchaseRequestItems { get; set; } = [];
+
+        public Guid? PurchaseOrderId { get; set; }
+        public Guid? SupplierId { get; set; }
+        public string? SupplierName { get; set; }
+        public List<InventoryEntryItemDetailDto> Items { get; set; } = [];
+    }
+
+    public class InventoryEntryItemDetailDto
+    {
+        public Guid? PurchaseOrderItemId { get; set; }
+        public Guid? PurchaseRequestItemId { get; set; }
+        public Guid? QuotationId { get; set; }
+
+        public Guid ProductId { get; set; }
+        public string? ProductName { get; set; }
+        public string? ProductCode { get; set; }
+
+        public int Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+
+        public Guid UnitMeasureId { get; set; }
+        public string? UnitMeasureName { get; set; }
+        public string? UnitMeasureSymbol { get; set; }
+
+        public Guid? SupplierId { get; set; }
+        public string? SupplierName { get; set; }
     }
 
     public class InventoryEntryPurchaseRequestItemDto
