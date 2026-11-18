@@ -13,8 +13,9 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             CreateMap<InventoryEntry, InventoryEntryDto>()
                 .ForMember(dest => dest.InventoryEntryId,   opt => opt.MapFrom(src => src.Id))
-                .ForMember(dest => dest.PurchaseRequestCode,   opt => opt.MapFrom(src => src.PurchaseOrder.PurchaseRequest.Code))
-                .ForMember(dest => dest.BranchInformation,   opt => opt.MapFrom(src => src.Branch));
+                .ForMember(dest => dest.BranchInformation,   opt => opt.MapFrom(src => src.Branch))
+                .ForMember(dest => dest.WorkAreaInformation,   opt => opt.MapFrom(src => src.WorkArea))
+                .ForMember(dest => dest.PurchaseRequestCode,   opt => opt.MapFrom(src => src.PurchaseOrder.PurchaseRequest.Code));
 
             CreateMap<InventoryEntry, InventoryEntryDetailDto>()
                 .IncludeBase<InventoryEntry, InventoryEntryDto>()
