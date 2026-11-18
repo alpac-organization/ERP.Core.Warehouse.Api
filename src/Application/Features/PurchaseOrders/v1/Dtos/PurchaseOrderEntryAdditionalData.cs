@@ -1,6 +1,8 @@
+using ERP.Core.Database.Domain.Entities.Inventory;
+
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos
 {
-    public class PurchaseOrderEntryAdditionalData
+    public class PurchaseOrderEntryAdditionalData : InventoryEntryAdditionalData
     {
         public Guid? PurchaseOrderId { get; set; }
         public Guid? SupplierId { get; set; }

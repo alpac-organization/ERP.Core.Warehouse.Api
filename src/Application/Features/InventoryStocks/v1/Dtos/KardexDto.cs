@@ -8,8 +8,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Dtos
         public KardexType KardexType { get; set; }
         public KardexMovementType MovementType { get; set; }
 
-        public int Units { get; set; }
-        public int TotalUnits { get; set; }
+        public decimal Units { get; set; }
+        public decimal TotalUnits { get; set; }
         
         public decimal UnitCost { get; set; }
         public decimal TotalInput { get; set; }
