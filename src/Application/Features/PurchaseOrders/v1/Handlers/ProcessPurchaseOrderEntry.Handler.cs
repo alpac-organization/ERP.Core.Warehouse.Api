@@ -40,7 +40,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             }
 
             var purchaseOrder = await _unitOfWork.PurchaseOrders.Entities
-                .AsNoTracking()
                 .AsSplitQuery()
                 .Include(order => order.Supplier)
                 .Include(order => order.PurchaseRequest)
@@ -119,19 +118,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                     "ERP:ACCEPTED_QUOTATION_NOT_FOUND");
             }
 
-            var alreadyProcessed = await _unitOfWork.InventoryEntries.Entities
-                .AsNoTracking()
-                .AnyAsync(entry =>
-                    entry.PurchaseRequestId == purchaseOrder.PurchaseRequestId &&
-                    entry.AdditionalData != null &&
-                    entry.AdditionalData.Contains(purchaseOrder.Id.ToString()!),
-                    cancellationToken);
-
-            if (alreadyProcessed)
+            if (purchaseOrder.Status != PurchaseOrderStatus.Pending)
             {
                 return _errorManager.ThrowBadRequest<InventoryEntryDto>(
-                    "La orden de compra ya fue procesada para entrada de inventario.",
-                    "ERP:INVENTORY_ENTRY_ALREADY_EXISTS");
+                    "La orden de compra ya fue procesada o no se encuentra pendiente.",
+                    "ERP:PURCHASE_ORDER_ALREADY_PROCESSED");
             }
 
             var branchCode = purchaseOrder.PurchaseRequest.Branch?.BranchCode ?? string.Empty;
@@ -189,6 +180,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 PurchaseRequestId = purchaseOrder.PurchaseRequestId,
                 AdditionalData = JsonSerializer.Serialize(additionalData, JsonManager.SnakeCaseOptions),
             };
+
+            purchaseOrder.Status = PurchaseOrderStatus.Generated;
 
             await _unitOfWork.InventoryEntries.RegisterInventoryEntry(inventoryEntry);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
