@@ -25,6 +25,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
 
             var inventoryEntriesQuery = _unitOfWork.InventoryEntries.Entities
                 .Include(inventory => inventory.PurchaseRequest)
+                .Include(inventory => inventory.Branch)
                 .AsNoTracking()
                 .AsSplitQuery();
         
