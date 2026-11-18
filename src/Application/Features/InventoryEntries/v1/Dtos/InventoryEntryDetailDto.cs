@@ -7,9 +7,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Dtos
     {
         public string? Observations { get; set; }
         public string? AdditionalData { get; set; }
-
-        public WorkAreaInformation? WorkAreaInformation { get; set; }
-        public PurchaseRequestDto? PurchaseRequestInformation { get; set; }
+        
+        public PurchaseRequestDto?  PurchaseRequestInformation { get; set; }
         public List<InventoryEntryPurchaseRequestItemDto> PurchaseRequestItems { get; set; } = [];
 
         public Guid? PurchaseOrderId { get; set; }
@@ -17,6 +16,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Dtos
         public string? SupplierName { get; set; }
         public List<InventoryEntryItemDetailDto> Items { get; set; } = [];
     }
+
 
     public class InventoryEntryItemDetailDto
     {

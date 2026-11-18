@@ -1,4 +1,3 @@
-using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,7 +6,6 @@ using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Domain.Entities.Errors;
 using ERP.Core.Domain.Entities.Exceptions;
 
-using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Services;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
@@ -16,14 +14,9 @@ using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Helpers.Inventory;
 using ERP.Core.Warehouse.Api.Application.Features.FuelRequests.v1.Commands;
 
-using ERP.Core.Application.Commons.Interfaces.AWS;
-using ERP.Core.Notification.Application.Commons.Interfaces;
-
 namespace ERP.Core.Warehouse.Api.Application.Features.FuelRequests.v1.Handlers;
 
-public class RegisterFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, ICodeGenerator codeGenerator,
-    IEmailNotificationService emailService, ISimpleNotificationServices pushService, ILogger<RegisterFuelRequestsHandler> logger)
-    : BaseValidatorHandler<RegisterFuelRequestsCommand, string>(unitOfWork, errorManager)
+public class RegisterFuelRequestsHandler(IUnitOfWork unitOfWork, IErrorManager errorManager, ICodeGenerator codeGenerator, ILogger<RegisterFuelRequestsHandler> logger) : BaseValidatorHandler<RegisterFuelRequestsCommand, string>(unitOfWork, errorManager)
 {
     public override async Task<string> Handle(RegisterFuelRequestsCommand request, CancellationToken ct)
     {

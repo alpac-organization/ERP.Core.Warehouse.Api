@@ -33,10 +33,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                 .AsSplitQuery()
                 .Include(entry => entry.Branch)
                 .Include(entry => entry.WorkArea)
-                .Include(entry => entry.PurchaseRequest)
+                .Include(entry => entry.PurchaseOrder)
+                    .ThenInclude(purchaseOrder => purchaseOrder.PurchaseRequest)
                     .ThenInclude(purchaseRequest => purchaseRequest.PurchaseRequestItems)
                         .ThenInclude(item => item.Product)
-                .Include(entry => entry.PurchaseRequest)
+                .Include(entry => entry.PurchaseOrder.PurchaseRequest)
                     .ThenInclude(purchaseRequest => purchaseRequest.PurchaseRequestItems)
                         .ThenInclude(item => item.UnitMeasure);
 

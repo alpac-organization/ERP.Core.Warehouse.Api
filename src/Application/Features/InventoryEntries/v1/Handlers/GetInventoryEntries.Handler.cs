@@ -22,10 +22,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
             {
                 return access.ErrorResponse!;
             }
-
+            
             var inventoryEntriesQuery = _unitOfWork.InventoryEntries.Entities
-                .Include(inventory => inventory.PurchaseRequest)
+                .Include(inventory => inventory.PurchaseOrder)
+                    .ThenInclude(purchaseOrder => purchaseOrder.PurchaseRequest)
                 .Include(inventory => inventory.Branch)
+                .Include(inventory => inventory.WorkArea)
                 .AsNoTracking()
                 .AsSplitQuery();
         
@@ -43,7 +45,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
             if (!string.IsNullOrEmpty(request.PurchaseRequestCode))
             {
                 inventoryEntriesQuery = inventoryEntriesQuery
-                    .Where(inventory => inventory.PurchaseRequest.Code == request.PurchaseRequestCode);   
+                    .Where(inventory => inventory.PurchaseOrder.PurchaseRequest.Code == request.PurchaseRequestCode);   
             }
 
             if (!string.IsNullOrEmpty(request.EntryCode))
