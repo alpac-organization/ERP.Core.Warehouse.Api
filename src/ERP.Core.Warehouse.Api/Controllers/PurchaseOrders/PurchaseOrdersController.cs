@@ -8,6 +8,7 @@ using ERP.Core.Warehouse.Api.Domain.Entities.Bases;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Dtos;
 
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
 
@@ -75,6 +76,28 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseOrders
             payload.ModuleCode                   = module_code;
             payload.UserId                       = Guid.Parse(userIdStr ?? "");
             payload.RequisitionManagementReviewId = requisition_management_review_id;
+
+            return await _mediator.Send(payload);
+        }
+
+        [Tags("Ordenes de compras")]
+        [HttpPost("companies/{company_id}/modules/{module_code}/purchase-orders/{purchase_order_id}/process-entry")]
+        [ProducesResponseType(typeof(InventoryEntryDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<InventoryEntryDto> ProcessPurchaseOrderEntryAsync(
+            [FromRoute] Guid company_id,
+            [FromRoute] string module_code,
+            [FromRoute] Guid purchase_order_id,
+            [FromBody] ProcessPurchaseOrderEntryCommand payload)
+        {
+            var userIdStr = HttpContext.Items["UserId"] as string;
+
+            payload.CompanyId = company_id;
+            payload.ModuleCode = module_code;
+            payload.UserId = Guid.Parse(userIdStr ?? "");
+            payload.PurchaseOrderId = purchase_order_id;
 
             return await _mediator.Send(payload);
         }
