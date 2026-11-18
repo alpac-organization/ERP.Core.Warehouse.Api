@@ -102,7 +102,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 ProductId = stock.ProductId,
                 MovementByUserId = userId,
                 WorkAreaId = output.WorkAreaId,
-                CostCenterId = output.CostCenterId
+                CostCenterId = output.CostCenterId,
+                InventoryOutputId = output.Id
             };
         }
     }
