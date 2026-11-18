@@ -17,6 +17,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Queries
     {
         public Guid? CategoryId { get; set; }
         public bool? IsFuel { get; set; }
+        public bool? IsMaterial { get; set; }
         public Guid? BranchId { get; set; }
         public Guid? CostCenterId { get; set; }
 

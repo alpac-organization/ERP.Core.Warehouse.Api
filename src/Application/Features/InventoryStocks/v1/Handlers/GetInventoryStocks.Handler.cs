@@ -95,6 +95,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                     .Where(inventory => inventory.Product.Category != null
                                         && inventory.Product.Category.IsFuel == request.IsFuel.Value);
             }
+            if (request.IsMaterial.HasValue)
+            {
+                productStocksQuery = productStocksQuery
+                    .Where(inventory => inventory.Product.Category != null
+                                        && inventory.Product.Category.IsMaterial == request.IsMaterial.Value);
+            }
 
             if (!string.IsNullOrEmpty(request.ProductCode))
             {
