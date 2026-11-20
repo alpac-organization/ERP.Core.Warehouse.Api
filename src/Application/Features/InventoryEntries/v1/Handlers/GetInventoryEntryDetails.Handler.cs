@@ -39,9 +39,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                         .ThenInclude(item => item.Product)
                 .Include(entry => entry.PurchaseOrder.PurchaseRequest)
                     .ThenInclude(purchaseRequest => purchaseRequest.PurchaseRequestItems)
-                        .ThenInclude(item => item.UnitMeasure)
-                .Include(entry => entry.InventoryEntryItems)
-                    .ThenInclude(item => item.CostCenter);
+                        .ThenInclude(item => item.UnitMeasure);
+                // .Include(entry => entry.InventoryEntryItems)
+                //     .ThenInclude(item => item.CostCenter);
 
             var isAdministrator = access.Role?.RoleType == RoleType.Administrator;
 
@@ -63,11 +63,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
 
             var detail = mapper.Map<InventoryEntryDetailDto>(inventoryEntry);
 
-            detail.InvoiceNumber = inventoryEntry.InvoiceNumber;
-            detail.InvoiceDate = inventoryEntry.InvoiceDate;
+            // detail.InvoiceNumber = inventoryEntry.InvoiceNumber;
+            // detail.InvoiceDate = inventoryEntry.InvoiceDate;
 
-            var costCentersByPurchaseOrderItem = inventoryEntry.InventoryEntryItems
-                .ToDictionary(item => item.PurchaseOrderItemId, item => item.CostCenter);
+            // var costCentersByPurchaseOrderItem = inventoryEntry.InventoryEntryItems
+            //     .ToDictionary(item => item.PurchaseOrderItemId, item => item.CostCenter);
 
             if (!string.IsNullOrWhiteSpace(inventoryEntry.AdditionalData))
             {
@@ -122,11 +122,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                     continue;
                 }
 
-                if (costCentersByPurchaseOrderItem.TryGetValue(item.PurchaseOrderItemId.Value, out var costCenter))
-                {
-                    item.CostCenterId = costCenter.Id;
-                    item.CostCenterName = costCenter.CostCenterName;
-                }
+                // if (costCentersByPurchaseOrderItem.TryGetValue(item.PurchaseOrderItemId.Value, out var costCenter))
+                // {
+                //     item.CostCenterId = costCenter.Id;
+                //     item.CostCenterName = costCenter.CostCenterName;
+                // }
             }
 
             return detail;

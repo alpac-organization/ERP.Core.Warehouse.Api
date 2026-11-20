@@ -46,7 +46,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
             var inventoryEntry = await _unitOfWork.InventoryEntries.Entities
                 .Include(entry => entry.Branch)
                 .Include(entry => entry.WorkArea)
-                .Include(entry => entry.InventoryEntryItems)
                 .Include(entry => entry.PurchaseOrder)
                     .ThenInclude(order => order.PurchaseRequest)
                 .Include(entry => entry.PurchaseOrder)
@@ -128,12 +127,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
             inventoryEntry.Observations = string.IsNullOrWhiteSpace(request.Observations)
                 ? inventoryEntry.Observations
                 : request.Observations.Trim();
-            inventoryEntry.InvoiceNumber = request.InvoiceNumber.Trim();
-            inventoryEntry.InvoiceDate = request.InvoiceDate;
+            // inventoryEntry.InvoiceNumber = request.InvoiceNumber.Trim();
+            // inventoryEntry.InvoiceDate = request.InvoiceDate;
             inventoryEntry.AdditionalData = JsonSerializer.Serialize(additionalData, JsonManager.SnakeCaseOptions);
             inventoryEntry.EntryStatus = EntryStatus.ApprovedEntry;
 
-            inventoryEntry.InventoryEntryItems.Clear();
+            // inventoryEntry.InventoryEntryItems.Clear();
 
             var registeredAt = DateTime.UtcNow;
 
@@ -150,13 +149,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                         "ERP:PURCHASE_ORDER_ITEM_WITHOUT_PRODUCT");
                 }
 
-                inventoryEntry.InventoryEntryItems.Add(new InventoryEntryItem
-                {
-                    Id = Guid.NewGuid(),
-                    InventoryEntryId = inventoryEntry.Id,
-                    PurchaseOrderItemId = purchaseOrderItem.Id,
-                    CostCenterId = requestedItem.CostCenterId
-                });
+                // inventoryEntry.InventoryEntryItems.Add(new InventoryEntryItem
+                // {
+                //     Id = Guid.NewGuid(),
+                //     InventoryEntryId = inventoryEntry.Id,
+                //     PurchaseOrderItemId = purchaseOrderItem.Id,
+                //     CostCenterId = requestedItem.CostCenterId
+                // });
 
                 var productStock = await _unitOfWork.ProductStocks.Entities
                     .FirstOrDefaultAsync(stock =>
