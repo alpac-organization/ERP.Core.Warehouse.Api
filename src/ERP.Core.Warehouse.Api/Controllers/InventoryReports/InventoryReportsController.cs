@@ -5,6 +5,7 @@ using ERP.Core.Domain.Entities.Errors;
 using ERP.Core.Infrastructure.Attributes;
 
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Dtos;
 
@@ -24,9 +25,15 @@ public class InventoryReportsController(IMediator mediator) : ApiControllerBase
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
         [FromQuery] Guid? branch_id = null,
+        [FromQuery] List<Guid>? branch_ids = null,
         [FromQuery] Guid? area_id = null,
+        [FromQuery] List<Guid>? area_ids = null,
         [FromQuery] Guid? cost_center_id = null,
+        [FromQuery] List<Guid>? cost_center_ids = null,
         [FromQuery] Guid? category_id = null,
+        [FromQuery] List<Guid>? category_ids = null,
+        [FromQuery] ProductUsageType? usage_type = null,
+        [FromQuery] List<ProductUsageType>? usage_types = null,
         [FromQuery] string? product_code = null,
         [FromQuery] string? product_name = null)
     {
@@ -41,6 +48,12 @@ public class InventoryReportsController(IMediator mediator) : ApiControllerBase
             AreaId = area_id,
             CostCenterId = cost_center_id,
             CategoryId = category_id,
+            UsageType = usage_type,
+            BranchIds = branch_ids,
+            AreaIds = area_ids,
+            CostCenterIds = cost_center_ids,
+            CategoryIds = category_ids,
+            UsageTypes = usage_types,
             ProductCode = product_code,
             ProductName = product_name
         });
