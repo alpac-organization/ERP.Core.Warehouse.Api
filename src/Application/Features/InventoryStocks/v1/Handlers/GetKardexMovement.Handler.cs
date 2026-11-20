@@ -55,8 +55,24 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                     .Where(kardex => kardex.MovementType == request.KardexMovementType);
             }
 
+            if (request.DateFrom.HasValue)
+            {
+                var dateFrom = DateOnly.FromDateTime(request.DateFrom.Value);
+                kardexQuery = kardexQuery
+                    .Where(kardex => kardex.TransactionDate >= dateFrom);
+            }
+
+            if (request.DateTo.HasValue)
+            {
+                var dateTo = DateOnly.FromDateTime(request.DateTo.Value);
+                kardexQuery = kardexQuery
+                    .Where(kardex => kardex.TransactionDate <= dateTo);
+            }
+
             var kardex = await kardexQuery
-                .OrderBy(product => product.CreatedAt)
+                .OrderBy(product => product.TransactionDate)
+                .ThenBy(product => product.TransactionTime)
+                .ThenBy(product => product.CreatedAt)
                 .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .ToListAsync(cancellationToken);

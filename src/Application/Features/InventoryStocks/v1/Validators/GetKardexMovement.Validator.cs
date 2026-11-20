@@ -22,6 +22,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Validat
                 .IsInEnum()
                 .When(x => x.KardexType.HasValue)
                 .WithMessage("El tipo de kardex no es válido.");
+
+            RuleFor(x => x.DateTo)
+                .GreaterThanOrEqualTo(x => x.DateFrom)
+                .When(x => x.DateFrom.HasValue && x.DateTo.HasValue)
+                .WithMessage("La fecha desde no puede ser mayor que la fecha hasta.");
         }
     }
 }

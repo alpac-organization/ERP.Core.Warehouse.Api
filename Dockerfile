@@ -27,10 +27,10 @@ COPY src/ ./src/
 # Ir al proyecto principal
 WORKDIR "/src/src/ERP.Core.Warehouse.Api"
 
-# Publicar la aplicación (compila automáticamente)
 RUN dotnet publish "ERP.Core.Warehouse.Api.csproj" \
     -c Release \
     -o /app/publish \
+    --no-restore \
     /p:UseAppHost=false
 
 ENV XDG_DATA_HOME=/app/data

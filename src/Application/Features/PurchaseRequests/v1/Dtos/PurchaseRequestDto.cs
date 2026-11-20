@@ -1,5 +1,5 @@
-using ERP.Core.Database.Domain.Entities.Bases;
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Database.Domain.Entities.Bases;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
 {

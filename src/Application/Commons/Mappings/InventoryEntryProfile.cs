@@ -3,8 +3,6 @@ using ERP.Core.Database.Domain.Entities.Inventory;
 using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Dtos;
 
-using Commands = ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Commands;
-
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
     public class InventoryEntryProfile : Profile
@@ -35,17 +33,4 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         }
     }
 
-    public static class InventoryEntryMapper
-    {
-        public static InventoryEntry ToInventoryEntryEntity(this Commands.RegisterInventoryEntryCommand command, string code)
-        {
-            return new()
-            {
-                Id = Guid.NewGuid(),
-                Code = code,   
-                EntryType = command.EntryType
-                          
-            };
-        }
-    }
 }
