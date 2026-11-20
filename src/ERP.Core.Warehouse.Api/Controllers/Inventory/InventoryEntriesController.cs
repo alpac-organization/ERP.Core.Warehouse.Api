@@ -80,7 +80,8 @@ namespace ERP.Core.Warehouse.Api.Controllers.Inventory
             [FromRoute] Guid company_id,
             [FromRoute] string module_code,
             [FromRoute] Guid inventory_entry_id,
-            [FromBody] RegisterInventoryEntryCommand payload)
+            [FromBody] RegisterInventoryEntryCommand payload
+        )
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
