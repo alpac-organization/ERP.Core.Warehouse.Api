@@ -35,7 +35,22 @@ public class GetStockDailyReportHandler(IUnitOfWork unitOfWork, IErrorManager er
             Branches = BuildBranches(rows)
         };
 
+        var generatedBy = await ResolveGeneratedByAsync(request.UserId, ct);
+        report.GeneratedBy = generatedBy;
+        report.GeneratedByUserName = generatedBy;
+
+        ApplySummary(report, products);
+
         return report;
+    }
+
+    private async Task<string?> ResolveGeneratedByAsync(Guid userId, CancellationToken ct)
+    {
+        var user = await _unitOfWork.Users.Entities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId, ct);
+
+        return user?.Fullname;
     }
 
     private async Task<List<ProductStock>> LoadStocksAsync(GetStockDailyReportQuery request, CancellationToken ct)
@@ -80,17 +95,48 @@ public class GetStockDailyReportHandler(IUnitOfWork unitOfWork, IErrorManager er
 
         for (var i = 0; i < stocks.Count; i++)
         {
-            products[i].StockStatus = stocks[i].AvailableQuantity >= stocks[i].MinimumStock
-                ? "Completo"
-                : "Revisar";
+            products[i].StockStatus = ResolveStockStatus(stocks[i]);
         }
 
         return products;
     }
 
+    private static string ResolveStockStatus(ProductStock stock)
+    {
+        var quantity = stock.AvailableQuantity;
+        var minimum = stock.MinimumStock;
+        var maximum = stock.MaximumStock;
+
+        if (quantity <= 0)
+            return "Sin stock";
+
+        if (quantity < minimum)
+            return "Bajo mínimo";
+
+        if (maximum.HasValue && quantity > maximum.Value)
+            return "Sobre máximo";
+
+        return "Normal";
+    }
+
+    private static void ApplySummary(StockDailyReportDto report, List<StockDailyProductDto> products)
+    {
+        var total = products.Count;
+        var outOfStock = products.Count(p => p.StockStatus == "Sin stock");
+        var belowMinimum = products.Count(p => p.StockStatus == "Bajo mínimo");
+        var normal = products.Count(p => p.StockStatus == "Normal");
+        var overMaximum = products.Count(p => p.StockStatus == "Sobre máximo");
+
+        report.TotalProducts = total;
+        report.OutOfStockCount = outOfStock;
+        report.BelowMinimumCount = belowMinimum;
+        report.NormalCount = normal;
+        report.OverMaximumCount = overMaximum;
+    }
+
     private static List<StockDailyBranchDto> BuildBranches(List<StockRow> rows)
     {
-        return rows
+        return [.. rows
             .GroupBy(x => x.Stock.Product.BranchId)
             .OrderBy(g => g.First().Stock.Product.Branch != null ? g.First().Stock.Product.Branch.BranchName : "Sucursal no asignada")
             .Select(branchGroup =>
@@ -103,13 +149,12 @@ public class GetStockDailyReportHandler(IUnitOfWork unitOfWork, IErrorManager er
                     BranchName = branch != null ? branch.BranchName : "Sucursal no asignada",
                     Areas = BuildAreas(branchGroup.ToList())
                 };
-            })
-            .ToList();
+            })];
     }
 
     private static List<StockDailyAreaDto> BuildAreas(List<StockRow> rows)
     {
-        return rows
+        return [.. rows
             .GroupBy(x => x.Stock.Product.CostCenter != null ? x.Stock.Product.CostCenter.WorkAreaId : Guid.Empty)
             .OrderBy(g => g.First().Stock.Product.CostCenter != null && g.First().Stock.Product.CostCenter.WorkArea != null
                 ? g.First().Stock.Product.CostCenter.WorkArea.WorkAreaName
@@ -126,39 +171,47 @@ public class GetStockDailyReportHandler(IUnitOfWork unitOfWork, IErrorManager er
                     AreaName = area != null ? area.WorkAreaName : "Área no asignada",
                     CostCenters = BuildCostCenters(areaGroup.ToList())
                 };
-            })
-            .ToList();
+            })];
     }
 
     private static List<StockDailyCostCenterDto> BuildCostCenters(List<StockRow> rows)
     {
-        return rows
+        return [.. rows
             .GroupBy(x => x.Stock.CostCenterId)
             .OrderBy(g => g.First().Stock.CostCenter != null ? g.First().Stock.CostCenter.CostCenterName : "Centro de costo no asignado")
             .Select(costCenterGroup =>
             {
                 var costCenter = costCenterGroup.First().Stock.CostCenter;
+                var products = costCenterGroup.Select(x => x.Product).ToList();
+                var outOfStock = products.Count(p => p.StockStatus == "Sin stock");
+                var belowMinimum = products.Count(p => p.StockStatus == "Bajo mínimo");
+                var normal = products.Count(p => p.StockStatus == "Normal");
+                var overMaximum = products.Count(p => p.StockStatus == "Sobre máximo");
 
                 return new StockDailyCostCenterDto
                 {
                     CostCenterId = costCenter != null ? costCenter.Id : Guid.Empty,
                     CostCenterName = costCenter != null ? costCenter.CostCenterName : "Centro de costo no asignado",
-                    UsageTypes = BuildUsageTypes(costCenterGroup.ToList())
+                    UsageTypes = BuildUsageTypes(costCenterGroup.ToList()),
+
+                    ProductCount = products.Count,
+                    OutOfStockCount = outOfStock,
+                    BelowMinimumCount = belowMinimum,
+                    NormalCount = normal,
+                    OverMaximumCount = overMaximum,
                 };
-            })
-            .ToList();
+            })];
     }
 
     private static List<StockDailyUsageTypeDto> BuildUsageTypes(List<StockRow> rows)
     {
-        return rows
+        return [.. rows
             .GroupBy(x => x.Stock.Product.ProductUsageType)
             .OrderBy(g => g.Key.ToString())
             .Select(usageGroup => new StockDailyUsageTypeDto
             {
                 UsageType = usageGroup.Key.ToString(),
                 Products = usageGroup.Select(x => x.Product).ToList()
-            })
-            .ToList();
+            })];
     }
 }
