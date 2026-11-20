@@ -8,7 +8,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingRevie
         public string? Comments { get; set; }
         public string? PurchaseRequestCode { get; set; }
         public AccountingReviewStatus Status { get; set; }
-        public PurchaseRequestInformation   ? PurchaseRequestInformation { get; set; }
+        public PurchaseRequestInformation? PurchaseRequestInformation { get; set; }
         
         public DateOnly SentToReviewAt { get; set; }
         public Guid PurchaseRequestsReviewedAccountingId { get; set; }
