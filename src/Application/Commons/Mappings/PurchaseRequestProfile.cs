@@ -10,6 +10,7 @@ using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
 
 using UserProfileEntity = ERP.Core.Database.Domain.Entities.Auth.UserProfile;
 using Commands = ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
+using ERP.Core.Warehouse.Api.Application.Features.RequisitionAccountingReviews.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
@@ -17,6 +18,9 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
     {
         public PurchaseRequestProfile()
         {
+            CreateMap<PurchaseRequest, PurchaseRequestInformation>()
+                .ForMember(dest => dest.PurchaseRequestId,opt => opt.MapFrom(src => src.Id));
+
             CreateMap<PurchaseRequest, PurchaseRequestDto>()
                 .ForMember(dest => dest.PurchaseRequestId,opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.AnnulmentReason, opt => opt.MapFrom(src => src.AnnulmentComments))

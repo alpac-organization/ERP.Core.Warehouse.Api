@@ -40,6 +40,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                 .Include(entry => entry.PurchaseOrder.PurchaseRequest)
                     .ThenInclude(purchaseRequest => purchaseRequest.PurchaseRequestItems)
                         .ThenInclude(item => item.UnitMeasure);
+                // .Include(entry => entry.InventoryEntryItems)
+                //     .ThenInclude(item => item.CostCenter);
 
             var isAdministrator = access.Role?.RoleType == RoleType.Administrator;
 
@@ -61,6 +63,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
 
             var detail = mapper.Map<InventoryEntryDetailDto>(inventoryEntry);
 
+            // detail.InvoiceNumber = inventoryEntry.InvoiceNumber;
+            // detail.InvoiceDate = inventoryEntry.InvoiceDate;
+
+            // var costCentersByPurchaseOrderItem = inventoryEntry.InventoryEntryItems
+            //     .ToDictionary(item => item.PurchaseOrderItemId, item => item.CostCenter);
+
             if (!string.IsNullOrWhiteSpace(inventoryEntry.AdditionalData))
             {
                 try
@@ -74,6 +82,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                         detail.PurchaseOrderId = additionalData.PurchaseOrderId;
                         detail.SupplierId = additionalData.SupplierId;
                         detail.SupplierName = additionalData.SupplierName;
+                        detail.EvidenceImages = (additionalData.EvidenceImages ?? [])
+                            .Select(image => new InventoryEntryEvidenceImageDto
+                            {
+                                ImageId = image.ImageId,
+                                ImageUrl = image.ImageUrl
+                            })
+                            .ToList();
                         detail.Items = additionalData.Items
                             .Select(item => new InventoryEntryItemDetailDto
                             {
@@ -98,6 +113,20 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                 {
                     // Si el additional_data no tiene el formato esperado, se mantiene la información base.
                 }
+            }
+
+            foreach (var item in detail.Items)
+            {
+                if (!item.PurchaseOrderItemId.HasValue)
+                {
+                    continue;
+                }
+
+                // if (costCentersByPurchaseOrderItem.TryGetValue(item.PurchaseOrderItemId.Value, out var costCenter))
+                // {
+                //     item.CostCenterId = costCenter.Id;
+                //     item.CostCenterName = costCenter.CostCenterName;
+                // }
             }
 
             return detail;

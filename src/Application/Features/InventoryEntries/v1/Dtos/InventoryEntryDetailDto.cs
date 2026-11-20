@@ -7,6 +7,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Dtos
     {
         public string? Observations { get; set; }
         public string? AdditionalData { get; set; }
+
+        public string? InvoiceNumber { get; set; }
+        public DateOnly? InvoiceDate { get; set; }
+        public List<InventoryEntryEvidenceImageDto> EvidenceImages { get; set; } = [];
         
         public PurchaseRequestDto?  PurchaseRequestInformation { get; set; }
         public List<InventoryEntryPurchaseRequestItemDto> PurchaseRequestItems { get; set; } = [];
@@ -37,6 +41,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Dtos
 
         public Guid? SupplierId { get; set; }
         public string? SupplierName { get; set; }
+
+        public Guid? CostCenterId { get; set; }
+        public string? CostCenterName { get; set; }
+    }
+
+    public class InventoryEntryEvidenceImageDto
+    {
+        public Guid ImageId { get; set; }
+        public string? ImageUrl { get; set; }
     }
 
     public class InventoryEntryPurchaseRequestItemDto

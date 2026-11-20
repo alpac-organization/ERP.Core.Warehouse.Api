@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using ERP.Core.Application.Behaviors;
 using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
 using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services;
+using ERP.Core.Warehouse.Api.Application.Helpers.Inventory.Interfaces;
+using ERP.Core.Warehouse.Api.Application.Helpers.Inventory.Services;
 
 namespace ERP.Core.Warehouse.Api.Application
 {
@@ -31,6 +33,7 @@ namespace ERP.Core.Warehouse.Api.Application
             services.AddScoped<IQuotationAttachmentService, QuotationAttachmentService>();
             services.AddScoped<IPurchaseRequestVisibilityService, PurchaseRequestVisibilityService>();
             services.AddScoped<IPurchasePeriodService, PurchasePeriodService>();
+            services.AddScoped<IWeightedAverageCostService, WeightedAverageCostService>();
 
             return services;
         }

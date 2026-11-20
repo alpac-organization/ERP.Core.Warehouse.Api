@@ -27,6 +27,8 @@ namespace ERP.Core.Warehouse.Api.Controllers.Inventory
             [FromQuery] Guid? category_id        = null,
             [FromQuery] KardexType? kardex_type  = null,
             [FromQuery] KardexMovementType? movement_type = null,
+            [FromQuery] DateTime? date_from = null,
+            [FromQuery] DateTime? date_to = null,
             [FromQuery] int page_size = 10,
             [FromQuery] int page_number = 1
         )
@@ -43,6 +45,8 @@ namespace ERP.Core.Warehouse.Api.Controllers.Inventory
                 ProductCode = product_code,
                 KardexType = kardex_type,
                 KardexMovementType = movement_type,
+                DateFrom = date_from,
+                DateTo = date_to,
                 PageSize = page_size,
                 PageNumber = page_number
             });

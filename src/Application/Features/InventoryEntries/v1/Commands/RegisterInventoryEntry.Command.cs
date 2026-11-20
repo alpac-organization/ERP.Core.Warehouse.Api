@@ -1,23 +1,24 @@
 using MediatR;
 using ERP.Core.Domain.Entities.Bases;
-using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Commands
 {
-    public class RegisterInventoryEntryCommand : BaseRequest, IRequest<Unit>
+    public class RegisterInventoryEntryCommand : BaseRequest, IRequest<InventoryEntryDto>
     {
-        public EntryType EntryType { get; set; }
+        public Guid InventoryEntryId { get; set; }
+
+        public string InvoiceNumber { get; set; } = string.Empty;
+        public DateOnly? InvoiceDate { get; set; }
         public string? Observations { get; set; }
-        public Guid? InventoryOutputId { get; set; }
 
-
-        public List<string> EvidenceImages { get; set; } = [];
-        public List<InventoryEntryItems> EntryItems { get; set; } = []; 
+        public List<string> EvidenceImagesBase64 { get; set; } = [];
+        public List<RegisterInventoryEntryItem> Items { get; set; } = [];
     }
 
-    public class InventoryEntryItems
+    public class RegisterInventoryEntryItem
     {
-        public int Amount { get; set; }
-        public Guid ProductStockId { get; set; }
+        public Guid PurchaseOrderItemId { get; set; }
+        public Guid CostCenterId { get; set; }
     }
 }
