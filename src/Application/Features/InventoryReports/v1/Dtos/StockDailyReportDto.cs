@@ -3,6 +3,15 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Dtos;
 public class StockDailyReportDto
 {
     public DateTime GeneratedAt { get; set; }
+    public string? GeneratedBy { get; set; }
+    public string? GeneratedByUserName { get; set; }
+
+    public int TotalProducts { get; set; }
+    public int OutOfStockCount { get; set; }
+    public int BelowMinimumCount { get; set; }
+    public int NormalCount { get; set; }
+    public int OverMaximumCount { get; set; }
+
     public List<StockDailyBranchDto> Branches { get; set; } = [];
 }
 
@@ -24,6 +33,13 @@ public class StockDailyCostCenterDto
 {
     public Guid CostCenterId { get; set; }
     public string? CostCenterName { get; set; }
+
+    public int ProductCount { get; set; }
+    public int OutOfStockCount { get; set; }
+    public int BelowMinimumCount { get; set; }
+    public int NormalCount { get; set; }
+    public int OverMaximumCount { get; set; }
+
     public List<StockDailyUsageTypeDto> UsageTypes { get; set; } = [];
 }
 
