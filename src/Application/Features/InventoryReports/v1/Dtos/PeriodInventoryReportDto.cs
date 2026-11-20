@@ -1,0 +1,17 @@
+namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Dtos;
+
+public class PeriodInventoryReportDto
+{
+    public string? StockCode { get; set; }
+    public string? ProductName { get; set; }
+    public decimal InitialQuantity { get; set; }
+    public decimal InitialCost { get; set; }
+    public decimal InitialTotal { get; set; }
+    public decimal EntryQuantity { get; set; }
+    public decimal EntryTotalCost { get; set; }
+    public decimal ExitQuantity { get; set; }
+    public decimal ExitTotalCost { get; set; }
+    public decimal FinalQuantity { get; set; }
+    public decimal FinalCost { get; set; }
+    public decimal FinalTotal { get; set; }
+}
