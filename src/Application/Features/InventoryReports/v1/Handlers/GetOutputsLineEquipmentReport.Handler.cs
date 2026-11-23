@@ -189,7 +189,7 @@ public class GetOutputsLineEquipmentReportHandler(IUnitOfWork unitOfWork, IError
                 ? (s.Output.FuelRequest != null && s.Output.FuelRequest.ProductStock != null && s.Output.FuelRequest.ProductStock.Product?.Category != null ? s.Output.FuelRequest.ProductStock.Product.Category.Name : "")
                 : (s.Item != null && s.Item.ProductStock != null && s.Item.ProductStock.Product?.Category != null ? s.Item.ProductStock.Product.Category.Name : "")))
             .ThenBy(s => (s.IsFuel
-                ? (s.Output.FuelRequest != null ? s.Output.FuelRequest.Equipment.Code : "")
+                ? (s.Output.FuelRequest != null && s.Output.FuelRequest.Equipment != null ? s.Output.FuelRequest.Equipment.Code : "")
                 : (s.Output.SupplyRequest != null && s.Output.SupplyRequest.Equipment != null ? s.Output.SupplyRequest.Equipment.Code : "")))
             .ThenBy(s => s.Output.Branch != null ? s.Output.Branch.BranchCode : "")];
     }
