@@ -29,6 +29,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(d => d.PhysicalStock, o => o.Ignore())
                 .ForMember(d => d.Difference, o => o.Ignore())
                 .ForMember(d => d.Observations, o => o.Ignore());
+
         }
     }
 }
