@@ -82,24 +82,27 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseOrders
 
         [Tags("Ordenes de compras")]
         [HttpPost("companies/{company_id}/modules/{module_code}/purchase-orders/{purchase_order_id}/process-entry")]
-        [ProducesResponseType(typeof(InventoryEntryDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(CreatedResult), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<InventoryEntryDto> ProcessPurchaseOrderEntryAsync(
+        public async Task<CreatedResult> ProcessPurchaseOrderEntryAsync(
             [FromRoute] Guid company_id,
             [FromRoute] string module_code,
             [FromRoute] Guid purchase_order_id,
-            [FromBody] ProcessPurchaseOrderEntryCommand payload)
+            [FromBody] ProcessPurchaseOrderEntryCommand payload
+        )
         {
             var userIdStr = HttpContext.Items["UserId"] as string;
 
-            payload.CompanyId = company_id;
-            payload.ModuleCode = module_code;
-            payload.UserId = Guid.Parse(userIdStr ?? "");
+            payload.CompanyId       = company_id;
+            payload.ModuleCode      = module_code;
             payload.PurchaseOrderId = purchase_order_id;
+            payload.UserId          = Guid.Parse(userIdStr ?? "");
 
-            return await _mediator.Send(payload);
+            await _mediator.Send(payload);
+
+            return Created();
         }
 
         [Tags("Ordenes de compras")]

@@ -40,6 +40,7 @@ namespace ERP.Core.Warehouse.Api.Infrastructure
             // services.AddJobScheduling();
             services.AddErpCoreServices(configuration);
             services.AddErpDatabaseServices(configuration);
+            services.AddMemoryCache();
 
             services.AddScoped<IErrorManager, ErrorManager>();
             services.AddHttpClient<IScaleServices, ScaleServices>();
