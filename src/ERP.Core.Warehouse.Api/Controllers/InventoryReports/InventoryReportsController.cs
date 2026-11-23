@@ -2,12 +2,13 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 using ERP.Core.Domain.Entities.Errors;
+using ERP.Core.Database.Domain.Enums;
+
 using ERP.Core.Infrastructure.Attributes;
 
 using ERP.Core.Warehouse.Api.Controllers.ApiBase;
-using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Dtos;
+using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Queries;
 
 namespace ERP.Core.Warehouse.Api.Controllers.InventoryReports;
 
@@ -90,6 +91,31 @@ public class InventoryReportsController(IMediator mediator) : ApiControllerBase
             CategoryId = category_id,
             ProductCode = product_code,
             ProductName = product_name
+        });
+    }
+
+    [HttpGet("companies/{company_id}/modules/{module_code}/reports/outputs-line-equipment")]
+    [ProducesResponseType(typeof(OutputLineEquipmentReportDto), StatusCodes.Status200OK)]
+    public async Task<OutputLineEquipmentReportDto> GetOutputsLineEquipmentReportAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        [FromQuery] Guid? branch_id = null,
+        [FromQuery] List<Guid>? category_ids = null,
+        [FromQuery] List<Guid>? equipment_ids = null)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        return await mediator.Send(new GetOutputsLineEquipmentReportQuery
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = Guid.Parse(userIdStr ?? ""),
+            From = from,
+            To = to,
+            BranchId = branch_id,
+            CategoryId = category_ids,
+            EquipmentIds = equipment_ids
         });
     }
 }
