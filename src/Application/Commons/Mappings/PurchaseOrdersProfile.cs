@@ -1,6 +1,5 @@
 using AutoMapper;
 using ERP.Core.Database.Domain.Enums;
-using ERP.Core.Warehouse.Api.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Bases;
 using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos;
@@ -72,7 +71,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                         item.Product != null && item.Product.ProductUsageType == ProductUsageType.Operational)))
                 .ForPath(dest => dest.SentByUserInformation, opt => opt.MapFrom(src => src.SentByUser))
                 .ForPath(dest => dest.ReviewerUserInformation, opt => opt.MapFrom(src => src.ReviewedByUser))
-                .ForPath(dest => dest.Items, opt => opt.MapFrom(src => src.ReviewedByUser))
+                .ForMember(dest => dest.Items, opt => opt.Ignore())
                 ;
 
             //Documento

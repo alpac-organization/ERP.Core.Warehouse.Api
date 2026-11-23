@@ -19,7 +19,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
         IUnitOfWork _unitOfWork,
         IErrorManager _errorManager,
         IMapper _mapper,
-        IPurchaseRequestVisibilityService _visibilityService)
+        IPurchaseRequestVisibilityService _visibilityService
+        )
         : BaseValidatorHandler<GetPurchaseOrderDetailsQuery, PurchaseOrderDetailsDto>(_unitOfWork, _errorManager)
     {
         public override async Task<PurchaseOrderDetailsDto> Handle(GetPurchaseOrderDetailsQuery request, CancellationToken cancellationToken)
@@ -67,6 +68,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                             quotation.DeletedAt == null &&
                             quotation.IsAcceptedForPurchase))
                             .ThenInclude(quotation => quotation.Supplier)
+
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Where(order => order.Id == request.PurchaseOrderId)

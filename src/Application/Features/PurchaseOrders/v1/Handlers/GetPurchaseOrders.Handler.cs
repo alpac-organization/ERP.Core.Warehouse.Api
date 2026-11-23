@@ -14,10 +14,11 @@ using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Queries;
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 {
     public class GetPurchaseOrdersHandler(
-        IUnitOfWork _unitOfWork,
-        IErrorManager _errorManager,
-        IMapper _mapper,
-        IPurchaseRequestVisibilityService _visibilityService)
+            IUnitOfWork _unitOfWork,
+            IErrorManager _errorManager,
+            IMapper _mapper,
+            IPurchaseRequestVisibilityService _visibilityService        
+        )
         : BaseValidatorHandler<GetPurchaseOrdersQuery, PagedResponse<PurchaseOrderDto>>(_unitOfWork, _errorManager)
     {
         public override async Task<PagedResponse<PurchaseOrderDto>> Handle(GetPurchaseOrdersQuery request, CancellationToken cancellationToken)
