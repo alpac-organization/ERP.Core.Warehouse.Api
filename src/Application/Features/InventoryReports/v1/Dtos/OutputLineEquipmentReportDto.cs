@@ -4,6 +4,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Dtos
 {
     public class OutputLineEquipmentReportDto
     {
+        public DateTime GeneratedAt { get; set; }
+        public string? GeneratedBy { get; set; }
+
         public DateTime From { get; set; }
         public DateTime To { get; set; }
 

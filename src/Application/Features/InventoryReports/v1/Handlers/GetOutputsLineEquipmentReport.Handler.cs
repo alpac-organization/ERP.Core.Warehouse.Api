@@ -37,32 +37,49 @@ public class GetOutputsLineEquipmentReportHandler(IUnitOfWork unitOfWork, IError
 
         var isAdministrator = access.Role?.RoleType == RoleType.Administrator;
 
+        if (!isAdministrator && access.Profile == null)
+        {
+            return _errorManager.ThrowBadRequest<OutputLineEquipmentReportDto>("Perfil no encontrado.", "ERP:011");
+        }
+
         if (isAdministrator && !request.BranchId.HasValue)
         {
             return _errorManager.ThrowBadRequest<OutputLineEquipmentReportDto>("Debe especificar la sucursal.", "ERP:008");
         }
 
-        var branchId = isAdministrator ? request.BranchId!.Value : access.Profile.BranchId;
+        var branchId = isAdministrator ? request.BranchId!.Value : access.Profile!.BranchId;
 
         var outputs = await LoadOutputsAsync(request, branchId, ct);
         var sources = BuildSources(outputs, request);
         var ordered = OrderSources(sources);
 
+        var generatedBy = await _unitOfWork.Users.Entities
+            .AsNoTracking()
+            .Where(u => u.Id == request.UserId)
+            .Select(u => u.Fullname)
+            .FirstOrDefaultAsync(ct);
+
         var report = new OutputLineEquipmentReportDto
         {
+            GeneratedAt = DateTime.UtcNow,
+            GeneratedBy = generatedBy,
             From = request.From.Value,
             To = request.To.Value,
             Categories = [.. ordered
                 .GroupBy(s => s.IsFuel
-                    ? (s.Output.FuelRequest != null && s.Output.FuelRequest.ProductStock != null && s.Output.FuelRequest.ProductStock.Product?.Category != null ? s.Output.FuelRequest.ProductStock.Product.Category.Name : "Sin categoria")
-                    : (s.Item != null && s.Item.ProductStock != null && s.Item.ProductStock.Product?.Category != null ? s.Item.ProductStock.Product.Category.Name : "Sin categoria"))
+                    ? (s.Output.FuelRequest != null && s.Output.FuelRequest.ProductStock != null && s.Output.FuelRequest.ProductStock.Product?.Category != null ? s.Output.FuelRequest.ProductStock.Product.Category.Id : Guid.Empty)
+                    : (s.Item != null && s.Item.ProductStock != null && s.Item.ProductStock.Product?.Category != null ? s.Item.ProductStock.Product.Category.Id : Guid.Empty))
                 .Select(categoryGroup => new OutputLineEquipmentCategoryDto
                 {
-                    CategoryName = categoryGroup.Key,
+                    CategoryName = categoryGroup.FirstOrDefault() is { } firstCategory
+                        ? (firstCategory.IsFuel
+                            ? (firstCategory.Output.FuelRequest?.ProductStock?.Product?.Category?.Name ?? "Sin categoria")
+                            : (firstCategory.Item?.ProductStock?.Product?.Category?.Name ?? "Sin categoria"))
+                        : "Sin categoria",
                     Equipments = [.. categoryGroup
                         .GroupBy(s => s.IsFuel
-                            ? (s.Output.FuelRequest != null ? s.Output.FuelRequest.Equipment.Code : "Sin equipo")
-                            : (s.Output.SupplyRequest != null && s.Output.SupplyRequest.Equipment != null ? s.Output.SupplyRequest.Equipment.Code : "Sin equipo"))
+                            ? (s.Output.FuelRequest != null && s.Output.FuelRequest.Equipment != null ? s.Output.FuelRequest.Equipment.Id : Guid.Empty)
+                            : (s.Output.SupplyRequest != null && s.Output.SupplyRequest.Equipment != null ? s.Output.SupplyRequest.Equipment.Id : Guid.Empty))
                         .Select(equipmentGroup =>
                         {
                             var items = equipmentGroup.Select(s => mapper.Map<OutputLineEquipmentItemDto>(s)).ToList();
@@ -112,7 +129,7 @@ public class GetOutputsLineEquipmentReportHandler(IUnitOfWork unitOfWork, IError
             .Where(o => o.DeletedAt == null)
             .Where(o => o.BranchId == branchId)
             .Where(o => (o.DispatchedAt ?? o.CreatedAt) >= request.From!.Value)
-            .Where(o => (o.DispatchedAt ?? o.CreatedAt) <= request.To!.Value);
+            .Where(o => (o.DispatchedAt ?? o.CreatedAt) <= request.To!.Value.Date.AddDays(1).AddTicks(-1));
 
         if (request.EquipmentIds is { Count: > 0 })
         {
