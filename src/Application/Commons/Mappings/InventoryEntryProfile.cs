@@ -1,7 +1,10 @@
 using AutoMapper;
-using ERP.Core.Database.Domain.Entities.Inventory;
 using ERP.Core.Database.Domain.Entities.Shopping;
+using ERP.Core.Database.Domain.Entities.Inventory;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Dtos;
+
+using PurchaseOrderCommands = ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Commands;
+using ERP.Core.Database.Domain.Enums;
 
 namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
 {
@@ -30,6 +33,19 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(dest => dest.ProductCode, opt => opt.MapFrom(src => src.Product != null ? src.Product.Code : null))
                 .ForMember(dest => dest.UnitMeasureName, opt => opt.MapFrom(src => src.UnitMeasure != null ? src.UnitMeasure.Name : null))
                 .ForMember(dest => dest.UnitMeasureSymbol, opt => opt.MapFrom(src => src.UnitMeasure != null ? src.UnitMeasure.Symbol : null));
+        }
+    }
+    
+    public static class InventoryEntryMapper
+    {
+        public static InventoryEntry ToInventoryEntity(this PurchaseOrderCommands.ProcessPurchaseOrderEntryCommand command)
+        {
+            return new()
+            {
+                EntryType    = EntryType.Buy,
+                EntryStatus  = EntryStatus.PendingReview,
+                Observations = command.Observations
+            };
         }
     }
 

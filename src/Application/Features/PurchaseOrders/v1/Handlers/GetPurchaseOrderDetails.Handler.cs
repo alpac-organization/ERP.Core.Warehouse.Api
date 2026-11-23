@@ -2,6 +2,8 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Database.Domain.Entities.Bases;
+using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Entities.Shopping;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
@@ -47,13 +49,17 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                         .Where(profile => profile.CompanyId == profileCompanyId)
                         .Take(1))
                     .ThenInclude(profile => profile.WorkArea)
+                
                 .Include(order => order.ReviewedByUser)
                     .ThenInclude(user => user!.Profiles
                         .Where(profile => profile.CompanyId == profileCompanyId)
                         .Take(1))
                     .ThenInclude(profile => profile.WorkArea)
+                
                 .Include(order => order.PurchaseOrderItems)
                     .ThenInclude(item => item.Product)
+                        .ThenInclude(item => item.CostCenter)
+
                 .Include(order => order.PurchaseRequest)
                     .ThenInclude(pr => pr.PurchaseRequestItems)
                         .ThenInclude(item => item.Quotations.Where(quotation =>
@@ -93,11 +99,29 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                     ProductId = orderItem.ProductId,
                     ProductName = orderItem.Product?.ProductName,
                     ProductCode = orderItem.Product?.Code,
+                    CostCenterInformation = MapCostCenter(orderItem.Product?.CostCenter),
                     Quantity = orderItem.Quantity,
                     UnitPrice = orderItem.UnitPrice,
                     Quotation = ResolveQuotation(orderItem, acceptedQuotations)
                 })
                 .ToList();
+        }
+
+        private static CostCenterInformation? MapCostCenter(CostCenter? costCenter)
+        {
+            if (costCenter is null)
+            {
+                return null;
+            }
+
+            return new CostCenterInformation
+            {
+                CostCenterId = costCenter.Id,
+                Description = costCenter.Description,
+                CostCenterName = costCenter.CostCenterName,
+                CoilCode = costCenter.CoilCode,
+                CostCenterCode = costCenter.CostCenterCode
+            };
         }
 
         private PurchaseOrderDetailQuotationDto? ResolveQuotation(

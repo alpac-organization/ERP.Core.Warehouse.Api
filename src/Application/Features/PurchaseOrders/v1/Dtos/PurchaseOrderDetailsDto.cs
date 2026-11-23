@@ -7,26 +7,22 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos
     public class PurchaseOrderDetailsDto : PurchaseOrderHeaderDto
     {
         public UserInformation ReviewerUserInformation { get; set; } = new();
-
         public List<PurchaseOrderDetailItemDto> Items { get; set; } = [];
     }
 
     public class PurchaseOrderDetailItemDto
     {
+        public Guid ProductId { get; set; }
         public Guid PurchaseOrderItemId { get; set; }
-
         public Guid? PurchaseRequestItemId { get; set; }
 
-        public Guid ProductId { get; set; }
-
         public string? ProductName { get; set; }
-
         public string? ProductCode { get; set; }
+        public CostCenterInformation? CostCenterInformation { get; set; }
+
 
         public int Quantity { get; set; }
-
         public decimal UnitPrice { get; set; }
-
         public PurchaseOrderDetailQuotationDto? Quotation { get; set; }
     }
 

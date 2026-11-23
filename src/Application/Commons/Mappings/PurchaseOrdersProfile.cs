@@ -71,7 +71,9 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                     && src.PurchaseOrderItems.All(item =>
                         item.Product != null && item.Product.ProductUsageType == ProductUsageType.Operational)))
                 .ForPath(dest => dest.SentByUserInformation, opt => opt.MapFrom(src => src.SentByUser))
-                .ForPath(dest => dest.ReviewerUserInformation, opt => opt.MapFrom(src => src.ReviewedByUser));
+                .ForPath(dest => dest.ReviewerUserInformation, opt => opt.MapFrom(src => src.ReviewedByUser))
+                .ForPath(dest => dest.Items, opt => opt.MapFrom(src => src.ReviewedByUser))
+                ;
 
             //Documento
             CreateMap<PurchaseOrder, PurchaseOrderTemplateDto>()

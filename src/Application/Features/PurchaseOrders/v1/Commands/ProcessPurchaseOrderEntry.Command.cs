@@ -1,12 +1,15 @@
 using MediatR;
+using System.Text.Json.Serialization;
+
 using ERP.Core.Domain.Entities.Bases;
-using ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Commands
 {
-    public class ProcessPurchaseOrderEntryCommand : BaseRequest, IRequest<InventoryEntryDto>
+    public class ProcessPurchaseOrderEntryCommand : BaseRequest, IRequest<Unit>
     {
+
+        [JsonIgnore]
         public Guid PurchaseOrderId { get; set; }
-        public string? Comments { get; set; }
+        public string? Observations { get; set; }
     }
 }
