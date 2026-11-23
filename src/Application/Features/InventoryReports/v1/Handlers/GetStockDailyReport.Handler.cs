@@ -58,16 +58,34 @@ public class GetStockDailyReportHandler(IUnitOfWork unitOfWork, IErrorManager er
         var query = _unitOfWork.ProductStocks.Entities.AsNoTracking();
 
         if (request.AreaId.HasValue)
-            query = query.Where(ps => ps.Product.CostCenter.WorkAreaId == request.AreaId.Value);
+            query = query.Where(ps => ps.Product.CostCenter != null && ps.Product.CostCenter.WorkAreaId == request.AreaId.Value);
+
+        if (request.AreaIds is { Count: > 0 })
+            query = query.Where(ps => ps.Product.CostCenter != null && request.AreaIds.Contains(ps.Product.CostCenter.WorkAreaId));
 
         if (request.BranchId.HasValue)
             query = query.Where(ps => ps.Product.BranchId == request.BranchId.Value);
 
+        if (request.BranchIds is { Count: > 0 })
+            query = query.Where(ps => request.BranchIds.Contains(ps.Product.BranchId));
+
         if (request.CostCenterId.HasValue)
             query = query.Where(ps => ps.CostCenterId == request.CostCenterId.Value);
 
+        if (request.CostCenterIds is { Count: > 0 })
+            query = query.Where(ps => request.CostCenterIds.Contains(ps.CostCenterId));
+
         if (request.CategoryId.HasValue)
             query = query.Where(ps => ps.Product.CategoryId == request.CategoryId.Value);
+
+        if (request.CategoryIds is { Count: > 0 })
+            query = query.Where(ps => request.CategoryIds.Contains(ps.Product.CategoryId));
+
+        if (request.UsageType.HasValue)
+            query = query.Where(ps => ps.Product.ProductUsageType == request.UsageType.Value);
+
+        if (request.UsageTypes is { Count: > 0 })
+            query = query.Where(ps => request.UsageTypes.Contains(ps.Product.ProductUsageType));
 
         if (!string.IsNullOrEmpty(request.ProductCode))
             query = query.Where(ps => ps.Product.Code == request.ProductCode);
