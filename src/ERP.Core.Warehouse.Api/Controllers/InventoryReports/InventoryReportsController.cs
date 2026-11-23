@@ -96,6 +96,8 @@ public class InventoryReportsController(IMediator mediator) : ApiControllerBase
 
     [HttpGet("companies/{company_id}/modules/{module_code}/reports/outputs-line-equipment")]
     [ProducesResponseType(typeof(OutputLineEquipmentReportDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
     public async Task<OutputLineEquipmentReportDto> GetOutputsLineEquipmentReportAsync(
         [FromRoute] Guid company_id,
         [FromRoute] string module_code,
