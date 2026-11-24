@@ -30,5 +30,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos
 
         public Guid? SupplierId { get; set; }
         public string? SupplierName { get; set; }
+
+        public Guid? CostCenterId { get; set; }
+        public string? CostCenterName { get; set; }
+        public string? CostCenterCode { get; set; }
+        public string? CostCenterDescription { get; set; }
+        public int? CostCenterCoilCode { get; set; }
     }
 }

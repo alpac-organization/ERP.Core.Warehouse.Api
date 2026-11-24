@@ -47,7 +47,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                 .Include(entry => entry.Branch)
                 .Include(entry => entry.WorkArea)
                 .Include(entry => entry.PurchaseOrder)
+                    .ThenInclude(order => order.Supplier)
+                .Include(entry => entry.PurchaseOrder)
                     .ThenInclude(order => order.PurchaseRequest)
+                        .ThenInclude(purchaseRequest => purchaseRequest.PurchaseRequestItems)
+                            .ThenInclude(requestItem => requestItem.Quotations.Where(q =>
+                                q.IsActive &&
+                                q.DeletedAt == null &&
+                                q.IsAcceptedForPurchase))
                 .Include(entry => entry.PurchaseOrder)
                     .ThenInclude(order => order.PurchaseOrderItems)
                         .ThenInclude(item => item.Product)
@@ -91,12 +98,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
 
             var costCenterIds = request.Items.Select(item => item.CostCenterId).Distinct().ToList();
 
-            var existingCostCenterIds = await _unitOfWork.CostCenters.Entities
+            var existingCostCenters = await _unitOfWork.CostCenters.Entities
+                .AsNoTracking()
                 .Where(costCenter => costCenterIds.Contains(costCenter.Id) && costCenter.IsActive)
-                .Select(costCenter => costCenter.Id)
-                .ToListAsync(cancellationToken);
+                .ToDictionaryAsync(costCenter => costCenter.Id, cancellationToken);
 
-            if (existingCostCenterIds.Count != costCenterIds.Count)
+            if (existingCostCenters.Count != costCenterIds.Count)
             {
                 return _errorManager.ThrowBadRequest<InventoryEntryDto>(
                     "Uno o más centros de costo no existen o están inactivos.",
@@ -120,15 +127,67 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                 });
             }
 
+            var supplierName = inventoryEntry.PurchaseOrder?.Supplier?.SuppliersLegalName
+                ?? inventoryEntry.PurchaseOrder?.Supplier?.CommercialName;
+
+            var acceptedQuotationsByRequestItemId = (inventoryEntry.PurchaseOrder?.PurchaseRequest?.PurchaseRequestItems ?? [])
+                .SelectMany(item => item.Quotations)
+                .Where(quotation => quotation.SupplierId == inventoryEntry.PurchaseOrder?.SupplierId)
+                .GroupBy(quotation => quotation.PurchaseRequestItemId)
+                .ToDictionary(group => group.Key, group => group.First());
+
             var additionalData = DeserializeAdditionalData(inventoryEntry.AdditionalData);
+            additionalData.PurchaseOrderId ??= inventoryEntry.PurchaseOrderId;
+            additionalData.SupplierId ??= inventoryEntry.PurchaseOrder?.SupplierId;
+            additionalData.SupplierName ??= supplierName;
             additionalData.EvidenceImages.Clear();
             additionalData.EvidenceImages.AddRange(evidenceImages);
+
+            var costCenterByOrderItemId = request.Items
+                .GroupBy(item => item.PurchaseOrderItemId)
+                .ToDictionary(group => group.Key, group => existingCostCenters[group.Last().CostCenterId]);
+
+            additionalData.Items = purchaseOrderItems.Values
+                .Select(orderItem =>
+                {
+                    costCenterByOrderItemId.TryGetValue(orderItem.Id, out var designatedCostCenter);
+                    Guid? quotationId = null;
+
+                    if (orderItem.PurchaseRequestItemId.HasValue &&
+                        acceptedQuotationsByRequestItemId.TryGetValue(orderItem.PurchaseRequestItemId.Value, out var quotation))
+                    {
+                        quotationId = quotation.Id;
+                    }
+
+                    return new PurchaseOrderEntryAdditionalItem
+                    {
+                        PurchaseOrderItemId = orderItem.Id,
+                        PurchaseRequestItemId = orderItem.PurchaseRequestItemId,
+                        QuotationId = quotationId,
+                        ProductId = orderItem.ProductId,
+                        ProductName = orderItem.Product?.ProductName,
+                        ProductCode = orderItem.Product?.Code,
+                        Quantity = orderItem.Quantity,
+                        UnitPrice = orderItem.UnitPrice,
+                        UnitMeasureId = orderItem.Product?.UnitMeasureId ?? Guid.Empty,
+                        UnitMeasureName = orderItem.Product?.UnitMeasure?.Name,
+                        UnitMeasureSymbol = orderItem.Product?.UnitMeasure?.Symbol,
+                        SupplierId = inventoryEntry.PurchaseOrder?.SupplierId,
+                        SupplierName = supplierName,
+                        CostCenterId = designatedCostCenter?.Id,
+                        CostCenterName = designatedCostCenter?.CostCenterName,
+                        CostCenterCode = designatedCostCenter?.CostCenterCode,
+                        CostCenterDescription = designatedCostCenter?.Description,
+                        CostCenterCoilCode = designatedCostCenter?.CoilCode,
+                    };
+                })
+                .ToList();
 
             inventoryEntry.Observations = string.IsNullOrWhiteSpace(request.Observations)
                 ? inventoryEntry.Observations
                 : request.Observations.Trim();
-            // inventoryEntry.InvoiceNumber = request.InvoiceNumber.Trim();
-            // inventoryEntry.InvoiceDate = request.InvoiceDate;
+            inventoryEntry.InvoiceNumber = request.InvoiceNumber.Trim();
+            inventoryEntry.InvoiceDate = request.InvoiceDate;
             inventoryEntry.AdditionalData = JsonSerializer.Serialize(additionalData, JsonManager.SnakeCaseOptions);
             inventoryEntry.EntryStatus = EntryStatus.ApprovedEntry;
 

@@ -56,12 +56,12 @@ namespace ERP.Core.Warehouse.Api.Controllers.Inventory
         [HttpPatch("companies/{company_id}/modules/{module_code}/inventory-stock/{inventory_stock_id}")]
         [ProducesResponseType(typeof(OkResult), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<OkResult> PatchInventoryStockAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid inventory_stock_id, [FromBody] PatchInventoryStockCommand payload)
+        public async Task<OkResult> PatchInventoryStockAsync([FromRoute] Guid company_id, [FromRoute] string module_code, [FromRoute] Guid inventory_stock_id, [FromBody] PatchInventoryStockCommand? payload)
         {
-            var userIdStr = HttpContext.Items["UserId"] as string;
-            
-            payload.UserId = Guid.Parse(userIdStr ?? "");
+            payload ??= new PatchInventoryStockCommand();
+            payload.UserId = CurrentUserId;
             payload.CompanyId = company_id;
             payload.ModuleCode = module_code;
             payload.InventoryStockId = inventory_stock_id;
