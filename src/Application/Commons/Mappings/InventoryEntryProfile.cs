@@ -22,6 +22,10 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .IncludeBase<InventoryEntry, InventoryEntryDto>()
                 .ForMember(dest => dest.WorkAreaInformation, opt => opt.MapFrom(src => src.WorkArea))
                 .ForMember(dest => dest.PurchaseRequestInformation, opt => opt.MapFrom(src => src.PurchaseOrder.PurchaseRequest))
+                .ForMember(dest => dest.CostCenterInformation, opt => opt.MapFrom(src =>
+                    src.PurchaseOrder != null && src.PurchaseOrder.PurchaseRequest != null
+                        ? src.PurchaseOrder.PurchaseRequest.CostCenter
+                        : null))
                 .ForMember(dest => dest.PurchaseRequestItems, opt => opt.MapFrom(src =>
                     src.PurchaseOrder.PurchaseRequest != null
                         ? src.PurchaseOrder.PurchaseRequest.PurchaseRequestItems
@@ -32,7 +36,23 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.ProductName : null))
                 .ForMember(dest => dest.ProductCode, opt => opt.MapFrom(src => src.Product != null ? src.Product.Code : null))
                 .ForMember(dest => dest.UnitMeasureName, opt => opt.MapFrom(src => src.UnitMeasure != null ? src.UnitMeasure.Name : null))
-                .ForMember(dest => dest.UnitMeasureSymbol, opt => opt.MapFrom(src => src.UnitMeasure != null ? src.UnitMeasure.Symbol : null));
+                .ForMember(dest => dest.UnitMeasureSymbol, opt => opt.MapFrom(src => src.UnitMeasure != null ? src.UnitMeasure.Symbol : null))
+                .ForMember(dest => dest.CostCenterId, opt => opt.MapFrom(src =>
+                    src.Product != null && src.Product.CostCenterId.HasValue
+                        ? src.Product.CostCenterId
+                        : (src.PurchaseRequest != null ? src.PurchaseRequest.CostCenterId : null)))
+                .ForMember(dest => dest.CostCenterName, opt => opt.MapFrom(src =>
+                    src.Product != null && src.Product.CostCenter != null
+                        ? src.Product.CostCenter.CostCenterName
+                        : (src.PurchaseRequest != null && src.PurchaseRequest.CostCenter != null ? src.PurchaseRequest.CostCenter.CostCenterName : null)))
+                .ForMember(dest => dest.CostCenterCode, opt => opt.MapFrom(src =>
+                    src.Product != null && src.Product.CostCenter != null
+                        ? src.Product.CostCenter.CostCenterCode
+                        : (src.PurchaseRequest != null && src.PurchaseRequest.CostCenter != null ? src.PurchaseRequest.CostCenter.CostCenterCode : null)))
+                .ForMember(dest => dest.CostCenterInformation, opt => opt.MapFrom(src =>
+                    src.Product != null && src.Product.CostCenter != null
+                        ? src.Product.CostCenter
+                        : (src.PurchaseRequest != null ? src.PurchaseRequest.CostCenter : null)));
         }
     }
     

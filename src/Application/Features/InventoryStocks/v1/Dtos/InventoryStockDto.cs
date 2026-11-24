@@ -5,9 +5,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Dtos
 {
     public class InventoryStockDto
     {
-        public int MinimumStock { get; set; }
-        public int? MaximumStock { get; set; }
-        public int AvailableQuantity { get; set; }
+        public decimal MinimumStock { get; set; }
+        public decimal? MaximumStock { get; set; }
+        public decimal AvailableQuantity { get; set; }
         public Guid ProductStockId { get; set; }
         public ProductStockStatus Status { get; set; }
         public decimal WeightedAverageCost { get; set; }
@@ -30,6 +30,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Dtos
         public string? ProductCode { get; set; }
         public string? ProductName { get; set; }
         public string? Description { get; set; }
+        public ProductStatus ProductStatus { get; set; }
         public ProductUsageType ProductUsageType { get; set; }
 
         public CategoryInformation? CategoryInformation { get; set; }
