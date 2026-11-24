@@ -71,40 +71,5 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 ReasonsInventoryRemovalId = request.ReasonInventoryRemovalId
             };
         }
-
-        public static Kardex ToKardexEntity(
-            ProductStock stock, decimal dispatched, InventoryOutputs output,
-            Guid userId, DateTime now, decimal previousUnits, decimal previousCost)
-        {
-            var previousKardex = previousUnits * previousCost;
-
-            var unitCost = previousCost;
-            var totalOutput = dispatched * unitCost;
-
-            var newUnits = stock.AvailableQuantity;
-            var newKardex = previousKardex - totalOutput;
-            var newAvgCost = newUnits > 0 ? newKardex / newUnits : previousCost;
-
-            return new Kardex
-            {
-                Id = Guid.NewGuid(),
-                KardexType = KardexType.Operational,
-                MovementType = KardexMovementType.Exit,
-                Units = dispatched,
-                UnitCost = unitCost,
-                TotalInput = 0,
-                TotalOutput = totalOutput,
-                TotalUnits = newUnits,
-                AverageCost = newAvgCost,
-                TotalKardex = newUnits * newAvgCost,
-                TransactionDate = DateOnly.FromDateTime(now),
-                TransactionTime = TimeOnly.FromDateTime(now),
-                ProductId = stock.ProductId,
-                MovementByUserId = userId,
-                WorkAreaId = output.WorkAreaId,
-                CostCenterId = output.CostCenterId,
-                InventoryOutputId = output.Id
-            };
-        }
     }
 }
