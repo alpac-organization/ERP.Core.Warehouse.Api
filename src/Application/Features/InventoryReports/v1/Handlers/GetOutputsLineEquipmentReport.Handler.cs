@@ -25,33 +25,12 @@ public class GetOutputsLineEquipmentReportHandler(IUnitOfWork unitOfWork, IError
         if (!access.IsSuccess)
             return access.ErrorResponse!;
 
-        if (!request.From.HasValue || !request.To.HasValue)
-        {
-            return _errorManager.ThrowBadRequest<OutputLineEquipmentReportDto>("Debe especificar el periodo (\"de\" y \"hasta\").", "ERP:007");
-        }
-
-        if (request.CategoryId is not { Count: > 0 })
-        {
-            return _errorManager.ThrowBadRequest<OutputLineEquipmentReportDto>("Debe enviar al menos una categoria.", "ERP:009");
-        }
-
-        var isAdministrator = access.Role?.RoleType == RoleType.Administrator;
-
-        if (!isAdministrator && access.Profile == null)
-        {
-            return _errorManager.ThrowBadRequest<OutputLineEquipmentReportDto>("Perfil no encontrado.", "ERP:011");
-        }
-
-        if (isAdministrator && !request.BranchId.HasValue)
-        {
-            return _errorManager.ThrowBadRequest<OutputLineEquipmentReportDto>("Debe especificar la sucursal.", "ERP:008");
-        }
-
-        var branchId = isAdministrator ? request.BranchId!.Value : access.Profile!.BranchId;
+        var validationError = ValidateAndResolveBranch(request, access, out var branchId);
+        if (validationError != null)
+            return validationError;
 
         var outputs = await LoadOutputsAsync(request, branchId, ct);
-        var sources = BuildSources(outputs, request);
-        var ordered = OrderSources(sources);
+        var ordered = OrderSources(BuildSources(outputs, request));
 
         var generatedBy = await _unitOfWork.Users.Entities
             .AsNoTracking()
@@ -59,46 +38,35 @@ public class GetOutputsLineEquipmentReportHandler(IUnitOfWork unitOfWork, IError
             .Select(u => u.Fullname)
             .FirstOrDefaultAsync(ct);
 
-        var report = new OutputLineEquipmentReportDto
-        {
-            GeneratedAt = DateTime.UtcNow,
-            GeneratedBy = generatedBy,
-            From = request.From.Value,
-            To = request.To.Value,
-            Categories = [.. ordered
-                .GroupBy(s => s.IsFuel
-                    ? (s.Output.FuelRequest != null && s.Output.FuelRequest.ProductStock != null && s.Output.FuelRequest.ProductStock.Product?.Category != null ? s.Output.FuelRequest.ProductStock.Product.Category.Id : Guid.Empty)
-                    : (s.Item != null && s.Item.ProductStock != null && s.Item.ProductStock.Product?.Category != null ? s.Item.ProductStock.Product.Category.Id : Guid.Empty))
-                .Select(categoryGroup => new OutputLineEquipmentCategoryDto
-                {
-                    CategoryName = categoryGroup.FirstOrDefault() is { } firstCategory
-                        ? (firstCategory.IsFuel
-                            ? (firstCategory.Output.FuelRequest?.ProductStock?.Product?.Category?.Name ?? "Sin categoria")
-                            : (firstCategory.Item?.ProductStock?.Product?.Category?.Name ?? "Sin categoria"))
-                        : "Sin categoria",
-                    Equipments = [.. categoryGroup
-                        .GroupBy(s => s.IsFuel
-                            ? (s.Output.FuelRequest != null && s.Output.FuelRequest.Equipment != null ? s.Output.FuelRequest.Equipment.Id : Guid.Empty)
-                            : (s.Output.SupplyRequest != null && s.Output.SupplyRequest.Equipment != null ? s.Output.SupplyRequest.Equipment.Id : Guid.Empty))
-                        .Select(equipmentGroup =>
-                        {
-                            var items = equipmentGroup.Select(s => mapper.Map<OutputLineEquipmentItemDto>(s)).ToList();
-                            var equipment = equipmentGroup.First().IsFuel
-                                ? equipmentGroup.First().Output.FuelRequest?.Equipment
-                                : equipmentGroup.First().Output.SupplyRequest?.Equipment;
-                            return new OutputLineEquipmentEquipmentDto
-                            {
-                                EquipmentInformation = equipment != null ? mapper.Map<EquipmentInformation>(equipment) : new EquipmentInformation(),
-                                Items = items,
-                                TotalQuantity = items.Sum(i => i.Quantity),
-                                TotalCost = items.Sum(i => i.Cost),
-                                TotalTotalCost = items.Sum(i => i.TotalCost)
-                            };
-                        })]
-                })]
-        };
+        return BuildReport(ordered, request, generatedBy);
+    }
 
-        return report;
+    private OutputLineEquipmentReportDto? ValidateAndResolveBranch(
+        GetOutputsLineEquipmentReportQuery request,
+        AccessValidationResult<OutputLineEquipmentReportDto> access,
+        out Guid branchId)
+    {
+        branchId = Guid.Empty;
+
+        if (!request.From.HasValue || !request.To.HasValue)
+            return _errorManager.ThrowBadRequest<OutputLineEquipmentReportDto>("Debe especificar el periodo (\"de\" y \"hasta\").", "ERP:007");
+
+        if (request.From.Value > request.To.Value)
+            return _errorManager.ThrowBadRequest<OutputLineEquipmentReportDto>("El periodo no es valido.", "ERP:010");
+
+        if (request.CategoryId is not { Count: > 0 })
+            return _errorManager.ThrowBadRequest<OutputLineEquipmentReportDto>("Debe enviar al menos una categoria.", "ERP:009");
+
+        var isAdministrator = access.Role?.RoleType == RoleType.Administrator;
+
+        if (!isAdministrator && access.Profile == null)
+            return _errorManager.ThrowBadRequest<OutputLineEquipmentReportDto>("Perfil no encontrado.", "ERP:011");
+
+        if (isAdministrator && !request.BranchId.HasValue)
+            return _errorManager.ThrowBadRequest<OutputLineEquipmentReportDto>("Debe especificar la sucursal.", "ERP:008");
+
+        branchId = isAdministrator ? request.BranchId!.Value : access.Profile.BranchId;
+        return null;
     }
 
     private async Task<List<ERP.Core.Database.Domain.Entities.Inventory.InventoryOutputs>> LoadOutputsAsync(GetOutputsLineEquipmentReportQuery request, Guid branchId, CancellationToken ct)
@@ -137,7 +105,6 @@ public class GetOutputsLineEquipmentReportHandler(IUnitOfWork unitOfWork, IError
                                     (o.FuelRequest != null && request.EquipmentIds.Contains(o.FuelRequest.EquipmentId)));
         }
 
-
         return await query.ToListAsync(ct);
     }
 
@@ -147,12 +114,12 @@ public class GetOutputsLineEquipmentReportHandler(IUnitOfWork unitOfWork, IError
 
         foreach (var output in outputs)
         {
-            if (output.SupplyRequest != null)
+            if (output.SupplyRequest?.Equipment != null)
             {
                 foreach (var item in output.SupplyRequest.SupplyRequestItems)
                 {
                     var product = item.ProductStock?.Product;
-                    if (request.CategoryId is { Count: > 0 } && !request.CategoryId.Contains(product?.CategoryId ?? Guid.Empty))
+                    if (!MatchesFilters(product?.CategoryId, item.ProductStock?.ProductId, request))
                         continue;
 
                     sources.Add(new OutputLineEquipmentSource
@@ -164,10 +131,10 @@ public class GetOutputsLineEquipmentReportHandler(IUnitOfWork unitOfWork, IError
                 }
             }
 
-            if (output.FuelRequest != null)
+            if (output.FuelRequest?.Equipment != null)
             {
                 var product = output.FuelRequest.ProductStock?.Product;
-                if (request.CategoryId is { Count: > 0 } && !request.CategoryId.Contains(product?.CategoryId ?? Guid.Empty))
+                if (!MatchesFilters(product?.CategoryId, output.FuelRequest.ProductStock?.ProductId, request))
                     continue;
 
                 sources.Add(new OutputLineEquipmentSource
@@ -182,15 +149,108 @@ public class GetOutputsLineEquipmentReportHandler(IUnitOfWork unitOfWork, IError
         return sources;
     }
 
+    private static bool MatchesFilters(Guid? categoryId, Guid? productId, GetOutputsLineEquipmentReportQuery request)
+    {
+        if (request.CategoryId is { Count: > 0 } && !request.CategoryId.Contains(categoryId ?? Guid.Empty))
+            return false;
+
+        if (request.ProductIds is { Count: > 0 } && !request.ProductIds.Contains(productId ?? Guid.Empty))
+            return false;
+
+        return true;
+    }
+
     private static List<OutputLineEquipmentSource> OrderSources(List<OutputLineEquipmentSource> sources)
     {
         return [.. sources
-            .OrderBy(s => (s.IsFuel
-                ? (s.Output.FuelRequest != null && s.Output.FuelRequest.ProductStock != null && s.Output.FuelRequest.ProductStock.Product?.Category != null ? s.Output.FuelRequest.ProductStock.Product.Category.Name : "")
-                : (s.Item != null && s.Item.ProductStock != null && s.Item.ProductStock.Product?.Category != null ? s.Item.ProductStock.Product.Category.Name : "")))
-            .ThenBy(s => (s.IsFuel
-                ? (s.Output.FuelRequest != null && s.Output.FuelRequest.Equipment != null ? s.Output.FuelRequest.Equipment.Code : "")
-                : (s.Output.SupplyRequest != null && s.Output.SupplyRequest.Equipment != null ? s.Output.SupplyRequest.Equipment.Code : "")))
+            .OrderBy(GetCategoryName)
+            .ThenBy(GetEquipmentCode)
+            .ThenBy(GetProductName)
             .ThenBy(s => s.Output.Branch != null ? s.Output.Branch.BranchCode : "")];
+    }
+
+    private OutputLineEquipmentReportDto BuildReport(
+        List<OutputLineEquipmentSource> sources,
+        GetOutputsLineEquipmentReportQuery request,
+        string? generatedBy)
+    {
+        return new OutputLineEquipmentReportDto
+        {
+            GeneratedAt = DateTime.UtcNow,
+            GeneratedBy = generatedBy,
+            From = request.From!.Value,
+            To = request.To!.Value,
+            Categories = [.. sources
+                .GroupBy(GetCategoryId)
+                .Select(categoryGroup => new OutputLineEquipmentCategoryDto
+                {
+                    CategoryName = GetCategoryName(categoryGroup.First()),
+                    Equipments = [.. categoryGroup
+                        .GroupBy(GetEquipmentId)
+                        .Select(equipmentGroup =>
+                        {
+                            var firstSource = equipmentGroup.First();
+                            var equipment = firstSource.IsFuel
+                                ? firstSource.Output.FuelRequest?.Equipment
+                                : firstSource.Output.SupplyRequest?.Equipment;
+
+                            return new OutputLineEquipmentEquipmentDto
+                            {
+                                EquipmentInformation = equipment != null
+                                    ? mapper.Map<EquipmentInformation>(equipment)
+                                    : new EquipmentInformation(),
+                                Products = [.. equipmentGroup
+                                    .GroupBy(GetProductId)
+                                    .Select(productGroup =>
+                                    {
+                                        var items = productGroup.Select(s => mapper.Map<OutputLineEquipmentItemDto>(s)).ToList();
+
+                                        return new OutputLineEquipmentProductDto
+                                        {
+                                            StockCode = GetStockCode(productGroup.First()),
+                                            Supply = GetProductName(productGroup.First()),
+                                            Items = items,
+                                            TotalQuantity = items.Sum(i => i.Quantity),
+                                            TotalCost = items.Sum(i => i.Cost),
+                                            TotalTotalCost = items.Sum(i => i.TotalCost)
+                                        };
+                                    })]
+                            };
+                        })]
+                })]
+        };
+    }
+
+    private static Guid GetCategoryId(OutputLineEquipmentSource source) => source.IsFuel
+        ? source.Output.FuelRequest?.ProductStock?.Product?.CategoryId ?? Guid.Empty
+        : source.Item?.ProductStock?.Product?.CategoryId ?? Guid.Empty;
+
+    private static string GetCategoryName(OutputLineEquipmentSource source) => source.IsFuel
+        ? source.Output.FuelRequest?.ProductStock?.Product?.Category?.Name ?? "Sin categoria"
+        : source.Item?.ProductStock?.Product?.Category?.Name ?? "Sin categoria";
+
+    private static Guid GetEquipmentId(OutputLineEquipmentSource source) => source.IsFuel
+        ? source.Output.FuelRequest?.EquipmentId ?? Guid.Empty
+        : source.Output.SupplyRequest?.EquipmentId ?? Guid.Empty;
+
+    private static string GetEquipmentCode(OutputLineEquipmentSource source) => source.IsFuel
+        ? source.Output.FuelRequest?.Equipment?.Code ?? ""
+        : source.Output.SupplyRequest?.Equipment?.Code ?? "";
+
+    private static Guid GetProductId(OutputLineEquipmentSource source) => source.IsFuel
+        ? source.Output.FuelRequest?.ProductStock?.ProductId ?? Guid.Empty
+        : source.Item?.ProductStock?.ProductId ?? Guid.Empty;
+
+    private static string GetProductName(OutputLineEquipmentSource source) => source.IsFuel
+        ? source.Output.FuelRequest?.ProductStock?.Product?.ProductName ?? ""
+        : source.Item?.ProductStock?.Product?.ProductName ?? "";
+
+    private static string? GetStockCode(OutputLineEquipmentSource source)
+    {
+        var product = source.IsFuel
+            ? source.Output.FuelRequest?.ProductStock?.Product
+            : source.Item?.ProductStock?.Product;
+
+        return product?.Code;
     }
 }

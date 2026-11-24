@@ -105,7 +105,8 @@ public class InventoryReportsController(IMediator mediator) : ApiControllerBase
         [FromQuery] DateTime? to = null,
         [FromQuery] Guid? branch_id = null,
         [FromQuery] List<Guid>? category_ids = null,
-        [FromQuery] List<Guid>? equipment_ids = null)
+        [FromQuery] List<Guid>? equipment_ids = null,
+        [FromQuery] List<Guid>? product_ids = null)
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
         return await mediator.Send(new GetOutputsLineEquipmentReportQuery
@@ -117,7 +118,8 @@ public class InventoryReportsController(IMediator mediator) : ApiControllerBase
             To = to,
             BranchId = branch_id,
             CategoryId = category_ids,
-            EquipmentIds = equipment_ids
+            EquipmentIds = equipment_ids,
+            ProductIds = product_ids
         });
     }
 }

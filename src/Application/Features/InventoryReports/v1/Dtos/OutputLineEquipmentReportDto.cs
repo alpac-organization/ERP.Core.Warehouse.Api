@@ -23,6 +23,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Dtos
     public class OutputLineEquipmentEquipmentDto
     {
         public EquipmentInformation EquipmentInformation { get; set; } = default!;
+        public List<OutputLineEquipmentProductDto> Products { get; set; } = [];
+    }
+
+    public class OutputLineEquipmentProductDto
+    {
+        public string? StockCode { get; set; }
+        public string? Supply { get; set; }
         public List<OutputLineEquipmentItemDto> Items { get; set; } = [];
 
         public decimal TotalQuantity { get; set; }
@@ -35,7 +42,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Dtos
         public string? OutputCode { get; set; }
         public string? RequestCode { get; set; }
         public DateTime OutputDate { get; set; }
-        public string? Supply { get; set; }
         public decimal Quantity { get; set; }
         public decimal Cost { get; set; }
         public decimal TotalCost { get; set; }
