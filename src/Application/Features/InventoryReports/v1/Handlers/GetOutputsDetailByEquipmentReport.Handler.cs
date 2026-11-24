@@ -126,7 +126,8 @@ public class GetOutputsDetailByEquipmentReportHandler(IUnitOfWork unitOfWork, IE
             {
                 foreach (var item in output.SupplyRequest.SupplyRequestItems)
                 {
-                    if (!MatchesProductFilter(item.ProductStock?.ProductId, request))
+                    var product = item.ProductStock?.Product;
+                    if (!MatchesFilters(product?.CategoryId, item.ProductStock?.ProductId, request))
                         continue;
 
                     sources.Add(new OutputDetailByEquipmentSource
@@ -140,7 +141,8 @@ public class GetOutputsDetailByEquipmentReportHandler(IUnitOfWork unitOfWork, IE
 
             if (output.FuelRequest?.Equipment != null)
             {
-                if (!MatchesProductFilter(output.FuelRequest.ProductStock?.ProductId, request))
+                var product = output.FuelRequest.ProductStock?.Product;
+                if (!MatchesFilters(product?.CategoryId, output.FuelRequest.ProductStock?.ProductId, request))
                     continue;
 
                 sources.Add(new OutputDetailByEquipmentSource
@@ -155,9 +157,15 @@ public class GetOutputsDetailByEquipmentReportHandler(IUnitOfWork unitOfWork, IE
         return sources;
     }
 
-    private static bool MatchesProductFilter(Guid? productId, GetOutputsDetailByEquipmentReportQuery request)
+    private static bool MatchesFilters(Guid? categoryId, Guid? productId, GetOutputsDetailByEquipmentReportQuery request)
     {
-        return request.ProductIds is not { Count: > 0 } || request.ProductIds.Contains(productId ?? Guid.Empty);
+        if (request.CategoryId is { Count: > 0 } && !request.CategoryId.Contains(categoryId ?? Guid.Empty))
+            return false;
+
+        if (request.ProductIds is { Count: > 0 } && !request.ProductIds.Contains(productId ?? Guid.Empty))
+            return false;
+
+        return true;
     }
 
     private static List<OutputDetailByEquipmentSource> OrderSources(List<OutputDetailByEquipmentSource> sources)
