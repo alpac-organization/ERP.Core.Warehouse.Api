@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-using MediatR;
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
@@ -8,11 +8,14 @@ using ERP.Core.Application.Commons.Interfaces.AWS;
 using ERP.Core.Application.Commons.Utils;
 
 using ERP.Core.Database.Domain.Enums;
+using ERP.Core.Database.Domain.Entities.Catalogs;
 using ERP.Core.Database.Domain.Entities.Inventory;
-using ERP.Core.Database.Domain.Entities.Bases;
+using ERP.Core.Database.Domain.Entities.Shopping;
+using ERP.Core.Database.Domain.Entities.Warehouse;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
+using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Commands;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos;
@@ -24,9 +27,23 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
         IUnitOfWork unitOfWork,
         IErrorManager errorManager,
         IS3StorageService s3StorageService,
-        IWeightedAverageCostService weightedAverageCostService)
+        IWeightedAverageCostService weightedAverageCostService,
+        IMapper mapper)
         : BaseValidatorHandler<RegisterInventoryEntryCommand, InventoryEntryDto>(unitOfWork, errorManager)
     {
+        private const decimal MaxStockQuantityPrecision = 99999.99m;
+        private const decimal MaxStockAverageCostPrecision = 999999.99m;
+
+        private static readonly TimeZoneInfo NicaraguaTimeZone =
+            TimeZoneInfo.CreateCustomTimeZone("Nicaragua", TimeSpan.FromHours(-6), "Nicaragua", "Nicaragua");
+
+        private sealed record ResolvedEntryLine(
+            PurchaseOrderItem OrderItem,
+            Product Product,
+            CostCenter CostCenter,
+            decimal IncomingQuantity,
+            decimal IncomingUnitCost);
+
         public override async Task<InventoryEntryDto> Handle(RegisterInventoryEntryCommand request, CancellationToken cancellationToken)
         {
             var access = await ValidateAccessAsync(request.UserId, request.CompanyId, request.ModuleCode!, cancellationToken);
@@ -39,7 +56,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
             if (access.Role?.RoleType == RoleType.Supervisor)
             {
                 return _errorManager.ThrowUnauthorized<InventoryEntryDto>(
-                    "No tiene acceso para realizar esta acción",
+                    "No tiene acceso para realizar esta acción.",
                     "ERP:INVALID_ACCESS");
             }
 
@@ -50,11 +67,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                     .ThenInclude(order => order.Supplier)
                 .Include(entry => entry.PurchaseOrder)
                     .ThenInclude(order => order.PurchaseRequest)
+                        .ThenInclude(purchaseRequest => purchaseRequest.CostCenter)
+                .Include(entry => entry.PurchaseOrder)
+                    .ThenInclude(order => order.PurchaseRequest)
                         .ThenInclude(purchaseRequest => purchaseRequest.PurchaseRequestItems)
                             .ThenInclude(requestItem => requestItem.Quotations.Where(q =>
                                 q.IsActive &&
                                 q.DeletedAt == null &&
                                 q.IsAcceptedForPurchase))
+                .Include(entry => entry.PurchaseOrder)
+                    .ThenInclude(order => order.PurchaseOrderItems)
+                        .ThenInclude(item => item.Product)
+                            .ThenInclude(product => product.CostCenter)
                 .Include(entry => entry.PurchaseOrder)
                     .ThenInclude(order => order.PurchaseOrderItems)
                         .ThenInclude(item => item.Product)
@@ -69,6 +93,22 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                     "ERP:INVENTORY_ENTRY_NOT_FOUND");
             }
 
+            if (inventoryEntry.Branch is not null && inventoryEntry.Branch.CompanyId != request.CompanyId)
+            {
+                return _errorManager.ThrowNotFound<InventoryEntryDto>(
+                    "La entrada de inventario no fue encontrada.",
+                    "ERP:INVENTORY_ENTRY_NOT_FOUND");
+            }
+
+            var isAdministrator = access.Role?.RoleType == RoleType.Administrator;
+
+            if (!isAdministrator && inventoryEntry.BranchId != access.Profile.BranchId)
+            {
+                return _errorManager.ThrowUnauthorized<InventoryEntryDto>(
+                    "No tiene acceso para registrar entradas de inventario de otra sucursal.",
+                    "ERP:INVALID_BRANCH_ACCESS");
+            }
+
             if (inventoryEntry.EntryStatus != EntryStatus.PendingReview)
             {
                 return _errorManager.ThrowBadRequest<InventoryEntryDto>(
@@ -76,41 +116,138 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                     "ERP:INVENTORY_ENTRY_ALREADY_PROCESSED");
             }
 
-            var purchaseOrderItems = inventoryEntry.PurchaseOrder?.PurchaseOrderItems
+            var purchaseOrder = inventoryEntry.PurchaseOrder;
+            var purchaseRequest = purchaseOrder?.PurchaseRequest;
+
+            var activeOrderItems = (purchaseOrder?.PurchaseOrderItems ?? [])
                 .Where(item => item.DeletedAt == null)
-                .ToDictionary(item => item.Id) ?? [];
+                .OrderBy(item => item.CreatedAt)
+                .ThenBy(item => item.Id)
+                .ToList();
 
-            var requestedItemIds = request.Items.Select(item => item.PurchaseOrderItemId).ToList();
-
-            if (requestedItemIds.Count == 0)
+            if (activeOrderItems.Count == 0)
             {
                 return _errorManager.ThrowBadRequest<InventoryEntryDto>(
-                    "Debe registrar al menos un ítem en la entrada.",
+                    "La orden de compra asociada no tiene ítems activos para registrar la entrada.",
                     "ERP:INVENTORY_ENTRY_WITHOUT_ITEMS");
             }
 
-            if (requestedItemIds.Any(itemId => !purchaseOrderItems.ContainsKey(itemId)))
+            var orderItemsById = activeOrderItems.ToDictionary(item => item.Id);
+
+            if (request.Items is { Count: > 0 } &&
+                request.Items.Any(item => !orderItemsById.ContainsKey(item.PurchaseOrderItemId)))
             {
                 return _errorManager.ThrowBadRequest<InventoryEntryDto>(
                     "Uno o más ítems no pertenecen a la orden de compra de la entrada.",
                     "ERP:INVENTORY_ENTRY_ITEM_NOT_IN_PURCHASE_ORDER");
             }
 
-            var costCenterIds = request.Items.Select(item => item.CostCenterId).Distinct().ToList();
+            var acceptedQuotationsByRequestItemId = (purchaseRequest?.PurchaseRequestItems ?? [])
+                .SelectMany(item => item.Quotations)
+                .Where(quotation => purchaseOrder?.SupplierId == null || quotation.SupplierId == purchaseOrder.SupplierId)
+                .GroupBy(quotation => quotation.PurchaseRequestItemId)
+                .ToDictionary(group => group.Key, group => group.First());
 
-            var existingCostCenters = await _unitOfWork.CostCenters.Entities
-                .AsNoTracking()
-                .Where(costCenter => costCenterIds.Contains(costCenter.Id) && costCenter.IsActive)
-                .ToDictionaryAsync(costCenter => costCenter.Id, cancellationToken);
+            var resolvedLines = new List<ResolvedEntryLine>(activeOrderItems.Count);
 
-            if (existingCostCenters.Count != costCenterIds.Count)
+            foreach (var orderItem in activeOrderItems)
             {
-                return _errorManager.ThrowBadRequest<InventoryEntryDto>(
-                    "Uno o más centros de costo no existen o están inactivos.",
-                    "ERP:INVALID_COST_CENTER");
+                var product = orderItem.Product;
+
+                if (product is null || product.DeletedAt != null)
+                {
+                    return _errorManager.ThrowBadRequest<InventoryEntryDto>(
+                        "Uno de los ítems de la orden de compra no tiene un producto válido asociado.",
+                        "ERP:PURCHASE_ORDER_ITEM_WITHOUT_PRODUCT");
+                }
+
+                if (orderItem.Quantity <= 0)
+                {
+                    return _errorManager.ThrowBadRequest<InventoryEntryDto>(
+                        $"La cantidad del producto '{product.ProductName ?? product.Code}' debe ser mayor a cero.",
+                        "ERP:INVALID_ITEM_QUANTITY");
+                }
+
+                var resolvedUnitCost = orderItem.UnitPrice;
+                if (resolvedUnitCost <= 0 &&
+                    orderItem.PurchaseRequestItemId.HasValue &&
+                    acceptedQuotationsByRequestItemId.TryGetValue(orderItem.PurchaseRequestItemId.Value, out var acceptedQuote))
+                {
+                    resolvedUnitCost = acceptedQuote.PriceUnit;
+                }
+
+                if (resolvedUnitCost < 0)
+                {
+                    return _errorManager.ThrowBadRequest<InventoryEntryDto>(
+                        $"El costo unitario del producto '{product.ProductName ?? product.Code}' no puede ser negativo.",
+                        "ERP:INVALID_ITEM_UNIT_COST");
+                }
+
+                var designatedCostCenter = product.CostCenter ?? purchaseRequest?.CostCenter;
+
+                if (designatedCostCenter is null || !designatedCostCenter.IsActive || designatedCostCenter.DeletedAt != null)
+                {
+                    return _errorManager.ThrowBadRequest<InventoryEntryDto>(
+                        $"El producto '{product.ProductName ?? product.Code}' no tiene un centro de costo activo asociado.",
+                        "ERP:PRODUCT_WITHOUT_COST_CENTER");
+                }
+
+                resolvedLines.Add(new ResolvedEntryLine(
+                    orderItem,
+                    product,
+                    designatedCostCenter,
+                    orderItem.Quantity,
+                    resolvedUnitCost));
             }
 
-            var evidenceImages = new List<EntryEvidenceImage>();
+            var productIds = resolvedLines.Select(line => line.Product.Id).Distinct().ToList();
+            var costCenterIds = resolvedLines.Select(line => line.CostCenter.Id).Distinct().ToList();
+
+            var existingStocks = await _unitOfWork.ProductStocks.Entities
+                .Where(stock =>
+                    productIds.Contains(stock.ProductId) &&
+                    costCenterIds.Contains(stock.CostCenterId) &&
+                    stock.DeletedAt == null)
+                .ToListAsync(cancellationToken);
+
+            var stocksByKey = existingStocks
+                .GroupBy(stock => (stock.ProductId, stock.CostCenterId))
+                .ToDictionary(group => group.Key, group => group.First());
+
+            // Pre-validar límites de precisión numérica antes de subir archivos a S3
+            var simulatedBalances = stocksByKey.ToDictionary(
+                pair => pair.Key,
+                pair => (Quantity: pair.Value.AvailableQuantity, AverageCost: pair.Value.WeightedAverageCost));
+
+            foreach (var line in resolvedLines)
+            {
+                var key = (line.Product.Id, line.CostCenter.Id);
+                simulatedBalances.TryGetValue(key, out var current);
+
+                var previewCost = weightedAverageCostService.Calculate(
+                    current.Quantity,
+                    current.AverageCost,
+                    line.IncomingQuantity,
+                    line.IncomingUnitCost);
+
+                if (previewCost.NewQuantity > MaxStockQuantityPrecision)
+                {
+                    return _errorManager.ThrowBadRequest<InventoryEntryDto>(
+                        $"La cantidad resultante en stock del producto '{line.Product.ProductName ?? line.Product.Code}' excede el límite permitido ({MaxStockQuantityPrecision:N2}).",
+                        "ERP:STOCK_QUANTITY_OVERFLOW");
+                }
+
+                if (previewCost.NewAverageCost > MaxStockAverageCostPrecision)
+                {
+                    return _errorManager.ThrowBadRequest<InventoryEntryDto>(
+                        $"El costo promedio ponderado resultante del producto '{line.Product.ProductName ?? line.Product.Code}' excede el límite permitido ({MaxStockAverageCostPrecision:N2}).",
+                        "ERP:STOCK_AVERAGE_COST_OVERFLOW");
+                }
+
+                simulatedBalances[key] = (previewCost.NewQuantity, previewCost.NewAverageCost);
+            }
+
+            var evidenceImages = new List<EntryEvidenceImage>(request.EvidenceImagesBase64.Count);
 
             foreach (var image in request.EvidenceImagesBase64)
             {
@@ -127,61 +264,111 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                 });
             }
 
-            var supplierName = inventoryEntry.PurchaseOrder?.Supplier?.SuppliersLegalName
-                ?? inventoryEntry.PurchaseOrder?.Supplier?.CommercialName;
+            var localNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, NicaraguaTimeZone);
+            var transactionDate = DateOnly.FromDateTime(localNow);
+            var transactionTime = TimeOnly.FromDateTime(localNow);
 
-            var acceptedQuotationsByRequestItemId = (inventoryEntry.PurchaseOrder?.PurchaseRequest?.PurchaseRequestItems ?? [])
-                .SelectMany(item => item.Quotations)
-                .Where(quotation => quotation.SupplierId == inventoryEntry.PurchaseOrder?.SupplierId)
-                .GroupBy(quotation => quotation.PurchaseRequestItemId)
-                .ToDictionary(group => group.Key, group => group.First());
+            var supplierName = purchaseOrder?.Supplier?.SuppliersLegalName
+                ?? purchaseOrder?.Supplier?.CommercialName;
+
+            var additionalItems = new List<PurchaseOrderEntryAdditionalItem>(resolvedLines.Count);
+
+            foreach (var line in resolvedLines)
+            {
+                var stockKey = (line.Product.Id, line.CostCenter.Id);
+                stocksByKey.TryGetValue(stockKey, out var productStock);
+
+                var previousQuantity = productStock?.AvailableQuantity ?? 0m;
+                var previousAverageCost = productStock?.WeightedAverageCost ?? 0m;
+
+                var weightedCost = weightedAverageCostService.Calculate(
+                    previousQuantity,
+                    previousAverageCost,
+                    line.IncomingQuantity,
+                    line.IncomingUnitCost);
+
+                if (productStock is null)
+                {
+                    productStock = new ProductStock
+                    {
+                        Id = Guid.NewGuid(),
+                        IsActive = true,
+                        MinimumStock = 0m,
+                        AvailableQuantity = weightedCost.NewQuantity,
+                        WeightedAverageCost = weightedCost.NewAverageCost,
+                        Status = ResolveStockStatus(weightedCost.NewQuantity, 0m),
+                        UnitMeasureId = line.Product.UnitMeasureId,
+                        ProductId = line.Product.Id,
+                        CostCenterId = line.CostCenter.Id
+                    };
+
+                    await _unitOfWork.ProductStocks.RegisterProductStock(productStock);
+                    stocksByKey[stockKey] = productStock;
+                }
+                else
+                {
+                    productStock.IsActive = true;
+                    productStock.AvailableQuantity = weightedCost.NewQuantity;
+                    productStock.WeightedAverageCost = weightedCost.NewAverageCost;
+                    productStock.Status = ResolveStockStatus(productStock.AvailableQuantity, productStock.MinimumStock);
+                }
+
+                var workAreaId = line.CostCenter.WorkAreaId != Guid.Empty
+                    ? line.CostCenter.WorkAreaId
+                    : inventoryEntry.WorkAreaId;
+
+                var kardex = KardexMapper.ToEntryKardexEntity(
+                    line.Product,
+                    line.IncomingQuantity,
+                    line.IncomingUnitCost,
+                    weightedCost,
+                    request.UserId,
+                    workAreaId,
+                    line.CostCenter.Id,
+                    transactionDate,
+                    transactionTime);
+
+                await _unitOfWork.Kardex.RegisterKardexMovement(kardex);
+
+                var roundedUnitCost = kardex.UnitCost;
+
+                Guid? quotationId = null;
+                if (line.OrderItem.PurchaseRequestItemId.HasValue &&
+                    acceptedQuotationsByRequestItemId.TryGetValue(line.OrderItem.PurchaseRequestItemId.Value, out var quotation))
+                {
+                    quotationId = quotation.Id;
+                }
+
+                additionalItems.Add(new PurchaseOrderEntryAdditionalItem
+                {
+                    PurchaseOrderItemId = line.OrderItem.Id,
+                    PurchaseRequestItemId = line.OrderItem.PurchaseRequestItemId,
+                    QuotationId = quotationId,
+                    ProductId = line.Product.Id,
+                    ProductName = line.Product.ProductName,
+                    ProductCode = line.Product.Code,
+                    Quantity = line.OrderItem.Quantity,
+                    UnitPrice = roundedUnitCost,
+                    UnitMeasureId = line.Product.UnitMeasureId,
+                    UnitMeasureName = line.Product.UnitMeasure?.Name,
+                    UnitMeasureSymbol = line.Product.UnitMeasure?.Symbol,
+                    SupplierId = purchaseOrder?.SupplierId,
+                    SupplierName = supplierName,
+                    CostCenterId = line.CostCenter.Id,
+                    CostCenterName = line.CostCenter.CostCenterName,
+                    CostCenterCode = line.CostCenter.CostCenterCode,
+                    CostCenterDescription = line.CostCenter.Description,
+                    CostCenterCoilCode = line.CostCenter.CoilCode,
+                });
+            }
 
             var additionalData = DeserializeAdditionalData(inventoryEntry.AdditionalData);
-            additionalData.PurchaseOrderId ??= inventoryEntry.PurchaseOrderId;
-            additionalData.SupplierId ??= inventoryEntry.PurchaseOrder?.SupplierId;
-            additionalData.SupplierName ??= supplierName;
+            additionalData.PurchaseOrderId = purchaseOrder?.Id ?? inventoryEntry.PurchaseOrderId;
+            additionalData.SupplierId = purchaseOrder?.SupplierId ?? additionalData.SupplierId;
+            additionalData.SupplierName = supplierName ?? additionalData.SupplierName;
             additionalData.EvidenceImages.Clear();
             additionalData.EvidenceImages.AddRange(evidenceImages);
-
-            var costCenterByOrderItemId = request.Items
-                .GroupBy(item => item.PurchaseOrderItemId)
-                .ToDictionary(group => group.Key, group => existingCostCenters[group.Last().CostCenterId]);
-
-            additionalData.Items = purchaseOrderItems.Values
-                .Select(orderItem =>
-                {
-                    costCenterByOrderItemId.TryGetValue(orderItem.Id, out var designatedCostCenter);
-                    Guid? quotationId = null;
-
-                    if (orderItem.PurchaseRequestItemId.HasValue &&
-                        acceptedQuotationsByRequestItemId.TryGetValue(orderItem.PurchaseRequestItemId.Value, out var quotation))
-                    {
-                        quotationId = quotation.Id;
-                    }
-
-                    return new PurchaseOrderEntryAdditionalItem
-                    {
-                        PurchaseOrderItemId = orderItem.Id,
-                        PurchaseRequestItemId = orderItem.PurchaseRequestItemId,
-                        QuotationId = quotationId,
-                        ProductId = orderItem.ProductId,
-                        ProductName = orderItem.Product?.ProductName,
-                        ProductCode = orderItem.Product?.Code,
-                        Quantity = orderItem.Quantity,
-                        UnitPrice = orderItem.UnitPrice,
-                        UnitMeasureId = orderItem.Product?.UnitMeasureId ?? Guid.Empty,
-                        UnitMeasureName = orderItem.Product?.UnitMeasure?.Name,
-                        UnitMeasureSymbol = orderItem.Product?.UnitMeasure?.Symbol,
-                        SupplierId = inventoryEntry.PurchaseOrder?.SupplierId,
-                        SupplierName = supplierName,
-                        CostCenterId = designatedCostCenter?.Id,
-                        CostCenterName = designatedCostCenter?.CostCenterName,
-                        CostCenterCode = designatedCostCenter?.CostCenterCode,
-                        CostCenterDescription = designatedCostCenter?.Description,
-                        CostCenterCoilCode = designatedCostCenter?.CoilCode,
-                    };
-                })
-                .ToList();
+            additionalData.Items = additionalItems;
 
             inventoryEntry.Observations = string.IsNullOrWhiteSpace(request.Observations)
                 ? inventoryEntry.Observations
@@ -191,127 +378,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
             inventoryEntry.AdditionalData = JsonSerializer.Serialize(additionalData, JsonManager.SnakeCaseOptions);
             inventoryEntry.EntryStatus = EntryStatus.ApprovedEntry;
 
-            // inventoryEntry.InventoryEntryItems.Clear();
-
-            var registeredAt = DateTime.UtcNow;
-
-            foreach (var requestedItem in request.Items)
-            {
-                var purchaseOrderItem = purchaseOrderItems[requestedItem.PurchaseOrderItemId];
-
-                var product = purchaseOrderItem.Product;
-
-                if (product is null)
-                {
-                    return _errorManager.ThrowBadRequest<InventoryEntryDto>(
-                        "Uno de los ítems de la orden de compra no tiene un producto asociado.",
-                        "ERP:PURCHASE_ORDER_ITEM_WITHOUT_PRODUCT");
-                }
-
-                // inventoryEntry.InventoryEntryItems.Add(new InventoryEntryItem
-                // {
-                //     Id = Guid.NewGuid(),
-                //     InventoryEntryId = inventoryEntry.Id,
-                //     PurchaseOrderItemId = purchaseOrderItem.Id,
-                //     CostCenterId = requestedItem.CostCenterId
-                // });
-
-                var productStock = await _unitOfWork.ProductStocks.Entities
-                    .FirstOrDefaultAsync(stock =>
-                        stock.ProductId == purchaseOrderItem.ProductId &&
-                        stock.CostCenterId == requestedItem.CostCenterId &&
-                        stock.DeletedAt == null,
-                        cancellationToken);
-
-                var previousQuantity = productStock?.AvailableQuantity ?? 0;
-                var previousAverageCost = productStock?.WeightedAverageCost ?? 0;
-
-                var weightedCost = weightedAverageCostService.Calculate(
-                    previousQuantity,
-                    previousAverageCost,
-                    purchaseOrderItem.Quantity,
-                    purchaseOrderItem.UnitPrice);
-
-                if (productStock is null)
-                {
-                    productStock = new ProductStock
-                    {
-                        Id = Guid.NewGuid(),
-                        IsActive = true,
-                        MinimumStock = 0,
-                        AvailableQuantity = weightedCost.NewQuantity,
-                        WeightedAverageCost = weightedCost.NewAverageCost,
-                        Status = ProductStockStatus.Stable,
-                        UnitMeasureId = product.UnitMeasureId,
-                        ProductId = purchaseOrderItem.ProductId,
-                        CostCenterId = requestedItem.CostCenterId
-                    };
-
-                    await _unitOfWork.ProductStocks.RegisterProductStock(productStock);
-                }
-                else
-                {
-                    productStock.AvailableQuantity = weightedCost.NewQuantity;
-                    productStock.WeightedAverageCost = weightedCost.NewAverageCost;
-                    productStock.Status = ResolveStockStatus(productStock);
-
-                    await _unitOfWork.ProductStocks.UpdateAsync(productStock);
-                }
-
-                var totalInput = Math.Round(
-                    purchaseOrderItem.Quantity * purchaseOrderItem.UnitPrice,
-                    2,
-                    MidpointRounding.AwayFromZero);
-
-                var kardex = new Kardex
-                {
-                    Id = Guid.NewGuid(),
-                    KardexType = product.ProductUsageType == ProductUsageType.Operational
-                        ? KardexType.Operational
-                        : KardexType.Administrative,
-                    MovementType = KardexMovementType.Buys,
-                    Units = purchaseOrderItem.Quantity,
-                    UnitCost = purchaseOrderItem.UnitPrice,
-                    TotalInput = totalInput,
-                    TotalOutput = 0,
-                    TotalUnits = weightedCost.NewQuantity,
-                    AverageCost = weightedCost.NewAverageCost,
-                    TotalKardex = weightedCost.NewTotalValue,
-                    TransactionDate = DateOnly.FromDateTime(registeredAt),
-                    TransactionTime = TimeOnly.FromDateTime(registeredAt),
-                    ProductId = purchaseOrderItem.ProductId,
-                    MovementByUserId = request.UserId,
-                    WorkAreaId = inventoryEntry.WorkAreaId,
-                    CostCenterId = requestedItem.CostCenterId
-                };
-
-                await _unitOfWork.Kardex.RegisterKardexMovement(kardex);
-            }
-
-            await _unitOfWork.InventoryEntries.UpdateAsync(inventoryEntry);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            return new InventoryEntryDto
-            {
-                InventoryEntryId = inventoryEntry.Id,
-                CreatedAt = inventoryEntry.CreatedAt,
-                Code = inventoryEntry.Code,
-                EntryType = inventoryEntry.EntryType,
-                EntryStatus = inventoryEntry.EntryStatus,
-                PurchaseRequestCode = inventoryEntry.PurchaseOrder?.PurchaseRequest?.Code,
-                BranchInformation = new BranchInformation
-                {
-                    BranchId = inventoryEntry.BranchId,
-                    BranchCode = inventoryEntry.Branch?.BranchCode,
-                    BranchName = inventoryEntry.Branch?.BranchName,
-                    CompanyAlias = inventoryEntry.Branch?.CompanyAlias
-                },
-                WorkAreaInformation = new WorkAreaInformation
-                {
-                    WorkAreaId = inventoryEntry.WorkAreaId,
-                    WorkAreaName = inventoryEntry.WorkArea?.WorkAreaName
-                }
-            };
+            return mapper.Map<InventoryEntryDto>(inventoryEntry);
         }
 
         private static PurchaseOrderEntryAdditionalData DeserializeAdditionalData(string? json)
@@ -332,14 +401,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
             }
         }
 
-        private static ProductStockStatus ResolveStockStatus(ProductStock stock)
+        private static ProductStockStatus ResolveStockStatus(decimal availableQuantity, decimal minimumStock)
         {
-            if (stock.AvailableQuantity <= 0)
+            if (availableQuantity <= 0m)
             {
                 return ProductStockStatus.Empty;
             }
 
-            return stock.AvailableQuantity <= stock.MinimumStock
+            return availableQuantity <= minimumStock
                 ? ProductStockStatus.LowBalance
                 : ProductStockStatus.Stable;
         }

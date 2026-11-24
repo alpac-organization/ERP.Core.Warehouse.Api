@@ -100,7 +100,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryOutputs.v1.Handle
 
             stock.WeightedAverageCost = previousCost;
 
-            var kardex = InventoryOutputMapper.ToKardexEntity(stock, dispatched, output, userId, now, previousUnits, previousCost);
+            var kardex = KardexMapper.ToOutputKardexEntity(stock, dispatched, output, userId, now, previousUnits, previousCost);
             await _unitOfWork.Kardex.RegisterKardexMovement(kardex);
 
             if (stock.AvailableQuantity <= 0)
