@@ -1,12 +1,9 @@
+using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Commons;
+
 namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Dtos;
 
-public class OutputDetailByEquipmentReportDto
+public class OutputDetailByEquipmentReportDto : OutputReportBaseDto
 {
-    public DateTime GeneratedAt { get; set; }
-    public string? GeneratedBy { get; set; }
-    public DateTime From { get; set; }
-    public DateTime To { get; set; }
-
     public List<OutputDetailByEquipmentItemDto> Items { get; set; } = [];
 
     public decimal TotalQuantity { get; set; }

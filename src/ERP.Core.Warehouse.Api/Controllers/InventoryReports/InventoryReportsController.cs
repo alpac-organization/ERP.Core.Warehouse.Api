@@ -151,4 +151,33 @@ public class InventoryReportsController(IMediator mediator) : ApiControllerBase
             ProductIds = product_ids
         });
     }
+
+    [HttpGet("companies/{company_id}/modules/{module_code}/reports/outputs-consolidated-by-equipment")]
+    [ProducesResponseType(typeof(OutputConsolidatedByEquipmentReportDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<OutputConsolidatedByEquipmentReportDto> GetOutputsConsolidatedByEquipmentReportAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        [FromQuery] Guid? branch_id = null,
+        [FromQuery] List<Guid>? equipment_ids = null,
+        [FromQuery] List<Guid>? category_ids = null,
+        [FromQuery] List<Guid>? product_ids = null)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+        return await mediator.Send(new GetOutputsConsolidatedByEquipmentReportQuery
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = Guid.Parse(userIdStr ?? ""),
+            From = from,
+            To = to,
+            BranchId = branch_id,
+            EquipmentIds = equipment_ids,
+            CategoryId = category_ids,
+            ProductIds = product_ids
+        });
+    }
 }

@@ -1,15 +1,10 @@
 using ERP.Core.Database.Domain.Entities.Bases;
+using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Commons;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Dtos
 {
-    public class OutputLineEquipmentReportDto
+    public class OutputLineEquipmentReportDto : OutputReportBaseDto
     {
-        public DateTime GeneratedAt { get; set; }
-        public string? GeneratedBy { get; set; }
-
-        public DateTime From { get; set; }
-        public DateTime To { get; set; }
-
         public List<OutputLineEquipmentCategoryDto> Categories { get; set; } = [];
     }
 
