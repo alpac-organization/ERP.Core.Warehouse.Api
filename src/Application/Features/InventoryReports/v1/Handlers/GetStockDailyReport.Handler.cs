@@ -1,6 +1,7 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Application.Commons.Utils;
 using ERP.Core.Database.Domain.Entities.Inventory;
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
@@ -31,7 +32,7 @@ public class GetStockDailyReportHandler(IUnitOfWork unitOfWork, IErrorManager er
 
         var report = new StockDailyReportDto
         {
-            GeneratedAt = DateTime.UtcNow,
+            GeneratedAt = NicaraguaTime.Now(),
             Branches = BuildBranches(rows)
         };
 

@@ -2,6 +2,7 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Application.Commons.Utils;
 
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Bases;
@@ -176,7 +177,7 @@ public class GetOutputsLineEquipmentReportHandler(IUnitOfWork unitOfWork, IError
     {
         return new OutputLineEquipmentReportDto
         {
-            GeneratedAt = DateTime.UtcNow,
+            GeneratedAt = NicaraguaTime.Now(),
             GeneratedBy = generatedBy,
             From = request.From!.Value,
             To = request.To!.Value,
