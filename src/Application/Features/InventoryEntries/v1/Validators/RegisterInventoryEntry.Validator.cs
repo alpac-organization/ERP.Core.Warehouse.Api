@@ -7,6 +7,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Valida
     public class RegisterInventoryEntryValidator : BaseRequestValidator<RegisterInventoryEntryCommand>
     {
         private const int MaxEvidenceImages = 10;
+        private const int MaxInvoiceNumberLength = 50;
+        private const int MaxObservationsLength = 500;
 
         public RegisterInventoryEntryValidator()
         {
@@ -15,10 +17,24 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Valida
                 .WithMessage("El identificador de la entrada de inventario es obligatorio.");
 
             RuleFor(x => x.InvoiceNumber)
-                .NotEmpty()
+                .Must(value => !string.IsNullOrWhiteSpace(value))
                 .WithMessage("El número de factura es obligatorio.")
-                .MaximumLength(50)
-                .WithMessage("El número de factura no puede superar los 50 caracteres.");
+                .MaximumLength(MaxInvoiceNumberLength)
+                .WithMessage($"El número de factura no puede superar los {MaxInvoiceNumberLength} caracteres.");
+
+            When(x => !string.IsNullOrWhiteSpace(x.Observations), () =>
+            {
+                RuleFor(x => x.Observations!)
+                    .MaximumLength(MaxObservationsLength)
+                    .WithMessage($"Las observaciones no pueden superar los {MaxObservationsLength} caracteres.");
+            });
+
+            When(x => x.InvoiceDate.HasValue, () =>
+            {
+                RuleFor(x => x.InvoiceDate!.Value)
+                    .LessThanOrEqualTo(_ => DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)))
+                    .WithMessage("La fecha de la factura no puede ser una fecha futura.");
+            });
 
             RuleFor(x => x.EvidenceImagesBase64)
                 .NotEmpty()
@@ -27,27 +43,29 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Valida
                 .WithMessage($"Solo se permiten hasta {MaxEvidenceImages} imágenes de evidencia.");
 
             RuleForEach(x => x.EvidenceImagesBase64)
-                .NotEmpty()
+                .Must(image => !string.IsNullOrWhiteSpace(image))
                 .WithMessage("Una de las imágenes de evidencia está vacía o no es válida.");
 
-            RuleFor(x => x.Items)
-                .NotEmpty()
-                .WithMessage("Debe asignar el centro de costo a los ítems de la entrada.");
-
-            RuleForEach(x => x.Items).ChildRules(item =>
+            When(x => x.Items is { Count: > 0 }, () =>
             {
-                item.RuleFor(x => x.PurchaseOrderItemId)
-                    .NotEqual(Guid.Empty)
-                    .WithMessage("Cada ítem debe referenciar un ítem válido de la orden de compra.");
+                RuleForEach(x => x.Items!).ChildRules(item =>
+                {
+                    item.RuleFor(x => x.PurchaseOrderItemId)
+                        .NotEqual(Guid.Empty)
+                        .WithMessage("Cada ítem debe referenciar un ítem válido de la orden de compra.");
 
-                item.RuleFor(x => x.CostCenterId)
-                    .NotEqual(Guid.Empty)
-                    .WithMessage("El centro de costo es obligatorio para cada ítem de la entrada.");
+                    item.When(x => x.CostCenterId.HasValue, () =>
+                    {
+                        item.RuleFor(x => x.CostCenterId!.Value)
+                            .NotEqual(Guid.Empty)
+                            .WithMessage("El centro de costo indicado no es válido.");
+                    });
+                });
+
+                RuleFor(x => x.Items!)
+                    .Must(items => items.Select(item => item.PurchaseOrderItemId).Distinct().Count() == items.Count)
+                    .WithMessage("No se puede repetir el mismo ítem de la orden de compra en la entrada.");
             });
-
-            RuleFor(x => x.Items)
-                .Must(items => items.Select(item => item.PurchaseOrderItemId).Distinct().Count() == items.Count)
-                .WithMessage("No se puede repetir el mismo ítem de la orden de compra en la entrada.");
         }
     }
 }

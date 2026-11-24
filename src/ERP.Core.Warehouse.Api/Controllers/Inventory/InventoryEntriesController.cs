@@ -32,14 +32,12 @@ namespace ERP.Core.Warehouse.Api.Controllers.Inventory
             [FromQuery] int page_size = 10
         )
         {
-            var userIdStr = HttpContext.Items["UserId"] as string;
-
             return await mediator.Send(new GetInventoryEntriesQuery
             {
                 BranchId    = branch_id,
                 CompanyId   = company_id,
                 ModuleCode  = module_code,
-                UserId      = Guid.Parse(userIdStr ?? ""),
+                UserId      = CurrentUserId,
                 EntryStatus = entry_status,
                 EntryCode   = entry_code,
                 PageNumber  = page_number,
@@ -59,13 +57,11 @@ namespace ERP.Core.Warehouse.Api.Controllers.Inventory
             [FromRoute] string module_code,
             [FromRoute] Guid inventory_entry_id)
         {
-            var userIdStr = HttpContext.Items["UserId"] as string;
-
             return await mediator.Send(new GetInventoryEntryDetailsQuery
             {
                 CompanyId = company_id,
                 ModuleCode = module_code,
-                UserId = Guid.Parse(userIdStr ?? ""),
+                UserId = CurrentUserId,
                 InventoryEntryId = inventory_entry_id,
             });
         }
@@ -74,20 +70,20 @@ namespace ERP.Core.Warehouse.Api.Controllers.Inventory
         [HttpPost("companies/{company_id}/modules/{module_code}/inventory-entries/{inventory_entry_id}/register")]
         [ProducesResponseType(typeof(InventoryEntryDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<InventoryEntryDto> RegisteInventoryEntryAsync(
             [FromRoute] Guid company_id,
             [FromRoute] string module_code,
             [FromRoute] Guid inventory_entry_id,
-            [FromBody] RegisterInventoryEntryCommand payload
+            [FromBody] RegisterInventoryEntryCommand? payload
         )
         {
-            var userIdStr = HttpContext.Items["UserId"] as string;
-
+            payload ??= new RegisterInventoryEntryCommand();
             payload.CompanyId = company_id;
             payload.ModuleCode = module_code;
-            payload.UserId = Guid.Parse(userIdStr ?? "");
+            payload.UserId = CurrentUserId;
             payload.InventoryEntryId = inventory_entry_id;
 
             return await mediator.Send(payload);
