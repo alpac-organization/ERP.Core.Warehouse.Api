@@ -65,8 +65,12 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                     ? (s.Output.FuelRequest != null ? s.Output.FuelRequest.Code : null)
                     : (s.Output.SupplyRequest != null ? s.Output.SupplyRequest.Code : null)))
                 .ForMember(d => d.Equipment, o => o.MapFrom(s => s.IsFuel
-                    ? (s.Output.FuelRequest != null && s.Output.FuelRequest.Equipment != null ? s.Output.FuelRequest.Equipment.Code : null)
-                    : (s.Output.SupplyRequest != null && s.Output.SupplyRequest.Equipment != null ? s.Output.SupplyRequest.Equipment.Code : null)))
+                    ? (s.Output.FuelRequest != null && s.Output.FuelRequest.Equipment != null
+                        ? (s.Output.FuelRequest.Equipment.Brand + " " + s.Output.FuelRequest.Equipment.Model).Trim()
+                        : null)
+                    : (s.Output.SupplyRequest != null && s.Output.SupplyRequest.Equipment != null
+                        ? (s.Output.SupplyRequest.Equipment.Brand + " " + s.Output.SupplyRequest.Equipment.Model).Trim()
+                        : null)))
                 .ForMember(d => d.Category, o => o.MapFrom(s => s.IsFuel
                     ? (s.Output.FuelRequest != null && s.Output.FuelRequest.ProductStock != null && s.Output.FuelRequest.ProductStock.Product != null && s.Output.FuelRequest.ProductStock.Product.Category != null ? s.Output.FuelRequest.ProductStock.Product.Category.Name : null)
                     : (s.Item != null && s.Item.ProductStock != null && s.Item.ProductStock.Product != null && s.Item.ProductStock.Product.Category != null ? s.Item.ProductStock.Product.Category.Name : null)))
