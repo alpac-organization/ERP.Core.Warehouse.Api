@@ -11,4 +11,5 @@ public class GetOutputsLineEquipmentReportQuery : BaseRequest, IRequest<OutputLi
     public Guid? BranchId { get; set; }
     public List<Guid>? CategoryId { get; set; }
     public List<Guid>? EquipmentIds { get; set; }
+    public List<Guid>? ProductIds { get; set; }
 }
