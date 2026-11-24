@@ -13,6 +13,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Dtos
         public List<InventoryEntryEvidenceImageDto> EvidenceImages { get; set; } = [];
         
         public PurchaseRequestDto?  PurchaseRequestInformation { get; set; }
+        public CostCenterInformation? CostCenterInformation { get; set; }
         public List<InventoryEntryPurchaseRequestItemDto> PurchaseRequestItems { get; set; } = [];
 
         public Guid? PurchaseOrderId { get; set; }
@@ -44,6 +45,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Dtos
 
         public Guid? CostCenterId { get; set; }
         public string? CostCenterName { get; set; }
+        public string? CostCenterCode { get; set; }
+        public CostCenterInformation? CostCenterInformation { get; set; }
     }
 
     public class InventoryEntryEvidenceImageDto
@@ -64,5 +67,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Dtos
         public string? ProductCode { get; set; }
         public string? UnitMeasureName { get; set; }
         public string? UnitMeasureSymbol { get; set; }
+
+        public Guid? CostCenterId { get; set; }
+        public string? CostCenterName { get; set; }
+        public string? CostCenterCode { get; set; }
+        public CostCenterInformation? CostCenterInformation { get; set; }
     }
 }
