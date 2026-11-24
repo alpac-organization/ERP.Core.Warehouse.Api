@@ -2,6 +2,7 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Application.Commons.Utils;
 
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
@@ -84,7 +85,7 @@ public class GetPhysicalCountReportHandler(IUnitOfWork unitOfWork, IErrorManager
 
         var report = new PhysicalCountReportDto
         {
-            GeneratedAt = DateTime.UtcNow,
+            GeneratedAt = NicaraguaTime.Now(),
             GeneratedBy = generatedBy?.Fullname,
             TotalProducts = items.Count,
             TotalSystemStock = totalSystemStock,
