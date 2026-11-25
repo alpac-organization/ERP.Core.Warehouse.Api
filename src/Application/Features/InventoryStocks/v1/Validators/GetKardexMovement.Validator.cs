@@ -8,11 +8,26 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Validat
     {
         public GetKardexMovementValidator()
         {
+            RuleFor(x => x.BranchId)
+                .NotEqual(Guid.Empty)
+                .When(x => x.BranchId.HasValue)
+                .WithMessage("El identificador de la sucursal no es un Guid válido.");
+
+            RuleFor(x => x.CostCenterId)
+                .NotEqual(Guid.Empty)
+                .When(x => x.CostCenterId.HasValue)
+                .WithMessage("El identificador del centro de costo no es un Guid válido.");
+
+            RuleFor(x => x.WorkAreaId)
+                .NotEqual(Guid.Empty)
+                .When(x => x.WorkAreaId.HasValue)
+                .WithMessage("El identificador del área de trabajo no es un Guid válido.");
+
             RuleFor(x => x.CategoryId)
                 .NotEqual(Guid.Empty)
                 .When(x => x.CategoryId.HasValue)
                 .WithMessage("El identificador de la categoría no es un Guid válido.");
-                
+
             RuleFor(x => x.KardexMovementType)
                 .IsInEnum()
                 .When(x => x.KardexMovementType.HasValue)
