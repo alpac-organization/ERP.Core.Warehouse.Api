@@ -105,6 +105,10 @@ public class GetInventoryOutputsDetailHandler(IUnitOfWork unitOfWork, IErrorMana
             .AsNoTracking()
             .Include(k => k.Product)
                 .ThenInclude(p => p.UnitMeasure)
+            .Include(k => k.InventoryOutput)
+                .ThenInclude(o => o!.SupplyRequest)
+            .Include(k => k.InventoryOutput)
+                .ThenInclude(o => o!.FuelRequest)
             .Where(k => k.InventoryOutputId == output.Id)
             .ToListAsync(ct);
 

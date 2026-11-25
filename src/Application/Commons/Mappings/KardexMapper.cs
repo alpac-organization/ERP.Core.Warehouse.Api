@@ -16,7 +16,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             Guid workAreaId,
             Guid costCenterId,
             DateOnly transactionDate,
-            TimeOnly transactionTime)
+            TimeOnly transactionTime,
+            Guid? inventoryEntryId = null)
         {
             var roundedUnits = RoundCurrency(incomingQuantity);
             var roundedUnitCost = RoundCurrency(incomingUnitCost);
@@ -28,6 +29,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 KardexType = product.ProductUsageType == ProductUsageType.Operational
                     ? KardexType.Operational
                     : KardexType.Administrative,
+                ReferenceType = ReferenceType.FT,
                 MovementType = KardexMovementType.Buys,
                 Units = roundedUnits,
                 UnitCost = roundedUnitCost,
@@ -41,7 +43,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 ProductId = product.Id,
                 MovementByUserId = movementByUserId,
                 WorkAreaId = workAreaId,
-                CostCenterId = costCenterId
+                CostCenterId = costCenterId,
+                InventoryEntryId = inventoryEntryId
             };
         }
 
@@ -69,6 +72,11 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 KardexType = stock.Product?.ProductUsageType == ProductUsageType.Administrative
                     ? KardexType.Administrative
                     : KardexType.Operational,
+                ReferenceType = output.FuelRequestId.HasValue
+                    ? ReferenceType.BL
+                    : output.SupplyRequestId.HasValue
+                        ? ReferenceType.RQ
+                        : ReferenceType.None,
                 MovementType = KardexMovementType.Exit,
                 Units = roundedUnits,
                 UnitCost = unitCost,

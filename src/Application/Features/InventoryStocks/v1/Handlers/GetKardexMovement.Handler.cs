@@ -99,6 +99,29 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                     .Where(kardex => kardex.KardexType == request.KardexType.Value);
             }
 
+            if (request.ReferenceType.HasValue)
+            {
+                kardexQuery = request.ReferenceType.Value switch
+                {
+                    ReferenceType.FT => kardexQuery.Where(k =>
+                        k.ReferenceType == ReferenceType.FT ||
+                        k.InventoryEntryId != null ||
+                        k.MovementType == KardexMovementType.Buys),
+                    ReferenceType.BL => kardexQuery.Where(k =>
+                        k.ReferenceType == ReferenceType.BL ||
+                        (k.InventoryOutput != null && k.InventoryOutput.FuelRequestId != null)),
+                    ReferenceType.RQ => kardexQuery.Where(k =>
+                        k.ReferenceType == ReferenceType.RQ ||
+                        (k.InventoryOutput != null && k.InventoryOutput.SupplyRequestId != null)),
+                    _ => kardexQuery.Where(k =>
+                        k.ReferenceType == ReferenceType.None &&
+                        k.InventoryEntryId == null &&
+                        k.MovementType != KardexMovementType.Buys &&
+                        (k.InventoryOutput == null ||
+                         (k.InventoryOutput.FuelRequestId == null && k.InventoryOutput.SupplyRequestId == null)))
+                };
+            }
+
             if (request.KardexMovementType.HasValue)
             {
                 kardexQuery = kardexQuery
@@ -127,6 +150,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
             var kardex = await kardexQuery
                 .Include(kproduct => kproduct.WorkArea)
                 .Include(kproduct => kproduct.CostCenter)
+                .Include(kproduct => kproduct.InventoryEntry)
+                    .ThenInclude(entry => entry!.PurchaseOrder)
+                .Include(kproduct => kproduct.InventoryOutput)
+                    .ThenInclude(output => output!.SupplyRequest)
+                .Include(kproduct => kproduct.InventoryOutput)
+                    .ThenInclude(output => output!.FuelRequest)
                 .Include(kproduct => kproduct.Product)
                     .ThenInclude(product => product.Category)
                 .Include(kproduct => kproduct.Product)

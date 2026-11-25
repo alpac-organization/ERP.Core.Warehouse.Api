@@ -15,6 +15,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Queries
         public Guid? CategoryId { get; set; }
         public string? ProductCode { get; set; }
         public KardexType? KardexType { get; set; }
+        public ReferenceType? ReferenceType { get; set; }
         public KardexMovementType? KardexMovementType { get; set; }
 
         public DateTime? DateFrom { get; set; }

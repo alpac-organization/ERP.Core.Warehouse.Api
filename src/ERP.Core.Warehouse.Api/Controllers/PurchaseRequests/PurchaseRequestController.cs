@@ -188,40 +188,6 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseRequests
         }
 
         [Tags("Solicitudes de compras")] 
-        [HttpGet("companies/{company_id}/modules/{module_code}/purchase-requests/document-generator")]      
-        [ProducesResponseType(typeof(PurchaseRequestDocumentDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]  
-        public async Task<PurchaseRequestDocumentDto> GetPurchaseRequestDocumentAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
-            [FromQuery] PurchaseRequestType? document_type = null,
-            [FromQuery] PurchaseRequestConsolidationType? consolidation_type = null,
-            [FromQuery] Guid? purchase_request_id = null,
-            [FromQuery] int? month = null,
-            [FromQuery] int? year = null)
-        {
-            var userIdStr = HttpContext.Items["UserId"] as string;
-
-            var query = new GetPurchaseRequestDocumentQuery
-            {
-                CompanyId       = company_id,
-                ModuleCode      = module_code,
-                UserId          = Guid.Parse(userIdStr ?? ""),
-                DocumentType    = document_type ?? PurchaseRequestType.Monthly,
-                ConsolidationType = consolidation_type ?? PurchaseRequestConsolidationType.ByArea,
-                PurchaseRequestId = purchase_request_id,
-                Month           = month,
-                Year            = year
-            };
-
-            var documentLogger = HttpContext.RequestServices.GetRequiredService<ILogger<PurchaseRequestController>>();
-            documentLogger.LogInformation(
-                "[DIAG] document-generator => type={DocumentType}, consolidation={Consolidation}, month={Month}, year={Year}, purchaseRequestId={PurchaseRequestId}",
-                query.DocumentType, query.ConsolidationType, query.Month, query.Year, query.PurchaseRequestId);
-
-            return await _mediator.Send(query);
-        }
-
-        [Tags("Solicitudes de compras")] 
         [HttpPost("companies/{company_id}/modules/{module_code}/purchase-requests/{purchase_request_id}/send-accounting-review")]      
         [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]  

@@ -411,7 +411,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                     workAreaId,
                     line.CostCenter.Id,
                     transactionDate,
-                    transactionTime);
+                    transactionTime,
+                    inventoryEntry.Id);
 
                 await _unitOfWork.Kardex.RegisterKardexMovement(kardex);
 
