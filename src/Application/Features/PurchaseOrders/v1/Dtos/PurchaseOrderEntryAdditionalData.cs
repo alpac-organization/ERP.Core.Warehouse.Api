@@ -1,3 +1,4 @@
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Inventory;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos
@@ -7,6 +8,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos
         public Guid? PurchaseOrderId { get; set; }
         public Guid? SupplierId { get; set; }
         public string? SupplierName { get; set; }
+        public decimal? ExchangeRateApplied { get; set; }
+        public DateOnly? ExchangeRateDate { get; set; }
 
         public List<PurchaseOrderEntryAdditionalItem> Items { get; set; } = [];
     }
@@ -23,6 +26,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos
 
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
+        public Currency? OriginalCurrency { get; set; }
+        public decimal? OriginalUnitPrice { get; set; }
+        public decimal? ExchangeRateApplied { get; set; }
 
         public Guid UnitMeasureId { get; set; }
         public string? UnitMeasureName { get; set; }

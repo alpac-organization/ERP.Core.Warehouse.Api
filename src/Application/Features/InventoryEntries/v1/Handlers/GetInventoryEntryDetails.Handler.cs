@@ -63,7 +63,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                             quotation.IsActive &&
                             quotation.DeletedAt == null &&
                             quotation.IsAcceptedForPurchase))
-                            .ThenInclude(quotation => quotation.Supplier);
+                            .ThenInclude(quotation => quotation.Supplier)
+                .Include(entry => entry.PurchaseOrder.PurchaseRequest)
+                    .ThenInclude(purchaseRequest => purchaseRequest.PurchaseRequestItems)
+                        .ThenInclude(item => item.Quotations.Where(quotation =>
+                            quotation.IsActive &&
+                            quotation.DeletedAt == null &&
+                            quotation.IsAcceptedForPurchase))
+                            .ThenInclude(quotation => quotation.SupplierProduct);
 
             var isAdministrator = access.Role?.RoleType == RoleType.Administrator;
 
@@ -122,6 +129,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                 detail.PurchaseOrderId = additionalData.PurchaseOrderId ?? detail.PurchaseOrderId;
                 detail.SupplierId = additionalData.SupplierId ?? detail.SupplierId;
                 detail.SupplierName = additionalData.SupplierName ?? detail.SupplierName;
+                detail.ExchangeRateApplied = additionalData.ExchangeRateApplied;
+                detail.ExchangeRateDate = additionalData.ExchangeRateDate;
                 detail.EvidenceImages = (additionalData.EvidenceImages ?? [])
                     .Select(image => new InventoryEntryEvidenceImageDto
                     {
@@ -171,6 +180,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                             ProductCode = item.ProductCode ?? orderItem?.Product?.Code,
                             Quantity = item.Quantity,
                             UnitPrice = item.UnitPrice,
+                            Currency = item.OriginalCurrency ?? Currency.NIO,
+                            OriginalUnitPrice = item.OriginalUnitPrice,
+                            ExchangeRateApplied = item.ExchangeRateApplied,
                             UnitMeasureId = item.UnitMeasureId != Guid.Empty
                                 ? item.UnitMeasureId
                                 : (orderItem?.Product?.UnitMeasureId ?? Guid.Empty),
@@ -232,6 +244,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                             ?? orderItem.Product?.CostCenter
                             ?? purchaseRequest?.CostCenter;
                         var costCenterInfo = MapCostCenter(resolvedCostCenter);
+                        var itemCurrency = quotation?.SupplierProduct?.Currency ?? Currency.NIO;
 
                         return new InventoryEntryItemDetailDto
                         {
@@ -243,6 +256,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                             ProductCode = orderItem.Product?.Code,
                             Quantity = orderItem.Quantity,
                             UnitPrice = orderItem.UnitPrice,
+                            Currency = itemCurrency,
+                            OriginalUnitPrice = orderItem.UnitPrice,
                             UnitMeasureId = orderItem.Product?.UnitMeasureId ?? Guid.Empty,
                             UnitMeasureName = orderItem.Product?.UnitMeasure?.Name,
                             UnitMeasureSymbol = orderItem.Product?.UnitMeasure?.Symbol,
