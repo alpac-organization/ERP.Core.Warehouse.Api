@@ -120,6 +120,36 @@ public class InventoryReportsController(IMediator mediator) : ApiControllerBase
         });
     }
 
+    [HttpGet("companies/{company_id}/modules/{module_code}/reports/inventory-movements")]
+    [ProducesResponseType(typeof(InventoryMovementReportDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<InventoryMovementReportDto> GetInventoryMovementReportAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        [FromQuery] Guid? branch_id = null,
+        [FromQuery] Guid? cost_center_id = null,
+        [FromQuery] Guid? product_id = null,
+        [FromQuery] string? product_code = null)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        return await mediator.Send(new GetInventoryMovementReportQuery
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = Guid.Parse(userIdStr ?? ""),
+            From = from,
+            To = to,
+            BranchId = branch_id,
+            CostCenterId = cost_center_id,
+            ProductId = product_id,
+            ProductCode = product_code
+        });
+    }
+
     [HttpGet("companies/{company_id}/modules/{module_code}/reports/outputs-line-equipment")]
     [ProducesResponseType(typeof(OutputLineEquipmentReportDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]

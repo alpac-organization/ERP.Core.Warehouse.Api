@@ -36,6 +36,33 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(d => d.StockCode, o => o.MapFrom(s => s.Product.Code))
                 .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.ProductName));
 
+            // Movimiento de Inventario - Entradas
+            CreateMap<InventoryMovementEntrySource, InventoryMovementEntryDto>()
+                .ForMember(d => d.Date, o => o.MapFrom(s => InventoryMovementHelper.GetDate(s.Kardex)))
+                .ForMember(d => d.DocumentCode, o => o.MapFrom(s => InventoryMovementHelper.GetEntryDocumentCode(s)))
+                .ForMember(d => d.StockCode, o => o.MapFrom(s => InventoryMovementHelper.GetStockCode(s.Kardex)))
+                .ForMember(d => d.ProductName, o => o.MapFrom(s => InventoryMovementHelper.GetProductName(s.Kardex)))
+                .ForMember(d => d.Reference, o => o.MapFrom(s => InventoryMovementHelper.GetEntryReference(s)))
+                .ForMember(d => d.Units, o => o.MapFrom(s => InventoryMovementHelper.GetUnits(s.Kardex)))
+                .ForMember(d => d.Cost, o => o.MapFrom(s => InventoryMovementHelper.GetCost(s.Kardex)))
+                .ForMember(d => d.Total, o => o.MapFrom(s => InventoryMovementHelper.GetEntryTotal(s.Kardex)))
+                .ForMember(d => d.Supplier, o => o.MapFrom(s => InventoryMovementHelper.GetSupplier(s)))
+                .ForMember(d => d.MinimumCost, o => o.MapFrom(s => s.MinimumCost))
+                .ForMember(d => d.MaximumCost, o => o.MapFrom(s => s.MaximumCost));
+
+            // Movimiento de Inventario - Salidas
+            CreateMap<InventoryMovementExitSource, InventoryMovementExitDto>()
+                .ForMember(d => d.Date, o => o.MapFrom(s => InventoryMovementHelper.GetDate(s.Kardex)))
+                .ForMember(d => d.DocumentCode, o => o.MapFrom(s => OutputReportHelper.GetOutputCode(s.OutputSource)))
+                .ForMember(d => d.StockCode, o => o.MapFrom(s => InventoryMovementHelper.GetStockCode(s.Kardex)))
+                .ForMember(d => d.ProductName, o => o.MapFrom(s => InventoryMovementHelper.GetProductName(s.Kardex)))
+                .ForMember(d => d.Reference, o => o.MapFrom(s => OutputReportHelper.GetRequestCode(s.OutputSource)))
+                .ForMember(d => d.Units, o => o.MapFrom(s => InventoryMovementHelper.GetUnits(s.Kardex)))
+                .ForMember(d => d.Cost, o => o.MapFrom(s => InventoryMovementHelper.GetCost(s.Kardex)))
+                .ForMember(d => d.Total, o => o.MapFrom(s => InventoryMovementHelper.GetExitTotal(s.Kardex)))
+                .ForMember(d => d.ServiceOrderCode, o => o.MapFrom(s => OutputReportHelper.GetServiceOrderCode(s.OutputSource)))
+                .ForMember(d => d.MaximumCost, o => o.MapFrom(s => s.MaximumCost));
+
             // Salidas por Linea-Equipo
             CreateMap<OutputReportSource, OutputLineEquipmentItemDto>()
                 .ForMember(d => d.OutputCode, o => o.MapFrom(s => OutputReportHelper.GetOutputCode(s)))
