@@ -163,9 +163,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                 .Include(kproduct => kproduct.Product)
                     .ThenInclude(product => product.Branch)
                 .AsSplitQuery()
-                .OrderByDescending(product => product.TransactionDate)
-                .ThenByDescending(product => product.TransactionTime)
-                .ThenByDescending(product => product.CreatedAt)
+                .OrderByDescending(kardex => kardex.CreatedAt)
+                .ThenByDescending(kardex => kardex.TransactionDate)
+                .ThenByDescending(kardex => kardex.TransactionTime)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);

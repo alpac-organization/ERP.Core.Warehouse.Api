@@ -106,9 +106,9 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             {
                 ReferenceType.BL => src.InventoryOutput?.FuelRequest?.Code ?? src.InventoryOutput?.Code,
                 ReferenceType.RQ => src.InventoryOutput?.SupplyRequest?.Code ?? src.InventoryOutput?.Code,
-                ReferenceType.FT => !string.IsNullOrWhiteSpace(src.InventoryEntry?.InvoiceNumber)
-                    ? src.InventoryEntry!.InvoiceNumber
-                    : src.InventoryEntry?.Code,
+                ReferenceType.FT => !string.IsNullOrWhiteSpace(src.InventoryEntry?.Code)
+                    ? src.InventoryEntry!.Code
+                    : src.InventoryEntry?.InvoiceNumber,
                 _ => src.InventoryOutput?.Code ?? src.InventoryEntry?.Code
             };
         }
