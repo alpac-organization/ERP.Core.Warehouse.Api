@@ -57,8 +57,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
             }
             else if (isManager)
             {
+                // Manager: sucursal fija del perfil y únicamente centros de costos operacionales de esa sucursal.
                 kardexQuery = kardexQuery
-                    .Where(kproduct => kproduct.Product.BranchId == access.Profile.BranchId);
+                    .Where(kproduct => kproduct.Product.BranchId == access.Profile.BranchId)
+                    .Where(kproduct => kproduct.CostCenter.BranchId == access.Profile.BranchId)
+                    .Where(kproduct => kproduct.CostCenter.IsOperational);
 
                 if (request.CostCenterId.HasValue)
                 {
@@ -74,9 +77,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
             }
             else
             {
+                // Operador (y roles no administradores/managers): limitado estrictamente a su sucursal y su centro de costos.
                 kardexQuery = kardexQuery
                     .Where(kproduct => kproduct.Product.BranchId == access.Profile.BranchId)
-                    .Where(kproduct => kproduct.WorkAreaId == access.Profile.AreaId)
                     .Where(kproduct => kproduct.CostCenterId == access.Profile.CostCenterId);
             }
 
