@@ -7,7 +7,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Dtos
     {
         public Guid KardexId { get; set; }
         public KardexType KardexType { get; set; }
+        public ReferenceType ReferenceType { get; set; }
         public KardexMovementType MovementType { get; set; }
+        public string? DocumentNumber { get; set; }
+
+        public Guid? InventoryEntryId { get; set; }
+        public string? InventoryEntryCode { get; set; }
+        public string? InvoiceNumber { get; set; }
+
+        public Guid? InventoryOutputId { get; set; }
+        public string? InventoryOutputCode { get; set; }
+        public string? OutputRequestCode { get; set; }
+        public string? OutputRequestType { get; set; }
 
         public decimal Units { get; set; }
         public decimal TotalUnits { get; set; }
