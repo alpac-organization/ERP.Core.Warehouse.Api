@@ -61,7 +61,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                     src.InventoryEntry.PurchaseOrder != null &&
                     src.InventoryEntry.PurchaseOrder.Supplier != null
                         ? (src.InventoryEntry.PurchaseOrder.Supplier.CommercialName ??
-                           src.InventoryEntry.PurchaseOrder.Supplier.SupplierLegalName)
+                           src.InventoryEntry.PurchaseOrder.Supplier.SuppliersLegalName)
                         : null))
                 .ForMember(dest => dest.InventoryOutputStatus, opt => opt.MapFrom(src =>
                     src.InventoryOutput != null ? (InventoryOutputsStatus?)src.InventoryOutput.Status : null))

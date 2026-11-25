@@ -105,29 +105,6 @@ namespace ERP.Core.Warehouse.Api.Controllers.PurchaseOrders
             return Created();
         }
 
-        [Tags("Ordenes de compras")]
-        [HttpGet("companies/{company_id}/modules/{module_code}/purchase-orders/{purchase_order_id}/document-generator")]
-        [ProducesResponseType(typeof(PurchaseOrderDocumentDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<PurchaseOrderDocumentDto> ProcessRequest(
-            [FromRoute] Guid company_id,
-            [FromRoute] string module_code,
-            [FromRoute] Guid purchase_order_id,
-            [FromQuery] PaymentMethod? payment_method = null)
-        {
-            var userIdStr = HttpContext.Items["UserId"] as string;
-
-            return await _mediator.Send(new GetDocumentPurchaseOrderQuery
-            {
-                CompanyId       = company_id,
-                ModuleCode      = module_code,
-                UserId          = Guid.Parse(userIdStr ?? ""),
-                PurchaseOrderId = purchase_order_id,
-                PaymentMethod   = payment_method
-            });
-        }
-
         [Tags("Reportes")]
         [HttpGet("companies/{company_id}/modules/{module_code}/reports/transfer-request/{purchase_order_id}")]
         [ProducesResponseType(typeof(TransferRequestReportDto), StatusCodes.Status200OK)]
