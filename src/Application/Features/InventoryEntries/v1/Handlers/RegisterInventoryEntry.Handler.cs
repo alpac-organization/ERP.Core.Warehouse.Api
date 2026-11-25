@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using ERP.Core.Application.Commons.Interfaces;
 using ERP.Core.Application.Commons.Interfaces.AWS;
 using ERP.Core.Application.Commons.Utils;
+using ERP.Core.Application.ExchangeRates;
 
 using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Catalogs;
@@ -27,6 +28,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
         IUnitOfWork unitOfWork,
         IErrorManager errorManager,
         IS3StorageService s3StorageService,
+        IExchangeRateService exchangeRateService,
         IWeightedAverageCostService weightedAverageCostService,
         IMapper mapper)
         : BaseValidatorHandler<RegisterInventoryEntryCommand, InventoryEntryDto>(unitOfWork, errorManager)
@@ -37,12 +39,25 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
         private static readonly TimeZoneInfo NicaraguaTimeZone =
             TimeZoneInfo.CreateCustomTimeZone("Nicaragua", TimeSpan.FromHours(-6), "Nicaragua", "Nicaragua");
 
+        private sealed record UnconvertedEntryLine(
+            PurchaseOrderItem OrderItem,
+            Product Product,
+            CostCenter CostCenter,
+            Quotation? AcceptedQuotation,
+            decimal IncomingQuantity,
+            decimal OriginalUnitCost,
+            Currency OriginalCurrency);
+
         private sealed record ResolvedEntryLine(
             PurchaseOrderItem OrderItem,
             Product Product,
             CostCenter CostCenter,
+            Quotation? AcceptedQuotation,
             decimal IncomingQuantity,
-            decimal IncomingUnitCost);
+            decimal OriginalUnitCost,
+            Currency OriginalCurrency,
+            decimal IncomingUnitCostNio,
+            decimal? ExchangeRateApplied);
 
         public override async Task<InventoryEntryDto> Handle(RegisterInventoryEntryCommand request, CancellationToken cancellationToken)
         {
@@ -75,6 +90,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                                 q.IsActive &&
                                 q.DeletedAt == null &&
                                 q.IsAcceptedForPurchase))
+                                .ThenInclude(quotation => quotation.SupplierProduct)
                 .Include(entry => entry.PurchaseOrder)
                     .ThenInclude(order => order.PurchaseOrderItems)
                         .ThenInclude(item => item.Product)
@@ -83,6 +99,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                     .ThenInclude(order => order.PurchaseOrderItems)
                         .ThenInclude(item => item.Product)
                             .ThenInclude(product => product.UnitMeasure)
+                .Include(entry => entry.PurchaseOrder)
+                    .ThenInclude(order => order.PurchaseOrderItems)
+                        .ThenInclude(item => item.Product)
+                            .ThenInclude(product => product.SupplierProducts.Where(sp =>
+                                sp.IsActive &&
+                                sp.DeletedAt == null))
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(entry => entry.Id == request.InventoryEntryId && entry.DeletedAt == null, cancellationToken);
 
@@ -148,7 +170,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                 .GroupBy(quotation => quotation.PurchaseRequestItemId)
                 .ToDictionary(group => group.Key, group => group.First());
 
-            var resolvedLines = new List<ResolvedEntryLine>(activeOrderItems.Count);
+            var unconvertedLines = new List<UnconvertedEntryLine>(activeOrderItems.Count);
 
             foreach (var orderItem in activeOrderItems)
             {
@@ -168,15 +190,19 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                         "ERP:INVALID_ITEM_QUANTITY");
                 }
 
-                var resolvedUnitCost = orderItem.UnitPrice;
-                if (resolvedUnitCost <= 0 &&
-                    orderItem.PurchaseRequestItemId.HasValue &&
-                    acceptedQuotationsByRequestItemId.TryGetValue(orderItem.PurchaseRequestItemId.Value, out var acceptedQuote))
+                Quotation? acceptedQuote = null;
+                if (orderItem.PurchaseRequestItemId.HasValue)
                 {
-                    resolvedUnitCost = acceptedQuote.PriceUnit;
+                    acceptedQuotationsByRequestItemId.TryGetValue(orderItem.PurchaseRequestItemId.Value, out acceptedQuote);
                 }
 
-                if (resolvedUnitCost < 0)
+                var originalUnitCost = orderItem.UnitPrice;
+                if (originalUnitCost <= 0 && acceptedQuote is not null)
+                {
+                    originalUnitCost = acceptedQuote.PriceUnit;
+                }
+
+                if (originalUnitCost < 0)
                 {
                     return _errorManager.ThrowBadRequest<InventoryEntryDto>(
                         $"El costo unitario del producto '{product.ProductName ?? product.Code}' no puede ser negativo.",
@@ -192,13 +218,72 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                         "ERP:PRODUCT_WITHOUT_COST_CENTER");
                 }
 
-                resolvedLines.Add(new ResolvedEntryLine(
+                var itemCurrency = ResolveItemCurrency(acceptedQuote, product, purchaseOrder?.SupplierId);
+
+                unconvertedLines.Add(new UnconvertedEntryLine(
                     orderItem,
                     product,
                     designatedCostCenter,
+                    acceptedQuote,
                     orderItem.Quantity,
-                    resolvedUnitCost));
+                    originalUnitCost,
+                    itemCurrency));
             }
+
+            decimal? usdExchangeRate = null;
+            DateOnly? exchangeRateDate = null;
+
+            if (unconvertedLines.Any(line => line.OriginalCurrency == Currency.USD))
+            {
+                var exchangeRateResult = await exchangeRateService.GetCurrentAsync(cancellationToken);
+
+                if (!exchangeRateResult.Success ||
+                    exchangeRateResult.Rate is null ||
+                    exchangeRateResult.Rate.Value <= 0m)
+                {
+                    return _errorManager.ThrowBadRequest<InventoryEntryDto>(
+                        "No fue posible obtener la tasa de cambio oficial actual para convertir los ítems en dólares (USD).",
+                        "ERP:EXCHANGE_RATE_UNAVAILABLE");
+                }
+
+                usdExchangeRate = exchangeRateResult.Rate.Value;
+                exchangeRateDate = exchangeRateResult.Rate.Date;
+            }
+
+            var resolvedLines = unconvertedLines
+                .Select(line =>
+                {
+                    if (line.OriginalCurrency == Currency.USD)
+                    {
+                        var convertedCostNio = Math.Round(
+                            line.OriginalUnitCost * usdExchangeRate!.Value,
+                            2,
+                            MidpointRounding.AwayFromZero);
+
+                        return new ResolvedEntryLine(
+                            line.OrderItem,
+                            line.Product,
+                            line.CostCenter,
+                            line.AcceptedQuotation,
+                            line.IncomingQuantity,
+                            line.OriginalUnitCost,
+                            line.OriginalCurrency,
+                            convertedCostNio,
+                            usdExchangeRate);
+                    }
+
+                    return new ResolvedEntryLine(
+                        line.OrderItem,
+                        line.Product,
+                        line.CostCenter,
+                        line.AcceptedQuotation,
+                        line.IncomingQuantity,
+                        line.OriginalUnitCost,
+                        line.OriginalCurrency,
+                        line.OriginalUnitCost,
+                        null);
+                })
+                .ToList();
 
             var productIds = resolvedLines.Select(line => line.Product.Id).Distinct().ToList();
             var costCenterIds = resolvedLines.Select(line => line.CostCenter.Id).Distinct().ToList();
@@ -214,7 +299,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                 .GroupBy(stock => (stock.ProductId, stock.CostCenterId))
                 .ToDictionary(group => group.Key, group => group.First());
 
-            // Pre-validar límites de precisión numérica antes de subir archivos a S3
+            // Pre-validar límites de precisión numérica (ya en córdobas) antes de subir archivos a S3
             var simulatedBalances = stocksByKey.ToDictionary(
                 pair => pair.Key,
                 pair => (Quantity: pair.Value.AvailableQuantity, AverageCost: pair.Value.WeightedAverageCost));
@@ -228,7 +313,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                     current.Quantity,
                     current.AverageCost,
                     line.IncomingQuantity,
-                    line.IncomingUnitCost);
+                    line.IncomingUnitCostNio);
 
                 if (previewCost.NewQuantity > MaxStockQuantityPrecision)
                 {
@@ -285,7 +370,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                     previousQuantity,
                     previousAverageCost,
                     line.IncomingQuantity,
-                    line.IncomingUnitCost);
+                    line.IncomingUnitCostNio);
 
                 if (productStock is null)
                 {
@@ -320,7 +405,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                 var kardex = KardexMapper.ToEntryKardexEntity(
                     line.Product,
                     line.IncomingQuantity,
-                    line.IncomingUnitCost,
+                    line.IncomingUnitCostNio,
                     weightedCost,
                     request.UserId,
                     workAreaId,
@@ -330,25 +415,19 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
 
                 await _unitOfWork.Kardex.RegisterKardexMovement(kardex);
 
-                var roundedUnitCost = kardex.UnitCost;
-
-                Guid? quotationId = null;
-                if (line.OrderItem.PurchaseRequestItemId.HasValue &&
-                    acceptedQuotationsByRequestItemId.TryGetValue(line.OrderItem.PurchaseRequestItemId.Value, out var quotation))
-                {
-                    quotationId = quotation.Id;
-                }
-
                 additionalItems.Add(new PurchaseOrderEntryAdditionalItem
                 {
                     PurchaseOrderItemId = line.OrderItem.Id,
                     PurchaseRequestItemId = line.OrderItem.PurchaseRequestItemId,
-                    QuotationId = quotationId,
+                    QuotationId = line.AcceptedQuotation?.Id,
                     ProductId = line.Product.Id,
                     ProductName = line.Product.ProductName,
                     ProductCode = line.Product.Code,
                     Quantity = line.OrderItem.Quantity,
-                    UnitPrice = roundedUnitCost,
+                    UnitPrice = kardex.UnitCost,
+                    OriginalCurrency = line.OriginalCurrency,
+                    OriginalUnitPrice = Math.Round(line.OriginalUnitCost, 2, MidpointRounding.AwayFromZero),
+                    ExchangeRateApplied = line.ExchangeRateApplied,
                     UnitMeasureId = line.Product.UnitMeasureId,
                     UnitMeasureName = line.Product.UnitMeasure?.Name,
                     UnitMeasureSymbol = line.Product.UnitMeasure?.Symbol,
@@ -366,6 +445,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
             additionalData.PurchaseOrderId = purchaseOrder?.Id ?? inventoryEntry.PurchaseOrderId;
             additionalData.SupplierId = purchaseOrder?.SupplierId ?? additionalData.SupplierId;
             additionalData.SupplierName = supplierName ?? additionalData.SupplierName;
+            additionalData.ExchangeRateApplied = usdExchangeRate;
+            additionalData.ExchangeRateDate = exchangeRateDate;
             additionalData.EvidenceImages.Clear();
             additionalData.EvidenceImages.AddRange(evidenceImages);
             additionalData.Items = additionalItems;
@@ -381,6 +462,30 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return mapper.Map<InventoryEntryDto>(inventoryEntry);
+        }
+
+        private static Currency ResolveItemCurrency(
+            Quotation? acceptedQuotation,
+            Product product,
+            Guid? supplierId)
+        {
+            if (acceptedQuotation?.SupplierProduct is not null)
+            {
+                return acceptedQuotation.SupplierProduct.Currency;
+            }
+
+            if (supplierId.HasValue)
+            {
+                var supplierLink = product.SupplierProducts?
+                    .FirstOrDefault(sp => sp.SupplierId == supplierId.Value && sp.IsActive && sp.DeletedAt == null);
+
+                if (supplierLink is not null)
+                {
+                    return supplierLink.Currency;
+                }
+            }
+
+            return Currency.NIO;
         }
 
         private static PurchaseOrderEntryAdditionalData DeserializeAdditionalData(string? json)
