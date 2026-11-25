@@ -12,7 +12,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Commons;
 
 public abstract class OutputReportHandlerBase<TQuery, TResponse>(IUnitOfWork unitOfWork, IErrorManager errorManager)
-    : BaseValidatorHandler<TQuery, TResponse>(unitOfWork, errorManager)
+    : InventoryReportHandlerBase<TQuery, TResponse>(unitOfWork, errorManager)
     where TQuery : OutputReportQueryBase, IRequest<TResponse>
     where TResponse : class
 {
@@ -108,11 +108,4 @@ public abstract class OutputReportHandlerBase<TQuery, TResponse>(IUnitOfWork uni
 
         return await query.ToListAsync(ct);
     }
-
-    protected Task<string?> GetGeneratedByAsync(Guid userId, CancellationToken ct) =>
-        _unitOfWork.Users.Entities
-            .AsNoTracking()
-            .Where(u => u.Id == userId)
-            .Select(u => u.Fullname)
-            .FirstOrDefaultAsync(ct);
 }
