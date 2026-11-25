@@ -9,6 +9,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Queries
 {
     public class GetKardexMovementQuery : BaseRequest, IRequest<PagedResponse<KardexDto>>
     {
+        public Guid? BranchId { get; set; }
+        public Guid? CostCenterId { get; set; }
+        public Guid? WorkAreaId { get; set; }
         public Guid? CategoryId { get; set; }
         public string? ProductCode { get; set; }
         public KardexType? KardexType { get; set; }
@@ -16,8 +19,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Queries
 
         public DateTime? DateFrom { get; set; }
         public DateTime? DateTo { get; set; }
-        
+
         public int PageSize { get; set; }
         public int PageNumber { get; set; }
     }
-}   
+}
