@@ -31,6 +31,11 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(d => d.Difference, o => o.Ignore())
                 .ForMember(d => d.Observations, o => o.Ignore());
 
+            // Inventario por Periodo
+            CreateMap<ProductStock, PeriodInventoryItemDto>()
+                .ForMember(d => d.StockCode, o => o.MapFrom(s => s.Product.Code))
+                .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.ProductName));
+
             // Salidas por Linea-Equipo
             CreateMap<OutputReportSource, OutputLineEquipmentItemDto>()
                 .ForMember(d => d.OutputCode, o => o.MapFrom(s => OutputReportHelper.GetOutputCode(s)))

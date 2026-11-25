@@ -94,6 +94,32 @@ public class InventoryReportsController(IMediator mediator) : ApiControllerBase
         });
     }
 
+    [HttpGet("companies/{company_id}/modules/{module_code}/reports/inventory-period")]
+    [ProducesResponseType(typeof(PeriodInventoryReportDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<PeriodInventoryReportDto> GetPeriodInventoryReportAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        [FromQuery] Guid? branch_id = null,
+        [FromQuery] Guid? cost_center_id = null)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        return await mediator.Send(new GetPeriodInventoryReportQuery
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = Guid.Parse(userIdStr ?? ""),
+            From = from,
+            To = to,
+            BranchId = branch_id,
+            CostCenterId = cost_center_id
+        });
+    }
+
     [HttpGet("companies/{company_id}/modules/{module_code}/reports/outputs-line-equipment")]
     [ProducesResponseType(typeof(OutputLineEquipmentReportDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
