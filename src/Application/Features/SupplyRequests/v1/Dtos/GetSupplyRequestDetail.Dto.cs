@@ -26,4 +26,5 @@ public class ItemDetail
     public Guid ProductStockId { get; set; }
     public string ProductStockName { get; set; } = null!;
     public decimal Amount { get; set; }
+    public string? UnitMeasureSymbol { get; set; }
 }
