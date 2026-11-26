@@ -3,15 +3,17 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
+using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Commons;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Infrastructure.Documents.InventoryReports;
 
 public sealed class InventoryTurnoverReportDocument(
-    InventoryTurnoverReportPdfModel model) : IDocument
+    InventoryTurnoverReportPdfModel model,
+    CompanyBranding branding) : IDocument
 {
-    private const string HeaderBg = "#156082";
-    private const string TotalsBg = "#C0E6F5";
+    private readonly string _headerBg = branding.PrimaryColor;
+    private readonly string _totalsBg = branding.HeaderColor;
     private const string BorderHex = "#CBD5E1";
     private const string AltRowBg = "#F8FAFC";
     private const string TextDark = "#0F172A";
@@ -30,14 +32,22 @@ public sealed class InventoryTurnoverReportDocument(
             page.MarginVertical(9, Unit.Millimetre);
             page.DefaultTextStyle(x => x.FontSize(6.2f).FontColor(TextDark));
 
-            page.Header().PaddingBottom(6).Column(header =>
+            page.Header().PaddingBottom(6).Row(row =>
             {
-                header.Spacing(2);
-                header.Item().AlignCenter().Text(model.CompanyName).Bold().FontSize(13);
-                header.Item().AlignCenter().Text("Reporte de Movimientos por rotación de Inventario").Bold().FontSize(11);
-                header.Item().PaddingTop(2).AlignCenter()
-                    .Text($"Del {model.From:dd/MM/yyyy} Al {model.To:dd/MM/yyyy}")
-                    .FontSize(8.5f).FontColor("#334155");
+                if (branding.Logo is { Length: > 0 })
+                {
+                    row.ConstantItem(90).MaxHeight(45).AlignMiddle().Image(branding.Logo).FitArea();
+                }
+
+                row.RelativeItem().Column(header =>
+                {
+                    header.Spacing(2);
+                    header.Item().AlignCenter().Text(model.CompanyName).Bold().FontSize(13);
+                    header.Item().AlignCenter().Text("Reporte de Movimientos por rotación de Inventario").Bold().FontSize(11);
+                    header.Item().PaddingTop(2).AlignCenter()
+                        .Text($"Del {model.From:dd/MM/yyyy} Al {model.To:dd/MM/yyyy}")
+                        .FontSize(8.5f).FontColor("#334155");
+                });
             });
 
             page.Content().Element(ComposeTable);
@@ -118,8 +128,8 @@ public sealed class InventoryTurnoverReportDocument(
                 {
                     var alignRight = i >= 3 && i != 7 && i != 10;
                     var cell = header.Cell()
-                        .Background(HeaderBg)
-                        .Border(0.5f).BorderColor(HeaderBg)
+                        .Background(_headerBg)
+                        .Border(0.5f).BorderColor(_headerBg)
                         .PaddingVertical(4).PaddingHorizontal(2.5f)
                         .AlignMiddle();
 
@@ -178,7 +188,7 @@ public sealed class InventoryTurnoverReportDocument(
             var sumDispatchedUnits = model.Items.Sum(x => x.DispatchedUnits);
 
             table.Cell().ColumnSpan(3)
-                .Background(TotalsBg)
+                .Background(_totalsBg)
                 .Border(0.5f).BorderColor(BorderHex)
                 .PaddingVertical(4).PaddingHorizontal(4)
                 .AlignLeft().AlignMiddle()
@@ -195,7 +205,7 @@ public sealed class InventoryTurnoverReportDocument(
             AddTotalsCell(table, FormatUnits(sumDispatchedUnits));
 
             table.Cell().ColumnSpan(8)
-                .Background(TotalsBg)
+                .Background(_totalsBg)
                 .Border(0.5f).BorderColor(BorderHex)
                 .PaddingVertical(4).PaddingHorizontal(2.5f)
                 .Text("");
@@ -216,10 +226,10 @@ public sealed class InventoryTurnoverReportDocument(
             cell.AlignLeft().Text(value);
     }
 
-    private static void AddTotalsCell(TableDescriptor table, string value)
+    private void AddTotalsCell(TableDescriptor table, string value)
     {
         table.Cell()
-            .Background(TotalsBg)
+            .Background(_totalsBg)
             .Border(0.5f).BorderColor(BorderHex)
             .PaddingVertical(4).PaddingHorizontal(2.5f)
             .AlignRight().AlignMiddle()

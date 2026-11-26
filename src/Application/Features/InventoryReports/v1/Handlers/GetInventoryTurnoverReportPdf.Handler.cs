@@ -76,7 +76,8 @@ public class GetInventoryTurnoverReportPdfHandler(
             Items = items
         };
 
-        var pdfBytes = await pdfService.GenerateTurnoverReportPdfAsync(model, ct);
+        var branding = await CompanyBrandingResolver.ResolveAsync(access.Company, ct);
+        var pdfBytes = await pdfService.GenerateTurnoverReportPdfAsync(model, branding, ct);
         var fileName = $"reporte-rotacion-inventario-{request.From.Value:yyyyMMdd}-{request.To.Value:yyyyMMdd}.pdf";
 
         return new ReportPdfFileDto(pdfBytes, fileName);
