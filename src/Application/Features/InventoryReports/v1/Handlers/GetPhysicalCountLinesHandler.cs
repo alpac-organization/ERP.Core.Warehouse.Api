@@ -43,7 +43,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Handle
                 .AsNoTracking()
                 .Where(l => l.PhysicalCountId == request.PhysicalCountId)
                 .Include(l => l.ProductStock)
-                    .ThenInclude(ps => ps.Product);
+                    .ThenInclude(ps => ps.Product)
+                .Include(l => l.ProductStock)
+                    .ThenInclude(ps => ps.UnitMeasure);
 
             var totalRecords = await query.CountAsync(ct);
 

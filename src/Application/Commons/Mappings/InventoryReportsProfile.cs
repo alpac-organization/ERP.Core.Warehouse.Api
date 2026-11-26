@@ -106,6 +106,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(d => d.PhysicalCountLineId, o => o.MapFrom(s => s.Id))
                 .ForMember(d => d.ProductCode, o => o.MapFrom(s => s.ProductStock.Product.Code))
                 .ForMember(d => d.ProductName, o => o.MapFrom(s => s.ProductStock.Product.ProductName))
+                .ForMember(d => d.UnitMeasure, o => o.MapFrom(s =>
+                    s.ProductStock.UnitMeasure != null ? s.ProductStock.UnitMeasure.Symbol : null))
                 .ForMember(d => d.CountedByName, o => o.Ignore());
 
             // Inventario por Periodo

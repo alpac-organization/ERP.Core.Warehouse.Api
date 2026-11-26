@@ -64,6 +64,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Dtos
 
         public string? ProductCode { get; set; }
         public string? ProductName { get; set; }
+        public string? UnitMeasure { get; set; }
 
         public decimal SystemStock { get; set; }
         public decimal? PhysicalStock { get; set; }
