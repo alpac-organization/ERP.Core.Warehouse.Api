@@ -151,6 +151,102 @@ public class InventoryReportsController(IMediator mediator) : ApiControllerBase
         });
     }
 
+    [HttpGet("companies/{company_id}/modules/{module_code}/reports/inventory-movements/pdf")]
+    [Produces("application/pdf")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetInventoryMovementReportPdfAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        [FromQuery] Guid? branch_id = null,
+        [FromQuery] Guid? cost_center_id = null,
+        [FromQuery] Guid? product_id = null,
+        [FromQuery] string? product_code = null)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        var pdf = await mediator.Send(new GetInventoryMovementReportPdfQuery
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = Guid.Parse(userIdStr ?? ""),
+            From = from,
+            To = to,
+            BranchId = branch_id,
+            CostCenterId = cost_center_id,
+            ProductId = product_id,
+            ProductCode = product_code
+        });
+
+        return File(pdf.Content, pdf.ContentType);
+    }
+
+    [HttpGet("companies/{company_id}/modules/{module_code}/reports/inventory-turnover")]
+    [ProducesResponseType(typeof(List<InventoryTurnoverReportDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<List<InventoryTurnoverReportDto>> GetInventoryTurnoverReportAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        [FromQuery] Guid? branch_id = null,
+        [FromQuery] Guid? cost_center_id = null,
+        [FromQuery] Guid? product_id = null,
+        [FromQuery] string? product_code = null)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        return await mediator.Send(new GetInventoryTurnoverReportQuery
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = Guid.Parse(userIdStr ?? ""),
+            From = from,
+            To = to,
+            BranchId = branch_id,
+            CostCenterId = cost_center_id,
+            ProductId = product_id,
+            ProductCode = product_code
+        });
+    }
+
+    [HttpGet("companies/{company_id}/modules/{module_code}/reports/inventory-turnover/pdf")]
+    [Produces("application/pdf")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetInventoryTurnoverReportPdfAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        [FromQuery] Guid? branch_id = null,
+        [FromQuery] Guid? cost_center_id = null,
+        [FromQuery] Guid? product_id = null,
+        [FromQuery] string? product_code = null)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        var pdf = await mediator.Send(new GetInventoryTurnoverReportPdfQuery
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = Guid.Parse(userIdStr ?? ""),
+            From = from,
+            To = to,
+            BranchId = branch_id,
+            CostCenterId = cost_center_id,
+            ProductId = product_id,
+            ProductCode = product_code
+        });
+
+        return File(pdf.Content, pdf.ContentType);
+    }
+
     [HttpGet("companies/{company_id}/modules/{module_code}/reports/outputs-line-equipment")]
     [ProducesResponseType(typeof(OutputLineEquipmentReportDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]

@@ -115,6 +115,17 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(d => d.StockCode, o => o.MapFrom(s => s.Product.Code))
                 .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.ProductName));
 
+            // Rotacion de Inventario
+            CreateMap<ProductStock, InventoryTurnoverReportDto>()
+                .ForMember(d => d.Category, o => o.MapFrom(s => s.Product.Category != null ? s.Product.Category.Name : null))
+                .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.ProductName))
+                .ForMember(d => d.StockCode, o => o.MapFrom(s => s.Product.Code))
+                .ForMember(d => d.AvailableUnits, o => o.MapFrom(s => s.AvailableQuantity))
+                .ForMember(d => d.UnitCost, o => o.MapFrom(s => s.WeightedAverageCost))
+                .ForMember(d => d.Total, o => o.MapFrom(s => s.AvailableQuantity * s.WeightedAverageCost))
+                .ForMember(d => d.ConfiguredMinStock, o => o.MapFrom(s => s.MinimumStock))
+                .ForMember(d => d.ConfiguredMaxStock, o => o.MapFrom(s => s.MaximumStock));
+
             // Movimiento de Inventario - Entradas
             CreateMap<InventoryMovementEntrySource, InventoryMovementEntryDto>()
                 .ForMember(d => d.Date, o => o.MapFrom(s => InventoryMovementHelper.GetDate(s.Kardex)))
@@ -135,7 +146,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(d => d.DocumentCode, o => o.MapFrom(s => OutputReportHelper.GetOutputCode(s.OutputSource)))
                 .ForMember(d => d.StockCode, o => o.MapFrom(s => InventoryMovementHelper.GetStockCode(s.Kardex)))
                 .ForMember(d => d.ProductName, o => o.MapFrom(s => InventoryMovementHelper.GetProductName(s.Kardex)))
-                .ForMember(d => d.Reference, o => o.MapFrom(s => OutputReportHelper.GetRequestCode(s.OutputSource)))
+                .ForMember(d => d.Reference, o => o.MapFrom(s => InventoryMovementHelper.GetExitReference(s.OutputSource)))
                 .ForMember(d => d.Units, o => o.MapFrom(s => InventoryMovementHelper.GetUnits(s.Kardex)))
                 .ForMember(d => d.Cost, o => o.MapFrom(s => InventoryMovementHelper.GetCost(s.Kardex)))
                 .ForMember(d => d.Total, o => o.MapFrom(s => InventoryMovementHelper.GetExitTotal(s.Kardex)))
