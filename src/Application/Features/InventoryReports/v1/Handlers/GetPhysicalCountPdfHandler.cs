@@ -2,9 +2,11 @@ using MediatR;
 using QuestPDF.Infrastructure;
 
 using ERP.Core.Application.Commons.Interfaces;
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
+using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Commons;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Pdf;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Queries;
@@ -18,8 +20,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Handle
         IQuestPdfGeneratorServices pdfGenerator)
         : BaseValidatorHandler<GetPhysicalCountPdfQuery, PhysicalCountPdfResult>(unitOfWork, errorManager)
     {
-        private static readonly HttpClient LogoHttpClient = new() { Timeout = TimeSpan.FromSeconds(5) };
-
         public override async Task<PhysicalCountPdfResult> Handle(GetPhysicalCountPdfQuery request, CancellationToken ct)
         {
             var access = await ValidateAccessAsync(
@@ -41,37 +41,29 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Handle
                 PageSize = int.MaxValue
             }, ct);
 
-            var generatedBy = access.User.Fullname ?? access.User.UserName ?? access.User.Email ?? "—";
-            var logoImage = await LoadLogoAsync(access.Company.ImageUrl, ct);
+            if (lines.PhysicalCount.Status != PhysicalCountStatus.Completed)
+            {
+                return _errorManager.ThrowBadRequest<PhysicalCountPdfResult>(
+                    "El levantamiento aún no está completado.",
+                    "ERP:PHYSICAL_COUNT_NOT_COMPLETED");
+            }
+
+            var createdBy = lines.PhysicalCount.CreatedByName ?? "—";
+            var createdAt = lines.PhysicalCount.CreatedAt;
+
+            var branding = await CompanyBrandingResolver.ResolveAsync(access.Company, ct);
+            var logoImage = branding.Logo is { Length: > 0 }
+                ? Image.FromBinaryData(branding.Logo)
+                : null;
 
             var bytes = pdfGenerator.Generate(
-                PhysicalCountPdfComposer.Compose(lines, generatedBy, DateTime.Now, logoImage));
+                PhysicalCountPdfComposer.Compose(lines, createdBy, createdAt, logoImage));
 
             return new PhysicalCountPdfResult
             {
                 Bytes = bytes,
-                CreatedAt = lines.PhysicalCount.CreatedAt
+                CreatedAt = createdAt
             };
-        }
-
-        private static async Task<Image?> LoadLogoAsync(string? logoUrl, CancellationToken ct)
-        {
-            if (string.IsNullOrWhiteSpace(logoUrl) ||
-                !Uri.TryCreate(logoUrl, UriKind.Absolute, out var logoUri))
-            {
-                return null;
-            }
-
-            try
-            {
-                var bytes = await LogoHttpClient.GetByteArrayAsync(logoUri, ct);
-                return Image.FromBinaryData(bytes);
-            }
-            catch (Exception)
-            {
-                // Si el logo no está disponible se genera el PDF sin él.
-                return null;
-            }
         }
     }
 }

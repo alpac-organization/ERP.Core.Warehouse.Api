@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Interfaces;
 
+using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Domain.Entities.Inventory;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
@@ -23,6 +24,21 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Handle
 
             var branchId = access.Profile.BranchId;
             request.BranchId = branchId;
+
+            var recentStatuses = await _unitOfWork.PhysicalCounts.Entities
+                .AsNoTracking()
+                .Where(pc => pc.CompanyId == request.CompanyId && pc.BranchId == branchId)
+                .OrderByDescending(pc => pc.CreatedAt)
+                .Take(10)
+                .Select(pc => pc.Status)
+                .ToListAsync(ct);
+
+            if (recentStatuses.Any(status => status != PhysicalCountStatus.Completed))
+            {
+                return _errorManager.ThrowBadRequest<CreatePhysicalCountResponse>(
+                    "Ya existe un levantamiento pendiente, no se puede crear otro.",
+                    "ERP:PHYSICAL_COUNT_PENDING");
+            }
 
             var productStocks = await _unitOfWork.ProductStocks.Entities
                 .AsNoTracking()
