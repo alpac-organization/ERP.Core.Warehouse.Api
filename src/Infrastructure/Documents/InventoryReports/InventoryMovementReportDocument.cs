@@ -3,17 +3,19 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
+using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Commons;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Infrastructure.Documents.InventoryReports;
 
 public sealed class InventoryMovementReportDocument(
     InventoryMovementReportDto report,
-    string companyName) : IDocument
+    string companyName,
+    CompanyBranding branding) : IDocument
 {
-    private const string SectionBarBg = "#156082";
-    private const string HeaderBg = "#CAEDFB";
-    private const string SubtotalBg = "#C0E6F5";
+    private readonly string _sectionBarBg = branding.PrimaryColor;
+    private readonly string _headerBg = branding.HeaderColor;
+    private readonly string _subtotalBg = branding.SubtotalColor;
     private const string BorderHex = "#CBD5E1";
     private const string AltRowBg = "#F8FAFC";
     private const string TextDark = "#0F172A";
@@ -32,14 +34,22 @@ public sealed class InventoryMovementReportDocument(
             page.MarginVertical(10, Unit.Millimetre);
             page.DefaultTextStyle(x => x.FontSize(7.5f).FontColor(TextDark));
 
-            page.Header().PaddingBottom(8).Column(header =>
+            page.Header().PaddingBottom(8).Row(row =>
             {
-                header.Spacing(2);
-                header.Item().AlignCenter().Text(companyName).Bold().FontSize(13);
-                header.Item().AlignCenter().Text("Movimientos de Inventario").Bold().FontSize(11);
-                header.Item().PaddingTop(2).AlignCenter()
-                    .Text($"Del {report.From:dd/MM/yyyy} Al {report.To:dd/MM/yyyy}")
-                    .FontSize(8.5f).FontColor("#334155");
+                if (branding.Logo is { Length: > 0 })
+                {
+                    row.ConstantItem(90).MaxHeight(45).AlignMiddle().Image(branding.Logo).FitArea();
+                }
+
+                row.RelativeItem().Column(header =>
+                {
+                    header.Spacing(2);
+                    header.Item().AlignCenter().Text(companyName).Bold().FontSize(13);
+                    header.Item().AlignCenter().Text("Movimientos de Inventario").Bold().FontSize(11);
+                    header.Item().PaddingTop(2).AlignCenter()
+                        .Text($"Del {report.From:dd/MM/yyyy} Al {report.To:dd/MM/yyyy}")
+                        .FontSize(8.5f).FontColor("#334155");
+                });
             });
 
             page.Content().Column(col =>
@@ -78,8 +88,8 @@ public sealed class InventoryMovementReportDocument(
             table.Header(header =>
             {
                 header.Cell().ColumnSpan(12)
-                    .Background(SectionBarBg)
-                    .Border(0.5f).BorderColor(SectionBarBg)
+                    .Background(_sectionBarBg)
+                    .Border(0.5f).BorderColor(_sectionBarBg)
                     .PaddingVertical(4).PaddingHorizontal(6)
                     .Text("Compras").Bold().FontSize(8.5f).FontColor(Colors.White);
 
@@ -93,7 +103,7 @@ public sealed class InventoryMovementReportDocument(
                 {
                     var isNumeric = i >= 7;
                     var cell = header.Cell()
-                        .Background(HeaderBg)
+                        .Background(_headerBg)
                         .Border(0.5f).BorderColor(BorderHex)
                         .PaddingVertical(4).PaddingHorizontal(4);
 
@@ -160,8 +170,8 @@ public sealed class InventoryMovementReportDocument(
             table.Header(header =>
             {
                 header.Cell().ColumnSpan(12)
-                    .Background(SectionBarBg)
-                    .Border(0.5f).BorderColor(SectionBarBg)
+                    .Background(_sectionBarBg)
+                    .Border(0.5f).BorderColor(_sectionBarBg)
                     .PaddingVertical(4).PaddingHorizontal(6)
                     .Text("Salidas").Bold().FontSize(8.5f).FontColor(Colors.White);
 
@@ -175,7 +185,7 @@ public sealed class InventoryMovementReportDocument(
                 {
                     var isNumeric = i >= 7;
                     var cell = header.Cell()
-                        .Background(HeaderBg)
+                        .Background(_headerBg)
                         .Border(0.5f).BorderColor(BorderHex)
                         .PaddingVertical(4).PaddingHorizontal(4);
 
@@ -240,34 +250,34 @@ public sealed class InventoryMovementReportDocument(
             DefineMovementColumns(table);
 
             table.Cell().ColumnSpan(7)
-                .Background(SectionBarBg)
-                .Border(0.5f).BorderColor(SectionBarBg)
+                .Background(_sectionBarBg)
+                .Border(0.5f).BorderColor(_sectionBarBg)
                 .PaddingVertical(5).PaddingHorizontal(6)
                 .Text("Movimiento del producto").Bold().FontSize(8.5f).FontColor(Colors.White);
 
             table.Cell()
-                .Background(SectionBarBg)
-                .Border(0.5f).BorderColor(SectionBarBg)
+                .Background(_sectionBarBg)
+                .Border(0.5f).BorderColor(_sectionBarBg)
                 .PaddingVertical(5).PaddingHorizontal(4)
                 .AlignRight()
                 .Text(FormatUnits(report.MovimientoProducto.Units)).Bold().FontSize(8f).FontColor(Colors.White);
 
             table.Cell()
-                .Background(SectionBarBg)
-                .Border(0.5f).BorderColor(SectionBarBg)
+                .Background(_sectionBarBg)
+                .Border(0.5f).BorderColor(_sectionBarBg)
                 .PaddingVertical(5).PaddingHorizontal(4)
                 .Text("");
 
             table.Cell()
-                .Background(SectionBarBg)
-                .Border(0.5f).BorderColor(SectionBarBg)
+                .Background(_sectionBarBg)
+                .Border(0.5f).BorderColor(_sectionBarBg)
                 .PaddingVertical(5).PaddingHorizontal(4)
                 .AlignRight()
                 .Text(FormatCurrency(report.MovimientoProducto.Total)).Bold().FontSize(8f).FontColor(Colors.White);
 
             table.Cell().ColumnSpan(2)
-                .Background(SectionBarBg)
-                .Border(0.5f).BorderColor(SectionBarBg)
+                .Background(_sectionBarBg)
+                .Border(0.5f).BorderColor(_sectionBarBg)
                 .PaddingVertical(5).PaddingHorizontal(4)
                 .Text("");
         });
@@ -312,10 +322,10 @@ public sealed class InventoryMovementReportDocument(
             .Text(value);
     }
 
-    private static void AddSubtotalCell(TableDescriptor table, string value, bool alignRight)
+    private void AddSubtotalCell(TableDescriptor table, string value, bool alignRight)
     {
         var cell = table.Cell()
-            .Background(SubtotalBg)
+            .Background(_subtotalBg)
             .Border(0.5f).BorderColor(BorderHex)
             .PaddingVertical(4).PaddingHorizontal(4)
             .AlignMiddle();
