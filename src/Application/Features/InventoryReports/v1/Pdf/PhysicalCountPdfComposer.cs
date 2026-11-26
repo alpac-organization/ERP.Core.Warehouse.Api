@@ -1,5 +1,7 @@
 using System.Globalization;
 
+using ERP.Core.Application.Commons.Utils;
+
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -31,7 +33,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Pdf
         private static readonly Color HeaderBackground = Color.FromHex("#1D4ED8");
         private static readonly Color HeaderBorderColor = Color.FromHex("#1E40AF");
         private static readonly Color RowBorderColor = Color.FromHex("#E5E7EB");
-        private static readonly Color AlternateRowColor = Color.FromHex("#F9FAFB");
         private static readonly Color FooterColor = Color.FromHex("#9CA3AF");
         private static readonly Color White = Color.FromHex("#FFFFFF");
 
@@ -47,11 +48,10 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Pdf
             DateTime generatedAt,
             Image? logoImage)
         {
-            var totalItems = page.Data.Count;
-            var completedItems = page.Data.Count(line =>
-                !line.Difference.HasValue || line.Difference.Value == 0);
+            var totalItems = page.PhysicalCount.TotalLines;
+            var completedItems = page.PhysicalCount.CompletedLines;
             var itemsWithDifferences = page.Data.Count(line =>
-                line.Difference.HasValue && line.Difference.Value != 0);
+                line.PhysicalStock.HasValue && line.Difference.GetValueOrDefault() != 0);
 
             var groups = BuildGroups(page.Data);
 
@@ -174,6 +174,17 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Pdf
                                     }
                                 }
                             });
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(page.PhysicalCount.Notes))
+                        {
+                            column.Item()
+                                .PaddingTop(10)
+                                .Text(text =>
+                                {
+                                    text.Span("Notas: ").Bold().FontColor(TitleColor);
+                                    text.Span(page.PhysicalCount.Notes.Trim()).FontColor(SubtitleColor);
+                                });
                         }
 
                         column.Item()
@@ -311,7 +322,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Pdf
             value?.ToString("N", NumberFormat) ?? "—";
 
         private static string FormatCountedDateTime(DateTime value) =>
-            value.ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
+            NicaraguaTime.Convert(value).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
 
         private static string FormatDate(DateTime value) =>
             value.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
@@ -328,12 +339,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Pdf
 
             return $"{weekday}, {FormatDate(value)} {hour:00}:{value.Minute:00}:{value.Second:00} {period}";
         }
-
-        private static IContainer HeaderRowStyle(IContainer container) =>
-            container
-                .Background(HeaderBackground)
-                .BorderBottom(1)
-                .BorderColor(HeaderBorderColor);
 
         private static IContainer HeaderCellStyle(IContainer container) =>
         container
@@ -352,15 +357,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Pdf
             .AlignMiddle()
             .DefaultTextStyle(style => style.FontSize(8));
 
-        private static IContainer AlternateDataCellStyle(IContainer container) =>
-            container
-                .Background(AlternateRowColor)
-                .MinHeight(16)
-                .AlignMiddle()
-                .BorderBottom(1)
-                .BorderColor(RowBorderColor)
-                .DefaultTextStyle(style => style.FontSize(8));
-
         private static IContainer MergedCellStyle(IContainer container) =>
         container
             .BorderBottom(1)
@@ -370,12 +366,5 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Pdf
             .PaddingHorizontal(5)
             .AlignMiddle()
             .DefaultTextStyle(style => style.FontSize(8));
-
-        private static IContainer AlternateMergedCellStyle(IContainer container) =>
-            container
-                .Background(AlternateRowColor)
-                .Border(1, RowBorderColor)
-                .AlignMiddle()
-                .DefaultTextStyle(style => style.FontSize(8));
     }
 }

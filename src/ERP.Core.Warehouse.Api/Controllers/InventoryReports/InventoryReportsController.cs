@@ -181,7 +181,7 @@ public class InventoryReportsController(IMediator mediator) : ApiControllerBase
             ProductCode = product_code
         });
 
-        return File(pdf.Content, pdf.ContentType);
+        return File(pdf.Content, pdf.ContentType, pdf.FileName);
     }
 
     [HttpGet("companies/{company_id}/modules/{module_code}/reports/inventory-turnover")]
@@ -244,7 +244,7 @@ public class InventoryReportsController(IMediator mediator) : ApiControllerBase
             ProductCode = product_code
         });
 
-        return File(pdf.Content, pdf.ContentType);
+        return File(pdf.Content, pdf.ContentType, pdf.FileName);
     }
 
     [HttpGet("companies/{company_id}/modules/{module_code}/reports/outputs-line-equipment")]
