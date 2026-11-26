@@ -9,6 +9,7 @@ public class InventoryMovementEntrySource
     public Kardex Kardex { get; set; } = default!;
     public InventoryEntry? Entry { get; set; }
     public PurchaseOrderEntryAdditionalItem? AdditionalItem { get; set; }
+    public string? RootSupplierName { get; set; }
     public decimal MinimumCost { get; set; }
     public decimal MaximumCost { get; set; }
 }

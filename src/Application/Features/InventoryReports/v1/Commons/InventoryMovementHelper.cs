@@ -40,5 +40,19 @@ public static class InventoryMovementHelper
     public static string? GetSupplier(InventoryMovementEntrySource source) =>
         source.Entry?.PurchaseOrder?.Supplier?.SuppliersLegalName
         ?? source.Entry?.PurchaseOrder?.Supplier?.CommercialName
-        ?? source.AdditionalItem?.SupplierName;
+        ?? source.AdditionalItem?.SupplierName
+        ?? source.RootSupplierName;
+
+    public static string? GetExitReference(OutputReportSource source)
+    {
+        var rawCode = OutputReportHelper.GetRequestCode(source);
+        if (string.IsNullOrWhiteSpace(rawCode))
+            return null;
+
+        var trimmed = rawCode.Trim();
+        var prefix = source.IsFuel ? "BL#" : "RQ#";
+        return trimmed.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            ? trimmed
+            : $"{prefix}{trimmed}";
+    }
 }
