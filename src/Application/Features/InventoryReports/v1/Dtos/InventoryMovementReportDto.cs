@@ -5,6 +5,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Dtos;
 public class InventoryMovementReportDto : InventoryReportBaseDto
 {
     public InventoryMovementTotalsDto TotalEntrada { get; set; } = new();
+    public InventoryMovementTotalsDto TotalSalida { get; set; } = new();
     public InventoryMovementTotalsDto MovimientoProducto { get; set; } = new();
 
     public List<InventoryMovementEntryDto> Entradas { get; set; } = [];
@@ -13,6 +14,7 @@ public class InventoryMovementReportDto : InventoryReportBaseDto
 
 public class InventoryMovementTotalsDto
 {
+    public int Count { get; set; }
     public decimal Units { get; set; }
     public decimal Total { get; set; }
 }

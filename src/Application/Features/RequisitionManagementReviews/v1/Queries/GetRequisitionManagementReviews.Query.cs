@@ -10,6 +10,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
     {
         public Guid? AreaId { get; set; }
         public Guid? BranchId { get; set; }
+        public string? Code { get; set; }
+        public PriorityLevel? PriorityLevel { get; set; }
+        public PurchaseRequestType? RequestType { get; set; }
         public ManagementReviewStatus? Status { get; set; }
 
         public int PageSize { get; set; }

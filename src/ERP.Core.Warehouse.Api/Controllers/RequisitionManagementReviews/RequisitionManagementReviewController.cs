@@ -24,6 +24,9 @@ namespace ERP.Core.Warehouse.Api.Controllers.RequisitionManagementReviews
         public async Task<PagedResponse<PurchaseRequestsReviewedManagementDto>> GetRequisitionManagementReviewsAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
             [FromQuery] Guid? area_id = null,
             [FromQuery] Guid? branch_id = null,
+            [FromQuery] string? code = null,
+            [FromQuery] PriorityLevel? priority_level = null,
+            [FromQuery] PurchaseRequestType? request_type = null,
             [FromQuery] ManagementReviewStatus? status = null,
             [FromQuery] int page_number = 1,
             [FromQuery] int page_size = 10
@@ -33,14 +36,17 @@ namespace ERP.Core.Warehouse.Api.Controllers.RequisitionManagementReviews
 
             return await _mediator.Send(new GetRequisitionManagementReviewsQuery()
             {
-                Status      = status,
-                AreaId      = area_id,
-                CompanyId   = company_id,
-                ModuleCode  = module_code,
-                BranchId    = branch_id,
-                UserId      = Guid.Parse(userIdStr ?? ""),
-                PageNumber  = page_number,
-                PageSize    = page_size,
+                Status        = status,
+                AreaId        = area_id,
+                CompanyId     = company_id,
+                ModuleCode    = module_code,
+                BranchId      = branch_id,
+                Code          = code,
+                PriorityLevel = priority_level,
+                RequestType   = request_type,
+                UserId        = Guid.Parse(userIdStr ?? ""),
+                PageNumber    = page_number,
+                PageSize      = page_size,
             });
         }
 

@@ -65,6 +65,25 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                     .Where(rev => rev.Status == request.Status);
             }
 
+            if (!string.IsNullOrWhiteSpace(request.Code))
+            {
+                var trimmedCode = request.Code.Trim();
+                reviewsQuery = reviewsQuery
+                    .Where(rev => rev.PurchaseRequest.Code != null && rev.PurchaseRequest.Code.Contains(trimmedCode));
+            }
+
+            if (request.PriorityLevel.HasValue)
+            {
+                reviewsQuery = reviewsQuery
+                    .Where(rev => rev.PurchaseRequest.PriorityLevel == request.PriorityLevel.Value);
+            }
+
+            if (request.RequestType.HasValue)
+            {
+                reviewsQuery = reviewsQuery
+                    .Where(rev => rev.PurchaseRequest.RequestType == request.RequestType.Value);
+            }
+
             var totalRecords = await reviewsQuery.CountAsync(cancellationToken);
 
             var reviewsMapped = await reviewsQuery
