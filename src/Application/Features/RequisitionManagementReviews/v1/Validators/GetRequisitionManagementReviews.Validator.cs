@@ -29,6 +29,16 @@ namespace ERP.Core.Warehouse.Api.Application.Features.RequisitionManagementRevie
                 .IsInEnum()
                 .When(x => x.Status.HasValue)
                 .WithMessage("El estado de la revisión de gerencia no es válido.");
+
+            RuleFor(x => x.PriorityLevel)
+                .IsInEnum()
+                .When(x => x.PriorityLevel.HasValue)
+                .WithMessage("El nivel de prioridad no es válido.");
+
+            RuleFor(x => x.RequestType)
+                .IsInEnum()
+                .When(x => x.RequestType.HasValue)
+                .WithMessage("El tipo de solicitud no es válido.");
         }
     }
 }
