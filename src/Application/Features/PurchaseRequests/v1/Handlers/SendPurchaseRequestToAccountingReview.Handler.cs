@@ -7,6 +7,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Commons.Mappings;
 using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Commands;
 
 namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handlers
@@ -65,13 +66,33 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 return _errorManager.ThrowBadRequest<bool>("La solicitud de compra ya fue enviada a revisión", "ERP:REVIEW_ALREADY_EXISTS");
             }
 
-            var itemsWithoutQuotation = purchaseRequest.PurchaseRequestItems
-                .Where(item => !item.Quotations.Any(quo => quo.IsActive && quo.DeletedAt == null))
+            var minRequiredSuppliers = QuotationSupplierRules.GetMinRequiredSuppliers(
+                purchaseRequest.RequestType,
+                purchaseRequest.PriorityLevel);
+
+            var activeRequestItems = purchaseRequest.PurchaseRequestItems
+                .Where(item => item.DeletedAt == null)
                 .ToList();
 
-            if (itemsWithoutQuotation.Count > 0)
+            var itemsWithoutEnoughQuotations = activeRequestItems
+                .Where(item =>
+                    item.Quotations
+                        .Where(quo => quo.IsActive && quo.DeletedAt == null)
+                        .Select(quo => quo.SupplierId)
+                        .Distinct()
+                        .Count() < minRequiredSuppliers)
+                .ToList();
+
+            if (itemsWithoutEnoughQuotations.Count > 0)
             {
-                return _errorManager.ThrowBadRequest<bool>("Todos los productos solicitados deben tener al menos una cotización asociada", "ERP:ITEMS_WITHOUT_QUOTATION");
+                var errorMessage = minRequiredSuppliers == 1
+                    ? "Todos los productos solicitados deben tener al menos una cotización activa asociada."
+                    : $"Para este nivel de prioridad, todos los productos solicitados deben contar con al menos {minRequiredSuppliers} proveedores cotizados.";
+                var errorCode = minRequiredSuppliers == 1
+                    ? "ERP:ITEMS_WITHOUT_QUOTATION"
+                    : "ERP:ITEMS_WITHOUT_TWO_QUOTATIONS";
+
+                return _errorManager.ThrowBadRequest<bool>(errorMessage, errorCode);
             }
 
             if (purchaseRequest.AccountingReview is not null)

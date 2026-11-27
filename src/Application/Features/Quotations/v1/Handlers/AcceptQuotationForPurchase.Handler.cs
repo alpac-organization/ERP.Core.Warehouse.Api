@@ -33,7 +33,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 
             var quotation = await _unitOfWork.Quotations.Entities
                 .Include(quo => quo.PurchaseRequestItem)
-                .Where(quo => quo.IsActive)
+                    .ThenInclude(item => item.PurchaseRequest)
+                .Where(quo => quo.IsActive && quo.DeletedAt == null)
                 .Where(quo => quo.Id == request.QuotationId)
                 .Where(quo => quo.PurchaseRequestItemId == request.PurchaseRequestItemId)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -62,13 +63,26 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 
             var itemQuotations = await _unitOfWork.Quotations.Entities
                 .Where(quo => quo.PurchaseRequestItemId == request.PurchaseRequestItemId)
-                .Where(quo => quo.IsActive)
+                .Where(quo => quo.IsActive && quo.DeletedAt == null)
                 .ToListAsync(cancellationToken);
 
-            //Cada producto solicitado debe tener al menos dos cotizaciones activas para poder aceptar una para compra
-            if (itemQuotations.Count < 2)
+            var parentRequest = quotation.PurchaseRequestItem.PurchaseRequest;
+            var minRequiredSuppliers = QuotationSupplierRules.GetMinRequiredSuppliers(
+                parentRequest.RequestType,
+                parentRequest.PriorityLevel);
+
+            var distinctSuppliersCount = itemQuotations
+                .Select(quo => quo.SupplierId)
+                .Distinct()
+                .Count();
+
+            if (distinctSuppliersCount < minRequiredSuppliers)
             {
-                return _errorManager.ThrowBadRequest<bool>("El producto solicitado debe tener al menos dos cotizaciones para aceptar una para compra", "ERP:NOT_ENOUGH_QUOTATIONS");
+                var minMessage = minRequiredSuppliers == 1
+                    ? "El producto solicitado debe tener al menos una cotización activa para aceptar una para compra."
+                    : "El producto solicitado debe tener al menos dos proveedores cotizados para aceptar una oferta para compra.";
+
+                return _errorManager.ThrowBadRequest<bool>(minMessage, "ERP:NOT_ENOUGH_QUOTATIONS");
             }
 
             //La cotización ya se encuentra aceptada para compra

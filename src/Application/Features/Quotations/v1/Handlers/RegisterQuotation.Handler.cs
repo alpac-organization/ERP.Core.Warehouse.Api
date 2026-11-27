@@ -50,20 +50,54 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                 .ToDictionaryAsync(i => i.Id, cancellationToken);
 
             var purchaseRequestIds = items.Values.Select(i => i.PurchaseRequestId).Distinct().ToList();
-            var visibleRequestCount = await visibilityService.Apply(
-                    _unitOfWork.PurchaseRequests.Entities.Where(pr => purchaseRequestIds.Contains(pr.Id)),
+            var visiblePurchaseRequests = await visibilityService.Apply(
+                    _unitOfWork.PurchaseRequests.Entities.Where(pr => purchaseRequestIds.Contains(pr.Id) && pr.DeletedAt == null),
                     access.Role?.RoleType,
                     request.UserId,
                     access.Profile?.AreaId,
                     access.Profile?.CostCenterId,
                     access.Profile?.BranchId)
-                .CountAsync(cancellationToken);
+                .ToDictionaryAsync(pr => pr.Id, cancellationToken);
 
-            if (purchaseRequestIds.Count == 0 || visibleRequestCount != purchaseRequestIds.Count)
+            if (purchaseRequestIds.Count == 0 || visiblePurchaseRequests.Count != purchaseRequestIds.Count)
             {
                 return _errorManager.ThrowNotFound<bool>(
                     "La solicitud de compra no fue encontrada",
                     "ERP:PURCHASE_REQUEST_NOT_FOUND");
+            }
+
+            var existingSuppliersByItem = await _unitOfWork.Quotations.Entities
+                .AsNoTracking()
+                .Where(q => q.IsActive && q.DeletedAt == null && itemIds.Contains(q.PurchaseRequestItemId))
+                .Select(q => new { q.PurchaseRequestItemId, q.SupplierId })
+                .ToListAsync(cancellationToken);
+
+            foreach (var groupedByItem in request.QuotationItems.GroupBy(q => q.PurchaseRequestItemId))
+            {
+                if (!items.TryGetValue(groupedByItem.Key, out var targetItem) ||
+                    !visiblePurchaseRequests.TryGetValue(targetItem.PurchaseRequestId, out var parentRequest))
+                {
+                    continue;
+                }
+
+                var minSuppliers = QuotationSupplierRules.GetMinRequiredSuppliers(
+                    parentRequest.RequestType,
+                    parentRequest.PriorityLevel);
+
+                var distinctSuppliersCount = existingSuppliersByItem
+                    .Where(existing => existing.PurchaseRequestItemId == groupedByItem.Key)
+                    .Select(existing => existing.SupplierId)
+                    .Concat(groupedByItem.Select(incoming => incoming.SupplierId))
+                    .Where(id => id != Guid.Empty)
+                    .Distinct()
+                    .Count();
+
+                if (distinctSuppliersCount < minSuppliers)
+                {
+                    return _errorManager.ThrowBadRequest<bool>(
+                        $"Para este nivel de prioridad, cada producto debe cotizarse con al menos {minSuppliers} proveedores distintos.",
+                        "ERP:NOT_ENOUGH_QUOTATIONS");
+                }
             }
 
             var suppliers = await _unitOfWork.Suppliers.Entities

@@ -77,8 +77,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
                 var items = await _unitOfWork.PurchaseRequestItems.Entities
                     .Include(item => item.Quotations)
-                    .Where(item => item.PurchaseRequestId == purchaseRequest.Id)
+                    .Where(item => item.PurchaseRequestId == purchaseRequest.Id && item.DeletedAt == null)
                     .ToListAsync(cancellationToken);
+
+                var minRequiredSuppliers = QuotationSupplierRules.GetMinRequiredSuppliers(
+                    purchaseRequest.RequestType,
+                    purchaseRequest.PriorityLevel);
 
                 foreach (var item in items)
                 {
@@ -86,9 +90,18 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                         .Where(quo => quo.IsActive && quo.DeletedAt == null)
                         .ToList();
 
-                    if (activeQuotations.Count < 2)
+                    var distinctSuppliersCount = activeQuotations
+                        .Select(quo => quo.SupplierId)
+                        .Distinct()
+                        .Count();
+
+                    if (distinctSuppliersCount < minRequiredSuppliers)
                     {
-                        return _errorManager.ThrowBadRequest<bool>("Todos los productos solicitados deben tener al menos dos cotizaciones activas", "ERP:ITEMS_WITHOUT_TWO_QUOTATIONS");
+                        var minMessage = minRequiredSuppliers == 1
+                            ? "Todos los productos solicitados deben tener al menos una cotización activa"
+                            : "Todos los productos solicitados deben tener al menos dos proveedores cotizados activos";
+
+                        return _errorManager.ThrowBadRequest<bool>(minMessage, "ERP:ITEMS_WITHOUT_TWO_QUOTATIONS");
                     }
 
                     if (activeQuotations.Count(quo => quo.IsAcceptedForPurchase) != 1)
