@@ -335,7 +335,7 @@ public class InventoryReportsController(IMediator mediator) : ApiControllerBase
     }
 
     [HttpGet("companies/{company_id}/modules/{module_code}/reports/kardex")]
-    [Produces("application/pdf")]
+    [Produces("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
@@ -350,7 +350,7 @@ public class InventoryReportsController(IMediator mediator) : ApiControllerBase
     {
         var userIdStr = HttpContext.Items["UserId"] as string;
 
-        var pdf = await mediator.Send(new GetKardexReportQuery
+        var reportFile = await mediator.Send(new GetKardexReportQuery
         {
             CompanyId = company_id,
             ModuleCode = module_code,
@@ -362,7 +362,7 @@ public class InventoryReportsController(IMediator mediator) : ApiControllerBase
             ProductStockIds = product_stock_ids
         });
 
-        return File(pdf.Content, pdf.ContentType, pdf.FileName);
+        return File(reportFile.Content, reportFile.ContentType, reportFile.FileName);
     }
 
     [HttpPost("companies/{company_id}/modules/{module_code}/reports/physical-counts")]

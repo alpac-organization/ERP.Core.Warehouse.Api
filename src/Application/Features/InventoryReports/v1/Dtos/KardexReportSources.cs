@@ -18,6 +18,7 @@ public class KardexMovementSource
 public class KardexProductSource
 {
     public Product Product { get; set; } = default!;
+    public string? WarehouseName { get; set; }
     public decimal InitialKardexBalance { get; set; }
     public decimal InitialInventory { get; set; }
     public decimal InitialAverageCost { get; set; }

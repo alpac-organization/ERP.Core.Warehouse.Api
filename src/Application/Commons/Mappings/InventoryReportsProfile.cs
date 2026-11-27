@@ -138,6 +138,9 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.ProductName))
                 .ForMember(d => d.CategoryName, o => o.MapFrom(s =>
                     s.Product.Category != null ? s.Product.Category.Name : null))
+                .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.WarehouseName))
+                .ForMember(d => d.UnitMeasureName, o => o.MapFrom(s =>
+                    s.Product.UnitMeasure != null ? s.Product.UnitMeasure.Name : null))
                 .ForMember(d => d.UnitMeasureSymbol, o => o.MapFrom(s =>
                     s.Product.UnitMeasure != null ? s.Product.UnitMeasure.Symbol : null))
                 .ForMember(d => d.InitialKardexBalance, o => o.MapFrom(s => s.InitialKardexBalance))
