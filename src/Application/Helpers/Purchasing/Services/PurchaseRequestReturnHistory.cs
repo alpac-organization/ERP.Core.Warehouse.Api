@@ -17,6 +17,8 @@ namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services
 
         public const string ManagementSource = "Management";
 
+        public const string InventoryEntrySource = "InventoryEntry";
+
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
             PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,

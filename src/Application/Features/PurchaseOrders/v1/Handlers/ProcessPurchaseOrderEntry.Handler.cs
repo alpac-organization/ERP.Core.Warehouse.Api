@@ -80,8 +80,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
 
             var inventoryEntryEntity = InventoryEntryMapper.ToInventoryEntity(request);
 
-            inventoryEntryEntity.BranchId = access.Profile.BranchId;
-            inventoryEntryEntity.WorkAreaId = access.Profile.AreaId;
+            inventoryEntryEntity.BranchId = purchaseOrder.PurchaseRequest.BranchId;
+            inventoryEntryEntity.WorkAreaId = purchaseOrder.PurchaseRequest.AreaId;
             inventoryEntryEntity.PurchaseOrderId = purchaseOrder.Id;
             inventoryEntryEntity.Code = Code;
 

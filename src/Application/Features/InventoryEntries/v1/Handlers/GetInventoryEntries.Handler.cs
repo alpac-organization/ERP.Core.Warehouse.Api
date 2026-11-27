@@ -23,35 +23,90 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                 return access.ErrorResponse!;
             }
             
+            var roleType = access.Role?.RoleType;
+            var isAdministrator = roleType == RoleType.Administrator;
+            var isManager = roleType == RoleType.Manager;
+
             var inventoryEntriesQuery = _unitOfWork.InventoryEntries.Entities
                 .Include(inventory => inventory.PurchaseOrder)
                     .ThenInclude(purchaseOrder => purchaseOrder.PurchaseRequest)
+                        .ThenInclude(purchaseRequest => purchaseRequest.WorkArea)
                 .Include(inventory => inventory.Branch)
                 .Include(inventory => inventory.WorkArea)
+                .Where(inventory => inventory.DeletedAt == null)
+                .Where(inventory => inventory.Branch.CompanyId == request.CompanyId)
                 .AsNoTracking()
                 .AsSplitQuery();
-        
-            if (request.BranchId.HasValue && access.Role?.RoleType == RoleType.Administrator)
+
+            if (isAdministrator)
             {
-                inventoryEntriesQuery = inventoryEntriesQuery
-                    .Where(inventory => inventory.BranchId == request.BranchId);
+                if (request.BranchId.HasValue)
+                {
+                    inventoryEntriesQuery = inventoryEntriesQuery
+                        .Where(inventory => inventory.BranchId == request.BranchId.Value);
+                }
+
+                if (request.WorkAreaId.HasValue)
+                {
+                    var areaId = request.WorkAreaId.Value;
+                    inventoryEntriesQuery = inventoryEntriesQuery
+                        .Where(inventory =>
+                            inventory.PurchaseOrder != null && inventory.PurchaseOrder.PurchaseRequest != null
+                                ? inventory.PurchaseOrder.PurchaseRequest.AreaId == areaId
+                                : inventory.WorkAreaId == areaId);
+                }
             }
-            else
+            else if (isManager)
             {
                 inventoryEntriesQuery = inventoryEntriesQuery
                     .Where(inventory => inventory.BranchId == access.Profile.BranchId);
+
+                if (request.WorkAreaId.HasValue)
+                {
+                    var areaId = request.WorkAreaId.Value;
+                    inventoryEntriesQuery = inventoryEntriesQuery
+                        .Where(inventory =>
+                            inventory.PurchaseOrder != null && inventory.PurchaseOrder.PurchaseRequest != null
+                                ? inventory.PurchaseOrder.PurchaseRequest.AreaId == areaId
+                                : inventory.WorkAreaId == areaId);
+                }
+            }
+            else
+            {
+                var operatorAreaId = access.Profile.AreaId;
+
+                inventoryEntriesQuery = inventoryEntriesQuery
+                    .Where(inventory => inventory.BranchId == access.Profile.BranchId)
+                    .Where(inventory =>
+                        inventory.PurchaseOrder != null && inventory.PurchaseOrder.PurchaseRequest != null
+                            ? inventory.PurchaseOrder.PurchaseRequest.AreaId == operatorAreaId
+                            : inventory.WorkAreaId == operatorAreaId);
             }
 
-            if (!string.IsNullOrEmpty(request.PurchaseRequestCode))
+            if (request.EntryStatus.HasValue)
             {
                 inventoryEntriesQuery = inventoryEntriesQuery
-                    .Where(inventory => inventory.PurchaseOrder.PurchaseRequest.Code == request.PurchaseRequestCode);   
+                    .Where(inventory => inventory.EntryStatus == request.EntryStatus.Value);
             }
 
-            if (!string.IsNullOrEmpty(request.EntryCode))
+            if (!string.IsNullOrWhiteSpace(request.PurchaseRequestCode))
             {
+                var requestCode = request.PurchaseRequestCode.Trim();
                 inventoryEntriesQuery = inventoryEntriesQuery
-                    .Where(inventory => inventory.Code == request.EntryCode);   
+                    .Where(inventory =>
+                        inventory.PurchaseOrder != null &&
+                        inventory.PurchaseOrder.PurchaseRequest != null &&
+                        inventory.PurchaseOrder.PurchaseRequest.Code != null &&
+                        inventory.PurchaseOrder.PurchaseRequest.Code.Contains(requestCode));
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.EntryCode))
+            {
+                var entryCode = request.EntryCode.Trim();
+                inventoryEntriesQuery = inventoryEntriesQuery
+                    .Where(inventory =>
+                        inventory.Code != null &&
+                        inventory.Code.Contains(entryCode));
             }
 
             var totalRecords = await inventoryEntriesQuery.CountAsync(cancellationToken);

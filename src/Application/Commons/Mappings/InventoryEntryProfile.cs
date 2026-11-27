@@ -15,12 +15,22 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             CreateMap<InventoryEntry, InventoryEntryDto>()
                 .ForMember(dest => dest.InventoryEntryId,   opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.BranchInformation,   opt => opt.MapFrom(src => src.Branch))
-                .ForMember(dest => dest.WorkAreaInformation,   opt => opt.MapFrom(src => src.WorkArea))
+                .ForMember(dest => dest.WorkAreaInformation,   opt => opt.MapFrom(src =>
+                    src.PurchaseOrder != null &&
+                    src.PurchaseOrder.PurchaseRequest != null &&
+                    src.PurchaseOrder.PurchaseRequest.WorkArea != null
+                        ? src.PurchaseOrder.PurchaseRequest.WorkArea
+                        : src.WorkArea))
                 .ForMember(dest => dest.PurchaseRequestCode,   opt => opt.MapFrom(src => src.PurchaseOrder.PurchaseRequest.Code));
 
             CreateMap<InventoryEntry, InventoryEntryDetailDto>()
                 .IncludeBase<InventoryEntry, InventoryEntryDto>()
-                .ForMember(dest => dest.WorkAreaInformation, opt => opt.MapFrom(src => src.WorkArea))
+                .ForMember(dest => dest.WorkAreaInformation, opt => opt.MapFrom(src =>
+                    src.PurchaseOrder != null &&
+                    src.PurchaseOrder.PurchaseRequest != null &&
+                    src.PurchaseOrder.PurchaseRequest.WorkArea != null
+                        ? src.PurchaseOrder.PurchaseRequest.WorkArea
+                        : src.WorkArea))
                 .ForMember(dest => dest.PurchaseRequestInformation, opt => opt.MapFrom(src => src.PurchaseOrder.PurchaseRequest))
                 .ForMember(dest => dest.CostCenterInformation, opt => opt.MapFrom(src =>
                     src.PurchaseOrder != null && src.PurchaseOrder.PurchaseRequest != null

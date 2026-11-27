@@ -9,6 +9,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Querie
     public class GetInventoryEntriesQuery : BaseRequest, IRequest<PagedResponse<InventoryEntryDto>>
     {
         public Guid? BranchId { get; set; }
+        public Guid? WorkAreaId { get; set; }
         public string? EntryCode { get; set; }
         public string? PurchaseRequestCode { get; set; }
         
