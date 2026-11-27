@@ -5,6 +5,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Dtos;
 
 public class KardexReportDto : InventoryReportBaseDto
 {
+    public string? CompanyName { get; set; }
     public List<KardexProductReportDto> Products { get; set; } = [];
 }
 
@@ -13,6 +14,8 @@ public class KardexProductReportDto
     public string? ProductCode { get; set; }
     public string? ProductName { get; set; }
     public string? CategoryName { get; set; }
+    public string? WarehouseName { get; set; }
+    public string? UnitMeasureName { get; set; }
     public string? UnitMeasureSymbol { get; set; }
     public decimal InitialKardexBalance { get; set; }
     public decimal InitialInventory { get; set; }

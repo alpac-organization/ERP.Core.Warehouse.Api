@@ -1,5 +1,4 @@
 using AutoMapper;
-using QuestPDF.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 using ERP.Core.Application.Commons.Utils;
@@ -9,7 +8,7 @@ using ERP.Core.Database.Domain.Enums;
 using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
-using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Pdf;
+using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Excel;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Commons;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Queries;
@@ -24,8 +23,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Handle
 public class GetKardexReportHandler(
     IUnitOfWork unitOfWork,
     IErrorManager errorManager,
-    IMapper mapper,
-    IQuestPdfGeneratorServices pdfGenerator)
+    IMapper mapper)
     : InventoryReportHandlerBase<GetKardexReportQuery, ReportPdfFileDto>(unitOfWork, errorManager)
 {
     private sealed record InitialBalance(decimal Units, decimal Kardex);
@@ -61,12 +59,12 @@ public class GetKardexReportHandler(
 
         var stocks = await LoadStocksAsync(branchId, productStockIds, ct);
         if (stocks.Count == 0)
-            return await BuildPdfAsync(request, [], scope, ct);
+            return BuildExcel(request, [], scope);
 
         var productSources = await BuildProductSourcesAsync(request, scope, stocks, ct);
         var products = mapper.Map<List<KardexProductReportDto>>(productSources);
 
-        return await BuildPdfAsync(request, products, scope, ct);
+        return BuildExcel(request, products, scope);
     }
 
     private ReportPdfFileDto? ValidateRequest(
@@ -153,10 +151,17 @@ public class GetKardexReportHandler(
             .Where(ps => ps.DeletedAt == null &&
                          ps.Product.BranchId == branchId &&
                          productStockIds.Contains(ps.Id))
+            .Include(ps => ps.CostCenter)
+                .ThenInclude(cc => cc.WorkArea)
+            .Include(ps => ps.Product)
+                .ThenInclude(p => p.Branch)
             .Include(ps => ps.Product)
                 .ThenInclude(p => p.Category)
             .Include(ps => ps.Product)
                 .ThenInclude(p => p.UnitMeasure)
+            .Include(ps => ps.Product)
+                .ThenInclude(p => p.CostCenter)
+                    .ThenInclude(cc => cc.WorkArea)
             .OrderBy(ps => ps.Product.Code)
             .ThenBy(ps => ps.Product.ProductName)
             .ToListAsync(ct);
@@ -178,8 +183,22 @@ public class GetKardexReportHandler(
         var initialBalances = BuildInitialBalances(initialMovements);
         var movementsByProduct = GroupMovementsByProduct(periodMovements);
 
-        return [.. GetOrderedProducts(stocks).Select(product => BuildProductSource(product, initialBalances, movementsByProduct))];
+        return [.. stocks
+            .GroupBy(s => s.ProductId)
+            .Select(group =>
+            {
+                var stock = group.First();
+                var warehouseName = ResolveWarehouseName(stock);
+                return BuildProductSource(stock.Product, warehouseName, initialBalances, movementsByProduct);
+            })];
     }
+
+    private static string ResolveWarehouseName(ProductStockEntity stock) =>
+        stock.CostCenter?.WorkArea?.WorkAreaName
+        ?? stock.Product?.CostCenter?.WorkArea?.WorkAreaName
+        ?? stock.CostCenter?.CostCenterName
+        ?? stock.Product?.Branch?.BranchName
+        ?? "Bodega de suministro";
 
     private static Dictionary<Guid, InitialBalance> BuildInitialBalances(List<KardexEntity> movements) =>
         movements
@@ -189,7 +208,7 @@ public class GetKardexReportHandler(
             .ToDictionary(
                 g => g.Key,
                 g => new InitialBalance(
-                    Round(g.Sum(k => k.TotalUnits)),
+                    RoundUnits(g.Sum(k => k.TotalUnits)),
                     Round(g.Sum(k => k.TotalKardex))));
 
     private static Dictionary<Guid, List<KardexEntity>> GroupMovementsByProduct(List<KardexEntity> movements) =>
@@ -197,13 +216,9 @@ public class GetKardexReportHandler(
             .GroupBy(k => k.ProductId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-    private static List<ProductEntity> GetOrderedProducts(List<ProductStockEntity> stocks) =>
-        [.. stocks
-            .GroupBy(s => s.ProductId)
-            .Select(g => g.First().Product)];
-
     private static KardexProductSource BuildProductSource(
         ProductEntity product,
+        string warehouseName,
         Dictionary<Guid, InitialBalance> initialBalances,
         Dictionary<Guid, List<KardexEntity>> movementsByProduct)
     {
@@ -211,62 +226,84 @@ public class GetKardexReportHandler(
 
         var initialUnits = initial?.Units ?? 0m;
         var initialKardex = initial?.Kardex ?? 0m;
+        var initialAvgCost = initialUnits > 0m ? initialKardex / initialUnits : 0m;
         var movements = movementsByProduct.TryGetValue(product.Id, out var productMovements)
             ? productMovements
             : [];
-        var rows = BuildRowSources(movements, initialUnits, initialKardex);
+        var rows = BuildRowSources(movements, initialUnits, initialKardex, initialAvgCost);
 
         return new KardexProductSource
         {
             Product = product,
+            WarehouseName = warehouseName,
             InitialKardexBalance = initialKardex,
             InitialInventory = initialUnits,
-            InitialAverageCost = initialUnits > 0m ? Round(initialKardex / initialUnits) : 0m,
+            InitialAverageCost = initialAvgCost,
             Rows = rows,
-            Summary = BuildSummary(initialUnits, initialKardex, rows)
+            Summary = BuildSummary(initialUnits, initialKardex, initialAvgCost, rows)
         };
     }
 
     private static List<KardexMovementSource> BuildRowSources(
         List<KardexEntity> movements,
         decimal initialUnits,
-        decimal initialKardex)
+        decimal initialKardex,
+        decimal initialAvgCost)
     {
         var rows = new List<KardexMovementSource>();
         var runningUnits = initialUnits;
         var runningKardex = initialKardex;
+        var runningAvgCost = initialAvgCost;
 
         foreach (var movement in movements)
         {
             var isEntry = movement.MovementType == KardexMovementType.Buys;
-            var units = Round(movement.Units);
-            var totalInput = Round(movement.TotalInput);
-            var totalOutput = Round(movement.TotalOutput);
+            var units = RoundUnits(movement.Units);
+            decimal unitCost;
+            decimal totalInput;
+            decimal totalOutput;
 
             if (isEntry)
             {
-                runningUnits += units;
-                runningKardex += totalInput;
+                unitCost = movement.UnitCost;
+                totalInput = Round(units * unitCost);
+                totalOutput = 0m;
+                runningUnits = RoundUnits(runningUnits + units);
+                runningKardex = Round(runningKardex + totalInput);
             }
             else
             {
-                runningUnits -= units;
-                runningKardex -= totalOutput;
+                unitCost = runningUnits > 0m ? runningAvgCost : movement.UnitCost;
+                totalInput = 0m;
+                totalOutput = Round(units * unitCost);
+                runningUnits = RoundUnits(runningUnits - units);
+                runningKardex = Round(runningKardex - totalOutput);
             }
 
-            runningUnits = Round(runningUnits);
-            runningKardex = Round(runningKardex);
+            runningAvgCost = runningUnits > 0m ? runningKardex / runningUnits : 0m;
 
             rows.Add(new KardexMovementSource
             {
-                Kardex = movement,
-                MovementType = isEntry ? "Entrada" : "Salida",
+                Kardex = new KardexEntity
+                {
+                    Id = movement.Id,
+                    MovementType = movement.MovementType,
+                    TransactionDate = movement.TransactionDate,
+                    TransactionTime = movement.TransactionTime,
+                    Units = units,
+                    UnitCost = unitCost,
+                    TotalInput = totalInput,
+                    TotalOutput = totalOutput
+                },
+                MovementType = isEntry ? "Compra" : "Salida",
                 RecordNumber = isEntry
-                    ? movement.InventoryEntry?.Code
+                    ? (!string.IsNullOrWhiteSpace(movement.InventoryEntry?.InvoiceNumber)
+                        ? movement.InventoryEntry.InvoiceNumber
+                        : movement.InventoryEntry?.Code)
                     : movement.InventoryOutput?.Code,
                 Document = ResolveReferenceType(movement),
                 BalanceUnits = runningUnits,
-                AverageCost = runningUnits > 0m ? Round(runningKardex / runningUnits) : 0m,
+                AverageCost = runningAvgCost,
                 KardexBalance = runningKardex
             });
         }
@@ -277,18 +314,22 @@ public class GetKardexReportHandler(
     private static KardexProductSummaryDto BuildSummary(
         decimal initialUnits,
         decimal initialKardex,
+        decimal initialAvgCost,
         List<KardexMovementSource> rows)
     {
-        var totalEntries = Round(rows
+        var totalEntries = RoundUnits(rows
             .Where(s => s.Kardex.MovementType == KardexMovementType.Buys)
             .Sum(s => s.Kardex.Units));
-        var totalExits = Round(rows
+        var totalExits = RoundUnits(rows
             .Where(s => s.Kardex.MovementType == KardexMovementType.Exit)
             .Sum(s => s.Kardex.Units));
         var totalEntryCost = Round(rows.Sum(s => s.Kardex.TotalInput));
         var totalExitCost = Round(rows.Sum(s => s.Kardex.TotalOutput));
-        var finalUnits = Round(initialUnits + totalEntries - totalExits);
+        var finalUnits = RoundUnits(initialUnits + totalEntries - totalExits);
         var finalKardexBalance = Round(initialKardex + totalEntryCost - totalExitCost);
+        var finalAverageCost = rows.Count > 0
+            ? rows[^1].AverageCost
+            : initialAvgCost;
 
         return new KardexProductSummaryDto
         {
@@ -298,7 +339,7 @@ public class GetKardexReportHandler(
             TotalEntryCost = totalEntryCost,
             TotalExitCost = totalExitCost,
             FinalUnits = finalUnits,
-            FinalAverageCost = finalUnits > 0m ? Round(finalKardexBalance / finalUnits) : 0m,
+            FinalAverageCost = finalAverageCost,
             FinalKardexBalance = finalKardexBalance
         };
     }
@@ -372,35 +413,26 @@ public class GetKardexReportHandler(
 
     private static decimal Round(decimal value) => Math.Round(value, 2, MidpointRounding.AwayFromZero);
 
-    private async Task<ReportPdfFileDto> BuildPdfAsync(
+    private static decimal RoundUnits(decimal value) => Math.Round(value, 3, MidpointRounding.AwayFromZero);
+
+    private static ReportPdfFileDto BuildExcel(
         GetKardexReportQuery request,
         List<KardexProductReportDto> products,
-        ReportScope scope,
-        CancellationToken ct)
+        ReportScope scope)
     {
         var report = new KardexReportDto
         {
             GeneratedAt = NicaraguaTime.Now(),
             GeneratedBy = scope.GeneratedBy,
+            CompanyName = scope.Company.CompanieName,
             From = request.From!.Value,
             To = request.To!.Value,
             Products = products
         };
 
-        var generatedBy = string.IsNullOrWhiteSpace(scope.GeneratedBy)
-            ? "Sistema"
-            : scope.GeneratedBy.Trim();
+        var bytes = KardexExcelComposer.Compose(report);
+        var fileName = $"Kardex-{report.From:yyyyMMdd}-{report.To:yyyyMMdd}.xlsx";
 
-        var branding = await CompanyBrandingResolver.ResolveAsync(scope.Company, ct);
-        var logoImage = branding.Logo is { Length: > 0 }
-            ? Image.FromBinaryData(branding.Logo)
-            : null;
-
-        var bytes = pdfGenerator.Generate(
-            KardexPdfComposer.Compose(report, generatedBy, report.GeneratedAt, logoImage));
-
-        var fileName = $"reporte-kardex-{report.From:yyyyMMdd}-{report.To:yyyyMMdd}.pdf";
-
-        return new ReportPdfFileDto(bytes, fileName);
+        return new ReportPdfFileDto(bytes, fileName, KardexExcelComposer.ExcelContentType);
     }
 }

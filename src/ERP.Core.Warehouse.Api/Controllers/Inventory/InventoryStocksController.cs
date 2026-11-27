@@ -27,6 +27,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.Inventory
             [FromQuery] Guid? category_id = null,
             [FromQuery] bool? is_fuel = null,
             [FromQuery] bool? is_material = null,
+            [FromQuery] Guid? branch_id = null,
             [FromQuery] Guid? cost_center_id = null,
             [FromQuery] int page_size = 10,
             [FromQuery] int page_number = 1
@@ -45,6 +46,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.Inventory
                 IsMaterial   = is_material,
                 ProductCode  = product_code,
                 ProductName  = product_name,
+                BranchId     = branch_id,
                 CostCenterId = cost_center_id,
                 UserId       = Guid.Parse(userIdStr ?? ""),
                 PageSize     = page_size,
