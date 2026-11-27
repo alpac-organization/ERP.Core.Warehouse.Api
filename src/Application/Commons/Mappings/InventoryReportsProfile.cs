@@ -115,6 +115,37 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(d => d.StockCode, o => o.MapFrom(s => s.Product.Code))
                 .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.ProductName));
 
+            // Kardex
+            CreateMap<KardexMovementSource, KardexMovementRowDto>()
+                .ForMember(d => d.MovementType, o => o.MapFrom(s => s.MovementType))
+                .ForMember(d => d.Date, o => o.MapFrom(s =>
+                    s.Kardex.TransactionDate.ToDateTime(s.Kardex.TransactionTime)))
+                .ForMember(d => d.RecordNumber, o => o.MapFrom(s => s.RecordNumber))
+                .ForMember(d => d.Document, o => o.MapFrom(s => s.Document))
+                .ForMember(d => d.EntryUnits, o => o.MapFrom(s =>
+                    s.Kardex.MovementType == KardexMovementType.Buys ? s.Kardex.Units : 0m))
+                .ForMember(d => d.ExitUnits, o => o.MapFrom(s =>
+                    s.Kardex.MovementType == KardexMovementType.Exit ? s.Kardex.Units : 0m))
+                .ForMember(d => d.UnitCost, o => o.MapFrom(s => s.Kardex.UnitCost))
+                .ForMember(d => d.TotalEntryCost, o => o.MapFrom(s => s.Kardex.TotalInput))
+                .ForMember(d => d.TotalExitCost, o => o.MapFrom(s => s.Kardex.TotalOutput))
+                .ForMember(d => d.BalanceUnits, o => o.MapFrom(s => s.BalanceUnits))
+                .ForMember(d => d.AverageCost, o => o.MapFrom(s => s.AverageCost))
+                .ForMember(d => d.KardexBalance, o => o.MapFrom(s => s.KardexBalance));
+
+            CreateMap<KardexProductSource, KardexProductReportDto>()
+                .ForMember(d => d.ProductCode, o => o.MapFrom(s => s.Product.Code))
+                .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.ProductName))
+                .ForMember(d => d.CategoryName, o => o.MapFrom(s =>
+                    s.Product.Category != null ? s.Product.Category.Name : null))
+                .ForMember(d => d.UnitMeasureSymbol, o => o.MapFrom(s =>
+                    s.Product.UnitMeasure != null ? s.Product.UnitMeasure.Symbol : null))
+                .ForMember(d => d.InitialKardexBalance, o => o.MapFrom(s => s.InitialKardexBalance))
+                .ForMember(d => d.InitialInventory, o => o.MapFrom(s => s.InitialInventory))
+                .ForMember(d => d.InitialAverageCost, o => o.MapFrom(s => s.InitialAverageCost))
+                .ForMember(d => d.Rows, o => o.MapFrom(s => s.Rows))
+                .ForMember(d => d.Summary, o => o.MapFrom(s => s.Summary));
+
             // Rotacion de Inventario
             CreateMap<ProductStock, InventoryTurnoverReportDto>()
                 .ForMember(d => d.Category, o => o.MapFrom(s => s.Product.Category != null ? s.Product.Category.Name : null))

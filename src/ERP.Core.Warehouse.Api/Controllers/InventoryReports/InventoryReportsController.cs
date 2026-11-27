@@ -334,6 +334,37 @@ public class InventoryReportsController(IMediator mediator) : ApiControllerBase
         });
     }
 
+    [HttpGet("companies/{company_id}/modules/{module_code}/reports/kardex")]
+    [Produces("application/pdf")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetKardexReportAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        [FromQuery] Guid? branch_id = null,
+        [FromQuery] Guid? cost_center_id = null,
+        [FromQuery] List<Guid>? product_stock_ids = null)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        var pdf = await mediator.Send(new GetKardexReportQuery
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = Guid.Parse(userIdStr ?? ""),
+            From = from,
+            To = to,
+            BranchId = branch_id,
+            CostCenterId = cost_center_id,
+            ProductStockIds = product_stock_ids
+        });
+
+        return File(pdf.Content, pdf.ContentType, pdf.FileName);
+    }
+
     [HttpPost("companies/{company_id}/modules/{module_code}/reports/physical-counts")]
     [ProducesResponseType(typeof(CreatePhysicalCountResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
