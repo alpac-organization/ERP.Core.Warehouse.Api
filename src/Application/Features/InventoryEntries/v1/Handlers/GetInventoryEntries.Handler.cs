@@ -91,22 +91,22 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
 
             if (!string.IsNullOrWhiteSpace(request.PurchaseRequestCode))
             {
-                var requestCode = request.PurchaseRequestCode.Trim();
+                var requestCode = request.PurchaseRequestCode.Trim().ToUpper();
                 inventoryEntriesQuery = inventoryEntriesQuery
                     .Where(inventory =>
                         inventory.PurchaseOrder != null &&
                         inventory.PurchaseOrder.PurchaseRequest != null &&
                         inventory.PurchaseOrder.PurchaseRequest.Code != null &&
-                        inventory.PurchaseOrder.PurchaseRequest.Code.Contains(requestCode));
+                        inventory.PurchaseOrder.PurchaseRequest.Code.ToUpper().Contains(requestCode));
             }
 
             if (!string.IsNullOrWhiteSpace(request.EntryCode))
             {
-                var entryCode = request.EntryCode.Trim();
+                var entryCode = request.EntryCode.Trim().ToUpper();
                 inventoryEntriesQuery = inventoryEntriesQuery
                     .Where(inventory =>
                         inventory.Code != null &&
-                        inventory.Code.Contains(entryCode));
+                        inventory.Code.ToUpper().Contains(entryCode));
             }
 
             var totalRecords = await inventoryEntriesQuery.CountAsync(cancellationToken);

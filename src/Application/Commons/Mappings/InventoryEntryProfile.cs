@@ -14,6 +14,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {
             CreateMap<InventoryEntry, InventoryEntryDto>()
                 .ForMember(dest => dest.InventoryEntryId,   opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.Code,               opt => opt.MapFrom(src => src.Code != null ? src.Code.ToUpperInvariant() : null))
                 .ForMember(dest => dest.BranchInformation,   opt => opt.MapFrom(src => src.Branch))
                 .ForMember(dest => dest.WorkAreaInformation,   opt => opt.MapFrom(src =>
                     src.PurchaseOrder != null &&
