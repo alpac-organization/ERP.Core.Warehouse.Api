@@ -5,7 +5,6 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Commons.Interfaces;
-using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Commons;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Queries;
 
@@ -41,8 +40,15 @@ public class GetInventoryMovementReportPdfHandler(
             ? access.Company.CompanieName.Trim()
             : (!string.IsNullOrWhiteSpace(access.Company.Alias) ? access.Company.Alias.Trim() : "ALPAC, S.A.");
 
-        var branding = await CompanyBrandingResolver.ResolveAsync(access.Company, ct);
-        var pdfBytes = await pdfService.GenerateMovementReportPdfAsync(report, companyName, branding, ct);
+        var branding = new CompanyBrandingPdfModel
+        {
+            CompanyName = companyName,
+            CompanyAlias = access.Company.Alias,
+            CompanyCode = access.Company.Code,
+            CompanyLogoUrl = access.Company.ImageUrl
+        };
+
+        var pdfBytes = await pdfService.GenerateMovementReportPdfAsync(report, branding, ct);
         var fileName = $"reporte-movimientos-inventario-{report.From:yyyyMMdd}-{report.To:yyyyMMdd}.pdf";
 
         return new ReportPdfFileDto(pdfBytes, fileName);

@@ -16,6 +16,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public PurchaseRequestStatus RequestStatus { get; set; }
 
         public string? AnnulmentReason { get; set; }
+        public UserInformation? CreatorUserInformation { get; set; }
         public UserInformation? AnnulledByUserInformation { get; set; }
         public DateTime CreatedAt { get; set; }
     }

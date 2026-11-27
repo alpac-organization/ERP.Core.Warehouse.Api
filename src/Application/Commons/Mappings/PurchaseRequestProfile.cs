@@ -24,6 +24,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             CreateMap<PurchaseRequest, PurchaseRequestDto>()
                 .ForMember(dest => dest.PurchaseRequestId,opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.AnnulmentReason, opt => opt.MapFrom(src => src.AnnulmentComments))
+                .ForPath(dest => dest.CreatorUserInformation, opt => opt.MapFrom(src => src.RegistrationUser))
                 .ForPath(dest => dest.AnnulledByUserInformation, opt => opt.MapFrom(src => src.AnnulledByUser));
                 
             CreateMap<PurchaseRequest, PurchaseRequestDetailsDto>()
