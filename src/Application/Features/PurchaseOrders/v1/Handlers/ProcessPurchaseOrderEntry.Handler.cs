@@ -34,6 +34,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 .AsSplitQuery()
                 .Include(order => order.PurchaseRequest)
                     .ThenInclude(purchase => purchase.Branch)
+                .Include(order => order.PurchaseOrderItems)
+                    .ThenInclude(item => item.Product)
                 .Where(order => order.IsActive)
                 .Where(order => order.Status == PurchaseOrderStatus.Pending)
                 .Where(order => order.Id == request.PurchaseOrderId)
@@ -42,6 +44,30 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             if (purchaseOrder is null)
             {
                 return  _errorManager.ThrowBadRequest<Unit>("La orden de compra seleccionada no existe, o no se encuentra en estado pendiente", "ERP:01");
+            }
+
+            if (purchaseOrder.PurchaseRequest is null ||
+                purchaseOrder.PurchaseRequest.RequestType != PurchaseRequestType.Requisition ||
+                purchaseOrder.PurchaseRequest.Destination != DestinationRequest.ServiceOrder)
+            {
+                return _errorManager.ThrowBadRequest<Unit>(
+                    "Solo las órdenes de compra de requisiciones operacionales pueden dar entrada a inventario.",
+                    "ERP:NON_OPERATIONAL_PURCHASE_REQUEST");
+            }
+
+            var activeOrderItems = purchaseOrder.PurchaseOrderItems
+                .Where(item => item.DeletedAt == null)
+                .ToList();
+
+            if (activeOrderItems.Count == 0 ||
+                activeOrderItems.Any(item =>
+                    item.Product is null ||
+                    item.Product.DeletedAt != null ||
+                    item.Product.ProductUsageType != ProductUsageType.Operational))
+            {
+                return _errorManager.ThrowBadRequest<Unit>(
+                    "No se puede dar entrada a inventario a órdenes de compra que no sean de productos operativos.",
+                    "ERP:NON_OPERATIONAL_PRODUCTS");
             }
 
             var branchCode = purchaseOrder.PurchaseRequest.Branch?.BranchCode ?? string.Empty;

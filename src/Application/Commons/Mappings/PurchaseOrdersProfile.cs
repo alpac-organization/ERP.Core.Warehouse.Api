@@ -21,9 +21,14 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(dest => dest.RequiresInventoryEntry, opt => opt.MapFrom(src =>
                     src.PurchaseRequest != null
                     && src.PurchaseRequest.RequestType == PurchaseRequestType.Requisition
-                    && src.PurchaseOrderItems.Any()
-                    && src.PurchaseOrderItems.All(item =>
-                        item.Product != null && item.Product.ProductUsageType == ProductUsageType.Operational)))
+                    && src.PurchaseRequest.Destination == DestinationRequest.ServiceOrder
+                    && src.PurchaseOrderItems.Any(item => item.DeletedAt == null)
+                    && src.PurchaseOrderItems
+                        .Where(item => item.DeletedAt == null)
+                        .All(item =>
+                            item.Product != null
+                            && item.Product.DeletedAt == null
+                            && item.Product.ProductUsageType == ProductUsageType.Operational)))
                 .ForMember(dest => dest.SentByUserInformation, opt => opt.MapFrom(src => new UserInformation
                 {
                     UserId = src.SentByUser.Id,
@@ -66,9 +71,14 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForMember(dest => dest.RequiresInventoryEntry, opt => opt.MapFrom(src =>
                     src.PurchaseRequest != null
                     && src.PurchaseRequest.RequestType == PurchaseRequestType.Requisition
-                    && src.PurchaseOrderItems.Any()
-                    && src.PurchaseOrderItems.All(item =>
-                        item.Product != null && item.Product.ProductUsageType == ProductUsageType.Operational)))
+                    && src.PurchaseRequest.Destination == DestinationRequest.ServiceOrder
+                    && src.PurchaseOrderItems.Any(item => item.DeletedAt == null)
+                    && src.PurchaseOrderItems
+                        .Where(item => item.DeletedAt == null)
+                        .All(item =>
+                            item.Product != null
+                            && item.Product.DeletedAt == null
+                            && item.Product.ProductUsageType == ProductUsageType.Operational)))
                 .ForPath(dest => dest.SentByUserInformation, opt => opt.MapFrom(src => src.SentByUser))
                 .ForPath(dest => dest.ReviewerUserInformation, opt => opt.MapFrom(src => src.ReviewedByUser))
                 .ForMember(dest => dest.Items, opt => opt.Ignore())
