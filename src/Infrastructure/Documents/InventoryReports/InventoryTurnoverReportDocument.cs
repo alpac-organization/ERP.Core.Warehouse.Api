@@ -3,20 +3,19 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
-using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Commons;
 using ERP.Core.Warehouse.Api.Application.Features.InventoryReports.v1.Dtos;
 
 namespace ERP.Core.Warehouse.Api.Infrastructure.Documents.InventoryReports;
 
 public sealed class InventoryTurnoverReportDocument(
-    InventoryTurnoverReportPdfModel model,
-    CompanyBranding branding) : IDocument
+    InventoryTurnoverReportPdfModel model) : IDocument
 {
-    private readonly string _headerBg = branding.PrimaryColor;
-    private readonly string _totalsBg = branding.HeaderColor;
     private const string BorderHex = "#CBD5E1";
     private const string AltRowBg = "#F8FAFC";
     private const string TextDark = "#0F172A";
+
+    private string HeaderBg => model.Branding.PrimaryColor;
+    private string TotalsBg => model.Branding.SubtotalBackgroundColor;
 
     private static readonly CultureInfo InvariantFmt = CultureInfo.InvariantCulture;
 
@@ -32,25 +31,30 @@ public sealed class InventoryTurnoverReportDocument(
             page.MarginVertical(9, Unit.Millimetre);
             page.DefaultTextStyle(x => x.FontSize(6.2f).FontColor(TextDark));
 
-            page.Header().PaddingBottom(6).Row(row =>
+            page.Header().PaddingBottom(6).BorderBottom(1.5f).BorderColor(HeaderBg).PaddingBottom(5).Row(row =>
             {
-                if (branding.Logo is { Length: > 0 })
+                row.ConstantItem(110).AlignLeft().AlignMiddle().Element(logoContainer =>
                 {
-                    row.ConstantItem(90).MaxHeight(45).AlignMiddle().Image(branding.Logo).FitArea();
-                }
+                    if (model.Branding.LogoBytes is { Length: > 0 })
+                    {
+                        logoContainer.MaxHeight(40).Image(model.Branding.LogoBytes).FitArea();
+                    }
+                });
 
-                row.RelativeItem().Column(header =>
+                row.RelativeItem().AlignCenter().AlignMiddle().Column(header =>
                 {
                     header.Spacing(2);
-                    header.Item().AlignCenter().Text(model.CompanyName).Bold().FontSize(13);
-                    header.Item().AlignCenter().Text("Reporte de Movimientos por rotación de Inventario").Bold().FontSize(11);
-                    header.Item().PaddingTop(2).AlignCenter()
+                    header.Item().AlignCenter().Text(model.Branding.CompanyName).Bold().FontSize(13).FontColor(HeaderBg);
+                    header.Item().AlignCenter().Text("Reporte de Movimientos por rotación de Inventario").Bold().FontSize(11).FontColor(TextDark);
+                    header.Item().PaddingTop(1).AlignCenter()
                         .Text($"Del {model.From:dd/MM/yyyy} Al {model.To:dd/MM/yyyy}")
                         .FontSize(8.5f).FontColor("#334155");
                 });
+
+                row.ConstantItem(110);
             });
 
-            page.Content().Element(ComposeTable);
+            page.Content().PaddingTop(6).Element(ComposeTable);
 
             page.Footer().PaddingTop(5).BorderTop(0.5f).BorderColor(BorderHex).Row(row =>
             {
@@ -128,8 +132,8 @@ public sealed class InventoryTurnoverReportDocument(
                 {
                     var alignRight = i >= 3 && i != 7 && i != 10;
                     var cell = header.Cell()
-                        .Background(_headerBg)
-                        .Border(0.5f).BorderColor(_headerBg)
+                        .Background(HeaderBg)
+                        .Border(0.5f).BorderColor(HeaderBg)
                         .PaddingVertical(4).PaddingHorizontal(2.5f)
                         .AlignMiddle();
 
@@ -179,7 +183,7 @@ public sealed class InventoryTurnoverReportDocument(
                 }
             }
 
-            // Fila Totales (igual al Excel A7:C7 "Totales", D7, F7, G7, I7, J7, L7)
+            // Fila Totales
             var sumAvailableUnits = model.Items.Sum(x => x.AvailableUnits);
             var sumTotal = model.Items.Sum(x => x.Total);
             var sumTotalPurchases = model.Items.Sum(x => x.TotalPurchases);
@@ -188,7 +192,7 @@ public sealed class InventoryTurnoverReportDocument(
             var sumDispatchedUnits = model.Items.Sum(x => x.DispatchedUnits);
 
             table.Cell().ColumnSpan(3)
-                .Background(_totalsBg)
+                .Background(TotalsBg)
                 .Border(0.5f).BorderColor(BorderHex)
                 .PaddingVertical(4).PaddingHorizontal(4)
                 .AlignLeft().AlignMiddle()
@@ -205,7 +209,7 @@ public sealed class InventoryTurnoverReportDocument(
             AddTotalsCell(table, FormatUnits(sumDispatchedUnits));
 
             table.Cell().ColumnSpan(8)
-                .Background(_totalsBg)
+                .Background(TotalsBg)
                 .Border(0.5f).BorderColor(BorderHex)
                 .PaddingVertical(4).PaddingHorizontal(2.5f)
                 .Text("");
@@ -229,7 +233,7 @@ public sealed class InventoryTurnoverReportDocument(
     private void AddTotalsCell(TableDescriptor table, string value)
     {
         table.Cell()
-            .Background(_totalsBg)
+            .Background(TotalsBg)
             .Border(0.5f).BorderColor(BorderHex)
             .PaddingVertical(4).PaddingHorizontal(2.5f)
             .AlignRight().AlignMiddle()
