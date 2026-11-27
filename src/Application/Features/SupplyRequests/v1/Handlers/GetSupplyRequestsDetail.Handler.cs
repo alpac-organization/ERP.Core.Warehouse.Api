@@ -31,6 +31,9 @@ public class GetSupplyRequestsDetailHandler(IUnitOfWork unitOfWork, IErrorManage
             .Include(sr => sr.SupplyRequestItems)
                 .ThenInclude(sri => sri.ProductStock)
                     .ThenInclude(ps => ps.Product)
+            .Include(sr => sr.SupplyRequestItems)
+                .ThenInclude(sri => sri.ProductStock)
+                    .ThenInclude(ps => ps.UnitMeasure)
             .Where(sr => sr.Id == request.SupplyRequestId && sr.DeletedAt == null)
             .FirstOrDefaultAsync(ct);
 

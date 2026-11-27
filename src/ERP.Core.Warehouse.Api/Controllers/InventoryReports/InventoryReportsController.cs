@@ -181,7 +181,7 @@ public class InventoryReportsController(IMediator mediator) : ApiControllerBase
             ProductCode = product_code
         });
 
-        return File(pdf.Content, pdf.ContentType);
+        return File(pdf.Content, pdf.ContentType, pdf.FileName);
     }
 
     [HttpGet("companies/{company_id}/modules/{module_code}/reports/inventory-turnover")]
@@ -244,7 +244,7 @@ public class InventoryReportsController(IMediator mediator) : ApiControllerBase
             ProductCode = product_code
         });
 
-        return File(pdf.Content, pdf.ContentType);
+        return File(pdf.Content, pdf.ContentType, pdf.FileName);
     }
 
     [HttpGet("companies/{company_id}/modules/{module_code}/reports/outputs-line-equipment")]
@@ -439,5 +439,29 @@ public class InventoryReportsController(IMediator mediator) : ApiControllerBase
             UserId = Guid.Parse(userIdStr ?? ""),
             PhysicalCountId = physical_count_id
         });
+    }
+
+    [HttpGet("companies/{company_id}/modules/{module_code}/reports/physical-counts/{physical_count_id}/pdf")]
+    [Produces("application/pdf")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+    public async Task<FileContentResult> GetPhysicalCountPdfAsync(
+        [FromRoute] Guid company_id,
+        [FromRoute] string module_code,
+        [FromRoute] Guid physical_count_id,
+        CancellationToken cancellationToken)
+    {
+        var userIdStr = HttpContext.Items["UserId"] as string;
+
+        var result = await mediator.Send(new GetPhysicalCountPdfQuery
+        {
+            CompanyId = company_id,
+            ModuleCode = module_code,
+            UserId = Guid.Parse(userIdStr ?? ""),
+            PhysicalCountId = physical_count_id
+        }, cancellationToken);
+
+        return File(result.Bytes, "application/pdf", $"levantamiento-{result.CreatedAt:dd-MM-yyyy}.pdf");
     }
 }

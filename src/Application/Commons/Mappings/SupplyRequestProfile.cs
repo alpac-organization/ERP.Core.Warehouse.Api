@@ -43,7 +43,11 @@ public class SupplyRequestsProfile : Profile
 
         CreateMap<SupplyRequestItem, ItemDetail>()
             .ForMember(dest => dest.SupplyRequestItemId, opt => opt.MapFrom(src => src.Id))
-            .ForMember(dest => dest.ProductStockName, opt => opt.MapFrom(src => src.ProductStock.Product.ProductName));
+            .ForMember(dest => dest.ProductStockName, opt => opt.MapFrom(src => src.ProductStock.Product.ProductName))
+            .ForMember(dest => dest.UnitMeasureSymbol, opt => opt.MapFrom(src =>
+                src.ProductStock != null && src.ProductStock.UnitMeasure != null
+                    ? src.ProductStock.UnitMeasure.Symbol
+                    : null));
     }
 }
 
