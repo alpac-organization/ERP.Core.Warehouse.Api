@@ -50,6 +50,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                             .ThenInclude(product => product.UnitMeasure)
                 .Include(entry => entry.PurchaseOrder)
                     .ThenInclude(purchaseOrder => purchaseOrder.PurchaseRequest)
+                        .ThenInclude(purchaseRequest => purchaseRequest.WorkArea)
+                .Include(entry => entry.PurchaseOrder)
+                    .ThenInclude(purchaseOrder => purchaseOrder.PurchaseRequest)
                         .ThenInclude(purchaseRequest => purchaseRequest.CostCenter)
                 .Include(entry => entry.PurchaseOrder)
                     .ThenInclude(purchaseOrder => purchaseOrder.PurchaseRequest)
@@ -58,6 +61,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                                 .Where(profile => profile.CompanyId == profileCompanyId)
                                 .Take(1))
                             .ThenInclude(profile => profile.WorkArea)
+                .Include(entry => entry.PurchaseOrder)
+                    .ThenInclude(purchaseOrder => purchaseOrder.PurchaseRequest)
+                        .ThenInclude(purchaseRequest => purchaseRequest.AnnulledByUser)
                 .Include(entry => entry.PurchaseOrder)
                     .ThenInclude(purchaseOrder => purchaseOrder.PurchaseRequest)
                         .ThenInclude(purchaseRequest => purchaseRequest.PurchaseRequestItems)
@@ -81,12 +87,27 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                             quotation.IsAcceptedForPurchase))
                             .ThenInclude(quotation => quotation.SupplierProduct);
 
-            var isAdministrator = access.Role?.RoleType == RoleType.Administrator;
+            var roleType = access.Role?.RoleType;
+            var isAdministrator = roleType == RoleType.Administrator;
+            var isManager = roleType == RoleType.Manager;
+
+            inventoryEntriesQuery = inventoryEntriesQuery
+                .Where(entry => entry.Branch.CompanyId == request.CompanyId);
 
             if (!isAdministrator)
             {
                 inventoryEntriesQuery = inventoryEntriesQuery
                     .Where(entry => entry.BranchId == access.Profile.BranchId);
+            }
+
+            if (!isAdministrator && !isManager)
+            {
+                var operatorAreaId = access.Profile.AreaId;
+                inventoryEntriesQuery = inventoryEntriesQuery
+                    .Where(entry =>
+                        entry.PurchaseOrder != null && entry.PurchaseOrder.PurchaseRequest != null
+                            ? entry.PurchaseOrder.PurchaseRequest.AreaId == operatorAreaId
+                            : entry.WorkAreaId == operatorAreaId);
             }
 
             var inventoryEntry = await inventoryEntriesQuery

@@ -122,13 +122,28 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                     "ERP:INVENTORY_ENTRY_NOT_FOUND");
             }
 
-            var isAdministrator = access.Role?.RoleType == RoleType.Administrator;
+            var roleType = access.Role?.RoleType;
+            var isAdministrator = roleType == RoleType.Administrator;
+            var isManager = roleType == RoleType.Manager;
 
             if (!isAdministrator && inventoryEntry.BranchId != access.Profile.BranchId)
             {
                 return _errorManager.ThrowUnauthorized<InventoryEntryDto>(
                     "No tiene acceso para registrar entradas de inventario de otra sucursal.",
                     "ERP:INVALID_BRANCH_ACCESS");
+            }
+
+            if (!isAdministrator && !isManager)
+            {
+                var effectiveAreaId = inventoryEntry.PurchaseOrder?.PurchaseRequest?.AreaId
+                    ?? inventoryEntry.WorkAreaId;
+
+                if (effectiveAreaId != access.Profile.AreaId)
+                {
+                    return _errorManager.ThrowUnauthorized<InventoryEntryDto>(
+                        "No tiene acceso para registrar entradas de inventario de otra área.",
+                        "ERP:INVALID_AREA_ACCESS");
+                }
             }
 
             if (inventoryEntry.EntryStatus != EntryStatus.PendingReview)

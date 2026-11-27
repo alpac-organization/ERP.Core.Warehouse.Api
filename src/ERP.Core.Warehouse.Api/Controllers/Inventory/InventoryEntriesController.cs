@@ -25,6 +25,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.Inventory
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<PagedResponse<InventoryEntryDto>> GetInventoryEntriesAsync([FromRoute] Guid company_id, [FromRoute] string module_code,
             [FromQuery] Guid? branch_id = null,
+            [FromQuery] Guid? work_area_id = null,
             [FromQuery] EntryStatus? entry_status = null,
             [FromQuery] string? entry_code = null,
             [FromQuery] string? purchase_request_code = null,
@@ -35,6 +36,7 @@ namespace ERP.Core.Warehouse.Api.Controllers.Inventory
             return await mediator.Send(new GetInventoryEntriesQuery
             {
                 BranchId    = branch_id,
+                WorkAreaId  = work_area_id,
                 CompanyId   = company_id,
                 ModuleCode  = module_code,
                 UserId      = CurrentUserId,
@@ -81,6 +83,29 @@ namespace ERP.Core.Warehouse.Api.Controllers.Inventory
         )
         {
             payload ??= new RegisterInventoryEntryCommand();
+            payload.CompanyId = company_id;
+            payload.ModuleCode = module_code;
+            payload.UserId = CurrentUserId;
+            payload.InventoryEntryId = inventory_entry_id;
+
+            return await mediator.Send(payload);
+        }
+
+        [Tags("Inventario - Entradas")]
+        [HttpPost("companies/{company_id}/modules/{module_code}/inventory-entries/{inventory_entry_id}/annul")]
+        [ProducesResponseType(typeof(InventoryEntryDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<InventoryEntryDto> AnnulInventoryEntryAsync(
+            [FromRoute] Guid company_id,
+            [FromRoute] string module_code,
+            [FromRoute] Guid inventory_entry_id,
+            [FromBody] AnnulInventoryEntryCommand? payload
+        )
+        {
+            payload ??= new AnnulInventoryEntryCommand();
             payload.CompanyId = company_id;
             payload.ModuleCode = module_code;
             payload.UserId = CurrentUserId;

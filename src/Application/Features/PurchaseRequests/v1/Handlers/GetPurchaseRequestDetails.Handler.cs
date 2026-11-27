@@ -76,6 +76,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
                 .Include(pur => pur.CostCenter)
                 .Include(pur => pur.ReasonRejection)
+                .Include(pur => pur.AnnulledByUser)
                 .Include(pur => pur.AccountingReview)
                 .Include(pur => pur.ManagementReview)
                 .Include(pur => pur.PurchaseOrders)
