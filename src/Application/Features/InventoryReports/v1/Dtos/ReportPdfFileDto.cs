@@ -5,9 +5,21 @@ public sealed record ReportPdfFileDto(
     string FileName,
     string ContentType = "application/pdf");
 
-public sealed class InventoryTurnoverReportPdfModel
+public sealed class CompanyBrandingPdfModel
 {
     public required string CompanyName { get; init; }
+    public string? CompanyAlias { get; init; }
+    public string? CompanyCode { get; init; }
+    public string? CompanyLogoUrl { get; init; }
+    public byte[]? LogoBytes { get; set; }
+    public string PrimaryColor { get; set; } = "#004F9E";
+    public string HeaderBackgroundColor { get; set; } = "#CDDCEB";
+    public string SubtotalBackgroundColor { get; set; } = "#E6EDF5";
+}
+
+public sealed class InventoryTurnoverReportPdfModel
+{
+    public required CompanyBrandingPdfModel Branding { get; init; }
     public DateTime GeneratedAt { get; init; }
     public string? GeneratedBy { get; init; }
     public DateTime From { get; init; }

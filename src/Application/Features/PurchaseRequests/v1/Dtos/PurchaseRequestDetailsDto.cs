@@ -26,7 +26,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
         public bool IsAccountingApproved { get; set; }
         public bool IsPurchaseOrderGenerated { get; set; }
 
-        public UserInformation  CreatorUserInformation { get; set; } = new();
+        public new UserInformation CreatorUserInformation { get; set; } = new();
         public UserInformation? ReviewerUserInformation { get; set; } = null;
         public BranchInformation BranchInformation { get; set; } = new ();
         public WorkAreaInformation InformationFromRequestingArea { get; set; } = new ();

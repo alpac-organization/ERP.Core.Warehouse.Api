@@ -43,6 +43,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
                 .IsInEnum()
                 .WithMessage("El destino de la solicitud no es válido.");
 
+            RuleFor(x => x.Destination)
+                .Must(destination => destination != DestinationRequest.ServiceOrder)
+                .When(x => x.RequestType != PurchaseRequestType.Requisition)
+                .WithMessage("Las solicitudes mensuales o eventuales no pueden ser de tipo operacional.");
+
             RuleFor(x => x.Observations)
                 .MaximumLength(1000)
                 .WithMessage("Las observaciones no puede exceder los 1000 caracteres.");

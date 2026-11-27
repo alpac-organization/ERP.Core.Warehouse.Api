@@ -68,7 +68,13 @@ public class GetInventoryTurnoverReportPdfHandler(
 
         var model = new InventoryTurnoverReportPdfModel
         {
-            CompanyName = companyName,
+            Branding = new CompanyBrandingPdfModel
+            {
+                CompanyName = companyName,
+                CompanyAlias = access.Company.Alias,
+                CompanyCode = access.Company.Code,
+                CompanyLogoUrl = access.Company.ImageUrl
+            },
             GeneratedAt = NicaraguaTime.Now(),
             GeneratedBy = generatedBy,
             From = request.From.Value,
@@ -76,8 +82,7 @@ public class GetInventoryTurnoverReportPdfHandler(
             Items = items
         };
 
-        var branding = await CompanyBrandingResolver.ResolveAsync(access.Company, ct);
-        var pdfBytes = await pdfService.GenerateTurnoverReportPdfAsync(model, branding, ct);
+        var pdfBytes = await pdfService.GenerateTurnoverReportPdfAsync(model, ct);
         var fileName = $"reporte-rotacion-inventario-{request.From.Value:yyyyMMdd}-{request.To.Value:yyyyMMdd}.pdf";
 
         return new ReportPdfFileDto(pdfBytes, fileName);

@@ -95,6 +95,14 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
 
             if (request.DestinationRequest.HasValue)
             {
+                if (purchase.RequestType != PurchaseRequestType.Requisition &&
+                    request.DestinationRequest.Value == DestinationRequest.ServiceOrder)
+                {
+                    return _errorManager.ThrowBadRequest<bool>(
+                        "Las solicitudes mensuales o eventuales no pueden ser de tipo operacional.",
+                        "ERP:INVALID_DESTINATION");
+                }
+
                 historyList.Add(CreateEntry(purchase.Destination.ToString(), request.DestinationRequest.Value.ToString(), "Cambio de destino de la solicitud", access.User, workArea));
                 purchase.Destination = request.DestinationRequest.Value;
                 hasChanges = true;

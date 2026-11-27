@@ -31,6 +31,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                 return access.ErrorResponse!;
             }
 
+            var profileCompanyId = access.Profile.CompanyId;
+
             IQueryable<InventoryEntry> inventoryEntriesQuery = _unitOfWork.InventoryEntries.Entities
                 .AsNoTracking()
                 .AsSplitQuery()
@@ -49,6 +51,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                 .Include(entry => entry.PurchaseOrder)
                     .ThenInclude(purchaseOrder => purchaseOrder.PurchaseRequest)
                         .ThenInclude(purchaseRequest => purchaseRequest.CostCenter)
+                .Include(entry => entry.PurchaseOrder)
+                    .ThenInclude(purchaseOrder => purchaseOrder.PurchaseRequest)
+                        .ThenInclude(purchaseRequest => purchaseRequest.RegistrationUser)
+                            .ThenInclude(user => user.Profiles
+                                .Where(profile => profile.CompanyId == profileCompanyId)
+                                .Take(1))
+                            .ThenInclude(profile => profile.WorkArea)
                 .Include(entry => entry.PurchaseOrder)
                     .ThenInclude(purchaseOrder => purchaseOrder.PurchaseRequest)
                         .ThenInclude(purchaseRequest => purchaseRequest.PurchaseRequestItems)

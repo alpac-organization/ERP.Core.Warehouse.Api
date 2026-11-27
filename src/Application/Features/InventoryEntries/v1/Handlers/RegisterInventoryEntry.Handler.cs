@@ -141,6 +141,16 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
             var purchaseOrder = inventoryEntry.PurchaseOrder;
             var purchaseRequest = purchaseOrder?.PurchaseRequest;
 
+            if (purchaseOrder is not null &&
+                (purchaseRequest is null ||
+                 purchaseRequest.RequestType != PurchaseRequestType.Requisition ||
+                 purchaseRequest.Destination != DestinationRequest.ServiceOrder))
+            {
+                return _errorManager.ThrowBadRequest<InventoryEntryDto>(
+                    "Solo las órdenes de compra de requisiciones operacionales pueden dar entrada a inventario.",
+                    "ERP:NON_OPERATIONAL_PURCHASE_REQUEST");
+            }
+
             var activeOrderItems = (purchaseOrder?.PurchaseOrderItems ?? [])
                 .Where(item => item.DeletedAt == null)
                 .OrderBy(item => item.CreatedAt)
@@ -181,6 +191,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryEntries.v1.Handle
                     return _errorManager.ThrowBadRequest<InventoryEntryDto>(
                         "Uno de los ítems de la orden de compra no tiene un producto válido asociado.",
                         "ERP:PURCHASE_ORDER_ITEM_WITHOUT_PRODUCT");
+                }
+
+                if (product.ProductUsageType != ProductUsageType.Operational)
+                {
+                    return _errorManager.ThrowBadRequest<InventoryEntryDto>(
+                        $"El producto '{product.ProductName ?? product.Code}' no es operativo y no puede dar entrada a inventario.",
+                        "ERP:NON_OPERATIONAL_PRODUCT");
                 }
 
                 if (orderItem.Quantity <= 0)
