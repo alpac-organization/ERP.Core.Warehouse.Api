@@ -9,6 +9,7 @@ using ERP.Core.Database.Application.Commons.Interfaces.Bases;
 using ERP.Core.Database.Application.Commons.Interfaces.Repositories;
 
 using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces;
+using ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Queries;
 using ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos;
@@ -143,6 +144,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 PriceUnit = quotation.PriceUnit,
                 PriceTotal = quotation.PriceTotal,
                 PaymentMethodType = quotation.PaymentMethodType,
+                ProformaNumber = QuotationAttachmentReader.Read(quotation.AdditionalData).ProformaNumber,
                 SupplierId = quotation.SupplierId,
                 SupplierInformation = quotation.Supplier is null
                     ? new SupplierInformation()

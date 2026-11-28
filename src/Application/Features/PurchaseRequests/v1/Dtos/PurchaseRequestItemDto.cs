@@ -94,6 +94,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Dtos
 
         public DateOnly QuoteDate { get; set; }
         public string? BrandProduct { get; set; }
+        public string? ProformaNumber { get; set; }
 
         public decimal? DeliveryTime { get; set; }
         public TimeType? DeliveryTimeType { get; set; }

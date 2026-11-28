@@ -210,6 +210,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
 
                 var (additionalData, attachmentError) = await quotationAttachmentService.BuildAdditionalDataAsync(
                     quotation.Attachments,
+                    quotation.ProformaNumber,
                     existingJson: null,
                     cancellationToken);
 
@@ -277,9 +278,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                     "ERP:SUPPLIER_PRODUCT_NOT_FOUND");
             }
 
-            var unitMeasureId = item.UnitMeasureId != Guid.Empty
-                ? item.UnitMeasureId
-                : item.Product?.UnitMeasureId ?? Guid.Empty;
+            var unitMeasureId = item.Product?.UnitMeasureId is { } prodUm && prodUm != Guid.Empty
+                ? prodUm
+                : item.UnitMeasureId;
 
             if (unitMeasureId == Guid.Empty)
             {

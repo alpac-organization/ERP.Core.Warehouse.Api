@@ -101,7 +101,10 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             };
         }
 
-        public static PurchaseRequestItem ToPurchaseRequestItemEntity(this Commands.PurchaseRequestItem command, Guid purchaseRequestId)
+        public static PurchaseRequestItem ToPurchaseRequestItemEntity(
+            this Commands.PurchaseRequestItem command,
+            Guid purchaseRequestId,
+            Guid unitMeasureId)
         {
             return new()
             {
@@ -115,11 +118,14 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 Description       = command.Description,
                 AdditionalData    = command.AdditionalData,
                 ProductId         = command.ProductId,
-                UnitMeasureId     = command.UnitMeasureId,
+                UnitMeasureId     = unitMeasureId,
             };
         }
 
-        public static PurchaseRequestItem ToPurchaseRequestItemEntity(this Commands.UpdatePurchaseRequestItem command, Guid purchaseRequestId)
+        public static PurchaseRequestItem ToPurchaseRequestItemEntity(
+            this Commands.UpdatePurchaseRequestItem command,
+            Guid purchaseRequestId,
+            Guid unitMeasureId)
         {
             return new()
             {
@@ -129,7 +135,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 Quantity          = command.Quantity!.Value,
                 QuantityUnit      = command.QuantityUnit,
                 ProductId         = command.ProductId!.Value,
-                UnitMeasureId     = command.UnitMeasureId!.Value,
+                UnitMeasureId     = unitMeasureId,
                 Justification     = command.Justification,
                 Description       = command.Description,
                 AdditionalData    = null

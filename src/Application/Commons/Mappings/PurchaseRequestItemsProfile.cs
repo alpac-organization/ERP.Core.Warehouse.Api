@@ -11,9 +11,12 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
         {    
             CreateMap<PurchaseRequestItem, PurchaseRequestItemDto>()
                 .ForMember(dest => dest.PurchaseRequestItemId, opt => opt.MapFrom(src => src.Id))
-                .ForPath(dest => dest.ProductDetails,   opt => opt.MapFrom(src => src.Product))
-                .ForPath(dest => dest.UnitMeasureInformation,   opt => opt.MapFrom(src => src.UnitMeasure))
-                .ForPath(dest => dest.ProductDetails.CategoryInformation,   opt => opt.MapFrom(src => src.Product.Category))
+                .ForPath(dest => dest.ProductDetails, opt => opt.MapFrom(src => src.Product))
+                .ForMember(dest => dest.UnitMeasureInformation, opt => opt.MapFrom(src =>
+                    src.Product != null && src.Product.UnitMeasure != null
+                        ? src.Product.UnitMeasure
+                        : src.UnitMeasure))
+                .ForPath(dest => dest.ProductDetails.CategoryInformation, opt => opt.MapFrom(src => src.Product.Category))
                 
                 //Cotizaciones de este item cotizado.
                 .ForPath(dest => dest.Quotations,   opt => opt.MapFrom(src => src.Quotations));

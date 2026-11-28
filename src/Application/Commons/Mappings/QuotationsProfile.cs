@@ -18,9 +18,10 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                 .ForPath(dest => dest.SupplierInformation, opt => opt.MapFrom(src => src.Supplier))
                 .AfterMap((src, dest) =>
                 {
-                    var attachments = QuotationAttachmentReader.Read(src.AdditionalData);
-                    dest.Images = attachments.Images;
-                    dest.Documents = attachments.Documents;
+                    var metadata = QuotationAttachmentReader.Read(src.AdditionalData);
+                    dest.ProformaNumber = metadata.ProformaNumber;
+                    dest.Images = metadata.Images;
+                    dest.Documents = metadata.Documents;
                 });
         }
 

@@ -48,6 +48,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                 .Include(po => po.PaymentRequest)
                 .Include(po => po.PurchaseOrderItems)
                     .ThenInclude(item => item.Product)
+                        .ThenInclude(product => product.UnitMeasure)
                 .Include(po => po.PurchaseRequest)
                     .ThenInclude(pr => pr.PurchaseRequestItems)
                         .ThenInclude(item => item.UnitMeasure)

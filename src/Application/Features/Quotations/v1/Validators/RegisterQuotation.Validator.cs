@@ -53,6 +53,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Validators
                 .MaximumLength(200)
                 .WithMessage("La marca del producto no puede exceder los 200 caracteres.");
 
+            RuleFor(x => x.ProformaNumber)
+                .NotEmpty()
+                .WithMessage("El número de proforma es obligatorio.")
+                .MaximumLength(100)
+                .WithMessage("El número de proforma no puede exceder los 100 caracteres.");
+
             RuleFor(x => x.PreferentialPrice)
                 .Null()
                 .WithMessage("La cotización no admite precio preferencial.");

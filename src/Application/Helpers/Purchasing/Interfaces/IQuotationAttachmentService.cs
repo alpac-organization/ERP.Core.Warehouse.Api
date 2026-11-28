@@ -6,6 +6,7 @@ namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Interfaces
     {
         Task<(string? Json, string? ErrorMessage)> BuildAdditionalDataAsync(
             QuotationAttachmentsInput? attachments,
+            string? proformaNumber,
             string? existingJson,
             CancellationToken cancellationToken);
     }

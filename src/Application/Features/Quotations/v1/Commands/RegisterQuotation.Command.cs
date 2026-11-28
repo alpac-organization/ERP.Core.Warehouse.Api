@@ -23,6 +23,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands
 
         public string? SupplierSelectionJustification { get; set; }
 
+        public string? ProformaNumber { get; set; }
+
         public string? BrandProduct { get; set; }
 
         public ProductQuality ProductQuality { get; set; }

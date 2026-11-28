@@ -46,6 +46,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 .Include(item => item.Product)
                     .ThenInclude(product => product.Category)
                 .Include(item => item.Product)
+                    .ThenInclude(product => product.UnitMeasure)
+                .Include(item => item.Product)
                     .ThenInclude(product => product.SupplierProducts.Where(sp => sp.IsActive && sp.DeletedAt == null))
                         .ThenInclude(sp => sp.Supplier)
                 .Include(item => item.UnitMeasure)

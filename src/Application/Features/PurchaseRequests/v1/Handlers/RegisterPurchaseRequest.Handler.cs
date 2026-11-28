@@ -56,12 +56,51 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                     throw new InvalidOperationException("Ocurrio un error la generar la solucitud de comprar");
                 }
 
-                var itemProducts = purchaseRequest.PurchaseRequestItems
-                    .Select(item => item.ProductId);
+                var itemProductIds = purchaseRequest.PurchaseRequestItems
+                    .Select(item => item.ProductId)
+                    .Distinct()
+                    .ToList();
 
-                #region  Evaluación de los productos
+                #region Evaluación de los productos
 
-                await ValidateProductsByDestinationType(itemProducts, purchaseRequest.Destination, cancellationToken);
+                var productsById = await _unitOfWork.Products.Entities
+                    .AsNoTracking()
+                    .Where(product =>
+                        itemProductIds.Contains(product.Id) &&
+                        product.ProductStatus == ProductStatus.Active &&
+                        product.DeletedAt == null)
+                    .Select(product => new
+                    {
+                        product.Id,
+                        product.ProductUsageType,
+                        product.UnitMeasureId
+                    })
+                    .ToDictionaryAsync(product => product.Id, cancellationToken);
+
+                if (productsById.Count != itemProductIds.Count)
+                {
+                    return _errorManager.ThrowBadRequest<bool>(
+                        "Uno o más productos seleccionados no existen o no están activos.",
+                        "ERP:PRODUCT_NOT_FOUND");
+                }
+
+                if (productsById.Values.Any(product => product.UnitMeasureId == Guid.Empty))
+                {
+                    return _errorManager.ThrowBadRequest<bool>(
+                        "Uno o más productos no tienen unidad de medida asociada.",
+                        "ERP:UNIT_MEASURE_REQUIRED");
+                }
+
+                var expectedUsageType = purchaseRequest.Destination == DestinationRequest.ServiceOrder
+                    ? ProductUsageType.Operational
+                    : ProductUsageType.Administrative;
+
+                if (productsById.Values.Any(product => product.ProductUsageType != expectedUsageType))
+                {
+                    return _errorManager.ThrowBadRequest<bool>(
+                        "Uno o más productos no corresponden al destino de la solicitud.",
+                        "ERP:INVALID_PRODUCT_USAGE_TYPE");
+                }
 
                 #endregion
 
@@ -72,9 +111,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 {
                     await UploadItemImagesAsync(productItem, cancellationToken);
 
+                    var productUnitMeasureId = productsById[productItem.ProductId].UnitMeasureId;
+
                     var purchaseRequestItemEntity = PurchaseRequestMapper.ToPurchaseRequestItemEntity(
                         productItem,
-                        purchaseRequestEntity.Id
+                        purchaseRequestEntity.Id,
+                        productUnitMeasureId
                     );
 
                     await _unitOfWork.PurchaseRequestItems.RegisterPurchaseRequestItem(purchaseRequestItemEntity);
@@ -85,33 +127,6 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return true;
-        }
-        
-        //Validar los productos si es para una operación o administrativo...
-        private async Task<bool> ValidateProductsByDestinationType(IEnumerable<Guid> productIds, DestinationRequest destination, CancellationToken cancellationToken)
-        {
-            var products = await _unitOfWork.Products.Entities
-                .Where(product =>
-                    productIds.Contains(product.Id) &&
-                    product.ProductStatus == ProductStatus.Active
-                )
-                .Select(product => new
-                {
-                    product.Id,
-                    product.ProductUsageType
-                })
-                .ToListAsync(cancellationToken);
-
-            if (products.Count != productIds.Distinct().Count())
-            {
-                return false;
-            }
-
-            var expectedUsageType = destination == DestinationRequest.ServiceOrder
-                ? ProductUsageType.Operational
-                : ProductUsageType.Administrative;
-
-            return products.All(product => product.ProductUsageType == expectedUsageType);
         }
 
         private async Task UploadItemImagesAsync(Commands.PurchaseRequestItem productItem, CancellationToken cancellationToken)
