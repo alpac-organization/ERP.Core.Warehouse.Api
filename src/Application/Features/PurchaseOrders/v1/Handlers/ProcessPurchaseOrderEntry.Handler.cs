@@ -70,7 +70,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                     "ERP:NON_OPERATIONAL_PRODUCTS");
             }
 
-            var branchCode = purchaseOrder.PurchaseRequest.Branch?.BranchCode ?? string.Empty;
+            var branchCode = (purchaseOrder.PurchaseRequest.Branch?.BranchCode ?? string.Empty).ToUpperInvariant();
             var (IsSucceded, Code) = await _codeGenerator.GenerateCodeToInventoryPendingInputs(branchCode, cancellationToken);
 
             if (IsSucceded is false)
@@ -83,7 +83,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
             inventoryEntryEntity.BranchId = purchaseOrder.PurchaseRequest.BranchId;
             inventoryEntryEntity.WorkAreaId = purchaseOrder.PurchaseRequest.AreaId;
             inventoryEntryEntity.PurchaseOrderId = purchaseOrder.Id;
-            inventoryEntryEntity.Code = Code;
+            inventoryEntryEntity.Code = Code?.ToUpperInvariant();
 
             await _unitOfWork.InventoryEntries.RegisterInventoryEntry(inventoryEntryEntity);
 
