@@ -18,6 +18,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Commands
         public bool? InventoryAvailable { get; set; }
 
         public string? BrandProduct { get; set; }
+        public string? ProformaNumber { get; set; }
         public ProductQuality? ProductQuality { get; set; }
         public PaymentMethodType? PaymentMethodType { get; set; }
 

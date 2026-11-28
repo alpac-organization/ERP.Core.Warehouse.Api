@@ -63,8 +63,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Valida
                     .WithMessage("El id del producto es obligatorio para ítems nuevos.");
 
                 RuleFor(x => x.UnitMeasureId)
-                    .NotEmpty()
-                    .WithMessage("La unidad de medida es obligatoria para ítems nuevos.");
+                    .NotEqual(Guid.Empty)
+                    .When(x => x.UnitMeasureId.HasValue)
+                    .WithMessage("La unidad de medida no es válida.");
 
                 RuleFor(x => x.Quantity)
                     .NotNull()

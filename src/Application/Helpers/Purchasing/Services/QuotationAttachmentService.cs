@@ -18,21 +18,21 @@ namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services
 
         public async Task<(string? Json, string? ErrorMessage)> BuildAdditionalDataAsync(
             QuotationAttachmentsInput? attachments,
+            string? proformaNumber,
             string? existingJson,
             CancellationToken cancellationToken)
         {
-            if (attachments is null)
-            {
-                return (existingJson, null);
-            }
+            var normalizedProforma = proformaNumber is null
+                ? null
+                : (string.IsNullOrWhiteSpace(proformaNumber) ? string.Empty : proformaNumber.Trim());
 
-            var images = attachments.ImagesBase64?
+            var images = attachments?.ImagesBase64?
                 .Where(i => !string.IsNullOrWhiteSpace(i))
                 .ToList() ?? [];
 
-            var hasPdf = !string.IsNullOrWhiteSpace(attachments.PdfBase64);
+            var hasPdf = !string.IsNullOrWhiteSpace(attachments?.PdfBase64);
 
-            if (images.Count == 0 && !hasPdf)
+            if (images.Count == 0 && !hasPdf && normalizedProforma is null)
             {
                 return (existingJson, null);
             }
@@ -42,15 +42,20 @@ namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services
                 return (null, $"Solo se permiten hasta {MaxImages} imágenes por cotización.");
             }
 
-            if (hasPdf && !string.IsNullOrWhiteSpace(attachments.PdfFileName)
+            if (hasPdf && !string.IsNullOrWhiteSpace(attachments!.PdfFileName)
                 && !attachments.PdfFileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
             {
                 return (null, "El documento adjunto debe ser un archivo PDF.");
             }
 
             var additionalData = string.IsNullOrWhiteSpace(existingJson)
-                ? new QuotationAdditionalData()
-                : JsonSerializer.Deserialize<QuotationAdditionalData>(existingJson, JsonOptions) ?? new QuotationAdditionalData();
+                ? new QuotationMetadataPayload()
+                : DeserializeMetadata(existingJson);
+
+            if (normalizedProforma is not null)
+            {
+                additionalData.ProformaNumber = normalizedProforma.Length == 0 ? null : normalizedProforma;
+            }
 
             if (hasPdf)
             {
@@ -59,7 +64,7 @@ namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services
                     additionalData.Documents.Clear();
                 }
 
-                var pdfBase64 = StripDataUrlPrefix(attachments.PdfBase64!);
+                var pdfBase64 = StripDataUrlPrefix(attachments!.PdfBase64!);
                 byte[] bytes;
                 try
                 {
@@ -126,7 +131,27 @@ namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services
                 }
             }
 
+            if (string.IsNullOrWhiteSpace(additionalData.ProformaNumber)
+                && additionalData.Images.Count == 0
+                && additionalData.Documents.Count == 0)
+            {
+                return (null, null);
+            }
+
             return (JsonSerializer.Serialize(additionalData, JsonOptions), null);
+        }
+
+        private static QuotationMetadataPayload DeserializeMetadata(string json)
+        {
+            try
+            {
+                return JsonSerializer.Deserialize<QuotationMetadataPayload>(json, JsonOptions)
+                       ?? new QuotationMetadataPayload();
+            }
+            catch (JsonException)
+            {
+                return new QuotationMetadataPayload();
+            }
         }
 
         private static string StripDataUrlPrefix(string content)

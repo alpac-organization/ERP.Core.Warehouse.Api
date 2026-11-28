@@ -119,9 +119,9 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                     }
 
                     var item = quotation.PurchaseRequestItem;
-                    var unitMeasureId = item.UnitMeasureId != Guid.Empty
-                        ? item.UnitMeasureId
-                        : item.Product?.UnitMeasureId ?? Guid.Empty;
+                    var unitMeasureId = item.Product?.UnitMeasureId is { } prodUm && prodUm != Guid.Empty
+                        ? prodUm
+                        : item.UnitMeasureId;
 
                     if (unitMeasureId == Guid.Empty)
                     {
@@ -254,10 +254,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Handlers
                 quotation.Imi = retention.ImiAmount;
             }
 
-            if (request.Attachments is not null)
+            if (request.Attachments is not null || request.ProformaNumber is not null)
             {
                 var (json, attachmentError) = await quotationAttachmentService.BuildAdditionalDataAsync(
                     request.Attachments,
+                    request.ProformaNumber,
                     quotation.AdditionalData,
                     cancellationToken);
 

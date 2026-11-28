@@ -176,12 +176,34 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
         private async Task<bool> UpdateItemsAsync(PurchaseRequest purchase, List<UpdatePurchaseRequestItem> payloadItems, CancellationToken cancellationToken)
         {
             var existingItems = purchase.PurchaseRequestItems.ToList();
+            var referencedProductIds = payloadItems
+                .Select(i => i.ProductId)
+                .Concat(existingItems.Select(e => (Guid?)e.ProductId))
+                .Where(id => id.HasValue && id.Value != Guid.Empty)
+                .Select(id => id!.Value)
+                .Distinct()
+                .ToList();
+
+            var productUnitMeasures = await _unitOfWork.Products.Entities
+                .AsNoTracking()
+                .Where(p => referencedProductIds.Contains(p.Id) && p.DeletedAt == null)
+                .Select(p => new { p.Id, p.UnitMeasureId })
+                .ToDictionaryAsync(p => p.Id, p => p.UnitMeasureId, cancellationToken);
 
             foreach (var itemPayload in payloadItems)
             {
                 if (!itemPayload.Id.HasValue)
                 {
-                    await CreateItemAsync(purchase.Id, itemPayload, cancellationToken);
+                    if (!itemPayload.ProductId.HasValue
+                        || !productUnitMeasures.TryGetValue(itemPayload.ProductId.Value, out var newUnitMeasureId)
+                        || newUnitMeasureId == Guid.Empty)
+                    {
+                        return _errorManager.ThrowBadRequest<bool>(
+                            "El producto seleccionado no existe o no tiene unidad de medida asociada.",
+                            "ERP:UNIT_MEASURE_REQUIRED");
+                    }
+
+                    await CreateItemAsync(purchase.Id, itemPayload, newUnitMeasureId, cancellationToken);
                     continue;
                 }
 
@@ -195,7 +217,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
                 if (itemPayload.Quantity.HasValue) existing.Quantity = itemPayload.Quantity.Value;
                 if (itemPayload.QuantityUnit.HasValue) existing.QuantityUnit = itemPayload.QuantityUnit.Value;
                 if (itemPayload.ProductId.HasValue) existing.ProductId = itemPayload.ProductId.Value;
-                if (itemPayload.UnitMeasureId.HasValue) existing.UnitMeasureId = itemPayload.UnitMeasureId.Value;
+
+                if (productUnitMeasures.TryGetValue(existing.ProductId, out var resolvedUnitMeasureId)
+                    && resolvedUnitMeasureId != Guid.Empty)
+                {
+                    existing.UnitMeasureId = resolvedUnitMeasureId;
+                }
 
                 if (itemPayload.Description != null) existing.Description = itemPayload.Description;
                 if (itemPayload.Justification != null) existing.Justification = itemPayload.Justification;
@@ -211,9 +238,13 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseRequests.v1.Handle
             return true;
         }
 
-        private async Task CreateItemAsync(Guid purchaseRequestId, UpdatePurchaseRequestItem itemPayload, CancellationToken cancellationToken)
+        private async Task CreateItemAsync(
+            Guid purchaseRequestId,
+            UpdatePurchaseRequestItem itemPayload,
+            Guid unitMeasureId,
+            CancellationToken cancellationToken)
         {
-            var newItem = itemPayload.ToPurchaseRequestItemEntity(purchaseRequestId);
+            var newItem = itemPayload.ToPurchaseRequestItemEntity(purchaseRequestId, unitMeasureId);
             newItem.AdditionalData = await BuildItemAdditionalDataAsync(itemPayload.ImagesProductToChanged, cancellationToken);
             await _unitOfWork.PurchaseRequestItems.RegisterPurchaseRequestItem(newItem);
         }

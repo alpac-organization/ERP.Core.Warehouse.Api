@@ -22,8 +22,11 @@ namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services
 
             try
             {
-                var data = JsonSerializer.Deserialize<QuotationAdditionalData>(additionalData, JsonOptions);
-                return new QuotationAttachmentsDto(Map(data?.Images), Map(data?.Documents));
+                var data = JsonSerializer.Deserialize<QuotationMetadataPayload>(additionalData, JsonOptions);
+                var proforma = string.IsNullOrWhiteSpace(data?.ProformaNumber)
+                    ? null
+                    : data.ProformaNumber.Trim();
+                return new QuotationAttachmentsDto(proforma, Map(data?.Images), Map(data?.Documents));
             }
             catch (JsonException)
             {
@@ -50,8 +53,18 @@ namespace ERP.Core.Warehouse.Api.Application.Helpers.Purchasing.Services
         }
     }
 
-    public sealed record QuotationAttachmentsDto(List<QuotationFileDto> Images, List<QuotationFileDto> Documents)
+    public sealed class QuotationMetadataPayload
     {
-        public static QuotationAttachmentsDto Empty { get; } = new([], []);
+        public string? ProformaNumber { get; set; }
+        public List<QuotationFileInformation> Images { get; set; } = [];
+        public List<QuotationFileInformation> Documents { get; set; } = [];
+    }
+
+    public sealed record QuotationAttachmentsDto(
+        string? ProformaNumber,
+        List<QuotationFileDto> Images,
+        List<QuotationFileDto> Documents)
+    {
+        public static QuotationAttachmentsDto Empty { get; } = new(null, [], []);
     }
 }

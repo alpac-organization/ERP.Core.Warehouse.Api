@@ -82,7 +82,12 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Handlers
                         ProductName = orderItem.Product?.ProductName,
                         ProductCode = orderItem.Product?.Code,
                         Quantity = quantity,
-                        UnitMeasure = requestItem?.UnitMeasure?.Name ?? requestItem?.UnitMeasure?.Symbol,
+                        UnitMeasure = orderItem.Product?.UnitMeasure?.Name
+                            ?? orderItem.Product?.UnitMeasure?.Symbol
+                            ?? requestItem?.Product?.UnitMeasure?.Name
+                            ?? requestItem?.Product?.UnitMeasure?.Symbol
+                            ?? requestItem?.UnitMeasure?.Name
+                            ?? requestItem?.UnitMeasure?.Symbol,
                         UnitPrice = unitPrice,
                         PriceTotal = priceTotal,
                         Iva = iva

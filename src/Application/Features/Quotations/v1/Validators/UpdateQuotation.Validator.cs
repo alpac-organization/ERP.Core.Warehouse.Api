@@ -54,6 +54,11 @@ namespace ERP.Core.Warehouse.Api.Application.Features.Quotations.v1.Validators
                 .MaximumLength(200)
                 .When(x => x.BrandProduct is not null)
                 .WithMessage("La marca del producto no puede exceder los 200 caracteres.");
+
+            RuleFor(x => x.ProformaNumber)
+                .MaximumLength(100)
+                .When(x => x.ProformaNumber is not null)
+                .WithMessage("El número de proforma no puede exceder los 100 caracteres.");
         }
     }
 }

@@ -38,6 +38,8 @@ namespace ERP.Core.Warehouse.Api.Application.Features.PurchaseOrders.v1.Dtos
 
         public PaymentMethodType PaymentMethodType { get; set; }
 
+        public string? ProformaNumber { get; set; }
+
         public Guid SupplierId { get; set; }
 
         public SupplierInformation SupplierInformation { get; set; } = new();
