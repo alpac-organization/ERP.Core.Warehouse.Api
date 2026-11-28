@@ -10,6 +10,7 @@ public class KardexMovementSource
     public string MovementType { get; set; } = null!;
     public string? RecordNumber { get; set; }
     public ReferenceType Document { get; set; }
+    public string? DocumentCode { get; set; }
     public decimal BalanceUnits { get; set; }
     public decimal AverageCost { get; set; }
     public decimal KardexBalance { get; set; }

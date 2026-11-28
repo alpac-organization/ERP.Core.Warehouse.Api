@@ -282,6 +282,8 @@ public class GetKardexReportHandler(
 
             runningAvgCost = runningUnits > 0m ? runningKardex / runningUnits : 0m;
 
+            var resolvedReference = ResolveReferenceType(movement);
+
             rows.Add(new KardexMovementSource
             {
                 Kardex = new KardexEntity
@@ -297,11 +299,10 @@ public class GetKardexReportHandler(
                 },
                 MovementType = isEntry ? "Compra" : "Salida",
                 RecordNumber = isEntry
-                    ? (!string.IsNullOrWhiteSpace(movement.InventoryEntry?.InvoiceNumber)
-                        ? movement.InventoryEntry.InvoiceNumber
-                        : movement.InventoryEntry?.Code)
-                    : movement.InventoryOutput?.Code,
-                Document = ResolveReferenceType(movement),
+                    ? movement.InventoryEntry?.Code?.Trim().ToUpperInvariant()
+                    : movement.InventoryOutput?.Code?.Trim().ToUpperInvariant(),
+                Document = resolvedReference,
+                DocumentCode = ResolveDocumentCode(movement, resolvedReference),
                 BalanceUnits = runningUnits,
                 AverageCost = runningAvgCost,
                 KardexBalance = runningKardex
@@ -357,7 +358,12 @@ public class GetKardexReportHandler(
         var query = _unitOfWork.Kardex.Entities
             .AsNoTracking()
             .Include(k => k.InventoryEntry)
+                .ThenInclude(e => e!.PurchaseOrder)
+                    .ThenInclude(po => po!.PurchaseRequest)
             .Include(k => k.InventoryOutput)
+                .ThenInclude(o => o!.SupplyRequest)
+            .Include(k => k.InventoryOutput)
+                .ThenInclude(o => o!.FuelRequest)
             .Where(k => k.DeletedAt == null)
             .Where(k => k.MovementType == KardexMovementType.Buys || k.MovementType == KardexMovementType.Exit)
             .Where(k => productIds.Contains(k.ProductId))
@@ -409,6 +415,19 @@ public class GetKardexReportHandler(
             return ReferenceType.FT;
 
         return ReferenceType.None;
+    }
+
+    private static string? ResolveDocumentCode(KardexEntity movement, ReferenceType referenceType)
+    {
+        var raw = referenceType switch
+        {
+            ReferenceType.FT => movement.InventoryEntry?.PurchaseOrder?.PurchaseRequest?.Code,
+            ReferenceType.RQ => movement.InventoryOutput?.SupplyRequest?.Code,
+            ReferenceType.BL => movement.InventoryOutput?.FuelRequest?.Code,
+            _ => null
+        };
+
+        return string.IsNullOrWhiteSpace(raw) ? null : raw.Trim().ToUpperInvariant();
     }
 
     private static decimal Round(decimal value) => Math.Round(value, 2, MidpointRounding.AwayFromZero);

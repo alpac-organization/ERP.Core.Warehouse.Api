@@ -122,6 +122,7 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                     s.Kardex.TransactionDate.ToDateTime(s.Kardex.TransactionTime)))
                 .ForMember(d => d.RecordNumber, o => o.MapFrom(s => s.RecordNumber))
                 .ForMember(d => d.Document, o => o.MapFrom(s => s.Document))
+                .ForMember(d => d.DocumentCode, o => o.MapFrom(s => s.DocumentCode))
                 .ForMember(d => d.EntryUnits, o => o.MapFrom(s =>
                     s.Kardex.MovementType == KardexMovementType.Buys ? s.Kardex.Units : 0m))
                 .ForMember(d => d.ExitUnits, o => o.MapFrom(s =>

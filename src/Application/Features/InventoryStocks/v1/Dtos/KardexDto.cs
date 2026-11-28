@@ -14,6 +14,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Dtos
         public Guid? InventoryEntryId { get; set; }
         public string? InventoryEntryCode { get; set; }
         public string? InvoiceNumber { get; set; }
+        public string? PurchaseRequestCode { get; set; }
 
         public Guid? InventoryOutputId { get; set; }
         public string? InventoryOutputCode { get; set; }

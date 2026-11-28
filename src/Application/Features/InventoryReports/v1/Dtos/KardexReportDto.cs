@@ -30,6 +30,7 @@ public class KardexMovementRowDto
     public DateTime Date { get; set; }
     public string? RecordNumber { get; set; }
     public ReferenceType Document { get; set; }
+    public string? DocumentCode { get; set; }
     public decimal EntryUnits { get; set; }
     public decimal ExitUnits { get; set; }
     public decimal UnitCost { get; set; }

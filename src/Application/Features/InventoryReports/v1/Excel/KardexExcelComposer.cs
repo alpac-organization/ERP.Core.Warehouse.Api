@@ -395,7 +395,7 @@ public static class KardexExcelComposer
             var r = firstDataRow + idx;
             var mov = movementRows[idx];
             var isEntry = mov.EntryUnits > 0m;
-            var docLabel = FormatDocumentTag(mov.Document);
+            var docLabel = FormatDocumentTag(mov.Document, mov.DocumentCode);
 
             string? unitCostFormula = null;
             if (!isEntry)
@@ -536,7 +536,8 @@ public static class KardexExcelComposer
         var cols = new XElement(MainNs + "cols",
             ColDef(1, 1, 11.5, StyleColCenterMiddle),
             ColDef(2, 2, 11.5, StyleColDefaultMiddle),
-            ColDef(3, 4, 11.5, StyleColDefaultMiddle),
+            ColDef(3, 3, 15.0, StyleColDefaultMiddle),
+            ColDef(4, 4, 18.0, StyleColDefaultMiddle),
             ColDef(5, 6, 9.5, StyleColDefaultMiddle),
             ColDef(7, 7, 13.0, StyleColDefaultMiddle),
             ColDef(8, 8, 13.0, StyleColCenterMiddle),
@@ -676,14 +677,23 @@ public static class KardexExcelComposer
     private static string FormatPeriodRange(DateTime from, DateTime to) =>
         $"Del {from.Day}/{from.Month}/{from.Year} Al {to.Day}/{to.Month}/{to.Year}";
 
-    private static string? FormatDocumentTag(ReferenceType reference) =>
-        reference switch
+    private static string? FormatDocumentTag(ReferenceType reference, string? documentCode)
+    {
+        var prefix = reference switch
         {
             ReferenceType.FT => "FT#",
             ReferenceType.RQ => "RQ#",
             ReferenceType.BL => "BL#",
             _ => null
         };
+
+        if (prefix is null)
+            return null;
+
+        return string.IsNullOrWhiteSpace(documentCode)
+            ? prefix
+            : $"{prefix} {documentCode.Trim()}";
+    }
 
     private static string SanitizeFormatLiteral(string? raw)
     {
