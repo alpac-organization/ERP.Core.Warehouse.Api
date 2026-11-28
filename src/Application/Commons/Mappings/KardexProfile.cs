@@ -17,6 +17,12 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
                     src.InventoryEntry != null ? src.InventoryEntry.Code : null))
                 .ForMember(dest => dest.InvoiceNumber, opt => opt.MapFrom(src =>
                     src.InventoryEntry != null ? src.InventoryEntry.InvoiceNumber : null))
+                .ForMember(dest => dest.PurchaseRequestCode, opt => opt.MapFrom(src =>
+                    src.InventoryEntry != null &&
+                    src.InventoryEntry.PurchaseOrder != null &&
+                    src.InventoryEntry.PurchaseOrder.PurchaseRequest != null
+                        ? src.InventoryEntry.PurchaseOrder.PurchaseRequest.Code
+                        : null))
                 .ForMember(dest => dest.InventoryOutputCode, opt => opt.MapFrom(src =>
                     src.InventoryOutput != null ? src.InventoryOutput.Code : null))
                 .ForMember(dest => dest.OutputRequestCode, opt => opt.MapFrom(src =>
@@ -106,9 +112,8 @@ namespace ERP.Core.Warehouse.Api.Application.Commons.Mappings
             {
                 ReferenceType.BL => src.InventoryOutput?.FuelRequest?.Code ?? src.InventoryOutput?.Code,
                 ReferenceType.RQ => src.InventoryOutput?.SupplyRequest?.Code ?? src.InventoryOutput?.Code,
-                ReferenceType.FT => !string.IsNullOrWhiteSpace(src.InventoryEntry?.Code)
-                    ? src.InventoryEntry!.Code
-                    : src.InventoryEntry?.InvoiceNumber,
+                ReferenceType.FT => src.InventoryEntry?.PurchaseOrder?.PurchaseRequest?.Code
+                    ?? src.InventoryEntry?.Code,
                 _ => src.InventoryOutput?.Code ?? src.InventoryEntry?.Code
             };
         }

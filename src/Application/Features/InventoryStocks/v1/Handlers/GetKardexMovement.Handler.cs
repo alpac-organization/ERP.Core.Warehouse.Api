@@ -155,6 +155,7 @@ namespace ERP.Core.Warehouse.Api.Application.Features.InventoryStocks.v1.Handler
                 .Include(kproduct => kproduct.CostCenter)
                 .Include(kproduct => kproduct.InventoryEntry)
                     .ThenInclude(entry => entry!.PurchaseOrder)
+                        .ThenInclude(po => po!.PurchaseRequest)
                 .Include(kproduct => kproduct.InventoryOutput)
                     .ThenInclude(output => output!.SupplyRequest)
                 .Include(kproduct => kproduct.InventoryOutput)
